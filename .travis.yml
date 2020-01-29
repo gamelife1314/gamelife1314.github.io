@@ -1,0 +1,28 @@
+language: node_js
+sudo: required
+node_js: 
+  - 12.9.1
+cache:
+  directories:
+    - node_modules
+
+branches:
+  only:
+    - source 
+
+before_install:
+  - npm install -g hexo-cli
+
+install:
+  - npm install
+  - npm install hexo-deployer-git --save
+
+script:
+  - hexo clean
+  - hexo generate
+
+after_script:
+  - git config user.name "hexo robot"
+  - git config user.email "fudenglong1417@gmail.com"
+  - sed -i "s/gh_token/${GH_TOKEN}/g" ./_config.yml
+  - hexo deploy
