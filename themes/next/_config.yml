@@ -609,7 +609,7 @@ disqusjs:
 
 # Changyan
 changyan:
-  enable: false
+  enable: true
   appid: cytk7bf4l
   appkey: dc9e07f2815ef0eabdb3e514008830f3
   #post_meta_order: 0
