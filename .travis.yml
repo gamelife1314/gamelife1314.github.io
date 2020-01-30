@@ -20,7 +20,6 @@ install:
 script:
   - hexo clean
   - hexo generate
-  - echo $CNAME_URL > public/CNAME
 
 after_script:
   - git config user.name "hexo robot"
