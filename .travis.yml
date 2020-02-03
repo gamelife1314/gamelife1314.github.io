@@ -11,6 +11,7 @@ branches:
     - source 
 
 before_install:
+  - export TZ=Asia/Shanghai
   - npm install -g hexo-cli
 
 install:
