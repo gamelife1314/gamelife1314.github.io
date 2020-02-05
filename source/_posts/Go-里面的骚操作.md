@@ -275,3 +275,100 @@ func main() {
 }
 
 ```
+
+### go:linkname 
+
+关于 `go:linkname` 指令的官方解释大家可以在 [https://golang.org/cmd/compile/](https://golang.org/cmd/compile/) 找到，它的格式为：
+
+> //go:linkname localname [importpath.name]
+
+意思是本地源文件中的 `localname` 使用 `importpath.name` 作为其符号名称，相当于 `localname` 软连接到了 `importpath.name`，利用这个特性，我们可以访问：
+
+1. 未导出的方法
+2. 公开类型私有方法
+3. 私有类型私有方法
+4. 私有全局变量
+
+{% tabs golinkname %}
+
+<!-- tab 代码组织 -->
+![golinkname](golinkname.png)
+<!-- endtab -->
+
+<!-- tab code.go -->
+
+```go
+package a
+
+func add(a, b int) int  {
+	return a + b
+}
+
+type Pub struct {
+	i int64
+}
+
+func (p *Pub) iv(b int64) int64 {
+	return p.i + b
+}
+
+type pri struct {
+	i int64
+}
+
+func (p *pri) iv(b int64) int64 {
+	return p.i + b
+}
+
+var gv = map[string]string{"hello": "world"}
+```
+
+<!-- endtab -->
+
+<!-- tab main.go -->
+
+```go
+package main
+
+import (
+	"fmt"
+	"go-study/get_gid/a"
+	_ "unsafe"
+)
+
+// 调用包级私有方法
+//go:linkname add go-study/get_gid/a.add
+func add(a, b int) int
+
+// 访问公开类型私有方法
+//go:linkname iv go-study/get_gid/a.(*Pub).iv
+func iv(a *a.Pub, b int64) int64
+
+// 访问私有类型私有方法，需要在引用出重新定义私有类型
+type pri struct {
+	i int64
+}
+
+//go:linkname (*pri).iv go-study/get_gid/a.(*pri).iv
+func (p *pri) iv(b int64) int64
+
+// 访问私有全局变量
+//go:linkname gv go-study/get_gid/a.gv
+var gv map[string]string
+
+func main() {
+	fmt.Println(add(1, 2))
+	pubv := &a.Pub{}
+	fmt.Println(iv(pubv, 2))
+	priv := &pri{i:3}
+	fmt.Println(priv.iv(2))
+	fmt.Println(gv)
+}
+```
+<!-- endtab -->
+
+<!-- tab get_gid.s -->
+**`get_gid.s`** 是一个空的文件，用来绕过编译检查，名称可以是任意值，只要后缀为 `.s` 就可以。
+<!-- endtab -->
+
+{% endtabs %}
