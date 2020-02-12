@@ -714,6 +714,116 @@ func main() {
 在C语言中，枚举类型底层对应int类型，支持负数类型的值。我们可以通过C.ONE、C.TWO等直接访问定义的枚举值。
 
 
+#### 数组、字符串和切片
+
+在C语言中，数组名其实对应于一个指针，指向特定类型特定长度的一段内存，但是这个指针不能被修改；当把数组名传递给一个函数时，实际上传递的是数组第一个元素的地址。为了讨论方便，我们将一段特定长度的内存统称为数组。C语言的字符串是一个char类型的数组，字符串的长度需要根据表示结尾的NULL字符的位置确定。C语言中没有切片类型。
+
+在Go语言中，数组是一种值类型，而且数组的长度是数组类型的一个部分。Go语言字符串对应一段长度确定的只读byte类型的内存。Go语言的切片则是一个简化版的动态数组。
+
+Go语言和C语言的数组、字符串和切片之间的相互转换可以简化为Go语言的切片和C语言中指向一定长度内存的指针之间的转换。
+
+CGO的C虚拟包提供了以下一组函数，用于Go语言和C语言之间数组和字符串的双向转换：
+
+```go
+// Go string to C string
+// The C string is allocated in the C heap using malloc.
+// It is the caller's responsibility to arrange for it to be
+// freed, such as by calling C.free (be sure to include stdlib.h
+// if C.free is needed).
+func C.CString(string) *C.char
+
+// Go []byte slice to C array
+// The C array is allocated in the C heap using malloc.
+// It is the caller's responsibility to arrange for it to be
+// freed, such as by calling C.free (be sure to include stdlib.h
+// if C.free is needed).
+func C.CBytes([]byte) unsafe.Pointer
+
+// C string to Go string
+func C.GoString(*C.char) string
+
+// C data with explicit length to Go string
+func C.GoStringN(*C.char, C.int) string
+
+// C data with explicit length to Go []byte
+func C.GoBytes(unsafe.Pointer, C.int) []byte
+```
+
+其中C.CString针对输入的Go字符串，克隆一个C语言格式的字符串；返回的字符串由 C 语言的 `malloc` 函数分配，不使用时需要通过 C 语言的 `free` 函数释放。`C.CBytes` 函数的功能和 `C.CString` 类似，用于从输入的 Go 语言字节切片克隆一个C语言版本的字节数组，同样返回的数组需要在合适的时候释放。`C.GoString` 用于将从 `NULL`结尾的 C 语言字符串克隆一个 Go 语言字符串。`C.GoStringN` 是另一个字符数组克隆函数。`C.GoBytes` 用于从 C 语言数组，克隆一个 Go 语言字节切片。
+
+该组辅助函数都是以克隆的方式运行。当 Go 语言字符串和切片向 C 语言转换时，克隆的内存由 C 语言的 malloc 函数分配，最终可以通过 free 函数释放。当 C 语言字符串或数组向 Go 语言转换时，克隆的内存由 Go 语言分配管理。通过该组转换函数，转换前和转换后的内存依然在各自的语言环境中，它们并没有跨越 Go 语言和 C 语言。克隆方式实现转换的优点是接口和内存管理都很简单，缺点是克隆需要分配新的内存和复制操作都会导致额外的开销。
+
+在 reflect 包中有字符串和切片的定义：
+
+```go
+type StringHeader struct {
+    Data uintptr
+    Len  int
+}
+
+type SliceHeader struct {
+    Data uintptr
+    Len  int
+    Cap  int
+}
+```
+
+如果不希望单独分配内存，可以在Go语言中直接访问C语言的内存空间：
+
+{% tabs CGO数组 %}
+
+<!-- tab 示例代码-->
+```go
+package main
+
+/*
+#include <string.h>
+char arr[10];
+char *s = "Hello";
+*/
+import "C"
+import (
+	"fmt"
+	"reflect"
+	"unsafe"
+)
+func main() {
+	// 通过 reflect.SliceHeader 转换
+	var arr0 []byte
+	var arr0Hdr = (*reflect.SliceHeader)(unsafe.Pointer(&arr0))
+	arr0Hdr.Data = uintptr(unsafe.Pointer(&C.arr[0]))
+	arr0Hdr.Len = 10
+	arr0Hdr.Cap = 10
+
+
+	var s0 string
+	var s0Hdr = (*reflect.StringHeader)(unsafe.Pointer(&s0))
+	s0Hdr.Data = uintptr(unsafe.Pointer(C.s))
+	s0Hdr.Len = int(C.strlen(C.s))
+
+	fmt.Println(arr0, s0)
+}
+```
+<!-- endtab -->
+
+<!-- tab 运行结果 -->
+![运行结果](cgo_arr.png)
+<!-- endtab -->
+
+{% endtabs %}
+
+因为Go语言的字符串是只读的，用户需要自己保证Go字符串在使用期间，底层对应的C字符串内容不会发生变化、内存不会被提前释放掉。
+
+在CGO中，会为字符串和切片生成和上面结构对应的C语言版本的结构体：
+
+```c
+typedef struct { const char *p; GoInt n; } GoString;
+typedef struct { void *data; GoInt len; GoInt cap; } GoSlice;
+```
+
+在C语言中可以通过GoString和GoSlice来访问Go语言的字符串和切片。如果是Go语言中数组类型，可以将数组转为切片后再行转换。如果字符串或切片对应的底层内存空间由Go语言的运行时管理，那么在C语言中不能长时间保存Go内存对象。
+
+
 ### 课外阅读
 
 1. [https://golang.org/cmd/cgo/](https://golang.org/cmd/cgo/)
