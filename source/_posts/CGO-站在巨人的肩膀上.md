@@ -1275,6 +1275,356 @@ func _cgoexpwrap_8313eaf44386_sum(p0 _Ctype_int, p1 _Ctype_int) (r0 _Ctype_int) 
 
 其中 `runtime.cgocallback` 函数是实现 C 语言到 Go 语言函数跨界调用的关键。更详细的细节可以参考相关函数的实现。
 
+### 封装 qsort
+
+`qsort` 快速排序函数是 C 语言的高阶函数，支持用于自定义排序比较函数，可以对任意类型的数组进行排序。
+
+
+#### 认识 qsort 函数
+
+qsort快速排序函数有 `<stdlib.h>` 标准库提供，函数的声明如下：
+
+```c
+void qsort(
+    void* base, size_t num, size_t size,
+    int (*cmp)(const void*, const void*)
+);
+```
+
+其中 `base` 参数是要排序数组的首个元素的地址，`num` 是数组中元素的个数，`size` 是数组中每个元素的大小。最关键是 `cmp` 比较函数，用于对数组中任意两个元素进行排序。`cmp` 排序函数的两个指针参数分别是要比较的两个元素的地址，如果第一个参数对应元素大于第二个参数对应的元素将返回结果大于 0，如果两个元素相等则返回 0，如果第一个元素小于第二个元素则返回结果小于 0。
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define DIM(x) (sizeof(x)/sizeof((x)[0]))
+
+static int cmp(const void* a, const void* b) {
+    const int* pa = (int*)a;
+    const int* pb = (int*)b;
+    return *pa - *pb;
+}
+
+int main() {
+    int values[] = { 42, 8, 109, 97, 23, 25 };
+    int i;
+
+    qsort(values, DIM(values), sizeof(values[0]), cmp);
+
+    for(i = 0; i < DIM(values); i++) {
+        printf ("%d ",values[i]);
+    }
+    return 0;
+}
+```
+
+其中 `DIM(values)` 宏用于计算数组元素的个数，`sizeof(values[0])` 用于计算数组元素的大小。 `cmp` 是用于排序时比较两个元素大小的回调函数。为了避免对全局名字空间的污染，我们将 `cmp` 回调函数定义为仅当前文件内可访问的静态函数。
+
+#### 将 qsort 函数从 Go 包导出
+
+为了方便 Go 语言的非 CGO 用户使用 qsort 函数，我们需要将C语言的 qsort 函数包装为一个外部可以访问的 Go 函数。用Go语言将qsort函数重新包装为qsort.Sort函数：
+
+```go
+package qsort
+
+//typedef int (*qsort_cmp_func_t)(const void* a, const void* b);
+import "C"
+import "unsafe"
+
+func Sort(
+    base unsafe.Pointer, num, size C.size_t,
+    cmp C.qsort_cmp_func_t,
+) {
+    C.qsort(base, num, size, cmp)
+}
+```
+
+因为Go语言的CGO语言不好直接表达C语言的函数类型，因此在C语言空间将比较函数类型重新定义为一个 `qsort_cmp_func_t` 类型。
+
+虽然 `Sort` 函数已经导出了，但是对于 `qsort` 包之外的用户依然不能直接使用该函数—— Sort 函数的参数还包含了虚拟的 C 包提供的类型。 在 CGO 的内部机制一节中我们已经提过，虚拟的 C 包下的任何名称其实都会被映射为包内的私有名字。比如 `C.size_t` 会被展开为 `_Ctype_size_t`，`C.qsort_cmp_func_t` 类型会被展开为 `_Ctype_qsort_cmp_func_t`。
+
+被 `CGO` 处理后的 `Sort` 函数的类型如下：
+
+```c
+func Sort(
+    base unsafe.Pointer, num, size _Ctype_size_t,
+    cmp _Ctype_qsort_cmp_func_t,
+)
+```
+
+这样将会导致包外部用于无法构造 `_Ctype_size_t` 和 `_Ctype_qsort_cmp_func_t` 类型的参数而无法使用 `Sort` 函数。因此，导出的 `Sort` 函数的参数和返回值要避免对虚拟 `C 包的依赖。
+
+重新调整 `Sort` 函数的参数类型和实现如下：
+
+```go
+/*
+#include <stdlib.h>
+
+typedef int (*qsort_cmp_func_t)(const void* a, const void* b);
+*/
+import "C"
+import "unsafe"
+
+type CompareFunc C.qsort_cmp_func_t
+
+func Sort(base unsafe.Pointer, num, size int, cmp CompareFunc) {
+    C.qsort(base, C.size_t(num), C.size_t(size), C.qsort_cmp_func_t(cmp))
+}
+```
+
+我们将虚拟 C 包中的类型通过 Go 语言类型代替，在内部调用 C 函数时重新转型为 C 函数需要的类型。因此外部用户将不再依赖 qsort 包内的虚拟 C 包。以下代码展示的Sort函数的使用方式：
+
+```go
+package main
+
+//extern int compare(void* a, void* b);
+import "C"
+
+import (
+	"fmt"
+	"go-study/cgo_qsort/qsort"
+	"unsafe"
+)
+
+//export compare
+func compare(a, b unsafe.Pointer) C.int {
+	pa, pb := (*C.int)(a), (*C.int)(b)
+	return C.int(*pa - *pb)
+}
+
+func main() {
+	values := []int32{42, 9, 101, 95, 27, 25}
+
+	qsort.Sort(unsafe.Pointer(&values[0]),
+		len(values), int(unsafe.Sizeof(values[0])),
+		qsort.CompareFunc(C.compare),
+	)
+	fmt.Println(values)
+}
+```
+
+为了使用 `Sort` 函数，我们需要将 Go 语言的切片取首地址、元素个数、元素大小等信息作为调用参数，同时还需要提供一个C语言规格的比较函数。 其中compare 是用 Go 语言实现的，并导出到 C 语言空间的函数，用于qsort排序时的比较函数。目前已经实现了对 C 语言的 qsort 初步包装，并且可以通过包的方式被其它用户使用。但是 `qsort.Sort` 函数已经有很多不便使用之处：用户要提供C语言的比较函数，这对许多Go语言用户是一个挑战。下一步我们将继续改进qsort函数的包装函数，尝试通过闭包函数代替C语言的比较函数。消除用户对CGO代码的直接依赖。
+
+### 静态库和动态库
+
+CGO 在使用 C/C++ 资源的时候一般有三种形式：直接使用源码；链接静态库；链接动态库。直接使用源码就是在 `import "C"` 之前的注释部分包含C代码，或者在当前包中包含 `C/C++` 源文件。链接静态库和动态库的方式比较类似，都是通过在 `LDFLAGS` 选项指定要链接的库方式链接。本
+
+#### Go 使用 C 静态库
+
+如果CGO中引入的C/C++资源有代码而且代码规模也比较小，直接使用源码是最理想的方式，但很多时候我们并没有源代码，或者从C/C++源代码开始构建的过程异常复杂，这种时候使用C静态库也是一个不错的选择。静态库因为是静态链接，最终的目标程序并不会产生额外的运行时依赖，也不会出现动态库特有的跨运行时资源管理的错误。不过静态库对链接阶段会有一定要求：静态库一般包含了全部的代码，里面会有大量的符号，如果不同静态库之间出现了符号冲突则会导致链接的失败。
+
+我们先用纯C语言构造一个简单的静态库。我们要构造的静态库名叫number，库中只有一个 `number_add_mod` 函数，用于表示数论中的模加法运算。number库的文件都在number目录下。
+
+`number/number.h` 头文件只有一个纯C语言风格的函数声明：
+
+> int number_add_mod(int a, int b, int mod);
+
+`number/number.c` 对应函数的实现：
+
+```c
+#include "number.h"
+
+int number_add_mod(int a, int b, int mod) {
+    return (a+b)%mod;
+}
+```
+
+因为CGO使用的是GCC命令来编译和链接C和Go桥接的代码。因此静态库也必须是GCC兼容的格式。通过以下命令可以生成一个叫 `libnumber.a` 的静态库：
+
+```
+$ cd ./number
+$ gcc -c -o number.o number.c
+$ ar rcs libnumber.a number.o
+```
+
+生成 `libnumber.a` 静态库之后，我们就可以在 CGO 中使用该资源了。创建 `main.go` 文件如下：
+
+```go
+package main
+
+//#cgo CFLAGS: -I./number
+//#cgo LDFLAGS: -L${SRCDIR}/number -lnumber
+//
+//#include "number.h"
+import "C"
+import "fmt"
+
+func main() {
+    fmt.Println(C.number_add_mod(10, 5, 12))
+}
+```
+
+其中有两个 `#cgo` 命令，分别是编译和链接参数。`CFLAGS` 通过 `-I./number` 将 number 库对应头文件所在的目录加入头文件检索路径。`LDFLAGS` 通过 `-L${SRCDIR}/number` 将编译后 number 静态库所在目录加为链接库检索路径，`-lnumber` 表示链接 `libnumber.a` 静态库。需要注意的是，在链接部分的检索路径不能使用相对路径（C/C++代码的链接程序所限制），我们必须通过 `cgo` 特有的 `${SRCDIR}` 变量将源文件对应的当前目录路径展开为绝对路径（因此在windows平台中绝对路径不能有空白符号）。
+
+因为我们有number库的全部代码，所以我们可以用 `go generate` 工具来生成静态库，或者是通过 `Makefile` 来构建静态库。因此发布 `CGO` 源码包时，我们并不需要提前构建C静态库。
+
+因为多了一个静态库的构建步骤，这种使用了自定义静态库并已经包含了静态库全部代码的Go包无法直接用 `go get` 安装。不过我们依然可以通过 `go get`下载，然后用 `go generate` 触发静态库构建，最后才是 `go install` 来完成安装。
+
+为了支持 `go get` 命令直接下载并安装，我们C语言的#include语法可以将number库的源文件链接到当前的包。
+
+创建 `z_link_number_c.c` 文件如下：
+
+> #include "./number/number.c"
+
+然后在执行 `go get` 或 `go build` 之类命令的时候，CGO就是自动构建 `number` 库对应的代码。这种技术是在不改变静态库源代码组织结构的前提下，将静态库转化为了源代码方式引用。这种CGO包是最完美的。
+
+如果使用的是第三方的静态库，我们需要先下载安装静态库到合适的位置。然后在 `#cgo` 命令中通过 `CFLAGS和LDFLAGS` 来指定头文件和库的位置。对于不同的操作系统甚至同一种操作系统的不同版本来说，这些库的安装路径可能都是不同的，那么如何在代码中指定这些可能变化的参数呢？
+
+在 `Linux` 环境，有一个 `pkg-config` 命令可以查询要使用某个静态库或动态库时的编译和链接参数。我们可以在 `#cgo` 命令中直接使用`pkg-config` 命令来生成编译和链接参数。而且还可以通过 `PKG_CONFIG` 环境变量定制 `pkg-config` 命令。因为不同的操作系统对 `pkg-config` 命令的支持不尽相同，通过该方式很难兼容不同的操作系统下的构建参数。不过对于 `Linux` 等特定的系统，`pkg-config`命令确实可以简化构建参数的管理。
+
+{% video cgo_static_lib.mp4 %}
+
+
+#### Go 使用 C 动态库
+
+动态库出现的初衷是对于相同的库，多个进程可以共享同一个，以节省内存和磁盘资源。但是在磁盘和内存已经白菜价的今天，这两个作用已经显得微不足道了，那么除此之外动态库还有哪些存在的价值呢？从库开发角度来说，动态库可以隔离不同动态库之间的关系，减少链接时出现符号冲突的风险。而且对于windows等平台，动态库是跨越VC和GCC不同编译器平台的唯一的可行方式。
+
+对于CGO来说，使用动态库和静态库是一样的，因为动态库也必须要有一个小的静态导出库用于链接动态库（Linux下可以直接链接so文件，但是在Windows下必须为dll创建一个.a文件用于链接）。我们还是以前面的number库为例来说明如何以动态库方式使用。
+
+对于在macOS和Linux系统下的gcc环境，我们可以用以下命令创建number库的的动态库：
+
+> gcc -shared -o libnumber.so number.c
+
+因为动态库和静态库的基础名称都是libnumber，只是后缀名不同而已。因此Go语言部分的代码和静态库版本完全一样：
+
+```go
+package main
+
+//#cgo CFLAGS: -I./number
+//#cgo LDFLAGS: -L${SRCDIR}/number -lnumber
+//
+//#include "number.h"
+import "C"
+import "fmt"
+
+func main() {
+    fmt.Println(C.number_add_mod(10, 5, 12))
+}
+```
+
+编译时GCC会自动找到libnumber.a或libnumber.so进行链接。
+
+{% video cgo_dynamic.mp4 %}
+
+#### GO 导出 C 静态库
+
+CGO 不仅可以使用C静态库，也可以将 Go 实现的函数导出为 C 静态库。我们现在用 Go 实现前面的number库的模加法函数。创建 `number.go` ，根据CGO文档的要求，我们需要在main包中导出C函数。对于C静态库构建方式来说，会忽略main包中的main函数，只是简单导出C函数。采用以下命令构建：
+
+> go build -buildmode=c-archive -o number.a
+
+在生成number.a静态库的同时，cgo还会生成一个number.h文件。
+
+{% tabs CGO导出静态库 %}
+
+<!-- tab main.go -->
+```go
+package main
+
+import "C"
+
+func main() {}
+
+//export number_add_mod
+func number_add_mod(a, b, mod C.int) C.int {
+	return (a + b) % mod
+}
+```
+<!-- endtab -->
+
+<!-- tab number.h -->
+```c
+/* Code generated by cmd/cgo; DO NOT EDIT. */
+
+/* package go-study/cgo_export_c_static */
+
+
+#line 1 "cgo-builtin-export-prolog"
+
+#include <stddef.h> /* for ptrdiff_t below */
+
+#ifndef GO_CGO_EXPORT_PROLOGUE_H
+#define GO_CGO_EXPORT_PROLOGUE_H
+
+#ifndef GO_CGO_GOSTRING_TYPEDEF
+typedef struct { const char *p; ptrdiff_t n; } _GoString_;
+#endif
+
+#endif
+
+/* Start of preamble from import "C" comments.  */
+
+
+
+
+/* End of preamble from import "C" comments.  */
+
+
+/* Start of boilerplate cgo prologue.  */
+#line 1 "cgo-gcc-export-header-prolog"
+
+#ifndef GO_CGO_PROLOGUE_H
+#define GO_CGO_PROLOGUE_H
+
+typedef signed char GoInt8;
+typedef unsigned char GoUint8;
+typedef short GoInt16;
+typedef unsigned short GoUint16;
+typedef int GoInt32;
+typedef unsigned int GoUint32;
+typedef long long GoInt64;
+typedef unsigned long long GoUint64;
+typedef GoInt64 GoInt;
+typedef GoUint64 GoUint;
+typedef __SIZE_TYPE__ GoUintptr;
+typedef float GoFloat32;
+typedef double GoFloat64;
+typedef float _Complex GoComplex64;
+typedef double _Complex GoComplex128;
+
+/*
+  static assertion to make sure the file is being used on architecture
+  at least with matching size of GoInt.
+*/
+typedef char _check_for_64_bit_pointer_matching_GoInt[sizeof(void*)==64/8 ? 1:-1];
+
+#ifndef GO_CGO_GOSTRING_TYPEDEF
+typedef _GoString_ GoString;
+#endif
+typedef void *GoMap;
+typedef void *GoChan;
+typedef struct { void *t; void *v; } GoInterface;
+typedef struct { void *data; GoInt len; GoInt cap; } GoSlice;
+
+#endif
+
+/* End of boilerplate cgo prologue.  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+extern int number_add_mod(int p0, int p1, int p2);
+
+#ifdef __cplusplus
+}
+#endif
+
+```
+<!-- endtab -->
+
+<!-- tab 图片示例 -->
+![cgo_export_static.png](cgo_export_static.png)
+<!-- endtab -->
+
+{% endtabs %}
+
+
+#### Go 导出 C 动态库
+
+和导出 C 静态库去别不大，只是更改构建模式：
+
+> go build -buildmode=c-shared -o number.so
 
 
 ### 课外阅读
