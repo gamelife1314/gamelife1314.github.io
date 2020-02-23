@@ -2,7 +2,7 @@
 title: Go语言基础《一》：基本命令，工作区，包管理
 date: 2018-01-27 18:37:59
 categories:
-  - Go 语言基础
+  - Go语言基础
 tags:
   - GOPATH
   - GOROOT

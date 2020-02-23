@@ -2,7 +2,7 @@
 title: Go语言基础《十三》：goroutine
 date: 2018-11-06 21:32:39
 categories:
-- Go 语言基础
+- Go语言基础
 tags:
 - goroutine
 ---
