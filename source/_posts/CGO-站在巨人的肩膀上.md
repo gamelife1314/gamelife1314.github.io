@@ -1506,7 +1506,7 @@ func main() {
 
 {% video cgo_dynamic.mp4 %}
 
-#### GO 导出 C 静态库
+#### Go 导出 C 静态库
 
 CGO 不仅可以使用C静态库，也可以将 Go 实现的函数导出为 C 静态库。我们现在用 Go 实现前面的number库的模加法函数。创建 `number.go` ，根据CGO文档的要求，我们需要在main包中导出C函数。对于C静态库构建方式来说，会忽略main包中的main函数，只是简单导出C函数。采用以下命令构建：
 
