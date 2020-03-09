@@ -13,17 +13,7 @@ tags:
 <!-- more -->
 
 
-### 动态规划
-
-动态规划（英语：Dynamic programming，简称 DP）是一种在数学、管理科学、计算机科学、经济学和生物信息学中使用的，通过把原问题分解为相对简单的子问题的方式求解复杂问题的方法。
-
-动态规划常常适用于有重叠子问题和最优子结构性质的问题，动态规划方法所耗时间往往远少于朴素解法。
-
-动态规划背后的基本思想非常简单。大致上，若要解一个给定问题，我们需要解其不同部分（即子问题），再根据子问题的解以得出原问题的解。动态规划往往用于优化递归问题，例如斐波那契数列，如果运用递归的方式来求解会重复计算很多相同的子问题，利用动态规划的思想可以减少计算量。
-
-通常许多子问题非常相似，为此动态规划法试图仅仅解决每个子问题一次，具有天然剪枝的功能，从而减少计算量：一旦某个给定子问题的解已经算出，则将其记忆化存储，以便下次需要同一个子问题解之时直接查表。这种做法在重复子问题的数目关于输入的规模呈指数增长时特别有用。
-
-#### 最长回文字符串
+### 最长回文字符串
 
 题目链接：[https://leetcode-cn.com/problems/longest-palindromic-substring/](https://leetcode-cn.com/problems/longest-palindromic-substring/)，求最长回文子串。
 
@@ -106,6 +96,55 @@ func longestPalindrome(s string) string {
 
 func main() {
 	fmt.Println(longestPalindrome("cbbd"))
+}
+
+```
+
+
+### 正则匹配
+
+题目链接：[https://leetcode-cn.com/problems/regular-expression-matching/](https://leetcode-cn.com/problems/regular-expression-matching/)
+
+#### 递归
+
+基于题解 [https://leetcode-cn.com/problems/regular-expression-matching/solution/ji-yu-guan-fang-ti-jie-gen-xiang-xi-de-jiang-jie-b/](https://leetcode-cn.com/problems/regular-expression-matching/solution/ji-yu-guan-fang-ti-jie-gen-xiang-xi-de-jiang-jie-b/) 说两句自己的看法，详情请看原处。
+
+源串我们假设为：`str`，正则为：`pattern`。
+
+难点在于如何处理 `*` 匹配 `0` 次和多次，`*` 的含义是匹配前面的字符 `0` 次或者多次，那么其实也就是在遇到 `*`时：
+
+- `str` 不动，向后移动 `pattern`，没匹配上；
+
+- 或者 `pattern` 不动，`str` 向后移动，前提是 `str` 第一个字符和 `pattern` 匹配上了；
+
+再就是 `.`，表示任意一个字符，那么 `pattern` 中的某个字符要么是 `.`，要么是 `str` 中将要被匹配的字符，就表示匹配上了。
+
+
+```go
+package main
+
+import "fmt"
+
+func isMatch(s string, p string) bool {
+	if len(p) == 0 {
+		return len(s) == 0
+	}
+	firstMatch := false
+	if len(s) > 0 {
+		if p[0] == '.' || p[0] == s[0] {
+			firstMatch = true
+		}
+	}
+	if len(p) >= 2 && p[1] == '*' {
+		return isMatch(s, p[2:]) || (firstMatch && isMatch(s[1:], p))
+	}
+	return firstMatch && isMatch(s[1:], p[1:])
+}
+
+func main() {
+	fmt.Println(isMatch("aba", "ab*"))
+	fmt.Println(isMatch("aba", "aba"))
+	fmt.Println(isMatch("aba", ".*"))
 }
 
 ```
