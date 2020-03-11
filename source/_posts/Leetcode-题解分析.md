@@ -148,3 +148,47 @@ func main() {
 }
 
 ```
+
+### 最长有效括号
+
+题目链接：https://leetcode-cn.com/problems/longest-valid-parentheses/
+
+参考题解：https://leetcode-cn.com/problems/longest-valid-parentheses/solution/zui-chang-you-xiao-gua-hao-by-leetcode/
+
+良好的解题思路是成功的一般，我们用一个长度和字符串长度相同的 dp 数组记录到第 i 个字符最长有效括号长度。另外有效括号字符串肯定是以 ) 结尾的，假如第 i 个字符是 )，那么：
+
+- 如果第 `i-1` 个字符是 `(`， 这种形式： `...()`, `dp[i] = dp[i-2] + 2`
+
+- 如果第 `i-1` 个字符是 `)`，那么就是这种形式： `...))`，`dp[i] = dp[i-1] + 2 + dp[i-dp[i-1]-2]`
+
+```go
+func longestValidParentheses(s string) int {
+    if len(s) == 0 {
+        return 0
+    }
+    var dp = make([]int, len(s))
+    var maxLen = 0
+    for i := 1; i < len(s); i++ {
+        if s[i] == '(' {
+            continue
+        }
+        if s[i-1] == '(' {
+            if i >= 2 {
+                dp[i] = dp[i-2] + 2
+            } else {
+                dp[i] = 2
+            }
+        } else if i-dp[i-1]-1 >= 0 && s[i-dp[i-1]-1] == '(' {
+            if i-dp[i-1] >= 2 {
+                dp[i] = dp[i-1] + dp[i-dp[i-1]-2] + 2
+            } else {
+                dp[i] = dp[i-1] + 2
+            }
+        }
+        if dp[i] > maxLen {
+            maxLen = dp[i]
+        }
+    }
+    return maxLen
+}
+```
