@@ -95,6 +95,19 @@ go func() {
 
 > go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30
 
+这个命令在采集完成之后会自动打开交互式终端查看结果，也可以使用如下的方式打开web查看：
+
+    go tool pprof -http=:9999  http://localhost:11202/debug/pprof/profile?seconds=180
+    Fetching profile over HTTP from http://localhost:11202/debug/pprof/profile?seconds=180
+    Saved profile in C:\Users\fudenglong\pprof\pprof.samples.cpu.001.pb.gz
+    Serving web UI on http://localhost:9999
+    # 自动打开浏览器
+
+采集的数据文件保存在了 `C:\Users\fudenglong\pprof\pprof.samples.cpu.001.pb.gz`，日后需要可以直接使用如下命令打开：
+
+    go tool pprof -http=:9995 C:\Users\fudenglong\pprof\pprof.samples.cpu.001.pb.gz
+
+
 更多详情请看：[https://pkg.go.dev/net/http/pprof?tab=doc](https://pkg.go.dev/net/http/pprof?tab=doc)
 
 

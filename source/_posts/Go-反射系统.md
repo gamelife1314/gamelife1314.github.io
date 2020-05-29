@@ -164,3 +164,18 @@ func main() {
 
 而且发现空接口在运行时的表示是 `eface` 结构体。
 
+### 反射
+
+前面讲了结构体类型，现在开始学习反射，Go语言为了我们提供了两个入口函数：`reflect.ValueOf` 和 `reflect.TypeOf`，这两个反射入口函数，会将任何传入的对象转换为接口类型。在面对类型时，需要区分 `Type` 和 `Kind`，前者表示真实类型，后者表示底层基础类型，因为 Go 语言是可以以底层类型为基础，定义新的类型，例如：
+
+```go
+type ID int
+
+func Test_type_and_kind(t *testing.T) {
+	var id ID = 99
+	typ := reflect.TypeOf(id)
+	t.Log(typ.Name(), typ.Kind())
+}
+
+// ID int
+```
