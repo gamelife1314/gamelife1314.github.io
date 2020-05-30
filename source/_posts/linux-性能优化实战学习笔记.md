@@ -433,3 +433,52 @@ func main() {
 然后点击 `Enter` 进入，根据占比我们就大概知道是什么位置了：
 
 ![perf-top4.png](perf-top4.png)
+
+### CPU 使用率过高，我不知道是谁
+
+今天继续写垃圾程序，有时候，能用 `top` 工具查看到系统的 CPU 使用率很高，导致空闲的 CPU 没了，但是却看不出哪个进程占用导致的。首先我们写了一个垃圾程序：
+
+```go
+package main
+
+import (
+	"flag"
+	"fmt"
+	"os"
+	"os/exec"
+	"sync"
+)
+
+var (
+	cycles  = flag.Int("cycles", 10000000000, "cycles times")
+	threads = flag.Int("threads", 5, "threads num")
+)
+
+func main() {
+	flag.Parse()
+	var wg sync.WaitGroup
+	wg.Add(*threads)
+	for i := 0; i < *threads; i++ {
+		go func() {
+			defer wg.Done()
+			for i := 0; i < *cycles; i++ {
+				cmd := exec.Command("/usr/bin/stress", "-t", "1", "-d", "1")
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				if err := cmd.Run(); err != nil {
+					fmt.Println(err)
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
+```
+
+然后我们启动并且运行，效果如下视频：
+
+{% video cpu_high.mp4 %}
+
+期间我们使用上节用到的 `perf record` 和 `pref report` 命令输出性能报告，并且使用 `pstree` 命令输出了进程族谱，查看到异常的 `stress` 进程是哪个父进程启动的，而且使用 [`execsnoop`](https://github.com/brendangregg/perf-tools/blob/master/execsnoop) 监控短时进程，正是由于这种短时进程大量启动导致CPU等待IO，导致貌似空闲的 CPU 没了。
+
+![cpu_high.png](cpu_high.png)
