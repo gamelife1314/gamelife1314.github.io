@@ -434,9 +434,7 @@ func main() {
 
 ![perf-top4.png](perf-top4.png)
 
-### CPU 使用率过高，我不知道是谁
-
-今天继续写垃圾程序，有时候，能用 `top` 工具查看到系统的 CPU 使用率很高，导致空闲的 CPU 没了，但是却看不出哪个进程占用导致的。首先我们写了一个垃圾程序：
+另外对于一些短命程序导致的 CPU 升高，很难定位，看到的 CPU 被消耗光，但是却找不到根因，可以使用 `pstree`，`perf record` 以及 [`execsnoop`](https://github.com/brendangregg/perf-tools/blob/master/execsnoop) 来定位。
 
 ```go
 package main
@@ -482,3 +480,161 @@ func main() {
 期间我们使用上节用到的 `perf record` 和 `pref report` 命令输出性能报告，并且使用 `pstree` 命令输出了进程族谱，查看到异常的 `stress` 进程是哪个父进程启动的，而且使用 [`execsnoop`](https://github.com/brendangregg/perf-tools/blob/master/execsnoop) 监控短时进程，正是由于这种短时进程大量启动导致CPU等待IO，导致貌似空闲的 CPU 没了。
 
 ![cpu_high.png](cpu_high.png)
+
+### 进程状态
+
+`top` 和 `ps` 是最常用的查看进程状态的工具，输出中 `S` 列（也就是 `Status` 列）表示进程的状态，经常可以看到 `R`、`D`、`Z`、`S`、`I` 等几个状态，它们分别是什么意思呢？
+
+    $ top
+    PID   USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+    28961 root      20   0   43816   3148   4040 R   3.2  0.0   0:00.01 top
+    620   root      20   0   37280  33676    908 D   0.3  0.4   0:00.01 app
+    1     root      20   0  160072   9416   6752 S   0.0  0.1   0:37.64 systemd
+    1896  root      20   0       0      0      0 Z   0.0  0.0   0:00.00 devapp
+    2     root      20   0       0      0      0 S   0.0  0.0   0:00.10 kthreadd
+    4     root       0 -20       0      0      0 I   0.0  0.0   0:00.00 kworker/0:0H
+    6     root       0 -20       0      0      0 I   0.0  0.0   0:00.00 mm_percpu_wq
+    7     root      20   0       0      0      0 S   0.0  0.0   0:06.37 ksoftirqd/0
+
+- **R** 是 Running 或 Runnable 的缩写，表示进程在 CPU 的就绪队列中，正在运行或者正在等待运行。
+- **D** 是 Disk Sleep 的缩写，也就是不可中断状态睡眠（Uninterruptible Sleep），一般表示进程正在跟硬件交互，并且交互过程不允许被其他进程或中断打断。
+- **Z** 是 Zombie 的缩写，它表示僵尸进程，也就是进程实际上已经结束了，但是父进程还没有回收它的资源（比如进程的描述符、PID 等）。
+- **S** 是 Interruptible Sleep 的缩写，也就是可中断状态睡眠，表示进程因为等待某个事件而被系统挂起。当进程等待的事件发生时，它会被唤醒并进入 R 状态。
+- **I** 是 Idle 的缩写，也就是空闲状态，用在不可中断睡眠的内核线程上。前面说了，硬件交互导致的不可中断进程用 D 表示，但对某些内核线程来说，它们有可能实际上并没有任何负载，用 Idle 正是为了区分这种情况。要注意，D 状态的进程会导致平均负载升高， I 状态的进程却不会。
+- **T** 也就是 Stopped 或 Traced 的缩写，表示进程处于暂停或者跟踪状态。向一个进程发送 SIGSTOP 信号，它就会因响应这个信号变成暂停状态（Stopped）；再向它发送 SIGCONT 信号，进程又会恢复运行（如果进程是终端里直接启动的，则需要你用 fg 命令，恢复到前台运行）。而当你用调试器（如 gdb）调试一个进程时，在使用断点中断进程后，进程就会变成跟踪状态，这其实也是一种特殊的暂停状态，只不过你可以用调试器来跟踪并按需要控制进程的运行。
+- **X** 是 Dead 的缩写，表示进程已经消亡，所以你不会在 top 或者 ps 命令中看到它。
+
+其中僵尸进程，这是多进程应用很容易碰到的问题。正常情况下，当一个进程创建了子进程后，它应该通过系统调用 `wait()` 或者 `waitpid()` 等待子进程结束，回收子进程的资源；而子进程在结束时，会向它的父进程发送 `SIGCHLD` 信号，所以，父进程还可以注册 `SIGCHLD` 信号的处理函数，异步回收资源。如果父进程没这么做，或是子进程执行太快，父进程还没来得及处理子进程状态，子进程就已经提前退出，那这时的子进程就会变成僵尸进程。通常，僵尸进程持续的时间都比较短，在父进程回收它的资源后就会消亡；或者在父进程退出后，由 init 进程回收后也会消亡。一旦父进程没有处理子进程的终止，还一直保持运行状态，那么子进程就会一直处于僵尸状态。大量的僵尸进程会用尽 PID 进程号，导致新进程不能创建，所以这种情况一定要避免。
+
+当使用 `ps` 命令查看进程状态是，会遇到一些奇怪的输出：
+
+    $ ps aux | grep /app
+    root      4009  0.0  0.0   4376  1008 pts/0    Ss+  05:51   0:00 /app
+    root      4287  0.6  0.4  37280 33660 pts/0    D+   05:54   0:00 /app
+    root      4288  0.6  0.4  37280 33668 pts/0    D+   05:54   0:00 /app
+
+其中 **S** 和 **D** 我们知道是什么意思，又来个 `s` 和 `+`，其实可以通过 `man ps` 查询。其实 **s** 表示这个进程是一个会话的领导进程，而 **+** 表示前台进程组。**进程组** 表示一组相互关联的进程，比如每个子进程都是父进程所在组的成员，而 **会话** 是指共享同一个控制终端的一个或多个进程组。
+
+比如，我们通过 SSH 登录服务器，就会打开一个控制终端（TTY），这个控制终端就对应一个会话。而我们在终端中运行的命令以及它们的子进程，就构成了一个个的进程组，其中，在后台运行的命令，构成后台进程组；在前台运行的命令，构成前台进程组。
+
+### iowait 较高问题分析
+
+有时候我们使用 top 工具查看系统性能时，会发现 iowait 特别高，例如：
+
+    $ top
+    top - 05:56:23 up 17 days, 16:45,  2 users,  load average: 2.00, 1.68, 1.39
+    Tasks: 247 total,   1 running,  79 sleeping,   0 stopped, 115 zombie
+    %Cpu0  :  0.0 us,  0.7 sy,  0.0 ni, 38.9 id, 60.5 wa,  0.0 hi,  0.0 si,  0.0 st
+    %Cpu1  :  0.0 us,  0.7 sy,  0.0 ni,  4.7 id, 94.6 wa,  0.0 hi,  0.0 si,  0.0 st
+    ...
+
+例如，这里两个 CPU 的使用率情况，用户 CPU 和系统 CPU 都不高，但 iowait 分别是 60.5% 和 94.6%，运行 `dstat 1 10` 观察 CPU 和 I/O 的使用情况：
+
+![dstat](dstat.png)
+
+从 dstat 的输出，我们可以看到，每当 iowait 升高（wai）时，磁盘的读请求（read）都会很大。这说明 iowait 的升高跟磁盘的读请求有关，很可能就是磁盘读导致的。我们继续使用 `top` 命令查看，可能会发现一些 `D` 状态进程，例如：
+
+    $ top
+    ...
+    1083 root      20   0   70052  65716    200 D   2.6  1.6   0:00.08 app
+    1084 root      20   0   70052  65716    200 D   2.6  1.6   0:00.08 app
+    1082 root      20   0   37016   3468   2760 R   0.7  0.1   0:00.06 top
+       1 root      20   0    4512   1584   1500 S   0.0  0.0   0:00.11 app
+    ...
+
+我们再使用 `pidstat` 命令查看进程的 `I/O` 统计数据：
+
+    # -d 展示 I/O 统计数据，-p 指定进程号，间隔 1 秒输出 3 组数据
+    root@748d6a9c77d1:/# pidstat -d -p 1083 1 3
+    Linux 4.19.76-linuxkit (748d6a9c77d1) 	05/31/20 	_x86_64_	(4 CPU)
+
+    15:30:48      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+    15:30:49        0      1083      0.00      0.00      0.00       0  app
+    15:30:50        0      1083      0.00      0.00      0.00       0  app
+    15:30:51        0      1083      0.00      0.00      0.00       0  app
+    Average:        0      1083      0.00      0.00      0.00       0  app
+
+在这个输出中， `kB_rd` 表示每秒读的 `KB` 数， `kB_wr` 表示每秒写的 `KB` 数，`iodelay` 表示 `I/O` 的延迟（单位是时钟周期）。它们都是 0，那就表示此时没有任何的读写，说明问题不是 1083 进程导致的。那要怎么知道，到底是哪个进程在进行磁盘读写呢？我们继续使用 pidstat，但这次去掉进程号，干脆就来观察所有进程的 I/O 使用情况。
+
+    root@748d6a9c77d1:/# pidstat -d 1 20
+    Linux 4.19.76-linuxkit (748d6a9c77d1) 	05/31/20 	_x86_64_	(4 CPU)
+
+    15:34:18      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+
+    15:34:19      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+    15:34:20        0      1221 364543.50      0.00      0.00       3  app
+    15:34:20        0      1222 370687.50      0.00      0.00       4  app
+
+    15:34:20      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+    15:34:21        0      1221 946176.50      0.00      0.00      49  app
+    15:34:21        0      1222 940032.50      0.00      0.00      50  app
+
+    15:34:21      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+
+    15:34:22      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+
+    15:34:23      UID       PID   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+
+发现确实 `app` 进程导致，那我们怎么知道 `app` 进程在执行什么 I/O 操作呢？我们知道，进程想要访问磁盘，就必须使用系统调用，所以接下来，重点就是找出 app 进程的系统调用了。
+
+strace 正是最常用的跟踪进程系统调用的工具。我们从 pidstat 的输出中拿到进程的 PID 号，然后在终端中运行 strace 命令，并用 -p 参数指定 PID 号：
+
+    root@748d6a9c77d1:/# strace -p 1221
+    strace: attach: ptrace(PTRACE_SEIZE, 1221): Operation not permitted
+
+
+失望，没有得到想要的结果，但这是为什么呢？我们再使用 `ps` 命令查看发现它已经变僵尸了，僵尸进程实际上已经推出了，所以无法追踪：
+
+    root@748d6a9c77d1:/# ps -aux | grep 1221
+    root      1221  0.1  0.0      0     0 pts/0    Z+   15:34   0:00 [app] <defunct>
+
+我们前面使用过 `perf record` 和 `perf report` 命令来输出系统函数调用报告，我们在这里依然可以用它：
+
+![perf-top-iowait](perf-top-iowait.png)
+
+`swapper` 是内核中的调度进程，你可以先忽略掉。我们来看其他信息，你可以发现， `app` 的确在通过系统调用 `sys_read()` 读取数据。并且从 `new_sync_read` 和 `blkdev_direct_IO` 能看出，进程正在对磁盘进行直接读，也就是绕过了系统缓存，每个读请求都会从磁盘直接读，这就可以解释我们观察到的 `iowait` 升高了。看来，罪魁祸首是 app 内部进行了磁盘的直接 I/O ，接着我们就可以找我们的应用程序哪里直接读文件了。
+
+### 僵尸进程分析
+
+我们在 `top` 的输出结果中也看到大量的 `Z` 进程，我们知道 `Z` 进程代表该进程已经退出，只是父进程没有回收其资源导致。因为大量的 `Z` 进程会耗尽系统 `pid` 号，所以我们还是要解决它，解决他们的本质是还要父进程里面消灭他们。
+
+我们随便找一个僵尸进程，查找他的父进程：
+
+    root@748d6a9c77d1:/# pstree -aps 43
+    app,1
+        `-(app,43)
+
+然后我们去我们的程序查看，进程在创建子进程后，有没有等待他结束。我们可以使用如下命令杀死父进程进而杀死僵尸进程：
+
+> ps -A -o stat,ppid,pid,cmd | grep -e '^[Zz]' | awk '{print $2}' | xargs kill -9
+
+
+### 性能实战常用命令
+
+1. [sysstat](https://github.com/sysstat/sysstat)  是一个软件包，包含监测系统性能及效率的一组工具，这些工具对于我们收集系统性能数据，比如CPU使用率、硬盘和网络吞吐数据，这些数据的收集和分析，有利于我们判断系统是否正常运行，是提高系统运行效率、安全运行服务器的得力助手。包含了一下工具
+    - `iostat`    工具提供CPU使用率及硬盘吞吐效率的数据；  #比较核心的工具
+    - `mpstat`    工具提供单个处理器或多个处理器相关数据；
+    - `pidstat`   关于运行中的进程/任务、CPU、内存等的统计信息
+    - `tapestat`   reports statistics for tape drives connected to the system.
+    - `cifsiostat` reports CIFS statistics.
+    - ...
+2. [dstat](https://github.com/dstat-real/dstat) 是一个新的性能工具，它吸收了 vmstat、iostat、ifstat 等几种工具的优点，可以同时观察系统的 CPU、磁盘 I/O、网络以及内存使用情况
+
+3. [perf-tools](https://github.com/brendangregg/perf-tools) Performance analysis tools based on Linux perf_events (aka perf) and ftrace
+
+4. `perf` is a performance counter for Linux. With it you can know many secrets of the running linux system.
+
+    > ubuntu: sudo apt install linux-tools-common gawk
+    > centos: sudo yum install perf gawk
+
+5. `stress` 和 [`stress-ng`](https://linuxx.info/stress-ng/) 压力测试工具
+
+6. [`sysbench`](https://github.com/akopytov/sysbench) is a scriptable multi-threaded benchmark tool based on LuaJIT. It is most frequently used for database benchmarks, but can also be used to create arbitrarily complex workloads that do not involve a database server.
+
+7. [`strace`](https://github.com/strace/strace) 是最常用的跟踪进程系统调用的工具
+
+8. `pstree` 用来显示进程的父子关系，安装方法：
+
+    > mac: brew install pstree
+    > centos: yum -y install psmisc
+    > ubuntu: apt-get install psmisc
