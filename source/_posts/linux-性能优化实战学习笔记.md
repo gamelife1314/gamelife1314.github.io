@@ -898,13 +898,13 @@ sar 的输出界面，简单介绍一下:
 
 11. [`bindfs`](https://github.com/mpartel/bindfs) 基本功能是实现目录绑定（类似于 `mount --bind`）
 
-    $ mkdir /tmp/foo
-    $ PID=$(docker inspect --format {{.State.Pid}} phpfpm)
-    $ bindfs /proc/$PID/root /tmp/foo
-    $ perf report --symfs /tmp/foo
+        $ mkdir /tmp/foo
+        $ PID=$(docker inspect --format {{.State.Pid}} phpfpm)
+        $ bindfs /proc/$PID/root /tmp/foo
+        $ perf report --symfs /tmp/foo
 
-    # 使用完成后不要忘记解除绑定
-    $ umount /tmp/foo/
+        使用完成后不要忘记解除绑定
+        $ umount /tmp/foo/
 
 
 ### 课外阅读文章
