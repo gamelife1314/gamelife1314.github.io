@@ -179,3 +179,283 @@ func Test_type_and_kind(t *testing.T) {
 
 // ID int
 ```
+
+
+
+#### Type
+
+`reflect.Type()` 会获取到传入的 `interface{}` 中的类型部分。
+
+
+##### 类型构造
+
+我们可以通过实际对象获取类型，也可以直接构造一些基础符合类型。例如：
+
+```go
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+func main() {
+	// 构造 channel 类型
+	chType := reflect.ChanOf(reflect.BothDir, reflect.TypeOf(0))
+	chRecvType := reflect.ChanOf(reflect.SendDir, reflect.TypeOf(0))
+	chSendType := reflect.ChanOf(reflect.SendDir, reflect.TypeOf(0))
+	fmt.Println(chType, chRecvType, chSendType)
+	// 构造 map 类型
+	mType := reflect.MapOf(reflect.TypeOf(""), reflect.TypeOf(0))
+	fmt.Println(mType)
+	// 构造 slice 类型
+	sliceType := reflect.SliceOf(mType)
+	fmt.Println(sliceType)
+	// 构造函数类型
+	in := []reflect.Type{sliceType}
+	out := []reflect.Type{reflect.TypeOf("")}
+	funcType := reflect.FuncOf(in, out, true)
+	fmt.Println(funcType)
+	// 构造结构体类型
+	structType := reflect.StructOf([]reflect.StructField{
+		{Name: "Name", Type: reflect.TypeOf("")},
+	})
+	fmt.Println(structType)
+	// 构造数组类型
+	arrayType := reflect.ArrayOf(10, reflect.TypeOf(""))
+	fmt.Println(arrayType)
+}
+```
+	# 输出如下：
+	chan int chan<- int chan<- int
+	map[string]int
+	[]map[string]int
+	func(...map[string]int) string
+	struct { Name string }
+	[10]string
+
+##### 基类型
+
+传入对象分为基类型和指针类型，因为它们并不是同一类型，指针类型通过 `.Elem()` 获取基类型：
+
+```go
+func Test_base_type(t *testing.T) {
+	x := 100
+	tx, tp := reflect.TypeOf(x), reflect.TypeOf(&x)
+	fmt.Println(tx, tp, tx == tp)
+	fmt.Println(tx.Kind(), tp.Kind())
+	fmt.Println(tx == tp.Elem())
+
+	m := make(map[string]int, 0)
+	fmt.Println(reflect.TypeOf(m).Elem())
+	s := make([]int32, 0, 0)
+	fmt.Println(reflect.TypeOf(s).Elem())
+	// int *int false
+	// int ptr
+	// true
+	// int
+	// int32
+}
+```
+
+只有在获取指针的基类型之后，我们才能遍历它的字段：
+
+```go
+type user struct {
+	name string
+	age  int
+}
+
+type manager struct {
+	user
+	title string
+}
+
+func Test_iter_struct(t *testing.T) {
+	var m manager
+	mt := reflect.TypeOf(&m)
+	if mt.Kind() == reflect.Ptr {
+		mt = mt.Elem()
+	}
+	for i := 0; i < mt.NumField(); i++ {
+		f := mt.Field(i)
+		fmt.Println(f.Name, f.Type, f.Offset)
+		if f.Anonymous {
+			for j := 0; j < f.Type.NumField(); j++ {
+				af := f.Type.Field(j)
+				fmt.Println(" ", af.Name, af.Type)
+			}
+		}
+	}
+	//user main.user 0
+	//name string
+	//age int
+	//title string 24
+}
+
+```
+
+##### 结构体字段访问
+
+可以通过名字 `FieldByName(string)` 或者索引 `FieldByIndex([]int{})` 直接访问字段。
+
+```go
+type user struct {
+	name string `tag:"user"`
+	age  int
+}
+
+type animal struct {
+	name string `tag:"animal"`
+	user
+}
+
+func Test_visit_field(t *testing.T) {
+	var a animal
+	var at = reflect.TypeOf(a)
+	animalName, _ := at.FieldByName("name")
+	fmt.Println(animalName.Name, animalName.Tag.Get("tag"))
+	user, _ := at.FieldByName("user")
+	userName, _ := user.Type.FieldByName("name")
+	fmt.Println(userName.Name, userName.Tag.Get("tag"))
+	age := at.FieldByIndex([]int{1, 1})
+	fmt.Println(age.Name, age.Offset)
+	//name animal
+	//name user
+	//age 16
+}
+```
+
+##### 类型方法
+
+可以通过 `.Method(int)` 方法， `NumMethod()` 以及 `MethodByName` 获取到类型的方法。
+
+```go
+type method struct{}
+
+func (m method) BaseMethod() {}
+
+func (m *method) PtrMethod() {}
+
+func Test_output_type_method(t *testing.T) {
+	var m method
+	mt := reflect.TypeOf(m)
+	for i := 0; i < mt.NumMethod(); i++ {
+		fmt.Println("mt", mt.Method(i))
+	}
+	mPtrt := reflect.TypeOf(&m)
+	for j := 0; j < mPtrt.Elem().NumMethod(); j++ {
+		fmt.Println("mPtrt", mPtrt.Method(j))
+	}
+	fmt.Println(mt.MethodByName("BaseMethod"))
+	//mt {BaseMethod  func(main.method) <func(main.method) Value> 0}
+	//mPtrt {BaseMethod  func(*main.method) <func(*main.method) Value> 0}
+	//{BaseMethod  func(main.method) <func(main.method) Value> 0} true
+}
+
+```
+
+##### 获取未导出字段
+
+反射能探知当前包或者外包的未导出结构成员，因为对于 `reflect` 包来说，其他包都是外包：
+
+```go
+func Example_print_unexported_fields() {
+	var s http.Server
+	t := reflect.TypeOf(s)
+	for i := 0; i < t.NumField(); i++ {
+		fmt.Println(t.Field(i).Name, t.Field(i).Offset)
+	}
+	// output:
+	//Addr 0
+	//Handler 16
+	//TLSConfig 32
+	//ReadTimeout 40
+	//ReadHeaderTimeout 48
+	//WriteTimeout 56
+	//IdleTimeout 64
+	//MaxHeaderBytes 72
+	//TLSNextProto 80
+	//ConnState 88
+	//ErrorLog 96
+	//BaseContext 104
+	//ConnContext 112
+	//disableKeepAlives 120
+	//inShutdown 124
+	//nextProtoOnce 128
+	//nextProtoErr 144
+	//mu 160
+	//listeners 168
+	//activeConn 176
+	//doneChan 184
+	//onShutdown 192
+}
+```
+
+##### 结构体tag提取
+
+可以通过结构体字段的 `Tag` 字段提供的方法获取该字段的标签。
+
+```go
+type fieldTag struct {
+	Name string `json:"name" length:"12" Null:"false"`
+}
+
+func Example_get_field_tag() {
+	var f fieldTag
+	t := reflect.TypeOf(f)
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		tag := field.Tag
+		fmt.Printf("%s, legnth: %s, Null: %s\n", field.Name, tag.Get("length"), tag.Get("Null"))
+	}
+	// output:
+	// Name, legnth: 12, Null: false
+}
+
+```
+
+##### 其他方法
+
+- `.Implemnts(Type) bool` 用于判断某个实行是否实现一个接口；
+
+- `.ConvertibleTo(u Type) bool` 用于判断该类型的值能否转换为 u 类型；
+
+- `.AssignableTo(u Type) bool` 用于表示该类型的值是否可以赋值给 u 类型；
+
+- `.Comparable()` 检查该类型的值是否可以比较；
+
+```go
+type X int
+
+func (X) String() string {
+	return ""
+}
+
+func Example_type_other_methods() {
+	var x X
+	xt := reflect.TypeOf(x)
+	st := reflect.TypeOf((*fmt.Stringer)(nil)).Elem()
+	emptyInterface := reflect.TypeOf((*interface{})(nil)).Elem()
+	fmt.Println("x implements fmt.Stringer", xt.Implements(st))
+	fmt.Println("x implements interface{}", xt.Implements(emptyInterface))
+
+	fmt.Println("x can convert to int", xt.ConvertibleTo(reflect.TypeOf(0)))
+	fmt.Println("x can convert to string", xt.ConvertibleTo(reflect.TypeOf("")))
+	fmt.Println("x can convert to map[string]string", xt.ConvertibleTo(reflect.TypeOf(reflect.MapOf(reflect.TypeOf(""), reflect.TypeOf("")))))
+
+	fmt.Println("x can assign to fmt.Stringer", xt.AssignableTo(st))
+	fmt.Println("x can assign to int", xt.AssignableTo(reflect.TypeOf(0)))
+
+	fmt.Println("x is Comparable", xt.Comparable())
+	// output:
+	//x implements fmt.Stringer true
+	//x implements interface{} true
+	//x can convert to int true
+	//x can convert to string true
+	//x can convert to map[string]string false
+	//x can assign to fmt.Stringer true
+	//x can assign to int false
+	//x is Comparable true
+}
+```
