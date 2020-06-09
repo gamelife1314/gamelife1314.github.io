@@ -459,3 +459,206 @@ func Example_type_other_methods() {
 	//x is Comparable true
 }
 ```
+
+#### Value
+
+和 Type 获取类型信息不同，Value 专注于对象示例的数据读写。在前文提到过，`reflect.Type()` 和 `reflect.Value()` 传入对的都是接口变量，而接口变量会复制对象，并且是 unaddressable 的，所以要想修改目标对象，就必须使用指针。
+
+```go
+func Example_value_and_ptr() {
+	a := 100
+	va, vp := reflect.ValueOf(a), reflect.ValueOf(&a).Elem()
+	fmt.Println(va.CanAddr(), va.CanSet())
+	fmt.Println(vp.CanAddr(), vp.CanSet())
+	// output:
+	//false false
+	//true true
+}
+```
+
+##### 修改结构体字段值
+
+不能直接对非导出字段进行设置操作，无论是当前包还是外包，但是可以通过 `unsafeAddr()` 获取字段地址然后再修改：
+
+```go
+type User struct {
+	Name string
+	code string
+}
+
+func Example_canset_unexported_fields() {
+	user := new(User)
+	userValue := reflect.ValueOf(user).Elem()
+	name := userValue.FieldByName("Name")
+	code := userValue.FieldByName("code")
+	fmt.Printf("Name can addr = %t, can set %t\n", name.CanAddr(), name.CanSet())
+	fmt.Printf("code can addr = %t, can set %t\n", code.CanAddr(), code.CanSet())
+	if name.CanSet() {
+		name.SetString("michael")
+	}
+	if code.CanAddr() {
+		*(*string)(unsafe.Pointer(code.UnsafeAddr())) = "code"
+	}
+	fmt.Println(user)
+	// output:
+	//Name can addr = true, can set true
+	//code can addr = true, can set false
+	//&{michael code}
+}
+```
+
+##### `Pointer() 和 UnsafeAddr()`
+
+`reflect.Value.Pointer()` 返回的是该字段存储的指针，目标必须是指针类型；而 `reflect.Value.UnsafeAddr()` 返回任何可以 CanAddr 的 Value 的地址，返回的是该字段自身地址（结构体地址+偏移量）。例如：
+
+```go
+type Dog struct {
+	Age  *int
+	Name string
+}
+
+func Example_pointer_and_unsafePointer() {
+	year := 11
+	var dog = Dog{Age: &year}
+	dogValue := reflect.ValueOf(&dog).Elem()
+
+	age := dogValue.FieldByName("Age")
+	name := dogValue.FieldByName("Name")
+
+	fmt.Println(age.Pointer(), uintptr(unsafe.Pointer(&year)))
+	fmt.Println(name.UnsafeAddr(), uintptr(unsafe.Pointer(&dog))+unsafe.Offsetof(dog.Name))
+	// output:
+	//824634393936 824634393936
+	//824634442536 824634442536
+}
+```
+
+
+##### `.Interface()`
+
+可以通过 `.Interface()` 方法进行类型推断和转换：
+
+```go
+type User struct {
+	Name string
+	code string
+}
+
+func Example_value_interface() {
+	var user = User{Name: "unsafe", code: "code"}
+	userValue := reflect.ValueOf(&user)
+	if userValue.CanInterface() {
+		userPtr, ok := userValue.Interface().(*User)
+		if ok {
+			userPtr.Name = "michael"
+			fmt.Println(user)
+		}
+	}
+	//output:
+	// {michael code}
+}
+```
+
+注意这里使用 `Interface()` 方法时没有调用 `.Elem()` 方法。
+
+##### `.IsNil()`
+
+接口类型有两种 nil 状态，很难判断，一致是个潜在麻烦，解决方案有两种，一种是通过 `.IsNil()` 判断，一种是通过 unsafe 转换后直接判断 `iface.data` 是否是零值：
+
+```go
+func Example_interface_is_nil() {
+	var (
+		empty  interface{} = nil
+		empty1 interface{} = (*int)(nil)
+	)
+	// 方法一：
+	fmt.Println(empty == nil, empty1 == nil, reflect.ValueOf(empty1).IsNil())
+
+	// 方法二：
+	iface := (*[2]uintptr)(unsafe.Pointer(&empty))
+	iface1 := (*[2]uintptr)(unsafe.Pointer(&empty1))
+	fmt.Println(iface[1] == 0, iface1[1] == 0)
+
+	// output:
+	// true false true
+	// true true
+}
+```
+
+##### `.IsValid() 和 .IsZero()`
+
+`.IsValid()` 报告当前 value 是不是一个有效的 `reflect.Value` 类型的值，如果不是，除了 `String()` 之外，其他的方法调用都会 panic。
+
+`.IsZero()` 用于表示当前 value 是不是该类型的零值；
+
+```go
+type User struct {
+	Name string
+	code string
+}
+
+func Example_value_is_valid_and_is_zero() {
+	var (
+		zero    int
+		nonZero = 1
+		user    User
+	)
+	fmt.Println("zero IsZero = ", reflect.ValueOf(zero).IsZero())
+	fmt.Println("nonZero IsZero = ", reflect.ValueOf(nonZero).IsZero())
+	fmt.Println("user.code field IsValid = ", reflect.ValueOf(user).FieldByName("code").IsValid())
+	fmt.Println("user.xxx field IsValid = ", reflect.ValueOf(user).FieldByName("xxx").IsValid())
+	// output:
+	//zero IsZero =  true
+	//nonZero IsZero =  false
+	//user.code field IsValid =  true
+	//user.xxx field IsValid =  false
+}
+```
+
+#### `reflect.Append`
+
+`reflect.Append(s Value, x ...Value) Value` 用于将 `values` 追加到 slice 中：
+
+```go
+func Example_reflect_append() {
+	var s = make([]int, 0, 0)
+	sv := reflect.ValueOf(s)
+	sv = reflect.Append(sv, reflect.ValueOf(2), reflect.ValueOf(1))
+	fmt.Println(sv.Interface().([]int))
+
+	var s1 = []int{3, 4, 5}
+	s1v := reflect.ValueOf(&s1).Elem()
+	s1v = reflect.AppendSlice(s1v, sv)
+	fmt.Println(s1v.Interface().([]int))
+	// output:
+	// [2 1]
+	// [3 4 5 2 1]
+}
+```
+
+#### 动态方法调用
+
+`.Call()` 和 `.CallSlice()` 用于动态的方法调用：
+
+```go
+func Example_dynamic_call_method() {
+	var y Y
+	value := reflect.ValueOf(y)
+	format := value.MethodByName("Format")
+
+	fmt.Println(format.Call([]reflect.Value{
+		reflect.ValueOf("%s = %d"),
+		reflect.ValueOf("x"),
+		reflect.ValueOf(10),
+	}))
+
+	fmt.Println(format.CallSlice([]reflect.Value{
+		reflect.ValueOf("%s = %d"),
+		reflect.ValueOf([]interface{}{"y", 100}),
+	}))
+	// output:
+	//[x = 10]
+	//[y = 100]
+}
+
+```

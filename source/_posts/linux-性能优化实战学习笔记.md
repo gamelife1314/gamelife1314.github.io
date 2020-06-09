@@ -982,6 +982,77 @@ free 输出的是一个表格，表格总共有两行六列，这两行分别是
 - 第一，虚拟内存通常并不会全部分配物理内存。从上面的输出，你可以发现每个进程的虚拟内存都比常驻内存大得多。
 - 第二，共享内存 SHR 并不一定是共享的，比方说，程序的代码段、非共享的动态链接库，也都算在 SHR 里。当然，SHR 也包括了进程间真正共享的内存。所以在计算多个进程的内存使用时，不要把所有进程的 SHR 直接相加得出结果。
 
+#### Buffer 和 Cache
+
+这里我们着重学习下 `Buffer` 和 `Cache`，我们可以用 `free` 获得这个指标，这个指标的详细意思可以通过 `man free` 获取到：
+
+    DESCRIPTION
+       free  displays  the  total amount of free and used physical and swap memory in the system, as well as the buffers and caches used by
+       the kernel. The information is gathered by parsing /proc/meminfo. The displayed columns are:
+
+       total  Total installed memory (MemTotal and SwapTotal in /proc/meminfo)
+
+       used   Used memory (calculated as total - free - buffers - cache)
+
+       free   Unused memory (MemFree and SwapFree in /proc/meminfo)
+
+       shared Memory used (mostly) by tmpfs (Shmem in /proc/meminfo)
+
+       buffers
+              Memory used by kernel buffers (Buffers in /proc/meminfo)
+
+       cache  Memory used by the page cache and slabs (Cached and SReclaimable in /proc/meminfo)
+
+       buff/cache
+              Sum of buffers and cache
+
+        ....
+
+从上面看出 `Buffer` 是内核缓冲区用到的内存，对应的是  `/proc/meminfo` 中的 `Buffers` 值。`Cache` 是内核页缓存和 `Slab` 用到的内存，对应的是 `/proc/meminfo` 中的 `Cached` 与 `SReclaimable` 之和。
+
+`proc` 文件系统同时是很多性能工具的最终数据来源，既然 Buffers、Cached、SReclaimable 这几个指标不容易理解，我们继续通过 `man proc` 获取文档。
+
+    Buffers %lu
+        Relatively temporary storage for raw disk blocks that shouldn't get tremendously large (20MB or so).
+
+    Cached %lu
+    In-memory cache for files read from the disk (the page cache).  Doesn't include SwapCached.
+    ...
+    SReclaimable %lu (since Linux 2.6.19)
+        Part of Slab, that might be reclaimed, such as caches.
+        
+    SUnreclaim %lu (since Linux 2.6.19)
+        Part of Slab, that cannot be reclaimed on memory pressure.
+
+通过这个文档，我们可以看到：
+
+- `Buffers` 是对原始磁盘块的临时存储，也就是用来缓存磁盘的数据，通常不会特别大（20MB 左右）。这样，内核就可以把分散的写集中起来，统一优化磁盘的写入，比如可以把多次小的写合并成单次大的写等等。
+
+- `Cached` 是从磁盘读取文件的页缓存，也就是用来缓存从文件读取的数据。这样，下次访问这些文件数据时，就可以直接从内存中快速获取，而不需要再次访问缓慢的磁盘。
+·
+- `SReclaimable` 是 `Slab` 的一部分。`Slab` 包括两部分，其中的可回收部分，用 SReclaimable 记录；而不可回收部分，用 SUnreclaim 记录。
+
+通过 `vmstat` 命令可以查看 `Buffer` 和 `Cache` 的使用情况，如下图：
+
+![vmstat-buff-cache.png](vmstat-buff-cache.png)
+
+- buff 和 cache 就是我们前面看到的 Buffers 和 Cache，单位是 KB。
+
+- bi 和 bo 则分别表示块设备读取和写入的大小，单位为块 / 秒。因为 Linux 中块的大小是 1KB，所以这个单位也就等价于 KB/s。
+
+详情查看文章：[基础篇：怎么理解内存中的Buffer和Cache？](https://time.geekbang.org/column/article/74633)
+
+经过该文章中的实验，总结得出：
+
+- `Buffer` 既可以用作“将要写入磁盘数据的缓存”，也可以用作“从磁盘读取数据的缓存”。
+
+- `Cache` 既可以用作“从文件读取数据的页缓存”，也可以用作“写文件的页缓存”。
+
+磁盘是一个块设备，可以划分为不同的分区；在分区之上再创建文件系统，挂载到某个目录，之后才可以在这个目录中读写文件。Linux 中“一切皆文件”，而文章中提到的“文件”是普通文件，磁盘是块设备文件。
+
+在读写普通文件时，会经过文件系统，由文件系统负责与磁盘交互；而读写磁盘或者分区时，就会跳过文件系统，也就是所谓的“裸I/O“。这两种读写方式所使用的缓存是不同的，也就是文中所讲的 Cache 和 Buffer 区别。
+
+
 ### 性能实战常用命令
 
 1. [sysstat](https://github.com/sysstat/sysstat)  是一个软件包，包含监测系统性能及效率的一组工具，这些工具对于我们收集系统性能数据，比如CPU使用率、硬盘和网络吞吐数据，这些数据的收集和分析，有利于我们判断系统是否正常运行，是提高系统运行效率、安全运行服务器的得力助手。包含了一下工具
