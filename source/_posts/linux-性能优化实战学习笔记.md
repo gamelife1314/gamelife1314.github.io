@@ -1831,6 +1831,16 @@ iotop 的输出如下所示：
     > -t表示显示线程，-a表示显示命令行参数
     > pstree -t -a -p 27458
 
+20. [`nsenter`](https://man7.org/linux/man-pages/man1/nsenter.1.html) 命令是一个可以在指定进程的命令空间下运行指定程序的命令。它位于util-linux包中。
+
+    一个最典型的用途就是进入容器的网络命令空间。相当多的容器为了轻量级，是不包含较为基础的命令的，比如说ip address，ping，telnet，ss，tcpdump等等命令，这就给调试容器网络带来相当大的困扰：只能通过docker inspect ContainerID命令获取到容器IP，以及无法测试和其他网络的连通性。这时就可以使用nsenter命令仅进入该容器的网络命名空间，使用宿主机的命令调试容器网络。
+    
+    参考阅读：
+    - [nsenter命令简介](https://staight.github.io/2019/09/23/nsenter%E5%91%BD%E4%BB%A4%E7%AE%80%E4%BB%8B/)
+    - [Docker如何使用nsenter工具进入容器](https://blog.csdn.net/qq_39629343/article/details/80170164)
+    - [https://github.com/jpetazzo/nsenter](https://github.com/jpetazzo/nsenter)
+    - [nsenter(1) — Linux manual page](https://man7.org/linux/man-pages/man1/nsenter.1.html)
+
 ### 课外阅读文章
 
 1. [深入理解linux系统下proc文件系统内容](https://www.cnblogs.com/cute/archive/2011/04/20/2022280.html)
