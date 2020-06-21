@@ -1727,6 +1727,12 @@ iotop 的输出如下所示：
 
 7. [`strace`](https://github.com/strace/strace) 是最常用的跟踪进程系统调用的工具
 
+    > -f 查看线程纤细
+    > strace -f -p 27458 
+    >
+    > -f表示跟踪子进程和子线程，-T表示显示系统调用的时长，-tt表示显示跟踪时间
+    > strace -f -T -tt -p 9085
+
 8. `pstree` 用来显示进程的父子关系，安装方法：
 
     > mac: brew install pstree
@@ -1811,7 +1817,19 @@ iotop 的输出如下所示：
     > 使用grep查找Pss指标后，再用awk计算累加值
     > grep Pss /proc/[1-9]*/smaps | awk '{total+=$2}; END {printf "%d kB\n", total }'
     > 391266 kB
+
 16. [fio](https://github.com/axboe/fio)  测试磁盘的 IOPS、吞吐量以及响应时间等核心指标
+
+17. linux shell while `$ while true; do curl http://192.168.0.10:10000/products/geektime; sleep 5; done`
+
+18. `lsof` 查看指定进程打开的文件
+
+    > lsof -p 12875
+
+19. `pstree` 查看进程父子关系
+
+    > -t表示显示线程，-a表示显示命令行参数
+    > pstree -t -a -p 27458
 
 ### 课外阅读文章
 
