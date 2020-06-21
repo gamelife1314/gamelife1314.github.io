@@ -1758,37 +1758,39 @@ iotop 的输出如下所示：
     - `cachestat` 提供了整个操作系统缓存的读写命中情况。
     - `cachetop` 提供了每个进程的缓存命中情况。
     - `memleak` 可以跟踪系统或指定进程的内存分配、释放请求，然后定期输出一个未释放内存和相应调用栈的汇总情况（默认 5 秒）。
+    - `filetop` 基于 Linux 内核的 eBPF（extended Berkeley Packet Filters）机制，主要跟踪内核中文件的读写情况，并输出线程 ID（TID）、读写大小、读写类型以及文件名称。
+    - `opensnoop` 动态跟踪内核中的 open 系统调用
 
-    ubuntu:
-    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4052245BD4284CDD
-    echo "deb https://repo.iovisor.org/apt/xenial xenial main" | sudo tee /etc/apt/sources.list.d/iovisor.list
-    sudo apt-get update
-    sudo apt-get install -y bcc-tools libbcc-examples linux-headers-$(uname -r)
+    > ubuntu:
+    > sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4052245BD4284CDD
+    > echo "deb https://repo.iovisor.org/apt/xenial xenial main" | sudo tee /etc/apt/sources.list.d/iovisor.list
+    > sudo apt-get update
+    > sudo apt-get install -y bcc-tools libbcc-examples linux-headers-$(uname -r)
 
-    centos 可能需要升级内核：
-    升级系统
-    yum update -y
-    安装ELRepo
-    rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
-    rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
-    安装新内核
-    yum remove -y kernel-headers kernel-tools kernel-tools-libs
-    yum --enablerepo="elrepo-kernel" install -y kernel-ml kernel-ml-devel kernel-ml-headers kernel-ml-tools kernel-ml-tools-libs kernel-ml-tools-libs-devel
-    更新Grub后重启
-    grub2-mkconfig -o /boot/grub2/grub.cfg
-    grub2-set-default 0
-    reboot
-    重启后确认内核版本已升级为4.20.0-1.el7.elrepo.x86_64
-    uname -r
-    安装bcc-tools
-    yum install -y bcc-tools
-    配置PATH路径
-    export PATH=$PATH:/usr/share/bcc/tools
-    验证安装成功
-    cachestat 
+    > centos 可能需要升级内核：
+    > 升级系统
+    > yum update -y
+    > 安装ELRepo
+    > rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+    > rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
+    > 安装新内核
+    > yum remove -y kernel-headers kernel-tools kernel-tools-libs
+    > yum --enablerepo="elrepo-kernel" install -y kernel-ml kernel-ml-devel kernel-ml-headers kernel-ml-tools > kernel-ml-tools-libs kernel-ml-tools-libs-devel
+    > 更新Grub后重启
+    > grub2-mkconfig -o /boot/grub2/grub.cfg
+    > grub2-set-default 0
+    > reboot
+    > 重启后确认内核版本已升级为4.20.0-1.el7.elrepo.x86_64
+    > uname -r
+    > 安装bcc-tools
+    > yum install -y bcc-tools
+    > 配置PATH路径
+    > export PATH=$PATH:/usr/share/bcc/tools
+    > 验证安装成功
+    > cachestat 
 
-    可以把工具加入到系统路径中
-    export PATH=$PATH:/usr/share/bcc/tools
+    > 可以把工具加入到系统路径中
+    > export PATH=$PATH:/usr/share/bcc/tools
 
 16. [`pcstat`](https://github.com/tobert/pcstat) 查看文件在内存中的缓存大小以及缓存比例。
 
