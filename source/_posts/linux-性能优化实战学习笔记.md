@@ -741,7 +741,7 @@ sar 的输出界面，简单介绍一下:
 
 `SYN FLOOD` 问题最简单的解决方法，就是从交换机或者硬件防火墙中封掉来源 IP，这样 SYN FLOOD 网络帧就不会发送到服务器中。
 
-#### 系统 CPU 瓶颈分析
+#### CPU 性能问题定位
 
 原文：[https://time.geekbang.org/column/article/72685](https://time.geekbang.org/column/article/72685)
 
@@ -1700,6 +1700,170 @@ iotop 的输出如下所示：
 
 至此，感觉找到了狂写磁盘的进程，就是进程ID为 18940 的 Python 进程。
 
+#### I/O 性能问题定位
+
+原文：[套路篇：如何迅速分析出系统I/O的瓶颈在哪里？](https://time.geekbang.org/column/article/79001)
+
+问题定位得从量化的指标开始，从 CPU，内存一样，学习指标，掌握工具，定位问题。文件系统和磁盘 I/O 的性能指标都很有用，需要熟练掌握们才能应对千奇百怪的问题，为了方便记忆复习，偷了一张图，如下：
+
+![io性能指标](io-perf-index.png)
+
+##### 性能工具
+
+掌握文件系统和磁盘 I/O 的性能指标后，还要知道，怎样去获取这些指标，也就是搞明白工具的使用问题。常用的工具及其能做的事情整理如下：
+
+- `df`，它既可以查看文件系统数据的空间容量，也可以查看索引节点的容量。至于文件系统缓存，可以通过 `/proc/meminfo`、`/proc/slabinfo` 以及 `slabtop` 等各种来源，观察页缓存、目录项缓存、索引节点缓存以及具体文件系统的缓存情况。
+
+- `iostat` 和 `pidstat` 可以查看磁盘和进程的 I/O 情况，都是最常用的 I/O 性能分析工具。通过 `iostat` ，我们可以得到磁盘的 I/O 使用率、吞吐量、响应时间以及 IOPS 等性能指标；而通过 `pidstat` ，则可以观察到进程的 I/O 吞吐量以及块设备 I/O 的延迟等。
+
+- 如果用 `top` 查看系统的 CPU 使用情况，发现 `iowait` 比较高；然后可以用 `iostat` 发现了磁盘的 I/O 使用率瓶颈，然后可以用 `pidstat` 找出了大量 I/O 的进程；最后，通过 `strace` 和 `lsof`，我们找出了问题进程正在读写的文件，并最终锁定性能问题的来源。
+
+查看性能指标时，我们可以有两种思路，一种是以需要的性能触发，找到相应的工具查看，如下图：
+
+![io-index-tool.png](io-index-tool.png)
+
+另一种是，利用手头现有的工具得到尽可能想要的，如下图：
+
+![io-tool-index.png](io-tool-index.png)
+
+一般情况下，多种性能指标间都有一定的关联性，不要完全孤立的看待他们。想弄清楚性能指标的关联性，就要通晓每种性能指标的工作原理。为了缩小排查范围，一般通常会先运行那几个支持指标较多的工具，如 iostat、vmstat、pidstat 等。然后再根据观察到的现象，结合系统和应用程序的原理，寻找下一步的分析方向，这个分析过程一般可以参考下图：
+
+![io-locate.png](io-locate.png)
+
+#### I/O 基准测试
+
+[fio](https://github.com/axboe/fio) 是最常用的文件系统和磁盘 I/O 性能基准测试工具。它提供了大量的可定制化选项，可以用来测试，裸盘或者文件系统在各种场景下的 I/O 性能，包括了不同块大小、不同 I/O 引擎以及是否使用缓存等场景。
+
+fio 的安装比较简单，你可以执行下面的命令来安装它，安装完成后，就可以执行 man fio 查询它的使用方法。：
+
+    # Ubuntu
+    apt-get install -y fio
+
+    # CentOS
+    yum install -y fio 
+
+fio 的选项非常多，下面列出一些最常用的选项。这些常见场景包括随机读、随机写、顺序读以及顺序写等，你可以执行下面这些命令来测试：
+
+    # 随机读
+    fio -name=randread -direct=1 -iodepth=64 -rw=randread -ioengine=libaio -bs=4k -size=1G -numjobs=1 -runtime=1000 -group_reporting -filename=/dev/sdb
+
+    # 随机写
+    fio -name=randwrite -direct=1 -iodepth=64 -rw=randwrite -ioengine=libaio -bs=4k -size=1G -numjobs=1 -runtime=1000 -group_reporting -filename=/dev/sdb
+
+    # 顺序读
+    fio -name=read -direct=1 -iodepth=64 -rw=read -ioengine=libaio -bs=4k -size=1G -numjobs=1 -runtime=1000 -group_reporting -filename=/dev/sdb
+
+    # 顺序写
+    fio -name=write -direct=1 -iodepth=64 -rw=write -ioengine=libaio -bs=4k -size=1G -numjobs=1 -runtime=1000 -group_reporting -filename=/dev/sdb 
+
+参数解释如下：
+
+- direct，表示是否跳过系统缓存。上面示例中，设置的 1 ，就表示跳过系统缓存。
+- iodepth，表示使用异步 I/O（asynchronous I/O，简称 AIO）时，同时发出的 I/O 请求上限。在上面的示例中，设置的是 64。
+- rw，表示 I/O 模式。我的示例中， read/write 分别表示顺序读 / 写，而 randread/randwrite 则分别表示随机读 / 写。
+- ioengine，表示 I/O 引擎，它支持同步（sync）、异步（libaio）、内存映射（mmap）、网络（net）等各种 I/O 引擎。上面示例中，设置的 libaio 表示使用异步 I/O。
+- bs，表示 I/O 的大小。示例中设置成了 4K（这也是默认值）。
+- filename，表示文件路径，当然，它可以是磁盘路径（测试磁盘性能），也可以是文件路径（测试文件系统性能）。示例中，设置成了磁盘 /dev/sdb。不过注意，用磁盘路径测试写，会破坏这个磁盘中的文件系统，所以在使用前，你一定要事先做好数据备份。
+
+下面是一个报告示例：
+
+    read: (g=0): rw=read, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=libaio, iodepth=64
+    fio-3.1
+    Starting 1 process
+    Jobs: 1 (f=1): [R(1)][100.0%][r=16.7MiB/s,w=0KiB/s][r=4280,w=0 IOPS][eta 00m:00s]
+    read: (groupid=0, jobs=1): err= 0: pid=17966: Sun Dec 30 08:31:48 2018
+    read: IOPS=4257, BW=16.6MiB/s (17.4MB/s)(1024MiB/61568msec)
+        slat (usec): min=2, max=2566, avg= 4.29, stdev=21.76
+        clat (usec): min=228, max=407360, avg=15024.30, stdev=20524.39
+        lat (usec): min=243, max=407363, avg=15029.12, stdev=20524.26
+        clat percentiles (usec):
+        |  1.00th=[   498],  5.00th=[  1020], 10.00th=[  1319], 20.00th=[  1713],
+        | 30.00th=[  1991], 40.00th=[  2212], 50.00th=[  2540], 60.00th=[  2933],
+        | 70.00th=[  5407], 80.00th=[ 44303], 90.00th=[ 45351], 95.00th=[ 45876],
+        | 99.00th=[ 46924], 99.50th=[ 46924], 99.90th=[ 48497], 99.95th=[ 49021],
+        | 99.99th=[404751]
+    bw (  KiB/s): min= 8208, max=18832, per=99.85%, avg=17005.35, stdev=998.94, samples=123
+    iops        : min= 2052, max= 4708, avg=4251.30, stdev=249.74, samples=123
+    lat (usec)   : 250=0.01%, 500=1.03%, 750=1.69%, 1000=2.07%
+    lat (msec)   : 2=25.64%, 4=37.58%, 10=2.08%, 20=0.02%, 50=29.86%
+    lat (msec)   : 100=0.01%, 500=0.02%
+    cpu          : usr=1.02%, sys=2.97%, ctx=33312, majf=0, minf=75
+    IO depths    : 1=0.1%, 2=0.1%, 4=0.1%, 8=0.1%, 16=0.1%, 32=0.1%, >=64=100.0%
+        submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+        complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.1%, >=64=0.0%
+        issued rwt: total=262144,0,0, short=0,0,0, dropped=0,0,0
+        latency   : target=0, window=0, percentile=100.00%, depth=64
+
+    Run status group 0 (all jobs):
+    READ: bw=16.6MiB/s (17.4MB/s), 16.6MiB/s-16.6MiB/s (17.4MB/s-17.4MB/s), io=1024MiB (1074MB), run=61568-61568msec
+
+    Disk stats (read/write):
+    sdb: ios=261897/0, merge=0/0, ticks=3912108/0, in_queue=3474336, util=90.09% 
+
+这个报告中，需要我们重点关注的是， slat、clat、lat ，以及 bw 和 iops 这几行。先来看刚刚提到的前三个参数。事实上，slat、clat、lat 都是指 I/O 延迟（latency）。不同之处在于：
+
+- slat ，是指从 I/O 提交到实际执行 I/O 的时长（Submission latency）；
+- clat ，是指从 I/O 提交到 I/O 完成的时长（Completion latency）；
+- 而 lat ，指的是从 fio 创建 I/O 到 I/O 完成的总时长。
+
+这里需要注意的是，对同步 I/O 来说，由于 I/O 提交和 I/O 完成是一个动作，所以 slat 实际上就是 I/O 完成的时间，而 clat 是 0。而从示例可以看到，使用异步 I/O（libaio）时，lat 近似等于 slat + clat 之和。
+
+bw ，它代表吞吐量。在上面的示例中，可以看到，平均吞吐量大约是 16 MB（17005 KiB/1024）。
+
+iops ，其实就是每秒 I/O 的次数，上面示例中的平均 IOPS 为 4250。
+
+**fio 支持 I/O 的重放**。借助前面提到过的 blktrace，再配合上 fio，就可以实现对应用程序 I/O 模式的基准测试。你需要先用 blktrace ，记录磁盘设备的 I/O 访问情况；然后使用 fio ，重放 blktrace 的记录。
+
+    # 使用blktrace跟踪磁盘I/O，注意指定应用程序正在操作的磁盘
+    $ blktrace /dev/sdb
+
+    # 查看blktrace记录的结果
+    # ls
+    sdb.blktrace.0  sdb.blktrace.1
+
+    # 将结果转化为二进制文件
+    $ blkparse sdb -d sdb.bin
+
+    # 使用fio重放日志
+    $ fio --name=replay --filename=/dev/sdb --direct=1 --read_iolog=sdb.bin 
+
+#### I/O 性能优化
+
+I/O 优化可以从应用程序、文件系统以及磁盘角度来进行优化。
+
+*应用程序*处于整个 I/O 栈的最上端，它可以通过系统调用，来调整 I/O 模式（如顺序还是随机、同步还是异步）， 同时，它也是 I/O 数据的最终来源。优化应用程序的 I/O 性能有以下几种方式：
+
+- 可以用追加写代替随机写，减少寻址开销，加快 I/O 写的速度。
+- 可以借助缓存 I/O ，充分利用系统缓存，降低实际 I/O 的次数。
+- 可以在应用程序内部构建自己的缓存，或者用 Redis 这类外部缓存系统。这样，一方面，能在应用程序内部，控制缓存的数据和生命周期；另一方面，也能降低其他应用程序使用缓存对自身的影响。
+- 在需要频繁读写同一块磁盘空间时，可以用 mmap 代替 read/write，减少内存的拷贝次数。
+- 在需要同步写的场景中，尽量将写请求合并，而不是让每个请求都同步写入磁盘，即可以用 fsync() 取代 O_SYNC。
+- 在多个应用程序共享相同磁盘时，为了保证 I/O 不被某个应用完全占用，推荐使用 cgroups 的 I/O 子系统，来限制进程 / 进程组的 IOPS 以及吞吐量。
+
+应用程序访问普通文件时，实际是由*文件系统*间接负责，文件在磁盘中的读写。所以，跟文件系统中相关的也有很多优化 I/O 性能的方式。如下：
+
+- 可以根据实际负载场景的不同，选择最适合的文件系统。比如 Ubuntu 默认使用 ext4 文件系统，而 CentOS 7 默认使用 xfs 文件系统。
+- 选好文件系统后，还可以进一步优化文件系统的配置选项，包括文件系统的特性（如 ext_attr、dir_index）、日志模式（如 journal、ordered、writeback）、挂载选项（如 noatime）等等。
+- 可以优化文件系统的缓存。
+
+    - 可以优化 pdflush 脏页的刷新频率（比如设置 dirty_expire_centisecs 和 dirty_writeback_centisecs）以及脏页的限额（比如调整 dirty_background_ratio 和 dirty_ratio 等）。
+    - 再如，还可以优化内核回收目录项缓存和索引节点缓存的倾向，即调整 vfs_cache_pressure（/proc/sys/vm/vfs_cache_pressure，默认值 100），数值越大，就表示越容易回收。
+
+- 在不需要持久化时，你还可以用内存文件系统  tmpfs，以获得更好的 I/O 性能 。
+
+数据的持久化存储，最终还是要落到具体的*物理磁盘*中，同时，磁盘也是整个 I/O 栈的最底层。从磁盘角度出发，自然也有很多有效的性能优化方法。
+
+- 最简单有效的优化方法，就是换用性能更好的磁盘，比如用 SSD 替代 HDD。
+- 可以使用 RAID ，把多块磁盘组合成一个逻辑磁盘，构成冗余独立磁盘阵列。这样做既可以提高数据的可靠性，又可以提升数据的访问性能。
+- 针对磁盘和应用程序 I/O 模式的特征，我们可以选择最适合的 I/O 调度算法。比方说，SSD 和虚拟机中的磁盘，通常用的是 noop 调度算法。而数据库应用，推荐使用 deadline 算法。
+- 可以对应用程序的数据，进行磁盘级别的隔离。比如，我们可以为日志、数据库等 I/O 压力比较重的应用，配置单独的磁盘。
+- 在顺序读比较多的场景中，可以增大磁盘的预读数据，比如，你可以通过下面两种方法，调整 /dev/sdb 的预读大小。
+
+    - 调整内核选项 /sys/block/sdb/queue/read_ahead_kb，默认大小是 128 KB，单位为 KB。
+    - 使用 blockdev 工具设置，比如 blockdev --setra 8192 /dev/sdb，注意这里的单位是 512B（0.5KB），所以它的数值总是 read_ahead_kb 的两倍。
+
+- 要注意，磁盘本身出现硬件错误，也会导致 I/O 性能急剧下降，可以查看 dmesg 中是否有硬件 I/O 故障的日志。 还可以使用 badblocks、smartctl 等工具，检测磁盘的硬件问题，或用 e2fsck 等来检测文件系统的错误。如果发现问题，你可以使用 fsck 等工具来修复。
+
 ### 性能实战常用命令
 
 1. [sysstat](https://github.com/sysstat/sysstat)  是一个软件包，包含监测系统性能及效率的一组工具，这些工具对于我们收集系统性能数据，比如CPU使用率、硬盘和网络吞吐数据，这些数据的收集和分析，有利于我们判断系统是否正常运行，是提高系统运行效率、安全运行服务器的得力助手。包含了一下工具
@@ -1818,20 +1982,20 @@ iotop 的输出如下所示：
     > grep Pss /proc/[1-9]*/smaps | awk '{total+=$2}; END {printf "%d kB\n", total }'
     > 391266 kB
 
-16. [fio](https://github.com/axboe/fio)  测试磁盘的 IOPS、吞吐量以及响应时间等核心指标
+19. [fio](https://github.com/axboe/fio)  测试磁盘的 IOPS、吞吐量以及响应时间等核心指标
 
-17. linux shell while `$ while true; do curl http://192.168.0.10:10000/products/geektime; sleep 5; done`
+20. linux shell while `$ while true; do curl http://192.168.0.10:10000/products/geektime; sleep 5; done`
 
-18. `lsof` 查看指定进程打开的文件
+21. `lsof` 查看指定进程打开的文件
 
     > lsof -p 12875
 
-19. `pstree` 查看进程父子关系
+22. `pstree` 查看进程父子关系
 
     > -t表示显示线程，-a表示显示命令行参数
     > pstree -t -a -p 27458
 
-20. [`nsenter`](https://man7.org/linux/man-pages/man1/nsenter.1.html) 命令是一个可以在指定进程的命令空间下运行指定程序的命令。它位于util-linux包中。
+23. [`nsenter`](https://man7.org/linux/man-pages/man1/nsenter.1.html) 命令是一个可以在指定进程的命令空间下运行指定程序的命令。它位于util-linux包中。
 
     一个最典型的用途就是进入容器的网络命令空间。相当多的容器为了轻量级，是不包含较为基础的命令的，比如说ip address，ping，telnet，ss，tcpdump等等命令，这就给调试容器网络带来相当大的困扰：只能通过docker inspect ContainerID命令获取到容器IP，以及无法测试和其他网络的连通性。这时就可以使用nsenter命令仅进入该容器的网络命名空间，使用宿主机的命令调试容器网络。
     
