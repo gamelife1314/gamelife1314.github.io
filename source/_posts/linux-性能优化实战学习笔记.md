@@ -2341,6 +2341,100 @@ wrk 最大的优势，是其内置的 LuaJIT，可以用来实现复杂场景的
 
     $ wrk -c 1000 -t 2 -s auth.lua http://192.168.0.30/ 
 
+#### 域名与 DNS 解析
+
+域名由一串用点分割开的字符组成，被用作互联网中的某一台或某一组计算机的名称，目的就是为了方便识别，互联网中提供各种服务的主机位置。
+
+域名是全球唯一的，需要通过专门的域名注册商才可以申请注册。为了组织全球互联网中的众多计算机，域名同样用点来分开，形成一个分层的结构。而每个被点分割开的字符串，就构成了域名中的一个层级，并且位置越靠后，层级越高。
+
+极客时间的网站 time.geekbang.org 为例，来理解域名的含义。这个字符串中，最后面的 org 是顶级域名，中间的 geekbang 是二级域名，而最左边的 time 则是三级域名。
+
+点（**.**）是所有域名的根，也就是说所有域名都以点作为后缀，也可以理解为，在域名解析的过程中，所有域名都以点结束。
+
+![域名](net-domain-name.png)
+
+域名主要是为了方便让人记住，而 IP 地址是机器间的通信的真正机制。把域名转换为 IP 地址的服务，是域名解析服务（DNS），而对应的服务器就是域名服务器，网络协议则是 DNS 协议。
+
+DNS 协议在 TCP/IP 栈中属于应用层，不过实际传输还是基于 UDP 或者 TCP 协议（UDP 居多） ，并且域名服务器一般监听在端口 **53** 上。
+
+系统管理员在配置 Linux 系统的网络时，除了需要配置 IP 地址，还需要给它配置 DNS 服务器，这样它才可以通过域名来访问外部服务。可以执行下面的命令查看系统域名服务配置：
+
+    $ cat /etc/resolv.conf
+    nameserver 114.114.114.114
+
+另外，DNS 服务通过资源记录的方式，来管理所有数据，它支持 A、CNAME、MX、NS、PTR 等多种类型的记录。比如：
+
+- A 记录，用来把域名转换成 
+- IP 地址；CNAME 记录，用来创建别名；
+- NS 记录，则表示该域名对应的域名服务器地址。
+
+当我们访问某个网址时，就需要通过 DNS 的 A 记录，查询该域名对应的 IP 地址，然后再通过该 IP 来访问 Web 服务。以极客时间的网站 time.geekbang.org 为例，执行下面的 nslookup 命令，就可以查询到这个域名的 A 记录，可以看到，它的 IP 地址是 39.106.233.176：
+
+    $ nslookup time.geekbang.org
+    # 域名服务器及端口信息
+    Server:    114.114.114.114
+    Address:  114.114.114.114#53
+
+    # 非权威查询结果
+    Non-authoritative answer:
+    Name:  time.geekbang.org
+    Address: 39.106.233.17
+
+DNS 查询实际上是一个递归过程，可以通过 dig 命令来查看整个递归查询过程：
+
+    # +trace表示开启跟踪查询
+    # +nodnssec表示禁止DNS安全扩展
+    $ dig +trace +nodnssec time.geekbang.org
+
+    ; <<>> DiG 9.11.3-1ubuntu1.3-Ubuntu <<>> +trace +nodnssec time.geekbang.org
+    ;; global options: +cmd
+    .      322086  IN  NS  m.root-servers.net.
+    .      322086  IN  NS  a.root-servers.net.
+    .      322086  IN  NS  i.root-servers.net.
+    .      322086  IN  NS  d.root-servers.net.
+    .      322086  IN  NS  g.root-servers.net.
+    .      322086  IN  NS  l.root-servers.net.
+    .      322086  IN  NS  c.root-servers.net.
+    .      322086  IN  NS  b.root-servers.net.
+    .      322086  IN  NS  h.root-servers.net.
+    .      322086  IN  NS  e.root-servers.net.
+    .      322086  IN  NS  k.root-servers.net.
+    .      322086  IN  NS  j.root-servers.net.
+    .      322086  IN  NS  f.root-servers.net.
+    ;; Received 239 bytes from 114.114.114.114#53(114.114.114.114) in 1340 ms
+
+    org.      172800  IN  NS  a0.org.afilias-nst.info.
+    org.      172800  IN  NS  a2.org.afilias-nst.info.
+    org.      172800  IN  NS  b0.org.afilias-nst.org.
+    org.      172800  IN  NS  b2.org.afilias-nst.org.
+    org.      172800  IN  NS  c0.org.afilias-nst.info.
+    org.      172800  IN  NS  d0.org.afilias-nst.org.
+    ;; Received 448 bytes from 198.97.190.53#53(h.root-servers.net) in 708 ms
+
+    geekbang.org.    86400  IN  NS  dns9.hichina.com.
+    geekbang.org.    86400  IN  NS  dns10.hichina.com.
+    ;; Received 96 bytes from 199.19.54.1#53(b0.org.afilias-nst.org) in 1833 ms
+
+    time.geekbang.org.  600  IN  A  39.106.233.176
+    ;; Received 62 bytes from 140.205.41.16#53(dns10.hichina.com) in 4 ms
+
+dig trace 的输出，主要包括四部分。
+
+- 第一部分，是从 114.114.114.114 查到的一些根域名服务器（.）的 NS 记录。
+- 第二部分，是从 NS 记录结果中选一个（h.root-servers.net），并查询顶级域名 org. 的 NS 记录。
+- 第三部分，是从 org. 的 NS 记录中选择一个（b0.org.afilias-nst.org），并查询二级域名 geekbang.org. 的 NS 服务器。
+- 第四部分，就是从 geekbang.org. 的 NS 服务器（dns10.hichina.com）查询最终主机 time.geekbang.org. 的 A 记录。
+
+##### DNS 缓存
+
+要为系统开启 DNS 缓存，就需要你做额外的配置。最简单的方法，就是使用 dnsmasq。dnsmasq 是最常用的 DNS 缓存服务之一，还经常作为 DHCP 服务来使用。它的安装和配置都比较简单，性能也可以满足绝大多数应用程序对 DNS 缓存的需求。
+
+centos 安装：
+
+    yum -y install dnsmasq
+    systemctl start dnsmasq
+
+
 ### 性能实战常用命令
 
 1. [sysstat](https://github.com/sysstat/sysstat)  是一个软件包，包含监测系统性能及效率的一组工具，这些工具对于我们收集系统性能数据，比如CPU使用率、硬盘和网络吞吐数据，这些数据的收集和分析，有利于我们判断系统是否正常运行，是提高系统运行效率、安全运行服务器的得力助手。包含了一下工具
