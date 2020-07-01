@@ -2435,6 +2435,35 @@ centos 安装：
     systemctl start dnsmasq
 
 
+#### tcpdump 抓包
+
+tcpdump 是最常用的一个网络分析工具。它基于 [libpcap](https://www.tcpdump.org/)  ，利用内核中的 AF_PACKET 套接字，抓取网络接口中传输的网络包；并提供了强大的过滤规则，帮助从大量的网络包中，挑出最想关注的信息。
+
+tcpdump 展示了每个网络包的详细细节，这就要求，在使用前，你必须要对网络协议有基本了解。而要了解网络协议的详细设计和实现细节， RFC 当然是最权威的资料。不过，RFC 的内容，对初学者来说可能并不友好。如果对网络协议还不太了解，推荐学习《TCP/IP 详解》，特别是第一卷的 TCP/IP 协议族。这是每个程序员都要掌握的核心基础知识。再回到 tcpdump 工具本身，它的基本使用方法，还是比较简单的，也就是 **tcpdump [选项] [过滤表达式]**。
+
+tcpdump 官方文档：[https://www.tcpdump.org/manpages/tcpdump.1.html](https://www.tcpdump.org/manpages/tcpdump.1.html)
+
+fileter 手册：[https://www.tcpdump.org/manpages/pcap-filter.7.html](https://www.tcpdump.org/manpages/pcap-filter.7.html)
+
+tcpdump 提供了大量的选项以及过滤表达式，大多数情况下掌握常用的即可，常用的选项如下：
+
+![tcpdump 选项](net-tcpdump-options.png)
+
+常用的过滤选项如下：
+
+![tcpdump 过滤器](net-tcpdump-filter.png)
+
+tcpdump 输出格式如下：
+
+> 时间戳 协议 源地址.源端口 > 目的地址.目的端口 网络包详细信息
+
+示例如下：
+
+> tcpdump -nn udp port 53 or host 35.190.27.188 -w ping.pcap
+> 
+> tcpdump -nn udp port 53 or host 35.190.27.188
+
+
 ### 性能实战常用命令
 
 1. [sysstat](https://github.com/sysstat/sysstat)  是一个软件包，包含监测系统性能及效率的一组工具，这些工具对于我们收集系统性能数据，比如CPU使用率、硬盘和网络吞吐数据，这些数据的收集和分析，有利于我们判断系统是否正常运行，是提高系统运行效率、安全运行服务器的得力助手。包含了一下工具
