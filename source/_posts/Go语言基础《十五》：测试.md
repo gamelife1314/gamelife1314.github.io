@@ -31,6 +31,10 @@ tags:
 `-v`           | 打印所有运行的测试案例，也会打印出 `Log` 和 `Logf` 的输出。
 `-run`         | 参数值是一个正则表达式，它可以使得 `go test`只运行那些功能测试函数名称匹配给定模式的函数。
 `-bench`       | 指定需要运行的基准测试函数要匹配的模式。 
+`-args`        | 指定命令行参数
+`-parallel`    | 并发执行，默认值为 GOMAXPROCS
+`-timeout`     | 全部测试案例累计时间超过将引发panic
+`-count`       | 重复测试次数
 
 接下里我们都对这个源码文件进行测试，命名为：`github.com/gamelife1314/go_study/fib/fib.go`
 
@@ -151,15 +155,43 @@ func BenchmarkFibBad(b *testing.B) {
 
 ### 覆盖率
 
-我们可以带上 `-coverprofile` 标记来测试代码的覆盖率，例如：` go test -v -coverprofile=cover.out   github.com/gamelife1314/go_study/fib`，然后会生成 `cover.out` 文件，我们在使用 `go tool cover` 工具在浏览器中打开输出的覆盖率报告：`go tool cover -html=cover.out`，我们将会看到：
+我们可以带上 `-coverprofile` 标记来测试代码的覆盖率，例如：` go test -v -coverprofile=cover.out `，然后会生成 `cover.out` 文件，我们在使用 `go tool cover` 工具在浏览器中打开输出的覆盖率报告：`go tool cover -html=cover.out`，我们将会看到：
 
 ![cover](cover.png)
 
-我们也可以加上 `-covermode=count` 来给每个语句块加上一个计数器，每个语句块被执行的次数将会被量化，例如执行命令：`go test -v -coverprofile=cover.out -covermode=count  github.com/gamelife1314/go_study/fib`
+我们也可以加上 `-covermode=count` 来给每个语句块加上一个计数器，每个语句块被执行的次数将会被量化。
 
-然后浏览器中再打开报告将会看到：
+### 并行运行
 
-![cover-count](cover-count.png)
+使用 Parallel 可以与有同样设置的函数并行运行减少测试时间：
+
+```go
+package gotest
+
+import (
+	"os"
+	"testing"
+	"time"
+)
+
+func TestA(t *testing.T) {
+	t.Parallel()
+	time.Sleep(time.Second * 2)
+}
+
+func TestB(t *testing.T) {
+	if os.Args[len(os.Args)-1] == "p" {
+		t.Parallel()
+	}
+	time.Sleep(time.Second * 2)
+}
+```
+
+运行比较结果如下图：
+
+![parallet test](parallet-tes.png)
+
+
 
 ### 参考阅读
 

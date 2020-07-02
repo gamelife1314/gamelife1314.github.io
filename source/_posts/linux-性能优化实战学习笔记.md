@@ -2463,6 +2463,83 @@ tcpdump 输出格式如下：
 > 
 > tcpdump -nn udp port 53 or host 35.190.27.188
 
+#### DDOS 检测与防御
+
+DDoS 的前身是 DoS（Denail of Service），即拒绝服务攻击，指利用大量的合理请求，来占用过多的目标资源，从而使目标服务无法响应正常请求。
+
+DDoS（Distributed Denial of Service） 则是在 DoS 的基础上，采用了分布式架构，利用多台主机同时攻击目标主机。这样，即使目标服务部署了网络防御设备，面对大量网络请求时，还是无力应对。
+
+从攻击的原理上来看，DDoS 可以分为下面几种类型。
+
+- 第一种，耗尽带宽。无论是服务器还是路由器、交换机等网络设备，带宽都有固定的上限。带宽耗尽后，就会发生网络拥堵，从而无法传输其他正常的网络报文。
+- 第二种，耗尽操作系统的资源。网络服务的正常运行，都需要一定的系统资源，像是 CPU、内存等物理资源，以及连接表等软件资源。一旦资源耗尽，系统就不能处理其他正常的网络连接。
+- 第三种，消耗应用程序的运行资源。应用程序的运行，通常还需要跟其他的资源或系统交互。如果应用程序一直忙于处理无效请求，也会导致正常请求的处理变慢，甚至得不到响应。
+
+当有一天你的网站响应变慢，并且通过 tcpdump 查到很多 SYN 包的就要小心了，可能是遭遇了 SYN 攻击，例如：
+
+    # -i eth0 只抓取eth0网卡，-n不解析协议名和主机名
+    # tcp port 80表示只抓取tcp协议并且端口号为80的网络帧
+    $ tcpdump -i eth0 -n tcp port 80
+    09:15:48.287047 IP 192.168.0.2.27095 > 192.168.0.30: Flags [S], seq 1288268370, win 512, length 0
+    09:15:48.287050 IP 192.168.0.2.27131 > 192.168.0.30: Flags [S], seq 2084255254, win 512, length 0
+    09:15:48.287052 IP 192.168.0.2.27116 > 192.168.0.30: Flags [S], seq 677393791, win 512, length 0
+    09:15:48.287055 IP 192.168.0.2.27141 > 192.168.0.30: Flags [S], seq 1276451587, win 512, length 0
+    09:15:48.287068 IP 192.168.0.2.27154 > 192.168.0.30: Flags [S], seq 1851495339, win 512, length 0
+
+这时候再通过 sar 命令查看网络报收发情况：
+
+    $ sar -n DEV 1
+    08:55:49        IFACE   rxpck/s   txpck/s    rxkB/s    txkB/s   rxcmp/s   txcmp/s  rxmcst/s   %ifutil
+    08:55:50      docker0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+    08:55:50         eth0  22274.00    629.00   1174.64     37.78      0.00      0.00      0.00      0.02
+    08:55:50           lo      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+
+发现有大量的小包（PPS 很大，但是 BPS却很小），这个时候要更加坚信遭受到的是 SYN 洪水攻击，它的原理是：
+
+- 客户端构造大量的 SYN 包，请求建立 TCP 连接；
+- 服务器收到包后，会向源 IP 发送 SYN+ACK 报文，并等待三次握手的最后一次 ACK 报文，直到超时。
+
+等待状态的 TCP 连接，通常也称为半开连接。由于连接表的大小有限，大量的半开连接就会导致连接表迅速占满，从而无法建立新的 TCP 连接。参考下面这张 TCP 状态图，你能看到，此时，服务器端的 TCP 连接，会处于 SYN_RECEIVED 状态：
+
+![tcp状态图](net-tcp-state.png)
+
+查看 TCP 半开连接的方法，关键在于 SYN_RECEIVED 状态的连接。我们可以使用 netstat ，来查看所有连接的状态，不过要注意，SYN_REVEIVED 的状态，通常被缩写为 SYN_RECV，例如执行下面的 netstat 命令：
+
+    # -n表示不解析名字，-p表示显示连接所属进程
+    $ netstat -n -p | grep SYN_REC
+    tcp        0      0 192.168.0.30:80          192.168.0.2:12503      SYN_RECV    -
+    tcp        0      0 192.168.0.30:80          192.168.0.2:13502      SYN_RECV    -
+    tcp        0      0 192.168.0.30:80          192.168.0.2:15256      SYN_RECV    -
+    tcp        0      0 192.168.0.30:80          192.168.0.2:18117      SYN_RECV    -
+
+遇到这种工具可以通过 linux 的防火墙以及调整内核参数进行初步的防御，可以通过 `iptables` 进行限制：
+
+    # 将来源ip为 192.168.0.2 的报文直接丢掉
+    $ iptables -I INPUT -s 192.168.0.2 -p tcp -j REJECT
+    # 限制syn并发数为每秒1次
+    $ iptables -A INPUT -p tcp --syn -m limit --limit 1/s -j ACCEPT
+    # 限制单个IP在60秒新建立的连接数为10
+    $ iptables -I INPUT -p tcp --dport 80 --syn -m recent --name SYN_FLOOD --update --seconds 60 --hitcount 10 -j REJECT
+
+半开状态的连接数增多可能组织你连接到server进行操作，可以通过 `sysctl` 命令调整系统内核参数：
+
+    $ sysctl -w net.ipv4.tcp_max_syn_backlog=1024
+    net.ipv4.tcp_max_syn_backlog = 1024
+    # 修改 SYN_RECV 状态的连接重试次数，默认是5
+    $ sysctl -w net.ipv4.tcp_synack_retries=1
+    net.ipv4.tcp_synack_retries = 1
+    # TCP SYN Cookies 也是一种专门防御 SYN Flood 攻击的方法，可以通过下面的方式开启
+    $ sysctl -w net.ipv4.tcp_syncookies=1
+    net.ipv4.tcp_syncookies = 1
+
+sysctl 命令修改的配置都是临时的，重启后这些配置就会丢失。所以，为了保证配置持久化，你还应该把这些配置，写入 `/etc/sysctl.conf` 文件中。
+
+    $ cat /etc/sysctl.conf
+    net.ipv4.tcp_syncookies = 1
+    net.ipv4.tcp_synack_retries = 1
+    net.ipv4.tcp_max_syn_backlog = 1024
+
+写入 `/etc/sysctl.conf` 的配置，需要执行 `sysctl -p` 命令后，才会动态生效
 
 ### 性能实战常用命令
 
@@ -2504,6 +2581,10 @@ tcpdump 输出格式如下：
     > ubuntu: apt-get install psmisc
 
 9. [`hping3`](https://tools.kali.org/information-gathering/hping3) 是一个可以构造 TCP/IP 协议数据包的工具，可以对系统进行安全审计、防火墙测试等。
+
+    >  -S 参数表示设置TCP协议的SYN（同步序列号），-p表示目的端口为80
+    >  -i u10表示每隔10微秒发送一个网络帧  --rand-source 随机化源ip --flood 尽可能块的发包
+    >  hping3 -S -p 80 -i u10 192.168.0.30
 
 10. `tcpdump` 是一个常用的网络抓包工具，常用来分析各种网络问题。
 
