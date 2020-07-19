@@ -1,5 +1,5 @@
 ---
-title: Go 奇淫技巧
+title: Go 语言不为人知的技巧
 date: 2020-02-04 10:17:11
 categories:
   - Go语言进阶 
@@ -332,16 +332,16 @@ package main
 
 import (
 	"fmt"
-	"go-study/get_gid/a"
+	"go-study/golinkname/a"
 	_ "unsafe"
 )
 
 // 调用包级私有方法
-//go:linkname add go-study/get_gid/a.add
+//go:linkname add go-study/golinkname/a.add
 func add(a, b int) int
 
 // 访问公开类型私有方法
-//go:linkname iv go-study/get_gid/a.(*Pub).iv
+//go:linkname iv go-study/golinkname/a.(*Pub).iv
 func iv(a *a.Pub, b int64) int64
 
 // 访问私有类型私有方法，需要在引用出重新定义私有类型
@@ -349,11 +349,11 @@ type pri struct {
 	i int64
 }
 
-//go:linkname (*pri).iv go-study/get_gid/a.(*pri).iv
+//go:linkname (*pri).iv go-study/golinkname/a.(*pri).iv
 func (p *pri) iv(b int64) int64
 
 // 访问私有全局变量
-//go:linkname gv go-study/get_gid/a.gv
+//go:linkname gv go-study/golinkname/a.gv
 var gv map[string]string
 
 func main() {
@@ -367,8 +367,232 @@ func main() {
 ```
 <!-- endtab -->
 
-<!-- tab get_gid.s -->
-**`get_gid.s`** 是一个空的文件，用来绕过编译检查，名称可以是任意值，只要后缀为 `.s` 就可以。
+<!-- tab golinkname.s -->
+**`golinkname.s`** 是一个空的文件，用来绕过编译检查，名称可以是任意值，只要后缀为 `.s` 就可以。
 <!-- endtab -->
 
 {% endtabs %}
+
+### 编译指令
+
+在使用 `go build` 编译Go程序是，可以通过 `-gcflags` 参数设定编译指令，例如可以通过添加 `-gcflags="-l -N"` 阻止优化和内联：
+
+	$ go build -gcflags="-l -N -m" main.go
+	# command-line-arguments
+	./main.go:10:13: ... argument does not escape
+	./main.go:10:14: "pid" escapes to heap
+	./main.go:10:30: os.Getpid() escapes to heap
+	./main.go:13:14: ... argument does not escape
+	./main.go:13:15: "now" escapes to heap
+	./main.go:13:15: now escapes to heap
+
+这样就可以通过方便调试，查看汇编代码：
+
+	$ go tool objdump -s "main\.main" main
+	TEXT main.main(SB) /Users/fudenglong/workdir/go/src/go-study/dlv_debug/main.go
+	main.go:3             0x1056f60               65488b0c2530000000      MOVQ GS:0x30, CX                        
+	main.go:3             0x1056f69               483b6110                CMPQ 0x10(CX), SP                       
+	main.go:3             0x1056f6d               763b                    JBE 0x1056faa                           
+	main.go:3             0x1056f6f               4883ec18                SUBQ $0x18, SP                          
+	main.go:3             0x1056f73               48896c2410              MOVQ BP, 0x10(SP)                       
+	main.go:3             0x1056f78               488d6c2410              LEAQ 0x10(SP), BP                       
+	main.go:4             0x1056f7d               e80e34fdff              CALL runtime.printlock(SB)              
+	main.go:4             0x1056f82               488d0597bf0100          LEAQ go.string.*+544(SB), AX            
+	main.go:4             0x1056f89               48890424                MOVQ AX, 0(SP)                          
+	main.go:4             0x1056f8d               48c744240806000000      MOVQ $0x6, 0x8(SP)                      
+	main.go:4             0x1056f96               e8353dfdff              CALL runtime.printstring(SB)            
+	main.go:4             0x1056f9b               e87034fdff              CALL runtime.printunlock(SB)            
+	main.go:5             0x1056fa0               488b6c2410              MOVQ 0x10(SP), BP                       
+	main.go:5             0x1056fa5               4883c418                ADDQ $0x18, SP                          
+	main.go:5             0x1056fa9               c3                      RET                                     
+	main.go:3             0x1056faa               e8319dffff              CALL runtime.morestack_noctxt(SB)       
+	main.go:3             0x1056faf               ebaf                    JMP main.main(SB)  
+
+当然，在需要发布的时候可以通过 `-ldflags="-w -s"` 告知链接器踢出符号表和调试信息，既可以减小文件体积，也可以稍稍增加反汇编难度。更多编译和链接指令可以通过 `go tool compile --help` 和 `go tool link --help` 查找。
+
+### 交叉编译
+
+所谓交叉编译就是可以在一个平台下编译出其他平台所需的可执行文件，对于开发者来说这是非常有帮助的。例如，我们可以在 Mac 上编译出 Windows 上的可执行文件。
+
+	# fudenglong @ fudenglongdeMacBook-Pro in ~/workdir/go/src/go-study/dlv_debug [21:17:01] C:1
+	$ GOOS=windows go build main.go 
+
+	# fudenglong @ fudenglongdeMacBook-Pro in ~/workdir/go/src/go-study/dlv_debug [21:17:11] 
+	$ ll
+	total 4152
+	drwxr-xr-x   5 fudenglong  staff   160B Jul 19 21:17 .
+	drwxr-xr-x  50 fudenglong  staff   1.6K Jul  2 00:07 ..
+	-rwxr-xr-x   1 fudenglong  staff   889K Jul 19 21:12 main
+	-rwxr-xr-x   1 fudenglong  staff   1.1M Jul 19 21:17 main.exe
+	-rw-r--r--   1 fudenglong  staff    48B Jul 19 21:07 main.go
+
+	# fudenglong @ fudenglongdeMacBook-Pro in ~/workdir/go/src/go-study/dlv_debug [21:17:13] 
+	$ 
+
+交叉编译缺点是不支持 CGO，但是该项目 [https://github.com/karalabe/xgo](https://github.com/karalabe/xgo) 实现了支持 CGO 的跨平台编译支持。
+
+### 条件编译
+
+条件编译就是有条件的编译代码，例如，同一个函数可能在不同平台有不同的实现，那么在编译时就应该只编译所需的代码，Go语言有三种实现条件编译的方式。比较傻瓜的是就是在代码中根据 `runtime.GOOS` 进行区分。
+
+另一种比较好维护的就是基于文件的条件编译，就是在源代码文件名称后面加上 `GOOS` 和 `GOARCH` 标识，都加或者只加其一，例如：
+
+{% tabs 条件编译 %}
+
+<!-- tab 代码结构 -->
+![条件编译](condition_compile.png)
+<!-- endtab -->
+
+<!-- tab main.go -->
+```go
+package main
+
+func main() {
+	hello()
+}
+
+```
+<!-- endtab -->
+
+<!-- tab hello_darwin.go -->
+```go
+package main
+
+import "fmt"
+
+func hello() {
+	fmt.Println("hello darwin")
+}
+```
+<!-- endtab -->
+
+<!-- tab hello_linux.go -->
+```go
+package main
+
+import "fmt"
+
+func hello() {
+	fmt.Println("hello linux")
+}
+```
+<!-- endtab -->
+
+{% endtabs %}
+
+
+可以通过检查编译得到不同的平台的可执行进行测试。标准库里面有很多类似这样的文件，可以通过命令 `ls $(go env GOROOT)/src/runtime/sys_*` 查看。
+
+还有一种就是使用 `build` 编译指令，它一样可以用来区分多版本，而且控制指令更加灵活。可以添加多个 AND 指令表示 `AND` ，在单一指令里面，` ` 表示 `OR`，`,` 表示 AND，`!` 表示 NOT。例如：
+
+	// +build linux darwin
+	// +build 386,!cgo
+
+表示：`(linux OR darwin) AND (386 AND (NOT cgo))`，除了 GOOS，GOARCH 外，可用条件还有编译器、版本号等。
+
+	// +build ignore
+	// +build gccgo
+	// +build go1.5
+
+`+build` 编译指令需要出现在文件顶部，即包生明 `package` 上方，和普通的注释使用空行隔开。
+
+最后一种，是可以通过明林行 `tags` 参数传递自定义标签，进行条件编译，如下：
+
+
+{% tabs 条件编译标签 %}
+
+<!-- tab 代码结构 -->
+![条件编译](condition_compile-1.png)
+<!-- endtab -->
+
+<!--tab main.go -->
+```go
+package main
+
+func main() {
+	hello()
+}
+```
+<!-- endtab -->
+
+<!--tab debug.go -->
+```go
+// +build !release
+
+package main
+
+import "fmt"
+
+func hello() {
+	fmt.Println("debug")
+}
+
+```
+<!-- endtab -->
+
+<!--tab release.go -->
+```go
+// +build release
+
+package main
+
+import "fmt"
+
+func hello() {
+	fmt.Println("release")
+}
+```
+<!-- endtab -->
+
+
+<!--tab debug.go-->
+```go
+// +build log
+
+package main
+
+import "fmt"
+
+func init() {
+	fmt.Println("log")
+}
+```
+<!-- endtab -->
+
+<!-- tab 执行结果 -->
+![条件编译结果](condition_compile-1-result.png)
+<!-- endtab -->
+
+{% endtabs %}
+
+自定义标签，通过 `-tags` 参数传入，多个自定义标签需要使用 `,` 分隔。跟多信息可以查看 `$(go env GOROOT)/src/go/build/doc.go` 文件。
+
+
+### go:generate
+
+go generate 命令会扫描源码文件，找出所有 `go:genearte` 注释，提取其中的命令并执行，命令形式如：
+
+> //go:generate command argument...
+
+具有以下约束：
+
+- 命令必须在 `.go` 源码文件中
+
+- 命令必须以 `//go:generate` 开头，双斜线后不能有空格；
+
+- 每个文件可以有多条 `//go:generate` 指令；
+
+- 命令支持环境变量；
+
+- 必须显示执行 `go generate` 命令；
+
+- 按文件名提取命令并执行；
+
+- 穿行执行，出错后终止后续命令的执行；
+
+可以为当前文件中的命令定义别名， 仅当前文件有效，以便重复使用：
+
+	//go:generate -command LX ls -alh
+	//go:generate LX /var
+	//go:generate LX /usr
+
