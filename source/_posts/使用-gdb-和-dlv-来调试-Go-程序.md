@@ -322,6 +322,7 @@ func RunFunc4(pVariable *MyStruct, waiter *sync.WaitGroup) {
     ![切换到 goroutine 执行命令](dlv-goroutine-cmd.png)
 
 
-### 注意事项
+### 课外链接
 
 1. [gdb调试Go,info goroutines 命令没有](https://blog.csdn.net/aggressive_snail/article/details/78479315)
+2. [Golang程序调试工具介绍(gdb vs dlv)](https://www.cnblogs.com/sunsky303/p/12957078.html)
