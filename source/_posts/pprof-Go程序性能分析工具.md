@@ -240,3 +240,55 @@ ppro 将在指定端口上开启一个 HTTP 服务，打开浏览器访问相应
     3920946  2.51% 47.12%   18921809 12.13%  net/http.(*conn).readRequest
             0     0% 47.12%   16984636 10.89%  net/http.HandlerFunc.ServeHTTP
             0     0% 47.12%   16627031 10.66%  net/http_test.BenchmarkReadRequestWrk
+
+### benchstat
+
+[benchstat](https://pkg.go.dev/golang.org/x/perf@v0.0.0-20200318175901-9c9101da8316/cmd/benchstat?tab=doc) 用于计算和比较基准测试的统计详情。使用方式如下：
+
+> benchstat [-delta-test name] [-geomean] [-html] [-sort order] old.txt [new.txt] [more.txt ...]
+
+安装方式：
+
+> go get -u golang.org/x/perf/cmd/...
+
+加入我们搜集了一些基准测试结果，`old.txt` 包含：
+
+    BenchmarkGobEncode   	100	  13552735 ns/op	  56.63 MB/s
+    BenchmarkJSONEncode  	 50	  32395067 ns/op	  59.90 MB/s
+    BenchmarkGobEncode   	100	  13553943 ns/op	  56.63 MB/s
+    BenchmarkJSONEncode  	 50	  32334214 ns/op	  60.01 MB/s
+    BenchmarkGobEncode   	100	  13606356 ns/op	  56.41 MB/s
+    BenchmarkJSONEncode  	 50	  31992891 ns/op	  60.65 MB/s
+    BenchmarkGobEncode   	100	  13683198 ns/op	  56.09 MB/s
+    BenchmarkJSONEncode  	 50	  31735022 ns/op	  61.15 MB/s
+
+`new.txt` 包含：
+
+    BenchmarkGobEncode   	 100	  11773189 ns/op	  65.19 MB/s
+    BenchmarkJSONEncode  	  50	  32036529 ns/op	  60.57 MB/s
+    BenchmarkGobEncode   	 100	  11942588 ns/op	  64.27 MB/s
+    BenchmarkJSONEncode  	  50	  32156552 ns/op	  60.34 MB/s
+    BenchmarkGobEncode   	 100	  11786159 ns/op	  65.12 MB/s
+    BenchmarkJSONEncode  	  50	  31288355 ns/op	  62.02 MB/s
+    BenchmarkGobEncode   	 100	  11628583 ns/op	  66.00 MB/s
+    BenchmarkJSONEncode  	  50	  31559706 ns/op	  61.49 MB/s
+    BenchmarkGobEncode   	 100	  11815924 ns/op	  64.96 MB/s
+    BenchmarkJSONEncode  	  50	  31765634 ns/op	  61.09 MB/s
+
+如果我们仅仅是输入一个文件，`benchstat` 会输出如下结果：
+
+    $ benchstat old.txt
+    name        time/op
+    GobEncode   13.6ms ± 1%
+    JSONEncode  32.1ms ± 1%
+    $
+
+如果输入两个文件，`benchstat` 将会比较输出：
+
+    $ benchstat old.txt new.txt
+    name        old time/op  new time/op  delta
+    GobEncode   13.6ms ± 1%  11.8ms ± 1%  -13.31% (p=0.016 n=4+5)
+    JSONEncode  32.1ms ± 1%  31.8ms ± 1%     ~    (p=0.286 n=4+5)
+    $
+
+请注意，JSONEncode 结果报告为统计上无关紧要的，而不是-0.93％。
