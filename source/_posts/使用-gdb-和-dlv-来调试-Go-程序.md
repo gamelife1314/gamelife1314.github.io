@@ -307,22 +307,39 @@ func RunFunc4(pVariable *MyStruct, waiter *sync.WaitGroup) {
 
 6. 查看变量信息
 
+    `vars` 可以查看全部包级的变量，可以使用正则参数选择想查看的局部变量。 
+    `args` 可以查看函数的参数
+    `locals` 查看局部边变量
+
     ![查看变量](dlv-view-var.png)
 
-7. 切换到相应的调用栈执行命令
+7. 切换到相应的调用栈执行命令 `bt` 和 `frame`
 
     ![切换到调用栈执行命令](dlv-framepng.png)
 
-8. 查看 goroutines 信息
+8. 查看 `goroutines` 信息
 
     ![查看 goroutines 信息](dlv-goroutines.png)
 
-9. 切换到 goroutine 执行命令
+9. 切换到 goroutine 执行命令，`goroutine n`
 
     ![切换到 goroutine 执行命令](dlv-goroutine-cmd.png)
+
+10. 查看当前处在哪个 `goroutine`
+
+    ![dlv-goroutine](dlv-goroutine.png)
+
+11. 查看汇编代码 `disass`
+
+    ![disass](disass-dlv.png)
+
+12. 查看变量类型，`whatis`
+
+    ![dlv-whatis](dlv-whatis.png)
 
 
 ### 课外链接
 
 1. [gdb调试Go,info goroutines 命令没有](https://blog.csdn.net/aggressive_snail/article/details/78479315)
 2. [Golang程序调试工具介绍(gdb vs dlv)](https://www.cnblogs.com/sunsky303/p/12957078.html)
+3. [](https://github.com/go-delve/delve/tree/master/Documentation/cli)
