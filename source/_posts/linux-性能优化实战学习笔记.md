@@ -1,17 +1,13 @@
 ---
-title: linux 性能优化实战学习笔记
+title: linux 性能优化实战 《CPU 性能篇》
 date: 2020-05-25 23:30:57
 tags:
     - linux
 ---
 
-《linux 性能优化实战》学习笔记
-
 {% asset_img cover.jpg cover %}
 
 <!--more-->
-
-### CPU 性能
 
 
 #### 平均负载
