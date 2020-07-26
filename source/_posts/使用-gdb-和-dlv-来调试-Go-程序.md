@@ -1,5 +1,5 @@
 ---
-title: 使用 gdb 和 dlv 来调试 Go 程序
+title: Go 程序调试器：gdb 和 dlv
 date: 2020-07-20 22:40:05
 tags: 
 - Go
