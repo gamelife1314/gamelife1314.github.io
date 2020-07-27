@@ -483,7 +483,7 @@ func hello() {
 
 可以通过检查编译得到不同的平台的可执行进行测试。标准库里面有很多类似这样的文件，可以通过命令 `ls $(go env GOROOT)/src/runtime/sys_*` 查看。
 
-还有一种就是使用 `build` 编译指令，它一样可以用来区分多版本，而且控制指令更加灵活。可以添加多个 AND 指令表示 `AND` ，在单一指令里面，` ` 表示 `OR`，`,` 表示 AND，`!` 表示 NOT。例如：
+还有一种就是使用 `build` 编译指令，它一样可以用来区分多版本，而且控制指令更加灵活。可以添加多个 AND 指令表示 `AND` ，在单一指令里面，空格表示 `OR`，`,` 表示 AND，`!` 表示 NOT。例如：
 
 	// +build linux darwin
 	// +build 386,!cgo
@@ -565,7 +565,7 @@ func init() {
 
 {% endtabs %}
 
-自定义标签，通过 `-tags` 参数传入，多个自定义标签需要使用 `,` 分隔。跟多信息可以查看 `$(go env GOROOT)/src/go/build/doc.go` 文件。
+自定义标签，通过 `-tags` 参数传入，多个自定义标签需要使用 `,` 分隔，跟多信息可以查看 `$(go env GOROOT)/src/go/build/doc.go` 文件。
 
 
 ### go:generate
