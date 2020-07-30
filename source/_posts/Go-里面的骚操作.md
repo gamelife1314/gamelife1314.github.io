@@ -408,7 +408,7 @@ func main() {
 	main.go:3             0x1056faa               e8319dffff              CALL runtime.morestack_noctxt(SB)       
 	main.go:3             0x1056faf               ebaf                    JMP main.main(SB)  
 
-当然，在需要发布的时候可以通过 `-ldflags="-w -s"` 告知链接器踢出符号表和调试信息，既可以减小文件体积，也可以稍稍增加反汇编难度。更多编译和链接指令可以通过 `go tool compile --help` 和 `go tool link --help` 查找。
+当然，在需要发布的时候可以通过 `-ldflags="-w -s"` 告知链接器剔除符号表和调试信息，既可以减小文件体积，也可以稍稍增加反汇编难度。更多编译和链接指令可以通过 `go tool compile --help` 和 `go tool link --help` 查找。
 
 ### 交叉编译
 
