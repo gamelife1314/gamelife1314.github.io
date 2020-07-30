@@ -342,4 +342,4 @@ func RunFunc4(pVariable *MyStruct, waiter *sync.WaitGroup) {
 
 1. [gdb调试Go,info goroutines 命令没有](https://blog.csdn.net/aggressive_snail/article/details/78479315)
 2. [Golang程序调试工具介绍(gdb vs dlv)](https://www.cnblogs.com/sunsky303/p/12957078.html)
-3. [](https://github.com/go-delve/delve/tree/master/Documentation/cli)
+3. [github.com/go-delve/delve](https://github.com/go-delve/delve/tree/master/Documentation/cli)
