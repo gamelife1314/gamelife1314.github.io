@@ -108,7 +108,6 @@ symbols_count_time:
   total_symbols: true
   total_time: true
 
-
 sitemap:
   path: sitemap.xml
 baidusitemap:
