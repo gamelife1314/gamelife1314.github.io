@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="如果说 goroutine 是 go 程序的并发体，那么通道 就是他们之间的桥梁。通道是可以让一个 goroutine 发送特定值到另一个 goroutine 的通信机制。通道类型本身就是并发安全的，这也是Go语言自带的、唯一一个可以满足并发安全性的类型。一个通道相当于一个先进先出(FIFO)的队列，也就是说，通道中的各个元素是严格按照发送的顺序排列的，别被发送至通道的元素一定会先被接收。元素值得">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go语言基础《六》：通道">
+<meta property="og:url" content="https://blog.fudenglong.site/2018/10/31/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%85%AD%E3%80%8B%EF%BC%9A%E9%80%9A%E9%81%93/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:description" content="如果说 goroutine 是 go 程序的并发体，那么通道 就是他们之间的桥梁。通道是可以让一个 goroutine 发送特定值到另一个 goroutine 的通信机制。通道类型本身就是并发安全的，这也是Go语言自带的、唯一一个可以满足并发安全性的类型。一个通道相当于一个先进先出(FIFO)的队列，也就是说，通道中的各个元素是严格按照发送的顺序排列的，别被发送至通道的元素一定会先被接收。元素值得">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2018-10-31T15:01:59.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.816Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="通道">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2018/10/31/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%85%AD%E3%80%8B%EF%BC%9A%E9%80%9A%E9%81%93/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Go语言基础《六》：通道 | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2018/10/31/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%85%AD%E3%80%8B%EF%BC%9A%E9%80%9A%E9%81%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Go语言基础《六》：通道
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-10-31 23:01:59" itemprop="dateCreated datePublished" datetime="2018-10-31T23:01:59+08:00">2018-10-31</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index">
+                    <span itemprop="name">Go语言基础</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span id="/2018/10/31/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%85%AD%E3%80%8B%EF%BC%9A%E9%80%9A%E9%81%93/" class="post-meta-item leancloud_visitors" data-flag-title="Go语言基础《六》：通道" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/10/31/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%85%AD%E3%80%8B%EF%BC%9A%E9%80%9A%E9%81%93/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/10/31/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%85%AD%E3%80%8B%EF%BC%9A%E9%80%9A%E9%81%93/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>8.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>8 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>如果说 <code>goroutine</code> 是 <code>go</code> 程序的并发体，那么<code>通道</code> 就是他们之间的桥梁。通道是可以让一个 <code>goroutine</code> 发送特定值到另一个 <code>goroutine</code> 的通信机制。通道类型本身就是并发安全的，这也是Go语言自带的、唯一一个可以满足并发安全性的类型。一个通道相当于一个先进先出(FIFO)的队列，也就是说，通道中的各个元素是严格按照发送的顺序排列的，别被发送至通道的元素一定会先被接收。元素值得发送和接收都需要用到操作符：<code>&lt;-</code>。</p>
+<p>每一个通道是一个具体类型的导管，叫做通道的元素类型。一个有 <code>int</code> 类型元素的通道写为 <code>chan int</code>。使用内置的 <code>make</code> 函数来创建一个通道：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ch := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br></pre></td></tr></table></figure>
+<p>像<code>map</code>一样，通道是一个使用 <code>make</code> 创建的数据结构的引用。当复制或者做为参数传递时，复制的是引用，这样调用者和被调用者都引用同一份数据结构。和其他引用类型一样，通道的零值是 <code>nil</code>。同种类型的通道可以使用 <code>==</code> 比较，当二者都是同一通道数据的引用时，比较值为 <code>true</code>，通道也可以和<code>nil</code> 进行比较。</p>
+<p>通道有两个主要操作，<code>发送（send）</code>和 <code>接收（receive）</code>，两者统称为通信。<code>send</code> 语句从一个goroutine传输一个值到另一个在执行接收表达式的goroutine。两个操作都使用 <code>&lt;-</code> 操作符书写。发送语句中，通道和值分别在 <code>&lt;-</code> 的左右两边。在接收表达式中，<code>&lt;-</code>放在通道操作数的前面。在接收表达式中，其结果未被使用也是合法的。  </p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ch &lt;- x   <span class="comment">// 发送语句</span></span><br><span class="line">x = &lt;- ch <span class="comment">// 赋值语句中的接收表达式</span></span><br><span class="line">&lt;- ch     <span class="comment">// 接收语句，丢弃结果</span></span><br></pre></td></tr></table></figure>
+<a id="more"></a>
+<p>除以上两个操作之外，通道还支持第三个操作：<code>关闭(close)</code>。它设置一个标志位来指示当前值已经发送完毕，这个通道后面没有值了，关闭后的发送操作将导致宕机。 在一个已经关闭的通道上进行接收操作，将获取所有已经发送的值，直到通道为空；通道为空的时候再执行接收操作，操作将会立即完成，同时获取到一个通道元素类型对应的零值。  </p>
+<p>调用内置的 <code>close</code> 方法关闭通道：<code>close(ch)</code>;</p>
+<p>使用简单的 <code>make</code> 调用创建的通道叫做 <code>无缓冲(unbuffered)</code> 通道，但 <code>make</code> 还可以接收第二个可选参数，一个表示通道容量的整数。如果容量是0，make创建一个无缓冲通道。  </p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ch = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)     <span class="comment">// 无缓冲通道</span></span><br><span class="line">ch = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>, <span class="number">0</span>)  <span class="comment">// 无缓冲通道</span></span><br><span class="line">ch = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>, <span class="number">3</span>)  <span class="comment">// 容量为3的缓冲通道</span></span><br></pre></td></tr></table></figure>
+<h3 id="无缓冲通道"><a href="#无缓冲通道" class="headerlink" title="无缓冲通道"></a>无缓冲通道</h3><p>无缓冲通道上的发送操作将会阻塞，直到另一个<code>goroutine</code>在对应的通道上执行接收操作，这是指传送完成，两个<code>goroutine</code>都可以继续执行。相反，如果接收操作先执行，接收方<code>goroutine</code>将会阻塞，直到另一个<code>goroutine</code>在相同的通道上发送一个值。使用无缓冲的通道进行的通信将会导致发送和接收同步化。因此无缓冲通道也称作是<code>同步通道</code>。当一个值在无缓冲通道上进行传递时，接收值后发送方<code>goroutine</code>才被再次唤醒。</p>
+<p>在讨论并发的时候，当我们说x早于y发生时，不仅仅是说x发生的时间早于y，而是说保证它是这样，并且是可预期的，比如更新变量，我们可以依赖这个机制。</p>
+<p>当x既不比y早也不比y晚的时候，我们x和y并发。这不意味着想和y一定同时发生，只说明我们不能假设他们的顺序。在两个<code>goroutine</code>并发地访问同一个变量的时候，有必要对这样的事件进行排序，避免程序的执行发生问题。</p>
+<p>有时候为了让程序等待后台的goroutine在完成之后再退出，可以使用一个通道来同步两个goroutine：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> conn, err := net.Dial(<span class="string">"tcp"</span>, <span class="string">"localhost:8000"</span>); err == <span class="literal">nil</span> &#123;</span><br><span class="line">        done = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">            io.Copy(os.Stdout, conn)  <span class="comment">// 忽略错误</span></span><br><span class="line">            fmt.Println(<span class="string">"done"</span>)</span><br><span class="line">            done &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">        &#125;()</span><br><span class="line">        mustCopy(conn, os.Stdin)</span><br><span class="line">        conn.<span class="built_in">close</span>()</span><br><span class="line">        &lt;-done  <span class="comment">// 等待后台goroutine完成</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里当用户关闭标准输入流时，<code>mustCopy</code>返回，主goroutine调用<code>conn.Close()</code>关闭两端网络连接。关闭写半边的连接会导致服务器看到<code>EOF</code>。关闭读半边的连接会导致后台<code>goroutine</code>调用<code>io.Copy</code>返回”read from closed connection”错误，这也是忽略错误的原因；在它返回前，后台<code>goroutine</code>记录一条信息，然后发送一个值到<code>done</code>通道，主<code>goroutine</code>在退出前一直等待，直到它接收到这个值。最终效果是程序总是在退出前记录“done”消息。</p>
+<p>通过通道发送消息有两个重要的方面要考虑，每一条消息有一个值，但有时候通信本身以及通信发生的时间也很重要。当我们强调这方面的时候，把消息叫做<code>事件(event)</code>。 当事件没有携带额外的信息时，它单纯的目的是进行同步。我们通过使用一个<code>struct{}</code>元素类型的通道来强调他，尽管通常使用<code>bool</code>或者<code>int</code>类型的通道来做相同的事情，因为 <code>done &lt;- -1</code> 比 <code>done &lt;- struct{}{}</code> 代码长度要短。</p>
+<h3 id="管道"><a href="#管道" class="headerlink" title="管道"></a>管道</h3><p>通道可以用来连接 <code>goroutine</code>，这样一个的输出是另一个的输入，这个叫做 <code>管道(pipeline)</code>，下面的程序由三个<code>goroutine</code>组成，他们被两个通道连接起来：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">counter-&gt;squarer: 自然数（0,1,2,3...）</span><br><span class="line">squarer-&gt;printer: 求平方（0,1,4,9...）</span><br></pre></td></tr></table></figure>
+<p>第一个 <code>goroutine</code> 是 <code>counter</code>，用于产生一个 <code>0,1,2,3,4...</code> 的序列，然后通过一个管道发送给第二个 <code>goroutine（squarer）</code>，计算数值的平方，然后将结果通过另一个通道发送给第三个<code>goroutine</code>，接收值并输出他们。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	naturals := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line">	squares := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// counter</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="keyword">for</span> x := <span class="number">0</span>; ; x ++ &#123;</span><br><span class="line">			naturals &lt;- x</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// squarer </span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			x := &lt;- naturals</span><br><span class="line">			squares &lt;- x * x</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// printer</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		fmt.Println(&lt;-squares)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个程序会一直输出无限的平方序列，如果发送方直到没有更多的数据要发送，告诉接收者所在<code>goroutine</code>可以停止等待是很有用的，可以通过调用内置的<code>close</code>函数关闭通道：<code>close(squares)</code>。</p>
+<p><strong>在通道关闭后，任何后续的发送操作都会导致应用奔溃。当关闭的通道被读完，所有后续的接收操作顺畅进行，只是接收到的是零值。</strong></p>
+<p>没有一个直接的方法判断一个通道是否已经关闭，但是这里有接收操作的一个变种，它产生两个结果：接收到的元素以及一个布尔值，它为<code>true</code> 的时候代表接收成功，<code>false</code> 的时候表示当前的接收操作在一个关闭的通道上，使用这个特性，可以修改<code>squarer</code>的循环，当<code>naturals</code>通道读完以后，关闭<code>squares</code>通道。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// squarer</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		x, ok := &lt;- naturals</span><br><span class="line">		<span class="keyword">if</span> !ok &#123;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125; </span><br><span class="line">		squares &lt;- x * x</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">close</span>(squares)</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
+<p>虽然上面的语法比较笨拙，但是模式又比较通用，所以go语言提供了一个<code>range</code>在通道上进行迭代。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">	<span class="keyword">for</span> x := <span class="keyword">range</span> naturals &#123;</span><br><span class="line">		squares &lt;- x*x</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">close</span>(squares)</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
+<p><strong>结束时，关闭每一个通道是不必须的。 只有在通知接收方 <code>goroutine</code> 所有的数据都发送完毕的时候才需要关闭。通道也是可以通过垃圾回收器根据它是否可以访问来决定是否回收它，而不是根据它是否关闭。</strong></p>
+<h3 id="单向通道类型"><a href="#单向通道类型" class="headerlink" title="单向通道类型"></a>单向通道类型</h3><p>当一个通道用作函数的形参时，他几乎总是被有意地限制不能发送或者接收；将这种意图文档化可以避免误用，Go语言类型系统也提供了单向通道类型，<br>仅仅导出发送或者接收操作。<strong>类型<code>chan&lt;- int</code>表示一个只能发送的通道，允许发送但不允许接收，<code>&lt;-chan int</code>表示一个只能接收的通道，允许接收但不允许发送</strong>。例如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 只能向out发送，只能从in接收</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">squarer</span><span class="params">(out <span class="keyword">chan</span>&lt;- <span class="keyword">int</span>, in &lt;-<span class="keyword">chan</span> <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> v := <span class="keyword">range</span> in &#123;</span><br><span class="line">		out &lt;- v*v</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">close</span>(out)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="缓冲通道"><a href="#缓冲通道" class="headerlink" title="缓冲通道"></a>缓冲通道</h3><p>缓冲通道有一个元素队列，队列的最大长度在创建的时候通过make的容量参数来设置：<code>ch := make(chan string, 3)</code></p>
+<p>缓冲通道上的发送操作在队列的末尾插入一个元素，接收操作在队列的头部移除一个元素。如果通道满了，发送操作会阻塞在<code>goroutine</code>直到另个<code>goroutine</code>对它进行接收操作留出可用空间。反过来，如果通道是空的，执行接收操作的<code>goroutine</code>会阻塞，直到另一个<code>goroutine</code>在通道上发送数据。</p>
+<p>下面的例子演示一个使用缓冲通道的应用。它并发地向三个镜像地址请求，镜像指相同但分布在不同地区的服务器。他将他们的响应通过一个缓冲通道进行发送，<br>然后只接收第一个返回的响应，因为他是最早达到的。所以<code>mirrorQuery</code>函数甚至在两个比较慢的服务器还没有响应之前返回了一个结果。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">mirrorQuery</span><span class="params">()</span></span> &#123;</span><br><span class="line">	responses := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">string</span>, <span class="number">3</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;&#125;( responses &lt;- request(<span class="string">"aisa.gopl.io"</span>))</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;&#125;( responses &lt;- request(<span class="string">"euope.gopl.io"</span>))</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;&#125;( responses &lt;- request(<span class="string">"america.gopl.io"</span>))</span><br><span class="line">	<span class="keyword">return</span> &lt;- responses</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">request</span><span class="params">(hostname <span class="keyword">string</span>)</span> <span class="title">string</span></span> &#123;<span class="comment">/* ... */</span>&#125;</span><br></pre></td></tr></table></figure>
+<p>如果使用一个无缓冲通道，两个比较慢的<code>goroutine</code>将被卡主，因为在他们发送响应结果到通道的时候没有<code>goroutine</code>来接收，这个情况叫做<strong>goroutine泄漏</strong>，它属于一个程序bug，不像回收变量，泄漏地<code>goroutine</code>不会自动回收，所以确保<code>goroutine</code>在不再需要的时候可以自动结束。</p>
+<p>无缓冲通道和缓冲通道的选择，缓冲容量大小的选择，都会对程序的正确性产生影响。<strong>无缓冲通道提供强同步保障，因为每一次发送都需要和一次对应的接收同步</strong>； 对于缓冲通道，这些操作是解耦的，如果我们知道要发送的值得数量的上限，通常会创建一个容量是使用上限的缓冲通道，在接收第一个值前就完成所有的发送。但是要注意的是，在内存无法提供缓冲容量的情况下，可能导致程序死锁。</p>
+<h3 id="通道发送操作和接收操作的基本特性"><a href="#通道发送操作和接收操作的基本特性" class="headerlink" title="通道发送操作和接收操作的基本特性"></a>通道发送操作和接收操作的基本特性</h3><ol>
+<li>对于同一个通道，发送操作之间，接收操作之间都是互斥的；</li>
+<li>发送操作和接收操作中对元素的处理都是不可分割的；</li>
+<li>发送操作在完成之前会被阻塞，接收操作也是；</li>
+</ol>
+<p>第一点，同一时刻，Go 语言的运行时系统只会执行对同一个通道的任意个发送操作中的其中一个。直到某个元素被完全复制进通道之后，其他针对该通道的发送操作才可能执行。类似地，同一时刻，运行时系统也只会执行对同一个通道任意接收操作中的一个，直到某个元素被完全从通道移除之后，其他针对该通道的接收操作才会执行，</p>
+<p><strong>这里有一个细节，元素从外界进入通道的时会被复制，也就是说，进入通道的并不是接收操作符右边的那个值，而是它的副本。另一方面，元素从通道进入外界时会被移动，这个过程分为两步，首先生成这个元素之的副本，并准备接收方，第二步是删除通道中的这个元素值</strong></p>
+<p>第二点，这里的分隔承接上述的操作，发送操作要么还没复制元素值，要么已经复制完毕，绝不会出现只复制了一部分的情况。又例如，接收操作在准备好元素的副本之后，一定会删除通道中的原值，绝不会出现通道中仍有残留的情况。</p>
+<p>第三点，由于发送操作了包括了 <code>复制元素值</code> 和 <code>放置副本到通道内部</code> 两个步骤，这两个步骤完成之前，发起这个发送操作的那句代码会一直阻塞在那里。也就是说，在它之后的代码不会有执行的机会，直到这句代码解除锁。另外接收操作了也包括了 <code>复制通道元素值</code>，<code>放置副本到接受方</code> 以及 <code>删掉原值</code> 这三个步骤，在所有操作完成之前，发起该操作的代码也会一直阻塞。</p>
+<h3 id="通道什么情况下会被阻塞"><a href="#通道什么情况下会被阻塞" class="headerlink" title="通道什么情况下会被阻塞"></a>通道什么情况下会被阻塞</h3><p>针对 <strong>缓冲通道</strong>，如果通道已满，那么对它的所有发送操作都会被阻塞，直到通道中有元素被取走，这时，通道会通知最早因此而等待的，那个发送操作所在的 <code>goroutine</code>，后者会再次执行发送操作。发送操作在这种情况下被阻塞后，他们所在的 <code>goroutine</code> 会顺序进入通道内部的发送队列，所以通道的通知顺序总是公平的。相对的，如果通道已空，那么对它的所有接收操作都会阻塞，直到通道中有新的元素值出现。这是，通道会通知最早等待的那个接收操作所在的<code>goroutine</code>，使它再次执行接收操作。因通道为空，而等待取值的 <code>goroutine</code> 都会按照先后顺序一次进入通道的通知队列。</p>
+<p>对于<strong>非缓冲通道</strong>，情况简单一些，无论是发送操作还是接收操作一开始都会阻塞，直到配对的操作也开始执行，才会继续传递。由此可见，非缓冲通道是在用同步的方式传递数据，也就是说只有收发送方对接上了，数据才会传递，并且数据时直接从发送方复制到接收方的，中间不会用非缓冲通道做中转，相比之下，缓冲通道是在用异步的方式传递数据。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	asyncChan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	asyncChan &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">	fmt.Println(<span class="built_in">len</span>(asyncChan), <span class="built_in">cap</span>(asyncChan))</span><br><span class="line">	&lt;-asyncChan</span><br><span class="line">	fmt.Println(<span class="built_in">len</span>(asyncChan), <span class="built_in">cap</span>(asyncChan))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个程序的执行会造成死锁，因为如上文所说，非缓冲通道只有在收发方都准备好的情况下才会执行，而这里，程序一开始就阻塞在发送的位置了：</p>
+<pre><code>fatal error: all goroutines are asleep - deadlock!
+
+goroutine 1 [chan send]:
+main.main()
+/Users/fudenglong/workdir/go/src/github.com/gamelife1314/go_study/main.go:7 +0x65
+</code></pre><p>这样修改：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	asyncChan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	fmt.Println(<span class="built_in">len</span>(asyncChan), <span class="built_in">cap</span>(asyncChan))</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		asyncChan &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">		fmt.Println(<span class="built_in">len</span>(asyncChan), <span class="built_in">cap</span>(asyncChan))</span><br><span class="line">	&#125;()</span><br><span class="line">	&lt;-asyncChan</span><br><span class="line">	fmt.Println(<span class="built_in">len</span>(asyncChan), <span class="built_in">cap</span>(asyncChan))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出如下，因为当 <code>asyncChan</code> 有值的时候立马交给了等待接收的操作，这里直接丢弃，所以两个打印的地方都是0：</p>
+<pre><code>0 0
+0 0
+</code></pre><p>大多数情况下，缓冲通道会作为收发方的中间件，如前文所述，元素值会先从发送方复制进缓冲通道，然后再由缓冲通道复制费接收方。</p>
+<p>对于 <strong>值为 <code>nil</code> 的通道</strong>，不论它的具体类型是什么，对它的发送操作和接收操作都会永久性处于阻塞状态。由通道是引用类型，所以当通道只声明并没有使用 <code>make</code> 进行初始化的时候，该变量的值就是 <code>nil</code>，所以，<strong>一定不要忘记初始化通道</strong>！</p>
+<h3 id="发送操作和接收操作什么时候会引起panic"><a href="#发送操作和接收操作什么时候会引起panic" class="headerlink" title="发送操作和接收操作什么时候会引起panic"></a>发送操作和接收操作什么时候会引起panic</h3><p>对于一个已经初始化，但为close的通道来说，收发操作一定不会引起panic，但是通道一旦关闭，再次对它进行发送操作就行引发panic。另外，重复关闭通道也会引发panic。但是，接收操作可以感知到通道关闭，并且安全退出。</p>
+<p>更具体地说，放我们把接收表达式的值同时赋值给两个变量时，第二个变量的类型是 bool 类型，它的值为 false 时就说明通道已经关闭了。注意如果通道关闭时，里面还有元素值未取出，那么接收表达式的第一个结果，仍然是通道中的某一个元素值，而第二个解说也一定会是 true。因为，通过接收表达式第二个值来判断通道是否已经关闭是有延迟的。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	syncChan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, <span class="number">1</span>)</span><br><span class="line">	syncChan &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">	<span class="built_in">close</span>(syncChan)</span><br><span class="line">	_, opened := &lt;-syncChan</span><br><span class="line">	fmt.Println(opened) <span class="comment">// true</span></span><br><span class="line">	_, opened = &lt;-syncChan</span><br><span class="line">	fmt.Println(opened) <span class="comment">// false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="单向通道的应用价值"><a href="#单向通道的应用价值" class="headerlink" title="单向通道的应用价值"></a>单向通道的应用价值</h3><p>当说通道的时候，我们一般值双向通道，即：可发可收。所谓单向通道，就是只能发不能收或者只能收不能发，就像一个水管，一头给堵上了。通道是单向还是双向，由它的类型字面量体现。例如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	onlyReceive := <span class="built_in">make</span>(<span class="keyword">chan</span>&lt;- <span class="keyword">int</span>, <span class="number">1</span>)</span><br><span class="line">	onlySend := <span class="built_in">make</span>(&lt;-<span class="keyword">chan</span> <span class="keyword">int</span>, <span class="number">1</span>)</span><br><span class="line">	<span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>不卖关子了，一句话来说就是：<strong>约束其他代码的行为</strong>！实际场景中，这种约束一般会出现在接收类型声明中的某个定义方法上，规定某个方法只能使用接收通道还是发送通道，例如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Notifier <span class="keyword">interface</span> &#123;</span><br><span class="line">	SendInt(ch <span class="keyword">chan</span>&lt;- <span class="keyword">int</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是在调用<code>SendInt</code> 这个方法的时候，我们可以传递一个双向通道而没要使用发送通道：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">intChan1 := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>, <span class="number">3</span>)</span><br><span class="line">SendInt(intChan1)</span><br></pre></td></tr></table></figure>
+<p>看一个简单的例子，这个例子中，所有实现 <code>Notifier</code> 的类型方法中，只能往传入的通道中发送，而不能从中取值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">type</span> Notifier <span class="keyword">interface</span> &#123;</span><br><span class="line">	SendInt(<span class="keyword">chan</span>&lt;- <span class="keyword">int</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> EmailNotifier <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e *EmailNotifier)</span> <span class="title">SendInt</span><span class="params">(ch <span class="keyword">chan</span>&lt;- <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	ch &lt;- <span class="number">999</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	ch := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>, <span class="number">1</span>)</span><br><span class="line">	email := EmailNotifier&#123;&#125;</span><br><span class="line">	email.SendInt(ch)</span><br><span class="line">	value := &lt;-ch</span><br><span class="line">	fmt.Println(value) <span class="comment">// 999</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="使用-for-range-遍历通道"><a href="#使用-for-range-遍历通道" class="headerlink" title="使用 for ... range 遍历通道"></a>使用 <code>for ... range</code> 遍历通道</h3><p><code>for ... range</code> 可以用于从一个通道中持续取值，直到该通道关闭然后退出循环。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	abort := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, <span class="number">3</span>)</span><br><span class="line">	abort &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">	abort &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">	abort &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">	<span class="built_in">close</span>(abort)</span><br><span class="line">	<span class="keyword">for</span> item := <span class="keyword">range</span> abort &#123;</span><br><span class="line">		fmt.Println(item)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出：<br>    {}<br>    {}<br>    {}</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E9%80%9A%E9%81%93/" rel="tag"># 通道</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/10/31/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%94%E3%80%8B%EF%BC%9Amap/" rel="prev" title="Go语言基础《五》：map">
+      <i class="fa fa-chevron-left"></i> Go语言基础《五》：map
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/11/01/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%B8%83%E3%80%8B%EF%BC%9Aselect-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/" rel="next" title="Go语言基础《七》：select 多路复用">
+      Go语言基础《七》：select 多路复用 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#无缓冲通道"><span class="nav-number">1.</span> <span class="nav-text">无缓冲通道</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#管道"><span class="nav-number">2.</span> <span class="nav-text">管道</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#单向通道类型"><span class="nav-number">3.</span> <span class="nav-text">单向通道类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#缓冲通道"><span class="nav-number">4.</span> <span class="nav-text">缓冲通道</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#通道发送操作和接收操作的基本特性"><span class="nav-number">5.</span> <span class="nav-text">通道发送操作和接收操作的基本特性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#通道什么情况下会被阻塞"><span class="nav-number">6.</span> <span class="nav-text">通道什么情况下会被阻塞</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#发送操作和接收操作什么时候会引起panic"><span class="nav-number">7.</span> <span class="nav-text">发送操作和接收操作什么时候会引起panic</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#单向通道的应用价值"><span class="nav-number">8.</span> <span class="nav-text">单向通道的应用价值</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用-for-range-遍历通道"><span class="nav-number">9.</span> <span class="nav-text">使用 for ... range 遍历通道</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

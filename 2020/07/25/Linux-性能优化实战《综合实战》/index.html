@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta property="og:type" content="article">
+<meta property="og:title" content="Linux 性能优化实战《综合实战》">
+<meta property="og:url" content="https://blog.fudenglong.site/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/cover.jpg">
+<meta property="og:image" content="https://blog.fudenglong.site/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/flamegraph.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/perf-tool.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/linux-perf-bench-tool.png">
+<meta property="article:published_time" content="2020-07-25T14:41:10.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.900Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="Linux 性能优化">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/cover.jpg">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Linux 性能优化实战《综合实战》 | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux 性能优化实战《综合实战》
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-07-25 22:41:10" itemprop="dateCreated datePublished" datetime="2020-07-25T22:41:10+08:00">2020-07-25</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+
+          
+            <span id="/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/" class="post-meta-item leancloud_visitors" data-flag-title="Linux 性能优化实战《综合实战》" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>12k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>11 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <img src="/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8A%E7%BB%BC%E5%90%88%E5%AE%9E%E6%88%98%E3%80%8B/cover.jpg" class="" title="bg">
+<a id="more"></a>
+<h3 id="火焰图"><a href="#火焰图" class="headerlink" title="火焰图"></a>火焰图</h3><p>例如我们采用如下方式获取指定进程的调用栈信息：</p>
+<blockquote>
+<p>perf record -a -g -p 9 — sleep 30</p>
+</blockquote>
+<p>针对 perf 汇总数据的展示问题，Brendan Gragg 发明了<a href="http://www.brendangregg.com/flamegraphs.html" target="_blank" rel="noopener">火焰图</a>，通过矢量图的形式，更直观展示汇总结果。下图就是一个针对 mysql 的火焰图示例。</p>
+<p>这张图看起来像是跳动的火焰，因此也就被称为火焰图。要理解火焰图，我们最重要的是区分清楚横轴和纵轴的含义。</p>
+<ul>
+<li><p>横轴表示采样数和采样比例。一个函数占用的横轴越宽，就代表它的执行时间越长。同一层的多个函数，则是按照字母来排序。</p>
+</li>
+<li><p>纵轴表示调用栈，由下往上根据调用关系逐个展开。换句话说，上下相邻的两个函数中，下面的函数，是上面函数的父函数。这样，调用栈越深，纵轴就越高。</p>
+</li>
+<li><p>另外，要注意图中的颜色，并没有特殊含义，只是用来区分不同的函数。</p>
+</li>
+</ul>
+<p>火焰图是动态的矢量图格式，所以它还支持一些动态特性。比如，鼠标悬停到某个函数上时，就会自动显示这个函数的采样数和采样比例。而当你用鼠标点击函数时，火焰图就会把该层及其上的各层放大，方便你观察这些处于火焰图顶部的调用栈的细节。</p>
+<p>上面 mysql 火焰图的示例，就表示了 CPU 的繁忙情况，这种火焰图也被称为 on-CPU 火焰图。如果我们根据性能分析的目标来划分，火焰图可以分为下面这几种。</p>
+<ul>
+<li>on-CPU 火焰图：表示 CPU 的繁忙情况，用在 CPU 使用率比较高的场景中。</li>
+<li>off-CPU 火焰图：表示 CPU 等待 I/O、锁等各种资源的阻塞情况。</li>
+<li>内存火焰图：表示内存的分配和释放情况。</li>
+<li>热 / 冷火焰图：表示将 on-CPU 和 off-CPU 结合在一起综合展示。</li>
+<li>差分火焰图：表示两个火焰图的差分情况，红色表示增长，蓝色表示衰减。差分火焰图常用来比较不同场景和不同时期的火焰图，以便分析系统变化前后对性能的影响情况。</li>
+</ul>
+<p>接下来，运用火焰图来观察刚才 perf record 得到的记录。</p>
+<p>首先，我们先下载几个能从 perf record 记录生成火焰图的工具，这些工具都放在 <a href="https://github.com/brendangregg/FlameGraph" target="_blank" rel="noopener">https://github.com/brendangregg/FlameGraph</a> 上面。你可以执行下面的命令来下载：</p>
+<pre><code>$ git clone https://github.com/brendangregg/FlameGraph
+$ cd FlameGraph
+</code></pre><p>安装好工具后，要生成火焰图，其实主要需要三个步骤：</p>
+<ul>
+<li><p>执行 perf script ，将 perf record 的记录转换成可读的采样记录；</p>
+</li>
+<li><p>执行 stackcollapse-perf.pl 脚本，合并调用栈信息；</p>
+</li>
+<li><p>执行 flamegraph.pl 脚本，生成火焰图。</p>
+</li>
+</ul>
+<p>不过，在 Linux 中，我们可以使用管道，来简化这三个步骤的执行过程。假设刚才用 perf record 生成的文件路径为 /root/perf.data，执行下面的命令，你就可以直接生成火焰图：</p>
+<blockquote>
+<p>$ perf script -i /root/perf.data | ./stackcollapse-perf.pl —all |  ./flamegraph.pl &gt; ksoftirqd.svg</p>
+</blockquote>
+<p>执行成功后，使用浏览器打开 ksoftirqd.svg ，就可以看到生成的火焰图了。如下图所示：</p>
+<p><img src="flamegraph.png" alt="火焰图"></p>
+<h3 id="内核线程"><a href="#内核线程" class="headerlink" title="内核线程"></a>内核线程</h3><p>在 Linux 中，用户态进程的“祖先”，都是 PID 号为 1 的 init 进程。比如，现在主流的 Linux 发行版中，init 都是 systemd 进程；而其他的用户态进程，会通过 systemd 来进行管理。</p>
+<p>Linux 中的各种进程，除了用户态进程外，还有大量的内核态线程。按说内核态的线程，应该先于用户态进程启动，可是 systemd 只管理用户态进程。那么，内核态线程又是谁来管理的呢？</p>
+<p>实际上，Linux 在启动过程中，有三个特殊的进程，也就是 PID 号最小的三个进程。</p>
+<ul>
+<li><p>0 号进程为 idle 进程，这也是系统创建的第一个进程，它在初始化 1 号和 2 号进程后，演变为空闲任务。当 CPU 上没有其他任务执行时，就会运行它。</p>
+</li>
+<li><p>1 号进程为 init 进程，通常是 systemd 进程，在用户态运行，用来管理其他用户态进程。</p>
+</li>
+<li><p>2 号进程为 kthreadd 进程，在内核态运行，用来管理内核线程。所以，要查找内核线程，我们只需要从 2 号进程开始，查找它的子孙进程即可。比如，你可以使用 ps 命令，来查找 kthreadd 的子进程：</p>
+<p>  $ ps -f —ppid 2 -p 2<br>  UID         PID   PPID  C STIME TTY          TIME CMD<br>  root          2      0  0 12:02 ?        00:00:01 [kthreadd]<br>  root          9      2  0 12:02 ?        00:00:21 [ksoftirqd/0]<br>  root         10      2  0 12:02 ?        00:11:47 [rcu_sched]<br>  root         11      2  0 12:02 ?        00:00:18 [migration/0]<br>  …<br>  root      11094      2  0 14:20 ?        00:00:00 [kworker/1:0-eve]<br>  root      11647      2  0 14:27 ?        00:00:00 [kworker/0:2-cgr]</p>
+</li>
+</ul>
+<p>从上面的输出，内核线程的名称（CMD）都在中括号里（这一点，我们前面内容也有提到过）。所以，更简单的方法，就是直接查找名称包含中括号的进程。比如：</p>
+<pre><code>$ ps -ef | grep &quot;\[.*\]&quot;
+root         2     0  0 08:14 ?        00:00:00 [kthreadd]
+root         3     2  0 08:14 ?        00:00:00 [rcu_gp]
+root         4     2  0 08:14 ?        00:00:00 [rcu_par_gp]
+...
+</code></pre><p>了解内核线程的基本功能，对我们排查问题有非常大的帮助。比如，我们曾经在软中断案例中提到过 ksoftirqd。它是一个用来处理软中断的内核线程，并且每个 CPU 上都有一个。</p>
+<p>如果知道了这一点，那么，以后遇到 ksoftirqd 的 CPU 使用高的情况，就会首先怀疑是软中断的问题，然后从软中断的角度来进一步分析。</p>
+<p>其实，除了刚才看到的 kthreadd 和 ksoftirqd 外，还有很多常见的内核线程，我们在性能分析中都经常会碰到，比如下面这几个内核线程。</p>
+<ul>
+<li>kswapd0：用于内存回收。在  Swap 变高 案例中，我曾介绍过它的工作原理。</li>
+<li>kworker：用于执行内核工作队列，分为绑定 CPU （名称格式为 kworker/CPU86330）和未绑定 CPU（名称格式为 kworker/uPOOL86330）两类。</li>
+<li>migration：在负载均衡过程中，把进程迁移到 CPU 上。每个 CPU 都有一个 migration 内核线程。</li>
+<li>jbd2/sda1-8：jbd 是 Journaling Block Device 的缩写，用来为文件系统提供日志功能，以保证数据的完整性；名称中的 sda1-8，表示磁盘分区名称和设备号。每个使用了 ext4 文件系统的磁盘分区，都会有一个 jbd2 内核线程。</li>
+<li>pdflush：用于将内存中的脏页（被修改过，但还未写入磁盘的文件页）写入磁盘（已经在 3.10 中合并入了 kworker 中）。</li>
+</ul>
+<h3 id="动态追踪"><a href="#动态追踪" class="headerlink" title="动态追踪"></a>动态追踪</h3><p><a href="https://time.geekbang.org/column/article/86490" target="_blank" rel="noopener">案例篇：动态追踪怎么用？（上）</a><br><a href="https://time.geekbang.org/column/article/86710" target="_blank" rel="noopener">案例篇：动态追踪怎么用？（下）</a></p>
+<p>动态追踪技术，通过探针机制，来采集内核或者应用程序的运行信息，从而可以不用修改内核和应用程序的代码，就获得丰富的信息，帮助定位排查问题。<code>perf</code> 就是常用的 linux 动态追踪工具，如果使用 GDB 等调试工具会中断程序的运行，影响程序运行。而且相比进程级别的跟踪工具（如 ptrace），动态追踪能带来更小的性能损耗。</p>
+<p>linux 提供了一系列的动态追踪机制，例如：ftrace，perf 以及 eBPF。</p>
+<h4 id="trace-cmd"><a href="#trace-cmd" class="headerlink" title="trace-cmd"></a>trace-cmd</h4><p>其中 ftrace 最早用于函数跟踪，后来又扩展支持了各种事件跟踪功能，但是用起来稍微麻烦，所以就有了 <a href="https://git.kernel.org/pub/scm/utils/trace-cmd/trace-cmd.git/" target="_blank" rel="noopener">trace-cmd</a>，trace-cmd 做了封装，可以使用如下的方式安装：</p>
+<pre><code># Ubuntu
+$ apt-get install trace-cmd
+# CentOS
+$ yum install trace-cmd
+</code></pre><p>例如，我们来跟踪 <code>ls</code> 命令的系统调用：</p>
+<pre><code>$ trace-cmd record -p function_graph -g do_sys_open -O funcgraph-proc ls
+$ trace-cmd report
+...
+            ls-12418 [000] 85558.075341: funcgraph_entry:                   |  do_sys_open() {
+            ls-12418 [000] 85558.075363: funcgraph_entry:                   |    getname() {
+            ls-12418 [000] 85558.075364: funcgraph_entry:                   |      getname_flags() {
+            ls-12418 [000] 85558.075364: funcgraph_entry:                   |        kmem_cache_alloc() {
+            ls-12418 [000] 85558.075365: funcgraph_entry:                   |          _cond_resched() {
+            ls-12418 [000] 85558.075365: funcgraph_entry:        0.074 us   |            rcu_all_qs();
+            ls-12418 [000] 85558.075366: funcgraph_exit:         1.143 us   |          }
+            ls-12418 [000] 85558.075366: funcgraph_entry:        0.064 us   |          should_failslab();
+            ls-12418 [000] 85558.075367: funcgraph_entry:        0.075 us   |          prefetch_freepointer();
+            ls-12418 [000] 85558.075368: funcgraph_entry:        0.085 us   |          memcg_kmem_put_cache();
+            ls-12418 [000] 85558.075369: funcgraph_exit:         4.447 us   |        }
+            ls-12418 [000] 85558.075369: funcgraph_entry:                   |        __check_object_size() {
+            ls-12418 [000] 85558.075370: funcgraph_entry:        0.132 us   |          __virt_addr_valid();
+            ls-12418 [000] 85558.075370: funcgraph_entry:        0.093 us   |          __check_heap_object();
+            ls-12418 [000] 85558.075371: funcgraph_entry:        0.059 us   |          check_stack_object();
+            ls-12418 [000] 85558.075372: funcgraph_exit:         2.323 us   |        }
+            ls-12418 [000] 85558.075372: funcgraph_exit:         8.411 us   |      }
+            ls-12418 [000] 85558.075373: funcgraph_exit:         9.195 us   |    }
+...
+</code></pre><h4 id="perf"><a href="#perf" class="headerlink" title="perf"></a>perf</h4><p>我们使用 perf record/top 时，都是先对事件进行采样，然后再根据采样数，评估各个函数的调用频率。实际上，perf 的功能远不止于此。比如，</p>
+<ul>
+<li>perf 可以用来分析 CPU cache、CPU 迁移、分支预测、指令周期等各种硬件事件；</li>
+<li>perf 也可以只对感兴趣的事件进行动态追踪。</li>
+</ul>
+<p>可以通过 perf list ，查询所有支持的事件：</p>
+<pre><code>$ perf list
+</code></pre><p>在 perf 的各个子命令中添加 <code>--event</code> 选项，设置追踪感兴趣的事件。如果这些预定义的事件不满足实际需要，你还可以使用 <code>perf probe</code> 来动态添加。而且，除了追踪内核事件外，perf 还可以用来跟踪用户空间的函数。</p>
+<p>以内核函数 <code>do_sys_open</code> 为例，可移执行 <code>perf probe</code> 命令添加 <code>do_sys_open</code> 探针：</p>
+<pre><code>$ perf probe --add do_sys_open
+Added new event:
+probe:do_sys_open    (on do_sys_open)
+You can now use it in all perf tools, such as:
+    perf record -e probe:do_sys_open -aR sleep 1
+</code></pre><p>探针添加成功后，就可以在所有的 perf 子命令中使用。比如，上述输出就是一个 <code>perf record</code> 的示例，执行它就可以对 10s 内的 do_sys_open 进行采样：</p>
+<pre><code>$ perf record -e probe:do_sys_open -aR sleep 10
+[ perf record: Woken up 1 times to write data ]
+[ perf record: Captured and wrote 0.148 MB perf.data (19 samples) ]
+</code></pre><p>而采样成功后，就可以执行 <code>perf script</code> ，来查看采样结果了：</p>
+<pre><code>$ perf script
+perf 12886 [000] 89565.879875: probe:do_sys_open: (ffffffffa807b290)
+sleep 12889 [000] 89565.880362: probe:do_sys_open: (ffffffffa807b290)
+sleep 12889 [000] 89565.880382: probe:do_sys_open: (ffffffffa807b290)
+sleep 12889 [000] 89565.880635: probe:do_sys_open: (ffffffffa807b290)
+sleep 12889 [000] 89565.880669: probe:do_sys_open: (ffffffffa807b290)
+</code></pre><p>对于这个函数来说，我们还想知道打开了什么文件，我们可以通过下面的命令查看该函数的所有参数：</p>
+<pre><code>$ perf probe -V do_sys_open
+Available variables at do_sys_open
+        @&lt;do_sys_open+0&gt;
+                char*   filename
+                int     dfd
+                int     flags
+                struct open_flags       op
+                umode_t mode
+</code></pre><p>如果这个命令执行失败，就说明调试符号表还没有安装。那么，你可以执行下面的命令，安装调试信息后重试：</p>
+<pre><code># Ubuntu
+$ apt-get install linux-image-`uname -r`-dbgsym
+# CentOS
+$ yum --enablerepo=base-debuginfo install -y kernel-debuginfo-$(uname -r)
+</code></pre><p>找出参数名称和类型后，就可以把参数加到探针中了。不过由于我们已经添加过同名探针，所以在这次添加前，需要先把旧探针给删掉：</p>
+<pre><code># 先删除旧的探针
+perf probe --del probe:do_sys_open
+
+# 添加带参数的探针
+$ perf probe --add &#39;do_sys_open filename:string&#39;
+Added new event:
+probe:do_sys_open    (on do_sys_open with filename:string)
+You can now use it in all perf tools, such as:
+    perf record -e probe:do_sys_open -aR sleep 1
+</code></pre><p>新的探针添加后，重新执行 record 和 script 子命令，采样并查看记录：</p>
+<pre><code># 重新采样记录
+$ perf record -e probe:do_sys_open -aR ls
+
+# 查看结果
+$ perf script
+            perf 13593 [000] 91846.053622: probe:do_sys_open: (ffffffffa807b290) filename_string=&quot;/proc/13596/status&quot;
+            ls 13596 [000] 91846.053995: probe:do_sys_open: (ffffffffa807b290) filename_string=&quot;/etc/ld.so.cache&quot;
+            ls 13596 [000] 91846.054011: probe:do_sys_open: (ffffffffa807b290) filename_string=&quot;/lib/x86_64-linux-gnu/libselinux.so.1&quot;
+            ls 13596 [000] 91846.054066: probe:do_sys_open: (ffffffffa807b290) filename_string=&quot;/lib/x86_64-linux-gnu/libc.so.6”
+            ...
+# 使用完成后不要忘记删除探针
+$ perf probe --del probe:do_sys_open
+</code></pre><h4 id="strace"><a href="#strace" class="headerlink" title="strace"></a>strace</h4><p>使用 strace 跟踪进程的系统调用时，也经常会看到这些动态库的影子。比如，使用 strace 跟踪 ls 时，你可以得到下面的结果：</p>
+<pre><code>$ strace ls
+...
+access(&quot;/etc/ld.so.nohwcap&quot;, F_OK)      = -1 ENOENT (No such file or directory)
+access(&quot;/etc/ld.so.preload&quot;, R_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, &quot;/etc/ld.so.cache&quot;, O_RDONLY|O_CLOEXEC) = 3
+...
+access(&quot;/etc/ld.so.nohwcap&quot;, F_OK)      = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, &quot;/lib/x86_64-linux-gnu/libselinux.so.1&quot;, O_RDONLY|O_CLOEXEC) = 3
+...
+</code></pre><p>strace 基于系统调用 ptrace 实现，这就带来了两个问题。</p>
+<ul>
+<li><p>由于 ptrace 是系统调用，就需要在内核态和用户态切换。当事件数量比较多时，繁忙的切换必然会影响原有服务的性能；</p>
+</li>
+<li><p>ptrace 需要借助 SIGSTOP 信号挂起目标进程。这种信号控制和进程挂起，会影响目标进程的行为。</p>
+</li>
+</ul>
+<p>所以，在性能敏感的应用（比如数据库）中，我并不推荐你用 strace （或者其他基于 ptrace 的性能工具）去排查和调试。</p>
+<p>在 strace 的启发下，结合内核中的 utrace 机制， perf 也提供了一个 trace 子命令，是取代 strace 的首选工具。相对于 ptrace 机制来说，perf trace 基于内核事件，自然要比进程跟踪的性能好很多。perf trace 的使用方法如下所示，跟 strace 其实很像：</p>
+<pre><code>$ perf trace ls
+        ? (         ): ls/14234  ... [continued]: execve()) = 0
+    0.177 ( 0.013 ms): ls/14234 brk(                                                                  ) = 0x555d96be7000
+    0.224 ( 0.014 ms): ls/14234 access(filename: 0xad98082                                            ) = -1 ENOENT No such file or directory
+    0.248 ( 0.009 ms): ls/14234 access(filename: 0xad9add0, mode: R                                   ) = -1 ENOENT No such file or directory
+    0.267 ( 0.012 ms): ls/14234 openat(dfd: CWD, filename: 0xad98428, flags: CLOEXEC                  ) = 3
+    0.288 ( 0.009 ms): ls/14234 fstat(fd: 3&lt;/usr/lib/locale/C.UTF-8/LC_NAME&gt;, statbuf: 0x7ffd2015f230 ) = 0
+    0.305 ( 0.011 ms): ls/14234 mmap(len: 45560, prot: READ, flags: PRIVATE, fd: 3                    ) = 0x7efe0af92000
+    0.324 Dockerfile  test.sh
+( 0.008 ms): ls/14234 close(fd: 3&lt;/usr/lib/locale/C.UTF-8/LC_NAME&gt;                          ) = 0
+    ...
+</code></pre><h3 id="常用工具"><a href="#常用工具" class="headerlink" title="常用工具"></a>常用工具</h3><p>常用的性能工具：</p>
+<p><img src="perf-tool.png" alt="性能工具"></p>
+<p><img src="linux-perf-bench-tool.png" alt="linux 性能压测工具"></p>
+<h3 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h3><ol>
+<li><a href="https://github.com/sysstat/sysstat" target="_blank" rel="noopener">sysstat</a>  是一个软件包，包含监测系统性能及效率的一组工具，这些工具对于我们收集系统性能数据，比如CPU使用率、硬盘和网络吞吐数据，这些数据的收集和分析，有利于我们判断系统是否正常运行，是提高系统运行效率、安全运行服务器的得力助手。包含了一下工具<ul>
+<li><code>iostat</code>    工具提供CPU使用率及硬盘吞吐效率的数据；  #比较核心的工具</li>
+<li><code>mpstat</code>    工具提供单个处理器或多个处理器相关数据；</li>
+<li><code>pidstat</code>   关于运行中的进程/任务、CPU、内存等的统计信息</li>
+<li><code>tapestat</code>   reports statistics for tape drives connected to the system.</li>
+<li><code>cifsiostat</code> reports CIFS statistics.</li>
+<li><code>sar</code> 是一个系统活动报告工具，既可以实时查看系统的当前活动，又可以配置保存和报告历史统计数据。</li>
+<li>…</li>
+</ul>
+</li>
+<li><p><a href="https://github.com/dstat-real/dstat" target="_blank" rel="noopener">dstat</a> 是一个新的性能工具，它吸收了 vmstat、iostat、ifstat 等几种工具的优点，可以同时观察系统的 CPU、磁盘 I/O、网络以及内存使用情况</p>
+</li>
+<li><p><a href="https://github.com/brendangregg/perf-tools" target="_blank" rel="noopener">perf-tools</a> Performance analysis tools based on Linux perf_events (aka perf) and ftrace</p>
+</li>
+<li><p><code>perf</code> is a performance counter for Linux. With it you can know many secrets of the running linux system.</p>
+<blockquote>
+<p>ubuntu: sudo apt install linux-tools-common gawk<br>centos: sudo yum install perf gawk<br>debian: apt-get install -y linux-tools-common linux-tools-generic linux-tools-$(uname -r)）<br>linux:  apt-get install -y linux-perf</p>
+</blockquote>
+</li>
+<li><p><code>stress</code> 和 <a href="https://linuxx.info/stress-ng/" target="_blank" rel="noopener"><code>stress-ng</code></a> 压力测试工具</p>
+</li>
+<li><p><a href="https://github.com/akopytov/sysbench" target="_blank" rel="noopener"><code>sysbench</code></a> is a scriptable multi-threaded benchmark tool based on LuaJIT. It is most frequently used for database benchmarks, but can also be used to create arbitrarily complex workloads that do not involve a database server.</p>
+</li>
+<li><p><a href="https://github.com/strace/strace" target="_blank" rel="noopener"><code>strace</code></a> 是最常用的跟踪进程系统调用的工具</p>
+<blockquote>
+<p>-f 查看线程信息<br>strace -f -p 27458 </p>
+<p>-f表示跟踪子进程和子线程，-T表示显示系统调用的时长，-tt表示显示跟踪时间<br>strace -f -T -tt -p 9085</p>
+</blockquote>
+<pre><code> 来观察 wrk 的系统调用
+ $ strace -f wrk --latency -c 100 -t 2 --timeout 2 http://192.168.0.30:8080/
+ ...
+ setsockopt(52, SOL_TCP, TCP_NODELAY, [1], 4) = 0
+ ...
+</code></pre></li>
+</ol>
+<ol>
+<li><p><code>pstree</code> 用来显示进程的父子关系，安装方法：</p>
+<blockquote>
+<p>mac: brew install pstree<br>centos: yum -y install psmisc<br>ubuntu: apt-get install psmisc</p>
+</blockquote>
+</li>
+<li><p><a href="https://tools.kali.org/information-gathering/hping3" target="_blank" rel="noopener"><code>hping3</code></a> 是一个可以构造 TCP/IP 协议数据包的工具，可以对系统进行安全审计、防火墙测试等。</p>
+<blockquote>
+<p> -S 参数表示设置TCP协议的SYN（同步序列号），-p表示目的端口为80<br> -i u10表示每隔10微秒发送一个网络帧  —rand-source 随机化源ip —flood 尽可能块的发包<br> hping3 -S -p 80 -i u10 192.168.0.30</p>
+<p>测试到远端服务器的延迟，可代替 ping 命令<br>hping3 -c 3 -S -p 80 baidu.com</p>
+</blockquote>
+</li>
+<li><p><code>tcpdump</code> 是一个常用的网络抓包工具，常用来分析各种网络问题。</p>
+</li>
+<li><p><a href="https://github.com/mpartel/bindfs" target="_blank" rel="noopener"><code>bindfs</code></a> 基本功能是实现目录绑定（类似于 <code>mount --bind</code>）</p>
+<pre><code>$ mkdir /tmp/foo
+$ PID=$(docker inspect --format {{.State.Pid}} phpfpm)
+$ bindfs /proc/$PID/root /tmp/foo
+$ perf report --symfs /tmp/foo
+
+使用完成后不要忘记解除绑定
+$ umount /tmp/foo/
+</code></pre></li>
+<li><p><code>pidof</code> 根据名称查找正在运行的进程id，例如：<code>pidof sshd</code></p>
+</li>
+<li><p><code>pgrep</code> 根据名字查找进程，例如：<code>pgrep -u root sshd</code></p>
+</li>
+<li><p><code>pkill</code> 根据名字发送信号，例如：<code>pkill -HUP syslogdqq</code></p>
+</li>
+<li><p><a href="https://github.com/iovisor/bcc" target="_blank" rel="noopener"><code>bcc</code></a> Tools for BPF-based Linux IO analysis, networking, monitoring, and more</p>
+<ul>
+<li><code>cachestat</code> 提供了整个操作系统缓存的读写命中情况。</li>
+<li><code>cachetop</code> 提供了每个进程的缓存命中情况。</li>
+<li><code>memleak</code> 可以跟踪系统或指定进程的内存分配、释放请求，然后定期输出一个未释放内存和相应调用栈的汇总情况（默认 5 秒）。</li>
+<li><code>filetop</code> 基于 Linux 内核的 eBPF（extended Berkeley Packet Filters）机制，主要跟踪内核中文件的读写情况，并输出线程 ID（TID）、读写大小、读写类型以及文件名称。</li>
+<li><code>opensnoop</code> 动态跟踪内核中的 open 系统调用</li>
+</ul>
+<blockquote>
+<p>ubuntu:<br>sudo apt-key adv —keyserver keyserver.ubuntu.com —recv-keys 4052245BD4284CDD<br>echo “deb <a href="https://repo.iovisor.org/apt/xenial" target="_blank" rel="noopener">https://repo.iovisor.org/apt/xenial</a> xenial main” | sudo tee /etc/apt/sources.list.d/iovisor.list<br>sudo apt-get update<br>sudo apt-get install -y bcc-tools libbcc-examples linux-headers-$(uname -r)</p>
+<p>centos 可能需要升级内核：<br>升级系统<br>yum update -y<br>安装ELRepo<br>rpm —import <a href="https://www.elrepo.org/RPM-GPG-KEY-elrepo.org" target="_blank" rel="noopener">https://www.elrepo.org/RPM-GPG-KEY-elrepo.org</a><br>rpm -Uvh <a href="https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm" target="_blank" rel="noopener">https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm</a><br>安装新内核<br>yum remove -y kernel-headers kernel-tools kernel-tools-libs<br>yum —enablerepo=”elrepo-kernel” install -y kernel-ml kernel-ml-devel kernel-ml-headers kernel-ml-tools &gt; kernel-ml-tools-libs kernel-ml-tools-libs-devel<br>更新Grub后重启<br>grub2-mkconfig -o /boot/grub2/grub.cfg<br>grub2-set-default 0<br>reboot<br>重启后确认内核版本已升级为4.20.0-1.el7.elrepo.x86_64<br>uname -r<br>安装bcc-tools<br>yum install -y bcc-tools<br>配置PATH路径<br>export PATH=$PATH:/usr/share/bcc/tools<br>验证安装成功<br>cachestat </p>
+<p>可以把工具加入到系统路径中<br>export PATH=$PATH:/usr/share/bcc/tools</p>
+</blockquote>
+</li>
+<li><p><a href="https://github.com/tobert/pcstat" target="_blank" rel="noopener"><code>pcstat</code></a> 查看文件在内存中的缓存大小以及缓存比例。</p>
+<blockquote>
+<p>export GOPATH=~/go<br>export PATH=~/go/bin:$PATH<br>go get golang.org/x/sys/unix<br>go get github.com/tobert/pcstat/pcstat</p>
+</blockquote>
+</li>
+<li><p><code>dd</code> 作为一个磁盘和文件的拷贝工具，经常被拿来测试磁盘或者文件系统的读写性能</p>
+<blockquote>
+<p>生成一个512MB的临时文件<br>dd if=/dev/sda1 of=file bs=1M count=512<br>清理缓存<br>echo 3 &gt; /proc/sys/vm/drop_caches</p>
+</blockquote>
+</li>
+<li><p>如何统计所有进程的物理内存使用量？</p>
+<blockquote>
+<p>使用grep查找Pss指标后，再用awk计算累加值<br>grep Pss /proc/[1-9]*/smaps | awk ‘{total+=$2}; END {printf “%d kB\n”, total }’<br>391266 kB</p>
+</blockquote>
+</li>
+<li><p><a href="https://github.com/axboe/fio" target="_blank" rel="noopener">fio</a>  测试磁盘的 IOPS、吞吐量以及响应时间等核心指标</p>
+</li>
+<li><p>linux shell while <code>$ while true; do curl http://192.168.0.10:10000/products/geektime; sleep 5; done</code></p>
+</li>
+<li><p><code>lsof</code> 查看指定进程打开的文件</p>
+<blockquote>
+<p>lsof -p 12875</p>
+</blockquote>
+</li>
+<li><p><code>pstree</code> 查看进程父子关系</p>
+<blockquote>
+<p>-t表示显示线程，-a表示显示命令行参数<br>pstree -t -a -p 27458</p>
+</blockquote>
+</li>
+<li><p><a href="https://man7.org/linux/man-pages/man1/nsenter.1.html" target="_blank" rel="noopener"><code>nsenter</code></a> 命令是一个可以在指定进程的命令空间下运行指定程序的命令。它位于util-linux包中。</p>
+<p>一个最典型的用途就是进入容器的网络命令空间。相当多的容器为了轻量级，是不包含较为基础的命令的，比如说ip address，ping，telnet，ss，tcpdump等等命令，这就给调试容器网络带来相当大的困扰：只能通过docker inspect ContainerID命令获取到容器IP，以及无法测试和其他网络的连通性。这时就可以使用nsenter命令仅进入该容器的网络命名空间，使用宿主机的命令调试容器网络。</p>
+<p>参考阅读：</p>
+<ul>
+<li><a href="https://staight.github.io/2019/09/23/nsenter%E5%91%BD%E4%BB%A4%E7%AE%80%E4%BB%8B/" target="_blank" rel="noopener">nsenter命令简介</a></li>
+<li><a href="https://blog.csdn.net/qq_39629343/article/details/80170164" target="_blank" rel="noopener">Docker如何使用nsenter工具进入容器</a></li>
+<li><a href="https://github.com/jpetazzo/nsenter" target="_blank" rel="noopener">https://github.com/jpetazzo/nsenter</a></li>
+<li><a href="https://man7.org/linux/man-pages/man1/nsenter.1.html" target="_blank" rel="noopener">nsenter(1) — Linux manual page</a></li>
+</ul>
+</li>
+<li><p><a href="https://github.com/wg/wrk" target="_blank" rel="noopener">wrk</a> HTTP 应用负载测试</p>
+<pre><code># 测试80端口性能 -c表示并发连接数100，-t表示线程数为2
+$ # wrk --latency -c 100 -t 2 --timeout 2 http://192.168.0.30/
+Running 10s test @ http://192.168.0.30/
+2 threads and 100 connections
+Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     9.19ms   12.32ms 319.61ms   97.80%
+    Req/Sec     6.20k   426.80     8.25k    85.50%
+Latency Distribution
+    50%    7.78ms
+    75%    8.22ms
+    90%    9.14ms
+    99%   50.53ms
+123558 requests in 10.01s, 100.15MB read
+Requests/sec:  12340.91
+Transfer/sec:     10.00MB
+</code></pre></li>
+</ol>
+<h3 id="课外阅读"><a href="#课外阅读" class="headerlink" title="课外阅读"></a>课外阅读</h3><ol>
+<li><a href="https://www.cnblogs.com/cute/archive/2011/04/20/2022280.html" target="_blank" rel="noopener">深入理解linux系统下proc文件系统内容</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/86855590" target="_blank" rel="noopener">cpu 核心数与线程数</a></li>
+<li><a href="https://mp.weixin.qq.com/s/HvADkICPYflS2VTuSB16rg" target="_blank" rel="noopener">Linux 入门必看：如何60秒内分析Linux性能</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" rel="tag"># Linux 性能优化</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/07/25/Linux-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98%E3%80%8AHTTP-%E6%9C%8D%E5%8A%A1%E4%BC%98%E5%8C%96%E3%80%8B/" rel="prev" title="Linux 性能优化实战《HTTP 服务优化》">
+      <i class="fa fa-chevron-left"></i> Linux 性能优化实战《HTTP 服务优化》
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#火焰图"><span class="nav-number">1.</span> <span class="nav-text">火焰图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内核线程"><span class="nav-number">2.</span> <span class="nav-text">内核线程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#动态追踪"><span class="nav-number">3.</span> <span class="nav-text">动态追踪</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#trace-cmd"><span class="nav-number">3.1.</span> <span class="nav-text">trace-cmd</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#perf"><span class="nav-number">3.2.</span> <span class="nav-text">perf</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#strace"><span class="nav-number">3.3.</span> <span class="nav-text">strace</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#常用工具"><span class="nav-number">4.</span> <span class="nav-text">常用工具</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#常用命令"><span class="nav-number">5.</span> <span class="nav-text">常用命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#课外阅读"><span class="nav-number">6.</span> <span class="nav-text">课外阅读</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

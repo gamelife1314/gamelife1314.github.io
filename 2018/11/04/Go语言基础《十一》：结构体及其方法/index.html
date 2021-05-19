@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta property="og:type" content="article">
+<meta property="og:title" content="Go语言基础《十一》：结构体及其方法">
+<meta property="og:url" content="https://blog.fudenglong.site/2018/11/04/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%B8%80%E3%80%8B%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E5%8F%8A%E5%85%B6%E6%96%B9%E6%B3%95/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/11/04/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%B8%80%E3%80%8B%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E5%8F%8A%E5%85%B6%E6%96%B9%E6%B3%95/cover.jpeg">
+<meta property="article:published_time" content="2018-11-04T02:44:11.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.816Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="struct">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2018/11/04/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%B8%80%E3%80%8B%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E5%8F%8A%E5%85%B6%E6%96%B9%E6%B3%95/cover.jpeg">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2018/11/04/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%B8%80%E3%80%8B%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E5%8F%8A%E5%85%B6%E6%96%B9%E6%B3%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Go语言基础《十一》：结构体及其方法 | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2018/11/04/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%B8%80%E3%80%8B%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E5%8F%8A%E5%85%B6%E6%96%B9%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Go语言基础《十一》：结构体及其方法
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-11-04 10:44:11" itemprop="dateCreated datePublished" datetime="2018-11-04T10:44:11+08:00">2018-11-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index">
+                    <span itemprop="name">Go语言基础</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span id="/2018/11/04/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%B8%80%E3%80%8B%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E5%8F%8A%E5%85%B6%E6%96%B9%E6%B3%95/" class="post-meta-item leancloud_visitors" data-flag-title="Go语言基础《十一》：结构体及其方法" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/11/04/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%B8%80%E3%80%8B%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E5%8F%8A%E5%85%B6%E6%96%B9%E6%B3%95/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/11/04/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%B8%80%E3%80%8B%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E5%8F%8A%E5%85%B6%E6%96%B9%E6%B3%95/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>8.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>8 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <img src="/2018/11/04/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%B8%80%E3%80%8B%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E5%8F%8A%E5%85%B6%E6%96%B9%E6%B3%95/cover.jpeg" class="" title="cover">
+<a id="more"></a>
+<h3 id="结构体"><a href="#结构体" class="headerlink" title="结构体"></a>结构体</h3><p><code>结构体</code>是 <strong>将零个或者多个任意类型的命名变量组合在一起的聚合类型</strong>，每个变量叫做结构体的 <strong>成员</strong>。例如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Employee <span class="keyword">struct</span> &#123;</span><br><span class="line">	ID        <span class="keyword">int</span></span><br><span class="line">	Name      <span class="keyword">string</span></span><br><span class="line">	Address   <span class="keyword">string</span></span><br><span class="line">	Dob       time.Time</span><br><span class="line">	Position  <span class="keyword">string</span></span><br><span class="line">	Salary    <span class="keyword">float64</span></span><br><span class="line">	ManagerId <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>成员访问需要通过成员访问操作符：<strong><code>.</code></strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> superMan = Employee&#123;</span><br><span class="line">		ID:        <span class="number">10001</span>,</span><br><span class="line">		Name:      <span class="string">"superMan"</span>,</span><br><span class="line">		Address:   <span class="string">"中国上海"</span>,</span><br><span class="line">		Dob:       time.Now(),</span><br><span class="line">		Position:  <span class="string">"搬砖"</span>,</span><br><span class="line">		salary:    <span class="number">10</span>,</span><br><span class="line">		ManagerId: <span class="number">100001</span>,</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(superMan.Name) <span class="comment">// superMan</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<!--more-->
+<p>前面说过，结构体是将多个 <strong>变量</strong> 聚合在一起，那么既然是变量，我们就可以获取成员的地址，然后通过地址访问：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">position := &amp;superMan.Position</span><br><span class="line">fmt.Println(*position) <span class="comment">// 搬砖</span></span><br></pre></td></tr></table></figure>
+<p>结构体成员变量通常一行写一个，变量的名称写在类型的前面，但是类型相同的连续成员变量可以写在一行上，就像上面的 Name 和 Address：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Employee <span class="keyword">struct</span> &#123;</span><br><span class="line">	ID            <span class="keyword">int</span></span><br><span class="line">	Name, Address <span class="keyword">string</span></span><br><span class="line">	Dob           time.Time</span><br><span class="line">	Position      <span class="keyword">string</span></span><br><span class="line">	salary        <span class="keyword">float64</span></span><br><span class="line">	ManagerId     <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果一个结构体的成员变量的名称是首字母大写的，那么这个变量时可导出的，这个是Go最主要的访问控制机制。一个结构体可以同时包含可导出和不可导出的变量。如上面 <code>Employee</code> 结构体中除了 <code>Employee</code> 之外都是可导出的。</p>
+<p>命名结构体类型 S 不可以定义一个拥有相同结构体类型的 S 的成员变量，也就是一个聚合类型不可以包含他自己，但是 S 中可以定义一个 S 的指针类型，即 *S ，这样我们就可以创建一些递归数据结构，比如链表和树。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> tree <span class="keyword">struct</span> &#123;</span><br><span class="line">    value       <span class="keyword">int</span></span><br><span class="line">    left, right *tree</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="结构体字面量"><a href="#结构体字面量" class="headerlink" title="结构体字面量"></a>结构体字面量</h4><p>结构体类型的值可以通过结构体字面量设置，即通过设置结构体成员变量来设置。有两种形式设置结构体成员变量：</p>
+<ol>
+<li><p>按照正确的顺序，为每个变量设定一个值；</p>
+ <figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Point <span class="keyword">struct</span> &#123;X, Y <span class="keyword">int</span>&#125;</span><br><span class="line">p := Point&#123;<span class="number">1</span>, <span class="number">2</span>&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>通过指定部分或者全部成员变量的名称和值来初始化结构体变量，上面演示的就是第二种，也是比较常用的；</p>
+</li>
+</ol>
+<p>出于效率的考虑，大型的结构体通常都使用结构体指针的形式直接传递给函数或者从函数中返回，例如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddSalary</span><span class="params">(employee *Employee)</span></span> &#123;</span><br><span class="line">	employee.Salary += <span class="number">10</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewEmployee</span><span class="params">()</span> *<span class="title">Employee</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Employee&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="结构体比较"><a href="#结构体比较" class="headerlink" title="结构体比较"></a>结构体比较</h4><p>如果结构体里面的所有成员变量都可以比较，那么这个结构体就是可比较的，两个结构体比较可以使用 <code>==</code> 或者 <code>!=</code>。其中 <code>==</code> 操作符按照顺序比较两个结构体变量的成员变量，所以下面的两个输出语句是等价的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Point <span class="keyword">struct</span> &#123; X, Y <span class="keyword">int</span>&#125;</span><br><span class="line"></span><br><span class="line">q := Point&#123;<span class="number">1</span>, <span class="number">2</span>&#125;</span><br><span class="line">p := Point&#123;<span class="number">2</span>, <span class="number">1</span>&#125;</span><br><span class="line">fmt.Println(p.X == q.X &amp;&amp; p.Y == q.Y)</span><br><span class="line">fmt.Println(p == q)</span><br></pre></td></tr></table></figure>
+<p>和其他可比较的类型一样，可比较的结构体都可以作为map的键类型。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> superMan = Employee&#123;</span><br><span class="line">		ID:        <span class="number">10001</span>,</span><br><span class="line">		Name:      <span class="string">"superMan"</span>,</span><br><span class="line">		Address:   <span class="string">"中国上海"</span>,</span><br><span class="line">		Dob:       time.Now(),</span><br><span class="line">		Position:  <span class="string">"搬砖"</span>,</span><br><span class="line">		Salary:    <span class="number">10</span>,</span><br><span class="line">		ManagerId: <span class="number">100001</span>,</span><br><span class="line">	&#125;</span><br><span class="line">	hits := <span class="keyword">map</span>[Employee]<span class="keyword">int</span>&#123;&#125;</span><br><span class="line">	hits[superMan] = <span class="number">1</span></span><br><span class="line">	fmt.Println(hits[superMan]) <span class="comment">// 1</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="结构体嵌套和匿名成员"><a href="#结构体嵌套和匿名成员" class="headerlink" title="结构体嵌套和匿名成员"></a>结构体嵌套和匿名成员</h4><p>本节将讨论Go中不同寻常的结构体嵌套机制，这个机制可以让我们将一个命名结构体当做另一个结构体类型的匿名结构体成员使用；并提供了一种简便的语法，使用简单的表达式 <code>x.f</code> 就可以代表连续的成员 <code>x.d.e.f</code>。</p>
+<p>想象一下 2D 绘图程序中会提供的关于形状的库，比如举行，椭圆，星形和车轮型。这里定义了其中两个可能存在的类型：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Circle <span class="keyword">struct</span> &#123;</span><br><span class="line">	X, Y, Radius <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Wheel <span class="keyword">struct</span> &#123;</span><br><span class="line">	X, Y, Radius, Spokes <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是我们发现这两个类型有很多重复的地方，我们可以将其剥离出来，否则在创建更多类型的时候，我们又要重复写很多代码，所以选择重构：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Point <span class="keyword">struct</span> &#123;</span><br><span class="line">	X, Y <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Circle <span class="keyword">struct</span> &#123;</span><br><span class="line">	Point Point</span><br><span class="line">	Radius <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Wheel <span class="keyword">struct</span> &#123;</span><br><span class="line">	Circle Circle</span><br><span class="line">	Spokes <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Go 允许我们定义不带名称的结构体成员，只需要指定其类型即可；这种结构体成员称作 <strong>匿名成员</strong>，着个结构体成员的类型必须是一个命名类型或者指向命名类型的指针。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Circle <span class="keyword">struct</span> &#123;</span><br><span class="line">	Point</span><br><span class="line">	Radius <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Wheel <span class="keyword">struct</span> &#123;</span><br><span class="line">	Circle</span><br><span class="line">	Spokes <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>有了这种结构体嵌套的功能，我们可以直接访问需要的变量而不是指定一大串中间变量：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> w Wheel</span><br><span class="line">w.X = <span class="number">8</span>      <span class="comment">// 等价于 w.Circle.Point.X</span></span><br><span class="line">w.Y = <span class="number">9</span>      <span class="comment">// 等价于 w.Circle.Point.Y</span></span><br><span class="line">w.Radius = <span class="number">4</span> <span class="comment">// 等价于 w.Circle.Radius</span></span><br><span class="line">w.Spokes = <span class="number">100</span></span><br><span class="line">fmt.Println(w.X, w.Y, w.Radius)</span><br></pre></td></tr></table></figure>
+<p>上面注释里面的方式也是正确的，但是使用匿名成员的说法或许不合适，上面结构体成员 <code>Circle</code> 和 <code>Point</code> 是有名字的，就是对应类型的名字，只是这些名字在点号访问变量的时候是可选的。当我们访问最终需要的变量的时候可以省略中间所有的匿名成员。</p>
+<p>遗憾的是，结构体字面量并没有什么快捷方式来初始化结构体，所以下面的语句是无法通过编译的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">w = Wheel&#123;<span class="number">8</span>, <span class="number">8</span>, <span class="number">5</span>, <span class="number">20</span>&#125;</span><br><span class="line">w = Wheel&#123;X: <span class="number">8</span>, Y: <span class="number">8</span>, Radius: <span class="number">5</span>, Spokes: <span class="number">20</span>&#125;</span><br></pre></td></tr></table></figure>
+<p>结构体字面量必须遵循形状类型的定义，所以我们使用下面的两种方式来初始化，这两种方式是等价的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">w1 := Wheel&#123;Circle&#123;Point&#123;<span class="number">1</span>, <span class="number">2</span>&#125;, <span class="number">5</span>&#125;, <span class="number">20</span>&#125;</span><br><span class="line">w2 := Wheel&#123;</span><br><span class="line">    Circle: Circle&#123;</span><br><span class="line">        Point: Point&#123;</span><br><span class="line">            X: <span class="number">1</span>,</span><br><span class="line">            Y: <span class="number">2</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        Radius: <span class="number">3</span>,</span><br><span class="line">    &#125;,</span><br><span class="line">    Spokes: <span class="number">23</span>,</span><br><span class="line">&#125;</span><br><span class="line">fmt.Printf(<span class="string">"%#v\n"</span>, w1) <span class="comment">// main.Wheel&#123;Circle:main.Circle&#123;Point:main.Point&#123;X:1, Y:2&#125;, Radius:5&#125;, Spokes:20&#125;</span></span><br><span class="line">fmt.Printf(<span class="string">"%#v\n"</span>, w2) <span class="comment">// main.Wheel&#123;Circle:main.Circle&#123;Point:main.Point&#123;X:1, Y:2&#125;, Radius:5&#125;, Spokes:20&#125;</span></span><br></pre></td></tr></table></figure>
+<p>因为 “匿名成员” 拥有隐式的名字，所以你不能在一个结构体里面定义两个相同类型的匿名成员，否则会起冲突。由于匿名成员中的名字是由他们的类型决定的，因此他们的可导出性也是由他们的类型决定的。上面的例子中，<code>Point</code> 和 <code>Circle</code> 这两个匿名成员是可导出的。既是这两个结构体是不可导出的（point 和 circle)，我们仍然可以使用快捷方式：</p>
+<pre><code>w.X = 8 // 等价于 w.circle.point.X
+</code></pre><p>但是注释中的那种显示指定中间匿名成员的方式在声明 <code>circle</code> 接 <code>point</code> 的包外是不允许的，因为他们是不可导出的。</p>
+<h4 id="屏蔽匿名成员的值"><a href="#屏蔽匿名成员的值" class="headerlink" title="屏蔽匿名成员的值"></a>屏蔽匿名成员的值</h4><p>正如前面提到，我们可以在一个结构体类型中嵌入另一个结构体作为自己的一个变量，而且，还可以像访问自己的成员一样，访问内嵌结构体的成员：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> w Wheel</span><br><span class="line">w.X = <span class="number">8</span>      <span class="comment">// 等价于 w.Circle.Point.X</span></span><br><span class="line">w.Y = <span class="number">9</span>      <span class="comment">// 等价于 w.Circle.Point.Y</span></span><br></pre></td></tr></table></figure>
+<p>这里由于 <code>Wheel</code> 类型中没有 <code>X</code> 这个成员变量，它就会去寻找 <code>w.Circle.Point.X</code>，但是一旦 <code>Wheel</code> 类型中有一个叫做 <code>X</code> 的成员变量，<code>w.X</code> 访问的其实 <code>Wheel</code> 中的，这时候我们说 <code>w.X</code> <strong>屏蔽</strong> 了 <code>w.Circle.Point.X</code>。</p>
+<h3 id="方法"><a href="#方法" class="headerlink" title="方法"></a>方法</h3><p>尽管没有统一的面向对象编程的定义，对我们来说，对象就是简单的一个值或者变量，并且拥有其方法，而方法是某种特定类型的函数。面向对象编程就是使用方法来描述每个数据结构的属性和操作。</p>
+<h4 id="方法声明"><a href="#方法声明" class="headerlink" title="方法声明"></a>方法声明</h4><p>方法的声明和普通的函数类似，只是在函数名字前面多了一个参数，这个参数把这个方法绑定到这个参数对应的类型上。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Point <span class="keyword">struct</span> &#123;</span><br><span class="line">	X, Y <span class="keyword">float64</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Distance</span><span class="params">(p, q *Point)</span> <span class="title">float64</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> math.Hypot(q.Y-p.Y, q.Y-p.Y)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Point)</span> <span class="title">Distance</span><span class="params">(q *Point)</span> <span class="title">float64</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> math.Hypot(q.Y-p.Y, q.Y-p.Y)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>附加的参数 p 称为方法的接收者，Go 语言中，接收者不使用特殊名称（self 或者 this），而是自己选择接收者的名字，最常用的方法就是去类型名称的首字母，就像 Point 中的 p。上面中的两个 <code>Distance</code> 并没有冲突，第一个声明一个包级别的函数，第二个声明一个类型 Point 的方法，因此它的名字是 <code>Point.Distance</code>，表达式 <code>p.Distance</code> 称作选择子（selector）。因为每一个类型有自己的命名空间，所以我们能够在其他不同类型中使用名字 <code>Distance</code> 作为方法名。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Path []Point</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(path Path)</span> <span class="title">Distance</span><span class="params">()</span> <span class="title">float64</span></span> &#123;</span><br><span class="line">	sum := <span class="number">0.0</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="keyword">range</span> path &#123;</span><br><span class="line">		<span class="keyword">if</span> i &gt; <span class="number">0</span> &#123;</span><br><span class="line">			sum += path[i<span class="number">-1</span>].Distance(&amp;path[i])</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> sum</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Path 是一个命名的 slice 类型，而非 Point 这样的结构退类型，但是我们依旧可以给他定义方法。Go 和 许多其他的面向对象语言不同，它可以将方法绑定到任何类型上。可以很方便地为简单的类型（如数字、字符串、slice、map、甚至函数）定义附加行为。同一个包下的任何类型都可以声明方法，只要他的类型既不是指针类型，也不是接口类型。</p>
+<h4 id="指针接收者的方法"><a href="#指针接收者的方法" class="headerlink" title="指针接收者的方法"></a>指针接收者的方法</h4><p>由于主调函数会复制每一个是参变量，如果函数需要更新一个变量，或者如果一个实参太大而我们希望避免复制整个实参，因此我们必须使用指针来传递变量的地址。这样同样适用于更新接收者：我们将它绑定到指针类型，比如：<code>*Point</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Point)</span> <span class="title">ScaleBy</span><span class="params">(factor <span class="keyword">float64</span>)</span></span> &#123;</span><br><span class="line">	p.X *= factor</span><br><span class="line">	p.Y *= factor</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个的方法的名字是：<code>(*Point).ScaleBy</code>；这里的圆括号是必须的，没有圆括号，表达式会被解析为：<code>*(Point.ScaleBy)</code>。习惯上遵循如果 Point 的任何一个方法使用指针接收者，那么所有的 Point 方法对应该使用指针接收者，即使这些方法不一定需要。命名类型 （<code>Point</code>）与指向他们的指针 （<code>*Point</code>）是唯一可以出现在接收者声明处的类型。<strong>为防止混淆，不允许本身是指针类型进行方法声明</strong>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> P *<span class="keyword">int</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(P)</span> <span class="title">f</span><span class="params">()</span></span> &#123; <span class="comment">/*...*/</span> &#125; <span class="comment">//编译错误</span></span><br></pre></td></tr></table></figure>
+<p>通过 <code>*Point</code> 能够调用 <code>(*Point).ScaleBy</code> 方法，比如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">r := &amp;Point&#123;<span class="number">1</span>, <span class="number">2</span>&#125;</span><br><span class="line">r.ScaleBy(<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+<p>或者 </p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">p := Point&#123;<span class="number">1</span>, <span class="number">2</span>&#125;</span><br><span class="line">pptr := &amp;p</span><br><span class="line">pptr.ScaleBy(<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+<p>或者</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">p := Point&#123;<span class="number">1</span>, <span class="number">2</span>&#125;</span><br><span class="line">(&amp;p).ScaleBy(<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+<p>虽然最后两个用法看上去比较别扭，但也是合法的。如果接受者 <code>p</code> 是 <code>Point</code> 类型的变量，但方法要求一个 <code>*Point</code> 接收者，我们可以使用简写：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">p.ScaleBy(<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+<p>实际上编译器会对变量进行 <code>&amp;p</code> 的隐式转换。但是只有变量才允许这么做，包括结构体字段，像 <code>p.X</code> 和数组或者 slice 的元素，比如 <code>perim[0]</code>。不能够对一个不能取地址的 Point 接收者调用 *Point 方法，因为无法获取临时变量的地址。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Point&#123;<span class="number">1</span>, <span class="number">2</span>&#125;.ScaleBy(<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+<p>感觉有点混乱，在合法的方法调用表达式中，只有符合下面三种形式的语句才能够成立：</p>
+<ol>
+<li>实参接收者和形参接收者是同一个类型；</li>
+<li>实参接收者是类型为 <strong><code>T</code></strong> 的变量，而接收者是 <strong><code>T</code></strong> 类型，编译器会隐式获取变量地址；</li>
+<li>实参接收者类型是 <strong><code>*T</code></strong>，而接收者是 <strong><code>T</code></strong> 类型，编译器会隐式解引用接收者；</li>
+</ol>
+<p><strong><code>nil</code> 是一个合法的接收者</strong></p>
+<p>就像一些函数允许 nil 指针作为实参，方法的接收者也一样，尤其适当 nil 是类型中有意义的零值 （如 <code>map</code> 和 <code>slice</code>）时，更是如此。在下面这个简单的整型链表中，nil 代表空链表：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> IntList <span class="keyword">struct</span> &#123;</span><br><span class="line">	Value <span class="keyword">int</span></span><br><span class="line">	Tail  *IntList</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(list *IntList)</span> <span class="title">Sum</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> list == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> list.Value + list.Tail.Sum()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> list IntList</span><br><span class="line">	fmt.Println(list.Sum()) <span class="comment">// 0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="方法变量与方法表达式"><a href="#方法变量与方法表达式" class="headerlink" title="方法变量与方法表达式"></a>方法变量与方法表达式</h4><p>通常我们在相同的表达式里使用和调用方法，就像在 <code>p.Distance()</code> 中，但是把两个操作分开也是可以的。选择子 <code>p.Distance</code> 可以赋予一个变量，它是一个函数，把方法 (<code>Point.Distance</code>) 绑定到一个接收者上。函数只需要提供实参而不需要提供接收者就能够调用。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"math"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Point <span class="keyword">struct</span> &#123;</span><br><span class="line">	X, Y <span class="keyword">float64</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p Point)</span> <span class="title">Distance</span><span class="params">(q Point)</span> <span class="title">float64</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> math.Hypot(q.Y-p.Y, q.Y-p.Y)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">PointFromOrigin</span><span class="params">(f <span class="keyword">func</span>(point Point)</span> <span class="title">float64</span>) <span class="title">float64</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> f(Point&#123;&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	p := Point&#123;<span class="number">1</span>, <span class="number">2</span>&#125;</span><br><span class="line">	q := Point&#123;<span class="number">3</span>, <span class="number">4</span>&#125;</span><br><span class="line">	distanceFromP := p.Distance</span><br><span class="line">	fmt.Println(distanceFromP(q)) <span class="comment">// 2.8284271247461903</span></span><br><span class="line">	fmt.Printf(<span class="string">"%T\n"</span>, distanceFromP) <span class="comment">// func(main.Point) float64</span></span><br><span class="line">	fmt.Println(PointFromOrigin(distanceFromP)) <span class="comment">// 2.8284271247461903</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>与方法变量相关的是<code>方法表达式</code>，和调用一个普通的函数不同，在调用方法的时候必须提供接收者，并且按照选择子的方法调用。而方法表达式写成 <code>T.f</code> 或者 <code>(*T).f</code>，其中 T 是类型，是一种函数变量，把原来方法的接收者替换成原函数的第一个形参，因此它可以像平常的函数一样调用。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"math"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Point <span class="keyword">struct</span> &#123;</span><br><span class="line">	X, Y <span class="keyword">float64</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p Point)</span> <span class="title">Distance</span><span class="params">(q Point)</span> <span class="title">float64</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> math.Hypot(q.Y-p.Y, q.Y-p.Y)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	p := Point&#123;<span class="number">1</span>, <span class="number">2</span>&#125;</span><br><span class="line">	q := Point&#123;<span class="number">3</span>, <span class="number">4</span>&#125;</span><br><span class="line"></span><br><span class="line">	distance := Point.Distance</span><br><span class="line">	fmt.Println(distance(p, q)) <span class="comment">// 2.8284271247461903</span></span><br><span class="line">	fmt.Printf(<span class="string">"%T"</span>, distance)  <span class="comment">// func(main.Point, main.Point) float64</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="封装"><a href="#封装" class="headerlink" title="封装"></a>封装</h4><p>如果变量或者方法是不能通过对象访问到的，这称作封装的变量或者方法。Go语言中只有一种访问方式控制命名的可见性：定义的时候，首字母大写的标识符是可以导出的，而首字母没有大写的则不可导出。同样的机制也同样作用域结构体内的字段和类型中的方法。结论就是：<strong>要封装一个对象，必须使用结构体</strong>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> IntSet <span class="keyword">struct</span> &#123;</span><br><span class="line">    words []<span class="keyword">uint64</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个定义和 <code>type IntSet []uint64</code> 看起来意义一样，但在访问控制上区别大着呢。结构体那种方式只能在本包内修改 <code>words</code> 这个slice，但是后面这种定义任何地方都可以。</p>
+<p>另一个结论就是 <strong>Go 语言中封装的单元是包而不是类型</strong>。无论是在函数内的代码还是方法内的代码，结构体类型的子弹对于同一个包中的所有代码都是可见的。封装提供了三个优点：</p>
+<ol>
+<li>因为使用房不能直接修改对象的变量，所以不需要更多的语句来检查变量的值；</li>
+<li>隐藏实现袭击可以防止使用方依赖的属性发生改变，使得设计者可以更加灵活地改变 API 的实现而不破坏兼容性；</li>
+<li>防止使用者肆意改变对象内变量。</li>
+</ol>
+<h3 id="Go-语言中使用嵌入字段实现了继承吗"><a href="#Go-语言中使用嵌入字段实现了继承吗" class="headerlink" title="Go 语言中使用嵌入字段实现了继承吗"></a>Go 语言中使用嵌入字段实现了继承吗</h3><p>这里说明一下，Go语言中没有继承的概念，他所做的是通过嵌入字段的方式实现了类型之间的组合，原理和理念请见：<a href="https://golang.org/doc/faq#inheritance" target="_blank" rel="noopener">Why is there no type inheritance?</a>。</p>
+<p>简单来说，面向对象中的继承是通过牺牲一定的代码间接性来获取可扩展性，而且这种可扩展性是通过代码侵入来实现的。类型之间的组合采用的是非声明的方式，我们不需要显示声明某个类型实现了某个接口，或者一个类型继承了另一个类型。</p>
+<p>同时，类型组合也是非侵入式的，它不会破坏类型的封装或加重类型之间的耦合。我们要做的只是把类型当做字段嵌入进来，然后坐享其成地使用嵌入字段所拥有的一切。如果嵌入字段有哪里不合心意，我们还可以用“包装”或“屏蔽”的方式去调整和优化。</p>
+<p>另外，类型间的组合也是灵活的，我们总是可以通过嵌入字段的方式把一个类型的属性和能力“嫁接”给另一个类型。</p>
+<p>这时候，被嵌入类型也就自然而然地实现了嵌入字段所实现的接口。再者，组合要比继承更加简洁和清晰，Go 语言可以轻而易举地通过嵌入多个字段来实现功能强大的类型，却不会有多重继承那样复杂的层次结构和可观的管理成本。</p>
+<p><strong>接口类型之间也可以组合</strong>。在 Go 语言中，接口类型之间的组合甚至更加常见，我们常常以此来扩展接口定义的行为或者标记接口的特征。与此有关的内容我在下一篇文章中再讲。</p>
+<h3 id="值方法和指针方法都是什么意思，有什么区别？"><a href="#值方法和指针方法都是什么意思，有什么区别？" class="headerlink" title="值方法和指针方法都是什么意思，有什么区别？"></a>值方法和指针方法都是什么意思，有什么区别？</h3><p>我们都知道，<strong>方法的接收者类型必须是某个自定义的数据类型，而且不能是接口类型或接口的指针类型</strong>。所谓的值方法，就是接收者类型是非指针的自定义数据类型的方法。那么指针方法就是接收者类型是自定义数据类型的指针类型。那么他们有什么不同呢？</p>
+<ol>
+<li><p>值方法的接收者是该方法所属的那个类型值的一个副本。我们在该方法内对该副本的修改一般都不会体现在原值上，除非这个类型本身是某个引用类型（比如切片或字典）的别名类型。而指针方法的接收者，是该方法所属的那个基本类型值的指针值的一个副本。我们在这样的方法内对该副本指向的值进行修改，却一定会体现在原值上。</p>
+</li>
+<li><p>一个自定义数据类型的方法集合中仅会包含它的所有 <code>值方法</code>，而该类型的指针类型的方法集合却囊括了前者的所有方法，包括所有值方法和所有指针方法。严格来讲，我们在这样的基本类型的值上只能调用到它的值方法。但是，Go 语言会适时地为我们进行自动转义，使得我们在这样的值上也能调用到它的指针方法。</p>
+</li>
+<li><p>一个类型的方法集合中有哪些方法与它能实现哪些接口类型是息息相关的。<strong>如果一个基本类型和它的指针类型的方法集合是不同的，那么它们具体实现的接口类型的数量就也会有差异，除非这两个数量都是零。比如，一个指针类型实现了某某接口类型，但它的基本类型却不一定能够作为该接口的实现类型。</strong></p>
+</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/struct/" rel="tag"># struct</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/11/04/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E3%80%8B%EF%BC%9A%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/" rel="prev" title="Go语言基础《十》：错误处理">
+      <i class="fa fa-chevron-left"></i> Go语言基础《十》：错误处理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/11/05/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%8C%E3%80%8B%EF%BC%9A%E6%8E%A5%E5%8F%A3/" rel="next" title="Go语言基础《十二》：接口">
+      Go语言基础《十二》：接口 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#结构体"><span class="nav-number">1.</span> <span class="nav-text">结构体</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#结构体字面量"><span class="nav-number">1.1.</span> <span class="nav-text">结构体字面量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#结构体比较"><span class="nav-number">1.2.</span> <span class="nav-text">结构体比较</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#结构体嵌套和匿名成员"><span class="nav-number">1.3.</span> <span class="nav-text">结构体嵌套和匿名成员</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#屏蔽匿名成员的值"><span class="nav-number">1.4.</span> <span class="nav-text">屏蔽匿名成员的值</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#方法"><span class="nav-number">2.</span> <span class="nav-text">方法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#方法声明"><span class="nav-number">2.1.</span> <span class="nav-text">方法声明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#指针接收者的方法"><span class="nav-number">2.2.</span> <span class="nav-text">指针接收者的方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#方法变量与方法表达式"><span class="nav-number">2.3.</span> <span class="nav-text">方法变量与方法表达式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#封装"><span class="nav-number">2.4.</span> <span class="nav-text">封装</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Go-语言中使用嵌入字段实现了继承吗"><span class="nav-number">3.</span> <span class="nav-text">Go 语言中使用嵌入字段实现了继承吗</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#值方法和指针方法都是什么意思，有什么区别？"><span class="nav-number">4.</span> <span class="nav-text">值方法和指针方法都是什么意思，有什么区别？</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

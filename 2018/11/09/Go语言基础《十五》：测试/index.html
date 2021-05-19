@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="我强烈地意识到我余生很大一部分工作都用来寻找我程序中的bug   测试是自动化测试的简称，即编写简单的程序来确保程序（产品业务代码）在测试中针对特定输入产生期望的输出。这些测试要么是经过精心设计之后用来检测某种功能，要么是随机性的，用来扩大测试的覆盖面。Go 中的测试方法看上去相对比较低级，它依赖于命令 go test 和一些能用 go test 运行的测试函数编写约定。实际上，编写测试函数和编">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go语言基础《十五》：测试">
+<meta property="og:url" content="https://blog.fudenglong.site/2018/11/09/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%94%E3%80%8B%EF%BC%9A%E6%B5%8B%E8%AF%95/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:description" content="我强烈地意识到我余生很大一部分工作都用来寻找我程序中的bug   测试是自动化测试的简称，即编写简单的程序来确保程序（产品业务代码）在测试中针对特定输入产生期望的输出。这些测试要么是经过精心设计之后用来检测某种功能，要么是随机性的，用来扩大测试的覆盖面。Go 中的测试方法看上去相对比较低级，它依赖于命令 go test 和一些能用 go test 运行的测试函数编写约定。实际上，编写测试函数和编">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/11/09/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%94%E3%80%8B%EF%BC%9A%E6%B5%8B%E8%AF%95/cover.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/11/09/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%94%E3%80%8B%EF%BC%9A%E6%B5%8B%E8%AF%95/parallet-tes.png">
+<meta property="article:published_time" content="2018-11-09T14:29:19.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.820Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="gotest">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2018/11/09/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%94%E3%80%8B%EF%BC%9A%E6%B5%8B%E8%AF%95/cover.png">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2018/11/09/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%94%E3%80%8B%EF%BC%9A%E6%B5%8B%E8%AF%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Go语言基础《十五》：测试 | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2018/11/09/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%94%E3%80%8B%EF%BC%9A%E6%B5%8B%E8%AF%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Go语言基础《十五》：测试
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-11-09 22:29:19" itemprop="dateCreated datePublished" datetime="2018-11-09T22:29:19+08:00">2018-11-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index">
+                    <span itemprop="name">Go语言基础</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span id="/2018/11/09/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%94%E3%80%8B%EF%BC%9A%E6%B5%8B%E8%AF%95/" class="post-meta-item leancloud_visitors" data-flag-title="Go语言基础《十五》：测试" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/11/09/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%94%E3%80%8B%EF%BC%9A%E6%B5%8B%E8%AF%95/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/11/09/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%94%E3%80%8B%EF%BC%9A%E6%B5%8B%E8%AF%95/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote class="blockquote-center">
+我强烈地意识到我余生很大一部分工作都用来寻找我程序中的bug
+</blockquote>
+
+<p>测试是自动化测试的简称，即编写简单的程序来确保程序（产品业务代码）在测试中针对特定输入产生期望的输出。这些测试要么是经过精心设计之后用来检测某种功能，要么是随机性的，用来扩大测试的覆盖面。Go 中的测试方法看上去相对比较低级，它依赖于命令 <code>go test</code> 和一些能用 <code>go test</code> 运行的测试函数编写约定。实际上，编写测试函数和编写原始程序没什么区别。</p>
+<a id="more"></a>
+<h3 id="go-test-工具"><a href="#go-test-工具" class="headerlink" title="go test 工具"></a>go test 工具</h3><p><code>go test</code> 子命令是 Go语言包的测试驱动程序，这些包根据某些约定组织在一起。在一个包目录中，以 <code>_test.go</code> 结尾的文件不是 <code>go build</code> 命令编译的目标，而是 <code>go test</code> 编译的目标。在 <code>*_test.go</code> 中，三种函数需要特殊对待，即功能测试函数，基准测试函数和示例函数。功能测试函数是以 <code>Test</code> 前缀命名的函数，用来检测一些程序逻辑的正确性，<code>go test</code> 运行测试函数，并且报告结果是 PASS 还是 FAIL。基准测试函数的名称是以 <code>Benchmark</code> 开头，用来测试某些操作的新能，<code>go test</code> 回报操作的平均时间。示例函数是以 <code>Example</code> 开头，用来提供机器检查过的文档。</p>
+<p><code>go test</code> 工具扫描 <code>*_test.go</code> 文件来寻找特殊函数，并生成一个临时的 main 包来调用它们，然后编译并且运行，并汇报结果，最后清空临时文件。</p>
+<p><code>go test</code> 命令常用的参数如下：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>标记名称</th>
+<th>标记描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-c</code></td>
+<td>生成用于运行测试的可执行文件，但不执行它。这个可执行文件会被命名为“pkg.test”，其中的“pkg”即为被测试代码包的导入路径的最后一个元素的名称。</td>
+</tr>
+<tr>
+<td><code>-i</code></td>
+<td>安装/重新安装运行测试所需的依赖包，但不编译和运行测试代码。</td>
+</tr>
+<tr>
+<td><code>-o</code></td>
+<td>指定用于运行测试的可执行文件的名称。追加该标记不会影响测试代码的运行，除非同时追加了标记<code>-c</code>或<code>-i</code>。</td>
+</tr>
+<tr>
+<td><code>-v</code></td>
+<td>打印所有运行的测试案例，也会打印出 <code>Log</code> 和 <code>Logf</code> 的输出。</td>
+</tr>
+<tr>
+<td><code>-run</code></td>
+<td>参数值是一个正则表达式，它可以使得 <code>go test</code>只运行那些功能测试函数名称匹配给定模式的函数。</td>
+</tr>
+<tr>
+<td><code>-bench</code></td>
+<td>指定需要运行的基准测试函数要匹配的模式。 </td>
+</tr>
+<tr>
+<td><code>-args</code></td>
+<td>指定命令行参数</td>
+</tr>
+<tr>
+<td><code>-parallel</code></td>
+<td>并发执行，默认值为 GOMAXPROCS</td>
+</tr>
+<tr>
+<td><code>-timeout</code></td>
+<td>全部测试案例累计时间超过将引发panic</td>
+</tr>
+<tr>
+<td><code>-count</code></td>
+<td>重复测试次数</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>接下里我们都对这个源码文件进行测试，命名为：<code>github.com/gamelife1314/go_study/fib/fib.go</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> fib</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> cacheFib = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">int</span>]<span class="keyword">int</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cacheFib[<span class="number">0</span>] = <span class="number">0</span></span><br><span class="line">	cacheFib[<span class="number">1</span>] = <span class="number">1</span></span><br><span class="line">	cacheFib[<span class="number">2</span>] = <span class="number">1</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fib</span><span class="params">(n <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> result, ok := cacheFib[n]; ok &#123;</span><br><span class="line">		<span class="keyword">return</span> result</span><br><span class="line">	&#125;</span><br><span class="line">	cacheFib[n] = Fib(n<span class="number">-1</span>) + Fib(n<span class="number">-2</span>)</span><br><span class="line">	<span class="keyword">return</span> cacheFib[n]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FibBad</span><span class="params">(n <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> n &lt;= <span class="number">2</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> FibBad(n<span class="number">-2</span>) + FibBad(n<span class="number">-1</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="功能测试"><a href="#功能测试" class="headerlink" title="功能测试"></a>功能测试</h3><p>对于功能测试来说，其名称必须要以 <code>Test</code> 为前缀，并且参数列数中有且只有一个 <code>*testing.T</code> 类型的参数声明。请看下面案例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> fib</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"testing"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestFib</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	t.Logf(<span class="string">"开始测试Fib(10)==55"</span>)</span><br><span class="line">	<span class="keyword">if</span> Fib(<span class="number">10</span>) != <span class="number">55</span> &#123;</span><br><span class="line">		t.Errorf(<span class="string">"Fib(10) 的结果应该是: %d"</span>, <span class="number">55</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	t.Logf(<span class="string">"开始测试Fib(10)==56"</span>)</span><br><span class="line">	<span class="keyword">if</span> Fib(<span class="number">10</span>) != <span class="number">56</span> &#123;</span><br><span class="line">		t.Errorf(<span class="string">"Fib(10) 的结果应该是: %d"</span>, <span class="number">55</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestFibBad</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	result := FibBad(<span class="number">10</span>)</span><br><span class="line">	<span class="keyword">if</span> result != <span class="number">55</span> &#123;</span><br><span class="line">		t.Errorf(<span class="string">"Fib(10) 的结果应该是: %d"</span>, <span class="number">55</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>启动命令：<code>go test -v  github.com/gamelife1314/go_study/fib</code> 运行测试案例，输出如下：</p>
+<pre><code>=== RUN   TestFib
+--- FAIL: TestFib (0.00s)
+        fib_test.go:7: 开始测试Fib(10)==55
+        fib_test.go:12: 开始测试Fib(10)==56
+        fib_test.go:14: Fib(10) 的结果应该是: 55
+=== RUN   TestFibBad
+--- PASS: TestFibBad (0.00s)
+FAIL
+FAIL    github.com/gamelife1314/go_study/fib    0.006s
+</code></pre><p>这里注意 <code>testing</code> 包中几组函数的使用：</p>
+<ol>
+<li><code>t.Log, t.Logf</code> 用来打印常规的测试日志，成功的时候不会打印，除非使用 <code>-v</code> 的标记才会打印出来。</li>
+<li><code>t.Fail, t.FailNow</code> 为了让测试案例宣告失败，我们需要调用这两个函数，与 <code>t.Fail</code> 不同的是，<code>t.FailNow</code> 执行之后，当前函数会立即终止执行。换句话说，该行代码之后的所有代码都会失去执行机会。</li>
+<li><code>t.Error, t.Errorf</code> 用于在失败的时候同时打印日志，前者相当于依次调用 <code>t.Log</code> 和 <code>t.Fail</code>，后者相当于依次调用 <code>t.Logf</code> 和 <code>t.Fail</code>。</li>
+<li><code>t.Fatal, t.Fatalf</code> 用于在打印错误日志之后立即终止当前测试函数的执行并且宣布测试失败。</li>
+</ol>
+<h3 id="性能测试"><a href="#性能测试" class="headerlink" title="性能测试"></a>性能测试</h3><p>对于功能测试来说，其名称必须要以 <code>Benchmark</code> 为前缀，并且参数列数中有且只有一个 <code>*testing.B</code> 类型的参数声明。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> fib</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"testing"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BenchmarkFib</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; b.N; i++ &#123;</span><br><span class="line">		Fib(<span class="number">15</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BenchmarkFibBad</span><span class="params">(b *testing.B)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; b.N; i++ &#123;</span><br><span class="line">		FibBad(<span class="number">15</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>执行命令启动：<code>go test -bench=. -benchmem  -v  github.com/gamelife1314/go_study/fib</code></p>
+<pre><code>goos: darwin
+goarch: amd64
+pkg: github.com/gamelife1314/go_study/fib
+BenchmarkFib-4          200000000                9.65 ns/op            0 B/op          0 allocs/op
+BenchmarkFibBad-4        1000000              2165 ns/op               0 B/op          0 allocs/op
+PASS
+ok      github.com/gamelife1314/go_study/fib    5.100s
+</code></pre><p>通过结果，我们就能看出对于求斐波那契数列两种方式的优劣了。</p>
+<h3 id="示例测试"><a href="#示例测试" class="headerlink" title="示例测试"></a>示例测试</h3><p>对于示例测试函数来说，其名称必须以 <code>Example</code> 为前缀，但对函数的参数列表并没有强制规定。</p>
+<h3 id="覆盖率"><a href="#覆盖率" class="headerlink" title="覆盖率"></a>覆盖率</h3><p>我们可以带上 <code>-coverprofile</code> 标记来测试代码的覆盖率，例如：<code>go test -v -coverprofile=cover.out</code>，然后会生成 <code>cover.out</code> 文件，我们在使用 <code>go tool cover</code> 工具在浏览器中打开输出的覆盖率报告：<code>go tool cover -html=cover.out</code>，我们将会看到：</p>
+<p><img src="cover.png" alt="cover"></p>
+<p>我们也可以加上 <code>-covermode=count</code> 来给每个语句块加上一个计数器，每个语句块被执行的次数将会被量化。</p>
+<h3 id="并行运行"><a href="#并行运行" class="headerlink" title="并行运行"></a>并行运行</h3><p>使用 Parallel 可以与有同样设置的函数并行运行减少测试时间：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> gotest</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"os"</span></span><br><span class="line">	<span class="string">"testing"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestA</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	t.Parallel()</span><br><span class="line">	time.Sleep(time.Second * <span class="number">2</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TestB</span><span class="params">(t *testing.T)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> os.Args[<span class="built_in">len</span>(os.Args)<span class="number">-1</span>] == <span class="string">"p"</span> &#123;</span><br><span class="line">		t.Parallel()</span><br><span class="line">	&#125;</span><br><span class="line">	time.Sleep(time.Second * <span class="number">2</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>运行比较结果如下图：</p>
+<p><img src="parallet-tes.png" alt="parallet test"></p>
+<h3 id="参考阅读"><a href="#参考阅读" class="headerlink" title="参考阅读"></a>参考阅读</h3><ol>
+<li><a href="https://blog.questionable.services/article/testing-http-handlers-go/" target="_blank" rel="noopener">Testing Your (HTTP) Handlers in Go</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/gotest/" rel="tag"># gotest</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/11/08/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E5%9B%9B%E3%80%8B%EF%BC%9A%E6%8E%A7%E5%88%B6%E7%BB%93%E6%9E%84/" rel="prev" title="Go语言基础《十四》：控制结构">
+      <i class="fa fa-chevron-left"></i> Go语言基础《十四》：控制结构
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/11/11/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-sync/" rel="next" title="Go 扩展包：sync">
+      Go 扩展包：sync <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#go-test-工具"><span class="nav-number">1.</span> <span class="nav-text">go test 工具</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#功能测试"><span class="nav-number">2.</span> <span class="nav-text">功能测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#性能测试"><span class="nav-number">3.</span> <span class="nav-text">性能测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#示例测试"><span class="nav-number">4.</span> <span class="nav-text">示例测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#覆盖率"><span class="nav-number">5.</span> <span class="nav-text">覆盖率</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#并行运行"><span class="nav-number">6.</span> <span class="nav-text">并行运行</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考阅读"><span class="nav-number">7.</span> <span class="nav-text">参考阅读</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta property="og:type" content="article">
+<meta property="og:title" content="Go语言基础《十二》：接口">
+<meta property="og:url" content="https://blog.fudenglong.site/2018/11/05/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%8C%E3%80%8B%EF%BC%9A%E6%8E%A5%E5%8F%A3/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/11/05/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%8C%E3%80%8B%EF%BC%9A%E6%8E%A5%E5%8F%A3/cover.jpeg">
+<meta property="article:published_time" content="2018-11-04T16:31:15.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.816Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="interface">
+<meta property="article:tag" content="接口">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2018/11/05/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%8C%E3%80%8B%EF%BC%9A%E6%8E%A5%E5%8F%A3/cover.jpeg">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2018/11/05/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%8C%E3%80%8B%EF%BC%9A%E6%8E%A5%E5%8F%A3/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Go语言基础《十二》：接口 | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2018/11/05/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%8C%E3%80%8B%EF%BC%9A%E6%8E%A5%E5%8F%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Go语言基础《十二》：接口
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-11-05 00:31:15" itemprop="dateCreated datePublished" datetime="2018-11-05T00:31:15+08:00">2018-11-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index">
+                    <span itemprop="name">Go语言基础</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span id="/2018/11/05/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%8C%E3%80%8B%EF%BC%9A%E6%8E%A5%E5%8F%A3/" class="post-meta-item leancloud_visitors" data-flag-title="Go语言基础《十二》：接口" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/11/05/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%8C%E3%80%8B%EF%BC%9A%E6%8E%A5%E5%8F%A3/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/11/05/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%8C%E3%80%8B%EF%BC%9A%E6%8E%A5%E5%8F%A3/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>11k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>10 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <img src="/2018/11/05/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%BA%8C%E3%80%8B%EF%BC%9A%E6%8E%A5%E5%8F%A3/cover.jpeg" class="" title="cover">
+<a id="more"></a>
+<p>接口类型是对类型行为的概括与抽象。通过使用接口，我们可以写出更加灵活和通用的函数，<strong>这些函数不用绑定在一个特定类型实现上</strong>。</p>
+<p>大多面向对象中的语言中都有接口这个概念，Go 语言接口的独特支持在于它是隐式实现的。换句话说，对于一个具体类型，无需声明他实现了哪些接口，只要提供接口所需的方法即可。这种设计让你无需改变已有类型的实现，就可以为这些类型创建新的接口，对于那些不能修改包的类型，这一点很有用。</p>
+<h3 id="接口即约定"><a href="#接口即约定" class="headerlink" title="接口即约定"></a>接口即约定</h3><p>之前介绍的都是 <code>具体类型</code>，具体类型不仅指定了所含数据的精确布局，还暴露了基于这个精确布局的内部操作。Go 语言中还有另外一种类型成为 <code>接口类型</code>。接口类型是一种抽象类型，他并没有暴露所含数据的布局或者内部结构，当然也没有那些数据的基本操作，你仅仅能知道的是它能做什么，或者更精确地将，仅仅是它提供了哪些方法。</p>
+<p>常用的两个格式化方法 <code>fmt.Printf</code> 和 <code>fmt.Sprintf</code> ，前者是把结果发送到标准输出，后者是把结果以 string 类型返回。格式化是两个函数中最复杂的部分，如果仅仅因为在输出方式上的细微差别，就需要把两个函数重写一遍，那就是太浪费时间了。幸运的是通过接口机制，可以解决这个问题。其实这两个函数都封装了对 <code>fmt.Fprintf</code> 函数的调用，而这个函数对结果实际输出到哪里并不关心：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> fmt</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fprintf</span><span class="params">(w io.Writer, a ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(n <span class="keyword">int</span>, err error)</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Printf formats according to a format specifier and writes to standard output.</span></span><br><span class="line"><span class="comment">// It returns the number of bytes written and any write error encountered.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Printf</span><span class="params">(format <span class="keyword">string</span>, a ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(n <span class="keyword">int</span>, err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Fprintf(os.Stdout, format, a...)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Sprintf</span><span class="params">(format <span class="keyword">string</span>, a ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> buf bytes.Buffer</span><br><span class="line">    Fprintf(&amp;buf, format, ...a)</span><br><span class="line">    <span class="keyword">return</span> buf.String()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<!--more-->
+<p><code>Fprintf</code> 的前缀 F 指文件，表示格式化输出会写入第一个实参所指代的文件。对于 Printf 第一个实参就是 <code>os.Stdout</code>，它属于 <code>*.os.File</code> 类型。对于 <code>Sprintf</code>，尽管第一个实参不是文件，但它模拟了一个文件：<code>&amp;buf</code> 是一个指向内存缓冲区的指针，与文件类似，缓冲区也可以写入多个字节。</p>
+<p>其实 <code>Fprintf</code> 的第一个参数也不是文件类型，而是 <code>io.Writer</code> 接口类型，其声明如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Writer <span class="keyword">interface</span> &#123;</span><br><span class="line">	Write(p []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>io.Writer</code> 定义了调用者和 <code>Fprintf</code> 之间的 <strong>约定</strong>。一方面这个约定要求调用者提供的具体类型包含一个一个与其签名和行为一致的 <code>Write</code> 方法。另一方面，这个约定保证了 <code>Fprintf</code> 能使用任何满足 <code>io.Writer</code> 接口的参数。<code>Fprintf</code> 只需能调用它的 Write 方法，无需关心是写入文件还是写入内存。</p>
+<p>因为，fmt.Fprintf 仅依赖于 io.Writer 接口所约定的方法，对参数的具体类型没有要求。所以我们可以用任何满足 io.Writer 接口的具体类型作为 fmt.Fprintf 的第一个实参。<strong>这种可以把一种类型替换为满足同一接口的其他类型的特性称为可取代性，这是面向对象语言的典型特征</strong>。</p>
+<h3 id="接口类型"><a href="#接口类型" class="headerlink" title="接口类型"></a>接口类型</h3><p>一个接口定义定义了一套方法，如果一个具体类型要实现该接口，那么必须实现接口类型中定义的所有方法。我们来看看 <code>io</code> 包中声明的接口类型：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Reader <span class="keyword">interface</span> &#123;</span><br><span class="line">	Read(p []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Writer <span class="keyword">interface</span> &#123;</span><br><span class="line">	Write(p []<span class="keyword">byte</span>) (n <span class="keyword">int</span>, err error)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Closer <span class="keyword">interface</span> &#123;</span><br><span class="line">	Close() error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>另外，我们还可以通过组合已有接口得到新的接口，比如下面两个例子：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> ReadWriter <span class="keyword">interface</span> &#123;</span><br><span class="line">	Reader</span><br><span class="line">	Writer</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> ReadWriteCloser <span class="keyword">interface</span> &#123;</span><br><span class="line">	Reader</span><br><span class="line">	Writer</span><br><span class="line">	Closer</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="实现接口"><a href="#实现接口" class="headerlink" title="实现接口"></a>实现接口</h3><p>如果一个类型实现了一个接口要求的所有方法，那么这个类型实现了这个接口。Go 程序员通想说一个具体类型 “是一个（<code>is-a</code>）”特定的接口类型，这其实代表着该具体类型实现了该接口。比如，<code>*bytes.Buffer</code> 是一个 <code>io.Writer</code>，<code>*os.File</code> 是一个 <code>io.ReaderWriter</code>。接口的赋值规则很简单，仅当一个表达式实现了一个接口时，这个表达式才可以赋给该接口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> w io.Writer</span><br><span class="line">w = os.Stdout           <span class="comment">// ok</span></span><br><span class="line">w = <span class="built_in">new</span>(bytes.Buffer)  <span class="comment">// ok</span></span><br><span class="line">w = time.Second       <span class="comment">// compile error</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> rwc io.ReadWriterCloser</span><br><span class="line">rwc = os.Stdout <span class="comment">// ok</span></span><br><span class="line">rwc = <span class="built_in">new</span>(bytes.Buffer) <span class="comment">// error *bytes.Buffer 缺少close 方法</span></span><br></pre></td></tr></table></figure>
+<p>当右侧表达式是一个接口时，该规则也有效：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">w = rwc <span class="comment">// ok, io.ReadWriterCloser 有 Writer 方法</span></span><br><span class="line">rwc = w <span class="comment">// 编译错误，io.Writer 缺少 Close 方法</span></span><br></pre></td></tr></table></figure>
+<p>一个拥有更多方法的接口，比如 <code>io.ReadWriter</code> 和 <code>io.Writer</code> 相比，给了我们它所指向数据的更多信息，当然也给实现这个接口增加了更高的门槛。<strong>那么对于空接口类型 <code>interface{}</code> 它完全不包含任何方法，通过这个接口能得到对应具体类型的什么信息呢？确实什么信息也得不到，看起来这个接口没什么用，但实际上成为 <code>空接口类型</code> 的 <code>interface{}</code> 是不可缺少的。正因为这个空接口类型对其实现类型没有任何要求，所以我们可以把任何值赋值给空接口类型。</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> any <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">any = <span class="literal">true</span></span><br><span class="line">any = <span class="number">12.34</span></span><br><span class="line">any = <span class="string">"hello"</span></span><br><span class="line">any = <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span>&#123;&#125;</span><br><span class="line">any = <span class="built_in">new</span>(bytes.Buffer)</span><br></pre></td></tr></table></figure>
+<p>非空的接口类型，比如：<code>io.Writer</code> 通常由一个指针类型实现，特别是接口类型的一个或多个方法暗示会修改接收者的情形，一个指向结构的指针才是最常见的方法接收者。</p>
+<h3 id="接口值"><a href="#接口值" class="headerlink" title="接口值"></a>接口值</h3><p>从概念上来讲，一个接口类型的值（简称接口值）其实有两个部分：一个具体类型和该类型的一个值，二者称为接口的：<code>动态类型</code>和<code>动态值</code>。对于像Go这样的静态类型语言，类型仅仅是一个编译是的概念，所以类型不是一个值。在我们的概念模型中，用类型描述符来提供每个类型的具体信息，比如它的名字和方法。对于一个接口值，类型部分就用对应的类型描述符来表达。</p>
+<p>如下四个语句中，变量 w 有三个不同的值（最后和最初是同一个值）：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> w io.Writer</span><br><span class="line">w = os.Stdout</span><br><span class="line">w = <span class="built_in">new</span>(bytes.Buffer)</span><br><span class="line">w = <span class="literal">nil</span></span><br></pre></td></tr></table></figure>
+<p>接下里让我们详细地查看一下在每个语句之后 w 的值和相关的动态行为。第一个语句声明了 <code>w</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> w io.Writer</span><br></pre></td></tr></table></figure>
+<p>在 Go 语言中，变量初始化的时候总有一个特定的值，接口也不例外。接口的零值就是 <strong>它的动态类型和值都设置为 <code>nil</code></strong>。一个接口值是否是 <code>nil</code> 取决于它的动态类型，所以现在指的是一个 <code>nil</code> 接口值。可以用 <code>w == nil</code> 或者 <code>w != nil</code> 来检测接口值是否为 <code>nil</code>。<strong>调用一个 <code>nil</code> 接口的任何方法都会导致崩溃</strong>。</p>
+<p>第二个语句把一个 <code>*os.File</code> 类型的值赋给了 <code>w</code>:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">w = os.Stdout</span><br></pre></td></tr></table></figure>
+<p>这次赋值把一个具体类型隐式转换为一个接口类型，它与显示的转换 <code>io.Writer(os.Stdout)</code> 等价，接口值的动态类型会设置为指针类型 <code>*os.File</code> 的类型描述符，它的动态值会设置为 <code>os.Stdout</code> 的副本，即一个指向代表进程标准输出的 <code>os.File</code> 类型的指针。</p>
+<p>一般来讲，在编译的时候，我们无法知道一个接口值的动态类型是什么，所以通过接口来做调用必然需要使用动态分发。编译器必须生成一段代码来从类型描述符拿到名为 Write 的方法地址，再简介调用该方法地址。调用的接收者就是接口值的动态值，即：os.Stdout，所以下面这两种调用时等价的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">w.Write([]<span class="keyword">byte</span>(<span class="string">"hello"</span>))</span><br><span class="line">os.Stdout.Write([]<span class="keyword">byte</span>(<span class="string">"hello"</span>))</span><br></pre></td></tr></table></figure>
+<p>第三个语句把一个 <code>*bytes.Buffer</code> 类型的指针值赋给了接口值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">w = <span class="built_in">new</span>(bytes.Buffer)</span><br></pre></td></tr></table></figure>
+<p>动态类型现在就是 <code>*bytes.Buffer</code>，动态值现在则是一个指向新分配缓冲区的指针。</p>
+<p>最后，第四个语句把 nil 赋给了接口值，这个语句把动态类型和动态值都设置为 <code>nil</code>，把 w 恢复到了它刚声明时的状态。</p>
+<p><strong>接口值是可以用 <code>==</code> 和 <code>!=</code> 进行比较的</strong>。如果两个接口值都是 <code>nil</code> 或者二者动态类型完全一致且二者动态值相等，那么两个接口值是相等的。因为接口是可以作比较的，所以他们可以作为 map 的键。</p>
+<p>注意：<strong>含有空指针的非空接口</strong></p>
+<p>空的接口值（其中不包含任何信息，动态值和动态类型都为nil）与仅仅动态之为nil的接口值是不一样的。</p>
+<p>考虑如下程序，当 <code>debug</code> 设置为 <code>true</code> 时，主函数收集函数<code>f</code>的输出到一个缓冲区：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> debug = <span class="literal">true</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> buf *bytes.Buffer</span><br><span class="line">    <span class="keyword">if</span> debug &#123;</span><br><span class="line">        buf = <span class="built_in">new</span>(bytes.Buffer)</span><br><span class="line">    &#125;</span><br><span class="line">    f(buf)</span><br><span class="line">    <span class="keyword">if</span> debug &#123;</span><br><span class="line">        <span class="comment">// ... 使用buf...</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">f</span><span class="params">(out io.Writer)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> out != <span class="literal">nil</span> &#123;</span><br><span class="line">        out.Write([]<span class="keyword">byte</span>(<span class="string">"done!\n"</span>))</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但当<code>debug</code>设置为<code>false</code>的时候，程序在<code>out.Write([]byte(&quot;done!\n&quot;))</code>崩溃，我们来分析一下：</p>
+<p>开始的<code>var buf *bytes.Buffer</code>将<code>buf</code>的动态类型设置为<code>*bytes.Buffer</code>，但是动态值为<code>nil</code>;</p>
+<p>在进行<code>if out != nil</code> 判断的时候，这个表达式返回<code>true</code>，因为只有在动态值和动态类型都为<code>nil</code>的情况下才返回<code>false</code>，这个时候去调用<code>out.Write</code>, 像之前说的，调用任何<code>nil</code>的方法都会导致崩溃。</p>
+<p>怎么改呢？答案就是把<code>var buf *bytes.Buffer</code>改为<code>var buf io.Writer</code>;</p>
+<h3 id="类型断言"><a href="#类型断言" class="headerlink" title="类型断言"></a>类型断言</h3><p>类型断言是一个作用在接口值上的操作，写出来类似于：<code>x.(T)</code>，其中x是一个类型，而<code>T</code>是一个具体类型（称为断言类型），类型断言会检查操作数的动态类型是否满足指定的断言类型；</p>
+<p>这儿有两个可能，首先如果断言类型 <code>T</code> 是一个具体类型，那么类型断言会检查<code>X</code>的动态类型是否<strong>就是T</strong>，如果检查成功，类型断言的结果就是<code>x</code>的动态值，型当然就是T了；<strong>换句话说，类型断言就是同来从它的操作数中把具体类型的值提取出来的操作。如果检查失败，操作崩溃。</strong>比如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> w io.Writer</span><br><span class="line">w = os.Stdout</span><br><span class="line">f := w.(*os.File)       <span class="comment">// 成功： f == os.Stdout</span></span><br><span class="line">c := w.(*bytes.Buffer)  <span class="comment">// 崩溃，接口持有的是*os.File而不是*bytes.Buffer</span></span><br></pre></td></tr></table></figure>
+<p>其次，如果断言类型<code>T</code>是一个<code>接口类型</code>，那么类型检查<code>X</code>的动态类型是都<strong>满足T</strong>。如果检查成功，动态值并没有提取出来，结果仍然是一个接口值，接口值的类型和值部分也没有变更，只是结果的类型为接口类型。<strong>换句话说，类型断言是一个接口值表达式，从一个接口类型变为拥有另一套方法的接口类型，但保留了接口值中的动态类型和动态值部分</strong>。</p>
+<p>如下类型断言代码中，<code>w</code>和<code>rw</code>都持有<code>os.Stdout</code>，于是所有对应的动态类型都是<code>*os.File</code>，但是<code>w</code>作为<code>io.Writer</code>类型，仅仅暴露了文件的<code>Write</code>方法，而rw好暴露它的<code>Read</code>方法。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> w io.Writer</span><br><span class="line">w = os.Stdout</span><br><span class="line">rw := w.(io.ReadWriter) <span class="comment">// 成功</span></span><br><span class="line"></span><br><span class="line">w = <span class="built_in">new</span>(ByteCounter)</span><br><span class="line">rw := w.(io.ReadWriter)  <span class="comment">// 崩溃</span></span><br></pre></td></tr></table></figure>
+<p>无论哪种类型作为类型断言，如果操作数是一个空的接口值，类型断言都会失败。很少需要从一个接口类型向一个要求更宽松的类型做类型断言，该宽松类型的接口方法比原类型的少，而且是其子集。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">w = rw  <span class="comment">// io.ReadWRiter 可以赋给 io.Writer</span></span><br><span class="line">w = rw.(io.Writer) <span class="comment">// 仅当 rw == nil 时失败</span></span><br></pre></td></tr></table></figure>
+<p>我们经常无法确定一个接口值的动态类型，这时就需要检测它是否是某一个特定类型。如果类型断言出现在需要两个结果的表达式中，那么断言不会再失败时崩溃，而且会多返回一个布尔类型来指示断言是否成功。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> w io.Writer = os.Stdout</span><br><span class="line">f, ok := w.(*os.File)  <span class="comment">// 成功：ok == true, f == os.Stdout</span></span><br><span class="line">b, ok := w.(*bytes.Buffer) <span class="comment">// 失败：ok == false, b == nil</span></span><br></pre></td></tr></table></figure>
+<h3 id="类型分支"><a href="#类型分支" class="headerlink" title="类型分支"></a>类型分支</h3><p>接口有两种不同的风格。第一种风格下，典型的比如：<code>io.Reader,io.Writer,fmt.Stringer</code>，接口上的各种方法突出了满足这个接口的具体类型之间的相似性，但隐藏了各个具体类型的布局和各自特有的功能。这种风格强调了方法，而不是具体类型。</p>
+<p>第二种风格则是充分利用了接口值能容纳各种具体类型的能力，他把接口作为这些类型的联合来使用。类型断言用来在运行时五分这些类型并分别处理。在这种风格中， 强调的是满足这个接口的具体类型，而不是这个接口的方法（何况经常没有）,也不注重信息隐藏。我们把这种风格的接口使用方式称为可识别联合。</p>
+<p>一个<code>swtich</code>语句可以把包含一长串值相等比较的<code>if-else</code>语句简化掉。一个相似的类型分支语句则可以用来简化一长串的类型断言 <code>if-else</code> 语句。类型分支的简单形式与普通分支语句类似，两个的差别是操作数改为：<code>x.(type)</code>，<strong><code>type</code> 在这里是一个关键字，而不是具体类型，每个分支是一个或者多个类型</strong>。类型分支的分支判定基于接口值的动态类型，其中<code>nil</code>分支需要 <code>x == nil</code>，而 <code>default</code> 分支在其他分支没有满足时才运行。</p>
+<p>例如：<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> x.(<span class="keyword">type</span>) &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="literal">nil</span>: <span class="comment">// ...</span></span><br><span class="line">    <span class="keyword">case</span> <span class="keyword">int</span>, <span class="keyword">uint</span>: <span class="comment">// ...</span></span><br><span class="line">    <span class="keyword">case</span> <span class="keyword">bool</span>: <span class="comment">//</span></span><br><span class="line">    <span class="keyword">case</span> <span class="keyword">string</span>: <span class="comment">//</span></span><br><span class="line">    <span class="keyword">default</span>: <span class="comment">//</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>大多数时候我们需要将接口值提取到指定动态类型下的一个变量，我们可以这样做：<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> x := x.(<span class="keyword">type</span>) &#123;<span class="comment">/* ..... */</span>&#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里把新的变量也命名为x，但是并不与外部语句块中的变量x冲突，新的变量x存在于switch新创建的词法块中。</p>
+<h3 id="使用案例"><a href="#使用案例" class="headerlink" title="使用案例"></a>使用案例</h3><h4 id="使用flag-Value来解析参数"><a href="#使用flag-Value来解析参数" class="headerlink" title="使用flag.Value来解析参数"></a>使用<code>flag.Value</code>来解析参数</h4><p>使用go开发应用程序的过程中，因为由于经常需要解析命令行参数，需求这么大，以至于官方专门开发<code>flag</code>包来处理这个事情；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"flag"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> period = flag.Duration(<span class="string">"period"</span>, <span class="number">1</span>*time.Second, <span class="string">"sleep period"</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	flag.Parse()</span><br><span class="line">	fmt.Printf(<span class="string">"Sleeping for %v\n"</span>, *period)</span><br><span class="line">	time.Sleep(*period)</span><br><span class="line">	fmt.Println(<span class="string">"end."</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们可以这样使用：<code>go run flag.go --sleep 2s30ms</code>，合法的时间单位参考：<code>time.ParseDuration()</code> 方法注释；</p>
+<p>为了能够支持扩展，使用自定义类型，<code>flag</code>包提供了一个<code>Value</code>接口，实现其即可；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> flag</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Value <span class="keyword">interface</span> &#123;</span><br><span class="line">    String() <span class="keyword">string</span>  <span class="comment">// 用于格式化标识对应的值</span></span><br><span class="line">    Set(<span class="keyword">string</span>) error <span class="comment">// 解析传入的字符串参数并更新标识值</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实现自定义温度参数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"flag"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Celsius <span class="keyword">float64</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Fahrenheit <span class="keyword">float64</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> celsiusFlag <span class="keyword">struct</span> &#123;</span><br><span class="line">	Celsius</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CToF</span><span class="params">(c Celsius)</span> <span class="title">Fahrenheit</span></span> &#123; <span class="keyword">return</span> Fahrenheit(c*<span class="number">9</span>/<span class="number">5</span> + <span class="number">32</span>) &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FToC</span><span class="params">(f Fahrenheit)</span> <span class="title">Celsius</span></span> &#123; <span class="keyword">return</span> Celsius((f - <span class="number">32</span>) * <span class="number">5</span> / <span class="number">9</span>) &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *celsiusFlag)</span> <span class="title">Set</span><span class="params">(s <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> unit <span class="keyword">string</span></span><br><span class="line">	<span class="keyword">var</span> value <span class="keyword">float64</span></span><br><span class="line">	fmt.Sscanf(s, <span class="string">"%f%s"</span>, &amp;value, &amp;unit)</span><br><span class="line">	<span class="keyword">switch</span> unit &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">"C"</span>, <span class="string">"°C"</span>:</span><br><span class="line">		f.Celsius = Celsius(value)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	<span class="keyword">case</span> <span class="string">"F"</span>, <span class="string">"°F"</span>:</span><br><span class="line">		f.Celsius = FToC(Fahrenheit(value))</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> fmt.Errorf(<span class="string">"invalid temperature %q"</span>, s)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *celsiusFlag)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">"%v°C"</span>, f.Celsius)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> temp celsiusFlag</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	flag.Var(&amp;temp, <span class="string">"temp"</span>, <span class="string">"--temp 18°C"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	flag.Parse()</span><br><span class="line">	fmt.Println(temp.Celsius)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="使用sort-Interface来排序"><a href="#使用sort-Interface来排序" class="headerlink" title="使用sort.Interface来排序"></a>使用sort.Interface来排序</h4><p>与字符串格式化类似，排序也是一个在很多程序中广泛使用的操作。为了避免重写实现排序算法，go语言的<code>sort</code>包提供了针对任意序列根据人已排序函数原地排序的功能； 使用<code>sort.Interface</code>接口来指定通用排序算法和每个具体序列类型之间的协议（contract）。这个接口的实现确定了序列的具体布局（经常是一个slice）,以及元素期望的排序方式，</p>
+<p>一个原地排序算法需要知道三个信息：<code>序列长度</code>，<code>比较两个元素的含义</code>以及<code>如何交换两个元素</code>，所以<code>sort.Interface</code>接口就有三个方法;</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> sort</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Interface <span class="keyword">interface</span>&#123;</span><br><span class="line">    Len() <span class="keyword">int</span></span><br><span class="line">    Less(i, j <span class="keyword">int</span>) <span class="keyword">bool</span>  <span class="comment">// i, j是序列元素的下标</span></span><br><span class="line">    Swap(i, j <span class="keyword">int</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>要对序列排序，需要先确定一个实现了如上三个方法的类型，接着把<code>sort.Sort</code>函数应用到这类方法的实例上。考虑一个最简单的例子：<code>字符串slice</code>。<br>定义的新类型StringSlice以及它的三个方法Len,Less,Swap如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> StringSlice []<span class="keyword">string</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p StringSlice)</span> <span class="title">Len</span><span class="params">()</span> <span class="title">int</span></span> &#123;<span class="keyword">return</span> <span class="built_in">len</span>(p)&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p StringSlice)</span> <span class="title">Less</span><span class="params">(i, j <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;<span class="keyword">return</span> p[i] &lt; p[j]&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p StringSlice)</span> <span class="title">Swap</span><span class="params">(i, j <span class="keyword">int</span>)</span></span> &#123; p[i], p[j] = p[j], p[i]&#125;</span><br></pre></td></tr></table></figure>
+<p>要对一个新的字符串slice排序，只需简单滴把一个<code>slice</code>转换为<code>StringSlice</code>类型即可，如下所示：<code>sort.Sort(StringSlice(names))</code></p>
+<p>类型转换生成了一个新的<code>slice</code>，与原始的<code>names</code>有同样的长度，容量以及底层数组，不同的就是额外增加了三个用于排序的方法。</p>
+<p>考虑如下比较复杂的一个自定义类型：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Track <span class="keyword">struct</span> &#123;</span><br><span class="line">    Title <span class="keyword">string</span></span><br><span class="line">    Artist <span class="keyword">string</span></span><br><span class="line">    Album <span class="keyword">string</span></span><br><span class="line">    Year <span class="keyword">int</span></span><br><span class="line">    Length time.Duration</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> tracks = []*Track&#123;</span><br><span class="line">    &#123;<span class="string">"Go"</span>, <span class="string">"Delilah"</span>, <span class="string">"From the roots up"</span>, <span class="number">2012</span>, length(<span class="string">"3m38s"</span>)&#125;,</span><br><span class="line">    &#123;<span class="string">"Go"</span>, <span class="string">"Moby"</span>, <span class="string">"From the roots up"</span>, <span class="number">2012</span>, length(<span class="string">"3m38s"</span>)&#125;,</span><br><span class="line">    &#123;<span class="string">"Go"</span>, <span class="string">"Alicia Keys"</span>, <span class="string">"From the roots up"</span>, <span class="number">2012</span>, length(<span class="string">"3m38s"</span>)&#125;,</span><br><span class="line">    &#123;<span class="string">"Go"</span>, <span class="string">"Martin solveing"</span>, <span class="string">"From the roots up"</span>, <span class="number">2012</span>, length(<span class="string">"3m38s"</span>)&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">length</span><span class="params">(s <span class="keyword">string</span>)</span> <span class="title">time</span>.<span class="title">Duration</span></span> &#123;</span><br><span class="line">    d, err := time.ParseDuration(s)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="built_in">panic</span>(s)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> d</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果要按照Artist字段对播放列表tracks排序，需要先定义一个新的slice类型，以及必须的Len，Less和Swap方法。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> byArtist []*Track</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(x byArtist)</span> <span class="title">Len</span><span class="params">()</span> <span class="title">int</span></span> &#123;<span class="keyword">return</span> <span class="built_in">len</span>(x)&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(x byArtist)</span> <span class="title">Less</span><span class="params">(i, j <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;<span class="keyword">return</span> x[i].Artist &lt; x[j].Artist&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(x byArtist)</span> <span class="title">Swap</span><span class="params">(i, j <span class="keyword">int</span>)</span></span> &#123; x[i], x[j] = x[j], x[i]&#125;</span><br></pre></td></tr></table></figure>
+<p>要调用通用的排序历程，必须先把tracks转换为定义排序规则类型的新类型byArtist:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sort.Sort(byArtist(tracks))</span><br></pre></td></tr></table></figure>
+<p>如果要对这些音乐按照反向排序，无需定义一个新的byReverseArtist类型和对应的反向Less方法，因为sort包已经提供了Reverse函数，它可以把任意的排序反向；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sort.Reverse(yArtist(tracks)) <span class="comment">// 假设已经调用了sort.Sort(byArtist(tracks))</span></span><br></pre></td></tr></table></figure>
+<p>如果要按照其他列来进行排序，就需要定义一个新的类型，比如byYear:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">type</span> byYear []*Track</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(x byYear)</span> <span class="title">Len</span><span class="params">()</span> <span class="title">int</span></span> &#123;<span class="keyword">return</span> <span class="built_in">len</span>(x)&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(x byYear)</span> <span class="title">Less</span><span class="params">(i, j <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;<span class="keyword">return</span> x[i].Year &lt; x[j].Year&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(x byYear)</span> <span class="title">Swap</span><span class="params">(i, j <span class="keyword">int</span>)</span></span> &#123;x[i], x[j] = x[j], x[i]&#125;</span><br></pre></td></tr></table></figure>
+<p>如果对于每一类slice和每一种排序函数，都需要实现一个新的<code>sort.Interface</code>，那岂不是累死了；但是如我们上面看到，<code>Len</code>和<code>SWap</code>方法对所有的类型都是一样的。下面的例子中，具体类型<code>customSort</code>组合了一个<code>slice</code>和一个函数，让我们只写一个比较函数就可以定义一个系的新的排序。顺便说一下，实现<code>sort.Interface</code>的具体类型并不一定都是<code>slice</code>，比如<code>customSort</code>就是一个结构类型：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> customSort <span class="keyword">struct</span> &#123;</span><br><span class="line">    t []*Track</span><br><span class="line">    less <span class="function"><span class="keyword">func</span><span class="params">(x, y *Track)</span> <span class="title">bool</span></span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(x customSort)</span> <span class="title">Len</span><span class="params">()</span> <span class="title">int</span></span> &#123;<span class="keyword">return</span> <span class="built_in">len</span>(x.t)&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(x customSort)</span> <span class="title">Less</span><span class="params">(i, j  <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;<span class="keyword">return</span> x.less(x.t[i], x.t[j])&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(x customSort)</span> <span class="title">Swap</span><span class="params">(i, j)</span></span> &#123;x.t[i], x.t[j] = x.t[j], x.t[i]&#125;</span><br></pre></td></tr></table></figure>
+<p>让我们定义一个多层的函数，先按照标题（Title）排序，接着是年份Year, 最后是时长Length。如下sort调用就是一个使用匿名排序函数来这样排序的例子：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">sort.Sort(customSort(tracks, <span class="function"><span class="keyword">func</span> <span class="params">(x, y *Track)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> x.Title != y.Title &#123;</span><br><span class="line">        <span class="keyword">return</span> x.Title &lt; y.Title</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> x.Year != y.Year &#123;</span><br><span class="line">        <span class="keyword">return</span> x.Year &lt; y.Year</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> x.Length != y.Length &#123;</span><br><span class="line">        <span class="keyword">return</span> x.Length &lt; y.Length</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line"></span><br><span class="line">&#125;))</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/interface/" rel="tag"># interface</a>
+              <a href="/tags/%E6%8E%A5%E5%8F%A3/" rel="tag"># 接口</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/11/04/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%B8%80%E3%80%8B%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E5%8F%8A%E5%85%B6%E6%96%B9%E6%B3%95/" rel="prev" title="Go语言基础《十一》：结构体及其方法">
+      <i class="fa fa-chevron-left"></i> Go语言基础《十一》：结构体及其方法
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/11/06/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%8D%81%E4%B8%89%E3%80%8B%EF%BC%9Agoroutine/" rel="next" title="Go语言基础《十三》：goroutine">
+      Go语言基础《十三》：goroutine <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#接口即约定"><span class="nav-number">1.</span> <span class="nav-text">接口即约定</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#接口类型"><span class="nav-number">2.</span> <span class="nav-text">接口类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#实现接口"><span class="nav-number">3.</span> <span class="nav-text">实现接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#接口值"><span class="nav-number">4.</span> <span class="nav-text">接口值</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#类型断言"><span class="nav-number">5.</span> <span class="nav-text">类型断言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#类型分支"><span class="nav-number">6.</span> <span class="nav-text">类型分支</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用案例"><span class="nav-number">7.</span> <span class="nav-text">使用案例</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#使用flag-Value来解析参数"><span class="nav-number">7.1.</span> <span class="nav-text">使用flag.Value来解析参数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用sort-Interface来排序"><span class="nav-number">7.2.</span> <span class="nav-text">使用sort.Interface来排序</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

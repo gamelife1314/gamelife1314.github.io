@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="本篇主要内容来自go圣经，《Go程序设计语言》； 为什么使用反射，有时需要写一个函数能够有能力处理各种输入类型，而这些类型可能无法共享同一个接口，也可能布局未知，也有可能这个类型在我们设计函数的时候并不存在；一个最熟悉的例子是fmt.Printf中的格式化逻辑，他可以输出任意类型的任意值，甚至是用户自定义的类型；我们常用的做法是什么呢，使用一个switch分支来判断参数的动态类型是否是基本类型，然">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 扩展包：reflect">
+<meta property="og:url" content="https://blog.fudenglong.site/2018/01/04/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-reflect/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:description" content="本篇主要内容来自go圣经，《Go程序设计语言》； 为什么使用反射，有时需要写一个函数能够有能力处理各种输入类型，而这些类型可能无法共享同一个接口，也可能布局未知，也有可能这个类型在我们设计函数的时候并不存在；一个最熟悉的例子是fmt.Printf中的格式化逻辑，他可以输出任意类型的任意值，甚至是用户自定义的类型；我们常用的做法是什么呢，使用一个switch分支来判断参数的动态类型是否是基本类型，然">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2018-01-04T12:29:23.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.800Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="reflect">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2018/01/04/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-reflect/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Go 扩展包：reflect | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2018/01/04/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-reflect/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Go 扩展包：reflect
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-01-04 20:29:23" itemprop="dateCreated datePublished" datetime="2018-01-04T20:29:23+08:00">2018-01-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Go-%E6%A0%87%E5%87%86%E5%BA%93/" itemprop="url" rel="index">
+                    <span itemprop="name">Go 标准库</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span id="/2018/01/04/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-reflect/" class="post-meta-item leancloud_visitors" data-flag-title="Go 扩展包：reflect" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/01/04/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-reflect/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/01/04/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-reflect/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>8.6k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>8 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本篇主要内容来自go圣经，《Go程序设计语言》；</p>
+<p>为什么使用反射，有时需要写一个函数能够有能力处理各种输入类型，而这些类型可能无法共享同一个接口，也可能布局未知，也有可能这个类型在我们设计函数的时候并不存在；一个最熟悉的例子是<code>fmt.Printf</code>中的格式化逻辑，他可以输出任意类型的任意值，甚至是用户自定义的类型；我们常用的做法是什么呢，使用一个switch分支来判断参数的动态类型是否是基本类型，然后对每种不同的类型做不同的判断。</p>
+<p>但是当我们无法透视一个未知类型的布局时，我们的需求就无法继续，这个时候就该<code>reflect</code>了；</p>
+<a id="more"></a>
+<h3 id="reflect-Type"><a href="#reflect-Type" class="headerlink" title="reflect.Type"></a><code>reflect.Type</code></h3><p>反射功能由<code>reflect</code>包提供，他定义了两个重要类型：<code>reflect.Type</code> 和 <code>reflect.Value</code>。 <code>Type</code> 表示go语言的一个类型，<strong>它是一个有很多方法的接口</strong>，这些方法用来识别类型以及透视类型的组成部分，比如一个结构的各个字段或者一个函数的各个参数。<code>reflect.Type</code> 只有一个实现，即类型描述符，接口值的动态类型也是类型描述符；</p>
+<p>Type 接口如下，摘自<a href="https://studygolang.com/pkgdoc" target="_blank" rel="noopener">https://studygolang.com/pkgdoc</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Type <span class="keyword">interface</span> &#123;</span><br><span class="line">    <span class="comment">// Kind返回该接口的具体分类</span></span><br><span class="line">    Kind() Kind</span><br><span class="line">    <span class="comment">// Name返回该类型在自身包内的类型名，如果是未命名类型会返回""</span></span><br><span class="line">    Name() <span class="keyword">string</span></span><br><span class="line">    <span class="comment">// PkgPath返回类型的包路径，即明确指定包的import路径，如"encoding/base64"</span></span><br><span class="line">    <span class="comment">// 如果类型为内建类型(string, error)或未命名类型(*T, struct&#123;&#125;, []int)，会返回""</span></span><br><span class="line">    PkgPath() <span class="keyword">string</span></span><br><span class="line">    <span class="comment">// 返回类型的字符串表示。该字符串可能会使用短包名（如用base64代替"encoding/base64"）</span></span><br><span class="line">    <span class="comment">// 也不保证每个类型的字符串表示不同。如果要比较两个类型是否相等，请直接用Type类型比较。</span></span><br><span class="line">    String() <span class="keyword">string</span></span><br><span class="line">    <span class="comment">// 返回要保存一个该类型的值需要多少字节；类似unsafe.Sizeof</span></span><br><span class="line">    Size() <span class="keyword">uintptr</span></span><br><span class="line">    <span class="comment">// 返回当从内存中申请一个该类型值时，会对齐的字节数</span></span><br><span class="line">    Align() <span class="keyword">int</span></span><br><span class="line">    <span class="comment">// 返回当该类型作为结构体的字段时，会对齐的字节数</span></span><br><span class="line">    FieldAlign() <span class="keyword">int</span></span><br><span class="line">    <span class="comment">// 如果该类型实现了u代表的接口，会返回真</span></span><br><span class="line">    Implements(u Type) <span class="keyword">bool</span></span><br><span class="line">    <span class="comment">// 如果该类型的值可以直接赋值给u代表的类型，返回真</span></span><br><span class="line">    AssignableTo(u Type) <span class="keyword">bool</span></span><br><span class="line">    <span class="comment">// 如该类型的值可以转换为u代表的类型，返回真</span></span><br><span class="line">    ConvertibleTo(u Type) <span class="keyword">bool</span></span><br><span class="line">    <span class="comment">// 返回该类型的字位数。如果该类型的Kind不是Int、Uint、Float或Complex，会panic</span></span><br><span class="line">    Bits() <span class="keyword">int</span></span><br><span class="line">    <span class="comment">// 返回array类型的长度，如非数组类型将panic</span></span><br><span class="line">    Len() <span class="keyword">int</span></span><br><span class="line">    <span class="comment">// 返回该类型的元素类型，如果该类型的Kind不是Array、Chan、Map、Ptr或Slice，会panic</span></span><br><span class="line">    Elem() Type</span><br><span class="line">    <span class="comment">// 返回map类型的键的类型。如非映射类型将panic</span></span><br><span class="line">    Key() Type</span><br><span class="line">    <span class="comment">// 返回一个channel类型的方向，如非通道类型将会panic</span></span><br><span class="line">    ChanDir() ChanDir</span><br><span class="line">    <span class="comment">// 返回struct类型的字段数（匿名字段算作一个字段），如非结构体类型将panic</span></span><br><span class="line">    NumField() <span class="keyword">int</span></span><br><span class="line">    <span class="comment">// 返回struct类型的第i个字段的类型，如非结构体或者i不在[0, NumField())内将会panic</span></span><br><span class="line">    Field(i <span class="keyword">int</span>) StructField</span><br><span class="line">    <span class="comment">// 返回索引序列指定的嵌套字段的类型，</span></span><br><span class="line">    <span class="comment">// 等价于用索引中每个值链式调用本方法，如非结构体将会panic</span></span><br><span class="line">    FieldByIndex(index []<span class="keyword">int</span>) StructField</span><br><span class="line">    <span class="comment">// 返回该类型名为name的字段（会查找匿名字段及其子字段），</span></span><br><span class="line">    <span class="comment">// 布尔值说明是否找到，如非结构体将panic</span></span><br><span class="line">    FieldByName(name <span class="keyword">string</span>) (StructField, <span class="keyword">bool</span>)</span><br><span class="line">    <span class="comment">// 返回该类型第一个字段名满足函数match的字段，布尔值说明是否找到，如非结构体将会panic</span></span><br><span class="line">    FieldByNameFunc(match <span class="function"><span class="keyword">func</span><span class="params">(<span class="keyword">string</span>)</span> <span class="title">bool</span>) <span class="params">(StructField, <span class="keyword">bool</span>)</span></span></span><br><span class="line">    <span class="comment">// 如果函数类型的最后一个输入参数是"..."形式的参数，IsVariadic返回真</span></span><br><span class="line">    <span class="comment">// 如果这样，t.In(t.NumIn() - 1)返回参数的隐式的实际类型（声明类型的切片）</span></span><br><span class="line">    <span class="comment">// 如非函数类型将panic</span></span><br><span class="line">    IsVariadic() <span class="keyword">bool</span></span><br><span class="line">    <span class="comment">// 返回func类型的参数个数，如果不是函数，将会panic</span></span><br><span class="line">    NumIn() <span class="keyword">int</span></span><br><span class="line">    <span class="comment">// 返回func类型的第i个参数的类型，如非函数或者i不在[0, NumIn())内将会panic</span></span><br><span class="line">    In(i <span class="keyword">int</span>) Type</span><br><span class="line">    <span class="comment">// 返回func类型的返回值个数，如果不是函数，将会panic</span></span><br><span class="line">    NumOut() <span class="keyword">int</span></span><br><span class="line">    <span class="comment">// 返回func类型的第i个返回值的类型，如非函数或者i不在[0, NumOut())内将会panic</span></span><br><span class="line">    Out(i <span class="keyword">int</span>) Type</span><br><span class="line">    <span class="comment">// 返回该类型的方法集中方法的数目</span></span><br><span class="line">    <span class="comment">// 匿名字段的方法会被计算；主体类型的方法会屏蔽匿名字段的同名方法；</span></span><br><span class="line">    <span class="comment">// 匿名字段导致的歧义方法会滤除</span></span><br><span class="line">    NumMethod() <span class="keyword">int</span></span><br><span class="line">    <span class="comment">// 返回该类型方法集中的第i个方法，i不在[0, NumMethod())范围内时，将导致panic</span></span><br><span class="line">    <span class="comment">// 对非接口类型T或*T，返回值的Type字段和Func字段描述方法的未绑定函数状态</span></span><br><span class="line">    <span class="comment">// 对接口类型，返回值的Type字段描述方法的签名，Func字段为nil</span></span><br><span class="line">    Method(<span class="keyword">int</span>) Method</span><br><span class="line">    <span class="comment">// 根据方法名返回该类型方法集中的方法，使用一个布尔值说明是否发现该方法</span></span><br><span class="line">    <span class="comment">// 对非接口类型T或*T，返回值的Type字段和Func字段描述方法的未绑定函数状态</span></span><br><span class="line">    <span class="comment">// 对接口类型，返回值的Type字段描述方法的签名，Func字段为nil</span></span><br><span class="line">    MethodByName(<span class="keyword">string</span>) (Method, <span class="keyword">bool</span>)</span><br><span class="line">    <span class="comment">// 内含隐藏或非导出方法</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>reflect.TypeOf</code> 函数接受任何的 <code>interface{}</code> 参数，并且把接口中的动态类型以 <code>reflect.Type</code> 的形式返回；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">t := reflect.TypeOf(<span class="number">3</span>)  <span class="comment">// 一个reflect.Type值</span></span><br><span class="line">fmt.PrintLn(t.String()) <span class="comment">// "int"</span></span><br><span class="line">fmt.PrintLn(t)          <span class="comment">// "int"</span></span><br></pre></td></tr></table></figure>
+<p>把一个具体指赋值给一个接口类型的时候会发生一个隐式类型的转换，转换会生成一个<strong>包含两部分内容的接口值</strong>：动态类型部分是操作数的类型（上例：int），动态值部分是操作数的值（上例：3）; 因为<code>reflect.TypeOf</code>返回一个接口值对应的动态类型，所以他返回的<strong>总是具体类型(而不是接口类型)</strong>。比如下例中输出的是<code>*.os.File</code>，而不是<code>io.Writer</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> w io.Writer = os.Stdout</span><br><span class="line">fmt.PrintLn(w)   <span class="comment">// *os.File</span></span><br></pre></td></tr></table></figure>
+<p>注意：<code>reflect.Type</code> 满足 <code>fmt.Stringer</code>。因为输出一个接口的动态类型在调试和日志常用，因此 <code>fmt.Printf</code> 提供了一个简写方式<code>%T</code>，内部实现就是使用了<code>reflect.TypeOf</code>。</p>
+<h3 id="reflect-Value"><a href="#reflect-Value" class="headerlink" title="reflect.Value"></a><code>reflect.Value</code></h3><p>说完了<code>reflect.Type</code>，说说reflect包的另一个重要类型：<code>Value</code>。<code>reflect.Value</code> 可以包含一个任意类型的值。<code>relect.ValueOf</code> 函数接受任意的 <code>interface{}</code> 并将接口的动态值以 <code>reflect.Value</code> 的形式返回。与 <code>reflect.TypeOf</code> 相似，它返回的也是具体指，不过 <code>reflect.Value</code> 也可以包含一个接口值.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">v := reflect.ValueOf(<span class="number">3</span>)  <span class="comment">// 一个reflect.Value</span></span><br><span class="line">fmt.PrintLn(v)           <span class="comment">// "3"</span></span><br><span class="line">fmt.Printf(<span class="string">"%v"</span>, v)      <span class="comment">// "3"</span></span><br><span class="line">fmt.PrintLn(v.String())  <span class="comment">// 注意：&lt;int Value&gt;</span></span><br></pre></td></tr></table></figure>
+<p>另一个与<code>relfect.Type</code>类似的是，<code>reflect.Value</code> 也满足了<code>fmt.Stringer</code>，但是除非 Value 包含的是一个字符串，否则 String 方法仅仅暴露了类型。通常情况下，可以使用fmt包的 <code>%v</code> 功能，他会对<code>reflect.Value</code>值进行处理；</p>
+<p>调用 <code>Value</code> 的 <code>Type</code> 方法会把它的类型以 <code>reflect.Type</code> 的形式返回:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">t := v.Type()            <span class="comment">// 一个reflect.Type值</span></span><br><span class="line">fmt.PrintLn(t.String())  <span class="comment">// "int"</span></span><br></pre></td></tr></table></figure>
+<p><code>reflect.Valueof</code> 的逆操作是 <code>reflect.Value.Interface</code> 方法。他返回一个 <code>interface{}</code> 接口值，与 <code>relfect.Value</code> 包含同一个具体值；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">v := reflect.ValueOf(<span class="number">3</span>)   <span class="comment">// a reflect.Value</span></span><br><span class="line">x := v.Interface()       <span class="comment">// an interface&#123;&#125;</span></span><br><span class="line">i := x.(<span class="keyword">int</span>)             <span class="comment">// an int</span></span><br><span class="line">fmt.PrintLn(<span class="string">"%d\n"</span>, i)   <span class="comment">// "3"</span></span><br></pre></td></tr></table></figure>
+<p>重点来了，<code>reflect.Value</code> 和 <code>interface{}</code> 都可以包含任意一个值，他们的区别是空接口(<code>interface{}</code>)隐藏了值得布局信息，内置操作和相关方法，除非我们知道它的动态类型，并用一个类型断言渗透进去，否则我们能对这个动态值所做的事情甚少。然而与它对应的<code>reflect.Value</code> 可以用来分析所包含的值，而不用知道它的类型。</p>
+<p>我们可以尝试写一个通用的格式化函数，暂且称之为：<code>FormatAny</code>吧，不适用类型分支，我们用<code>reflect.Value.Kind</code>方法来区分不同的类型。尽管有无限种分类，但是类型的分类（<code>Kind</code>）只有少数的几种：基础类型 <code>Bool</code>，<code>String</code>以及各种数字类型；聚合类型 <code>Array</code> 和 <code>Struct</code>；引用类型 <code>Chan</code>，<code>Func</code>，<code>Ptr</code>，<code>Slice</code>和 <code>Map</code> ，还有接口类型：<code>interface{}</code>，以及最后一个<code>Invalid</code>类型；<code>reflect.Value</code>的零值就属于<code>Invalid</code>类型。  </p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"reflect"</span></span><br><span class="line">	<span class="string">"strconv"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">formatAny</span><span class="params">(v reflect.Value)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> v.Kind() &#123;</span><br><span class="line">	<span class="keyword">case</span> reflect.Invalid:</span><br><span class="line">		<span class="keyword">return</span> <span class="string">"invalid"</span></span><br><span class="line">	<span class="keyword">case</span> reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:</span><br><span class="line">		<span class="keyword">return</span> strconv.FormatInt(v.Int(), <span class="number">10</span>)</span><br><span class="line">	<span class="keyword">case</span> reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:</span><br><span class="line">		<span class="keyword">return</span> strconv.FormatUint(v.Uint(), <span class="number">10</span>)</span><br><span class="line">	<span class="keyword">case</span> reflect.Bool:</span><br><span class="line">		<span class="keyword">return</span> strconv.FormatBool(v.Bool())</span><br><span class="line">	<span class="keyword">case</span> reflect.String:</span><br><span class="line">		<span class="keyword">return</span> strconv.Quote(v.String())</span><br><span class="line">	<span class="keyword">case</span> reflect.Chan, reflect.Func, reflect.Slice, reflect.Map:</span><br><span class="line">		<span class="keyword">return</span> v.Type().String() + <span class="string">" 0x"</span> + strconv.FormatUint(<span class="keyword">uint64</span>(v.Pointer()), <span class="number">16</span>)</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">return</span> v.Type().String() + <span class="string">"value"</span></span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> x = <span class="number">1</span></span><br><span class="line">	<span class="keyword">var</span> d time.Duration = <span class="number">1</span> * time.Nanosecond</span><br><span class="line">	fmt.Println(formatAny(reflect.ValueOf(x)))                  <span class="comment">// "1"</span></span><br><span class="line">	fmt.Println(formatAny(reflect.ValueOf(d)))                  <span class="comment">// "1"</span></span><br><span class="line">	fmt.Println(formatAny(reflect.ValueOf([]<span class="keyword">int64</span>&#123;<span class="keyword">int64</span>(x)&#125;)))  <span class="comment">// []int64 0xc42001c088</span></span><br><span class="line">	fmt.Println(formatAny(reflect.ValueOf([]time.Duration&#123;d&#125;))) <span class="comment">// []time.Duration 0xc42001c0a0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="实现一个递归的值显示器：Display"><a href="#实现一个递归的值显示器：Display" class="headerlink" title="实现一个递归的值显示器：Display"></a>实现一个递归的值显示器：Display</h3><p>显示器的使用要使用到上面的<code>formatAny</code>方法；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">display</span><span class="params">(path <span class="keyword">string</span>, v reflect.Value)</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> v.Kind() &#123;</span><br><span class="line">	<span class="keyword">case</span> reflect.Invalid:</span><br><span class="line">		fmt.Printf(<span class="string">"%s = invalid\n"</span>, path)</span><br><span class="line">	<span class="keyword">case</span> reflect.Slice, reflect.Array:</span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; v.Len(); i++ &#123;</span><br><span class="line">			display(fmt.Sprintf(<span class="string">"%s[%d]"</span>, path, i), v.Index(i))</span><br><span class="line">		&#125;</span><br><span class="line">	<span class="keyword">case</span> reflect.Struct:</span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; v.NumField(); i++ &#123;</span><br><span class="line">			fieldPath := fmt.Sprintf(<span class="string">"%s.%s"</span>, path, v.Type().Field(i).Name)</span><br><span class="line">			display(fieldPath, v.Field(i))</span><br><span class="line">		&#125;</span><br><span class="line">	<span class="keyword">case</span> reflect.Map:</span><br><span class="line">		<span class="keyword">for</span> _, key := <span class="keyword">range</span> v.MapKeys() &#123;</span><br><span class="line">			display(fmt.Sprintf(<span class="string">"%s[%s]"</span>, path, formatAny(key)), v.MapIndex(key))</span><br><span class="line">		&#125;</span><br><span class="line">	<span class="keyword">case</span> reflect.Ptr:</span><br><span class="line">		<span class="keyword">if</span> v.IsNil() &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"%s = nil\n"</span>, path)</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			display(fmt.Sprintf(<span class="string">"(*%s)"</span>, path), v.Elem())</span><br><span class="line">		&#125;</span><br><span class="line">	<span class="keyword">case</span> reflect.Interface:</span><br><span class="line">		<span class="keyword">if</span> v.IsNil() &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"%s = nil\n"</span>, path)</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"%s.type = %s\n"</span>, path, v.Elem().Type())</span><br><span class="line">		&#125;</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		fmt.Printf(<span class="string">"%s = %s\n"</span>, path, formatAny(v))</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>逐个解释一下子：</p>
+<p>slice和数组：两者逻辑基本是一致的，<code>Index(i)</code>返回第一个元素，元素类型是<code>reflect.Value</code>；</p>
+<p>结构体：<code>NumField()</code>方法可以报告结构体中的字段数，<code>Field(i)</code>方法返回第i个字段，类型是<code>reflect.Value</code>，要获得第i个字段的名称，必须通过<code>v.Type().Field(i).Name</code></p>
+<p>map: <code>MapKeys()</code>方法返回一个元素类型为<code>reflect.Value</code>的slice，每个元素都是一个map的键。与平常遍历map类似，顺序是不固定的。<code>MapIndex(key)</code>返回key对应的值。</p>
+<p>指针：<code>Elem()</code>方法返回指针指向的变量，同样是以<code>reflect.Value</code>类型返回。这个方法在指针是nil值得时候也可以正确处理，但返回的结果为<code>Invalid</code>类型。<br><code>IsNil()</code>方法用于判断指针是否为空；</p>
+<p>接口：<code>IsNil()</code>也可用来判断借口是否为空，如果非空，通过<code>v.Elem()</code>方法获取动态值。</p>
+<p><strong>这里我们就看到，虽然<code>reflect.Value</code>定义了很多方法，但是对于每个具体的类型，只有少量的方可以安全调用</strong></p>
+<p>定义一个复杂的类型测试一下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Music <span class="keyword">struct</span> &#123;</span><br><span class="line">	Title, Subtitle <span class="keyword">string</span></span><br><span class="line">	Year            <span class="keyword">int</span></span><br><span class="line">	Color           <span class="keyword">bool</span></span><br><span class="line">	Actor           <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span></span><br><span class="line">	Oscars          []<span class="keyword">string</span></span><br><span class="line">	Sequel          *<span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">strangelove := Music&#123;</span><br><span class="line">    Title: <span class="string">"学习的动力"</span>,</span><br><span class="line">    Year:  <span class="number">2018</span>,</span><br><span class="line">    Color: <span class="literal">false</span>,</span><br><span class="line">    Actor: <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>&#123;</span><br><span class="line">        <span class="string">"Dr. stangelove"</span>: <span class="string">"Peter sellers"</span>,</span><br><span class="line">        <span class="string">"Grp catp linel"</span>: <span class="string">"hello world"</span>,</span><br><span class="line">    &#125;,</span><br><span class="line">    Oscars: []<span class="keyword">string</span>&#123;</span><br><span class="line">        <span class="string">"Best Actor(Nomain)"</span>,</span><br><span class="line">        <span class="string">"Best music king"</span>,</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;</span><br><span class="line">   </span><br><span class="line">display(<span class="string">"strangelove"</span>, reflect.ValueOf(strangelove))</span><br><span class="line"></span><br><span class="line"><span class="comment">//strangelove.Title = "学习的动力"</span></span><br><span class="line"><span class="comment">//strangelove.Subtitle = ""</span></span><br><span class="line"><span class="comment">//strangelove.Year = 2018</span></span><br><span class="line"><span class="comment">//strangelove.Color = false</span></span><br><span class="line"><span class="comment">//strangelove.Actor["Dr. stangelove"] = "Peter sellers"</span></span><br><span class="line"><span class="comment">//strangelove.Actor["Grp catp linel"] = "hello world"</span></span><br><span class="line"><span class="comment">//strangelove.Oscars[0] = "Best Actor(Nomain)"</span></span><br><span class="line"><span class="comment">//strangelove.Oscars[1] = "Best music king"</span></span><br><span class="line"><span class="comment">//strangelove.Sequel = nil</span></span><br></pre></td></tr></table></figure>
+<p><strong>注意：非导出字段在反射下也是可见的。</strong></p>
+<h3 id="使用reflect-Value来设置值"><a href="#使用reflect-Value来设置值" class="headerlink" title="使用reflect.Value来设置值"></a>使用reflect.Value来设置值</h3><p>前面都是用reflect解析变量值，但是我们本节的重点则是如何改变值；</p>
+<p>go语言的表达式，比如x, x.f[1], <em>p这样的表达式都是表示一个变量，而 x+1 , f(2) 这样的表达式则不表示变量。<em>*一个变量是一个可寻址的存储区域，其中包含了一个值，并且它的值可以通过这个地址来更新</em></em>。</p>
+<p>对 <code>relfect.Value</code> 也有一个类似的区分，某些是可寻址的，而其他的并非如此。比如下面的变量声明：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">x := <span class="number">2</span></span><br><span class="line">a := reflect.ValueOf(<span class="number">2</span>)</span><br><span class="line">b := relfect.ValueOf(x)</span><br><span class="line">c := relfect.ValueOf(&amp;x)</span><br><span class="line">d := c.Elem()</span><br></pre></td></tr></table></figure>
+<p><code>a</code> 里面的值是不可寻址的，它包含的仅仅只整数2的一个副本。b同样是如此。c里面的值也是不可寻址的，它包含的是一个指针&amp;x的副本。事实上，通过<code>reflect.ValueOf()</code>返回的值都是不可寻址的。<strong>可以通过<code>reflect.ValueOf(&amp;x).Elem()</code>任意变量x可寻址的<code>Value</code>值</strong>。也可以通过<code>CanAddr()</code>方法获得这个变量是否可寻址，这个方法返回一个bool值表示可寻址或者不可寻址。</p>
+<p>从一个可寻址的<code>reflect.Value</code>获取变量需要三步走：</p>
+<ol>
+<li><p>调用 <code>Addr()</code>,返回一个<code>Value</code>，其中包含一个指向变量的指针;</p>
+</li>
+<li><p>在上面返回的<code>Value</code>上调用<code>Interface()</code>返回一个包含这个指针的<code>interface{}</code>值；</p>
+</li>
+<li><p>最后，如果我们知道变量的类型，我们可以使用类型断言把他转换为一个普通指针，之后就可以更新这个变量了；</p>
+</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">x := <span class="number">2</span></span><br><span class="line">d := reflect.ValueOf(&amp;x).Elem()</span><br><span class="line">px := d.Addr().Interface().(*<span class="keyword">int</span>)</span><br><span class="line">*px = <span class="number">3</span></span><br></pre></td></tr></table></figure>
+<p>还可以通过在可寻址的 <code>reflect.Value</code> 直接调用 <code>reflect.Value.Set</code> 来更新值，<code>d.Set(reflect.ValueOf(4))</code></p>
+<p>平常由编译器来检查的那些可赋值条件，在这种情况下则是在运行时有<code>Set</code>方法检查。上面的变量和值都是<code>int</code>类型，但如果变量时<code>int64</code>类型，就会崩溃；<br>因此确保值对于变量类型可复制是一件非常正确的事。</p>
+<p>还有一些基本类型特化的Set变种：<code>SetInt</code>,<code>SetUint</code>,<code>SetString</code>,<code>SetFloat</code> 等；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">d.SetInt(<span class="number">3</span>)</span><br></pre></td></tr></table></figure>
+<p>这些方法还具有一定的容错性。只要变量类型是某种带符号的整数，比如SetInt，设置可以是地城类型为带符号整数的命令类型都可以成功。如果值太大就会被截断；<strong>但是需要注意的是：在指向<code>interface{}</code>变量的<code>reflect.Value</code>上调用SetInt会奔溃，但是Set就没问题</strong></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/reflect/" rel="tag"># reflect</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/01/01/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-regexp/" rel="prev" title="Go 语言标准库: regexp">
+      <i class="fa fa-chevron-left"></i> Go 语言标准库: regexp
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/01/10/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/" rel="next" title="正则表达式">
+      正则表达式 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#reflect-Type"><span class="nav-number">1.</span> <span class="nav-text">reflect.Type</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#reflect-Value"><span class="nav-number">2.</span> <span class="nav-text">reflect.Value</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#实现一个递归的值显示器：Display"><span class="nav-number">3.</span> <span class="nav-text">实现一个递归的值显示器：Display</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用reflect-Value来设置值"><span class="nav-number">4.</span> <span class="nav-text">使用reflect.Value来设置值</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

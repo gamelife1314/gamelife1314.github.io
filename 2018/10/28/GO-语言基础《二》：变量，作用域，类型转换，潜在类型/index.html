@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta property="og:type" content="article">
+<meta property="og:title" content="GO语言基础《二》：变量，作用域，类型转换，潜在类型">
+<meta property="og:url" content="https://blog.fudenglong.site/2018/10/28/GO-%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%8C%E3%80%8B%EF%BC%9A%E5%8F%98%E9%87%8F%EF%BC%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%EF%BC%8C%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%EF%BC%8C%E6%BD%9C%E5%9C%A8%E7%B1%BB%E5%9E%8B/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/10/28/GO-%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%8C%E3%80%8B%EF%BC%9A%E5%8F%98%E9%87%8F%EF%BC%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%EF%BC%8C%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%EF%BC%8C%E6%BD%9C%E5%9C%A8%E7%B1%BB%E5%9E%8B/cover.jpeg">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/10/28/GO-%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%8C%E3%80%8B%EF%BC%9A%E5%8F%98%E9%87%8F%EF%BC%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%EF%BC%8C%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%EF%BC%8C%E6%BD%9C%E5%9C%A8%E7%B1%BB%E5%9E%8B/var.png">
+<meta property="article:published_time" content="2018-10-28T02:02:29.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.784Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2018/10/28/GO-%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%8C%E3%80%8B%EF%BC%9A%E5%8F%98%E9%87%8F%EF%BC%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%EF%BC%8C%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%EF%BC%8C%E6%BD%9C%E5%9C%A8%E7%B1%BB%E5%9E%8B/cover.jpeg">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2018/10/28/GO-%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%8C%E3%80%8B%EF%BC%9A%E5%8F%98%E9%87%8F%EF%BC%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%EF%BC%8C%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%EF%BC%8C%E6%BD%9C%E5%9C%A8%E7%B1%BB%E5%9E%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>GO语言基础《二》：变量，作用域，类型转换，潜在类型 | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2018/10/28/GO-%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%8C%E3%80%8B%EF%BC%9A%E5%8F%98%E9%87%8F%EF%BC%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%EF%BC%8C%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%EF%BC%8C%E6%BD%9C%E5%9C%A8%E7%B1%BB%E5%9E%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          GO语言基础《二》：变量，作用域，类型转换，潜在类型
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-10-28 10:02:29" itemprop="dateCreated datePublished" datetime="2018-10-28T10:02:29+08:00">2018-10-28</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index">
+                    <span itemprop="name">Go语言基础</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span id="/2018/10/28/GO-%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%8C%E3%80%8B%EF%BC%9A%E5%8F%98%E9%87%8F%EF%BC%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%EF%BC%8C%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%EF%BC%8C%E6%BD%9C%E5%9C%A8%E7%B1%BB%E5%9E%8B/" class="post-meta-item leancloud_visitors" data-flag-title="GO语言基础《二》：变量，作用域，类型转换，潜在类型" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/10/28/GO-%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%8C%E3%80%8B%EF%BC%9A%E5%8F%98%E9%87%8F%EF%BC%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%EF%BC%8C%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%EF%BC%8C%E6%BD%9C%E5%9C%A8%E7%B1%BB%E5%9E%8B/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/10/28/GO-%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%8C%E3%80%8B%EF%BC%9A%E5%8F%98%E9%87%8F%EF%BC%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%EF%BC%8C%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%EF%BC%8C%E6%BD%9C%E5%9C%A8%E7%B1%BB%E5%9E%8B/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <img src="/2018/10/28/GO-%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%8C%E3%80%8B%EF%BC%9A%E5%8F%98%E9%87%8F%EF%BC%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%EF%BC%8C%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%EF%BC%8C%E6%BD%9C%E5%9C%A8%E7%B1%BB%E5%9E%8B/cover.jpeg" class="" title="cover">
+<a id="more"></a>
+<h3 id="变量声明"><a href="#变量声明" class="headerlink" title="变量声明"></a>变量声明</h3><h4 id="var-声明"><a href="#var-声明" class="headerlink" title="var 声明"></a>var 声明</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> variable <span class="keyword">type</span> = expression</span><br></pre></td></tr></table></figure>
+<p>类型和表达式可以省略其中一个，但是不能都省略。如果类型省略，它的类型将由初始化表达式决定（自动进行进行类型推断），如果表达式省略，其初始值将是相对应类型的零值；对于数字类型来说是 <code>0</code>，对于bool类型来说是 <code>false</code> , 对于字符串来说是 <code>&quot;&quot;</code>, 对于接口及引用类型（<code>slice</code>, <code>指针</code>, <code>map</code>, <code>通道</code>, <code>函数</code>）来说是 <code>nil</code>。对于一个数组或者结构体这样的符合类型来说，零值是所有元素或成员的零值。可以说，Go语言里面不存在未初始化的变量。</p>
+<p>类型声明也允许声明多个不同类型的变量，如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> i, k, k <span class="keyword">int</span>    <span class="comment">// int, int, int</span></span><br><span class="line"><span class="keyword">var</span> b, f, s = <span class="literal">true</span>, <span class="number">2.3</span>, <span class="string">"four"</span> <span class="comment">// bool, float64, string</span></span><br></pre></td></tr></table></figure>
+<h4 id="短变量声明"><a href="#短变量声明" class="headerlink" title="短变量声明"></a>短变量声明</h4><p><strong>在函数中</strong>，短变量声明可以用来声明和初始化<strong>局部变量</strong>，形式为: <code>name := expression</code>， <code>name</code> 的类型由 <code>expression</code> 决定。根据其定义，段变量只能用于函数中，用于声明局部变量。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">name := <span class="string">"hello"</span></span><br></pre></td></tr></table></figure>
+<p>短变量声明常用于局部变量的声明和初始化中。var 声明通常是为那些跟初始化表达式类型不一致的局部变量保留的，或者用于后面才对变量赋值以及变量初始值不重要的情况。</p>
+<p>要注意的是，<code>:=</code> 表示声明，<code>=</code> 表示赋值，多重赋值不能和多变量声明搞混了。还有就是，短变量声明不需要声明所有在左边的变量，那么对于那些不要声明的变量来说，短声明的行为就等同于赋值了。还有一条原则就是，短变量声明中最少声明一个新变量，否则，代码无法编译通过：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">f, err := os.Open(file) <span class="comment">// ok</span></span><br><span class="line"><span class="comment">// ....</span></span><br><span class="line">f, err := os.Open(file) <span class="comment">// compile error</span></span><br></pre></td></tr></table></figure>
+<p>这种变量类型有表达式决定的方式叫做<strong>类型推断</strong>，Go语言的类型推断可以明显提升程序的灵活性，是的代码重构变得容易，同时又不会给代码的维护带来额外的负担，更不会损失程序的运行效率。</p>
+<h4 id="变量重声明"><a href="#变量重声明" class="headerlink" title="变量重声明"></a>变量重声明</h4><p>在使用短变量声明时，我们可以在同一个<strong>代码块</strong>中对它进行重声明；</p>
+<p>代码块：Go语言中，代码块就是一个由花括号括起来的区域，里面可以包含表达式和语句。Go语言本身以及我们编写的代码共同形成了一个非常大的代码块，也叫<strong>痊愈代码块</strong>。这主要体现在，只要是公开的全局变量就可以被任何代码所引用。接下来，每个源码文件也都是一个代码块，每个函数也是一个代码块，每个<code>if</code>语句，<code>for</code>语句，<code>switch</code> 语句, <code>select</code>，甚至 <code>switch</code> 以及 <code>select</code> 中的 <code>case</code> 子句也都是独立的代码块。有空的花括号括起来的区域也交代码块，称之为<strong>空代码块</strong>。</p>
+<p>变量重声明有以下前提条件：</p>
+<ol>
+<li>由于变量类型在初始化的时候就确定了，所以在对它重声明的时候必须与原类型一致，否则编译失败；</li>
+<li>变量的重声明只可能发生在同一个代码块中，如果与当前的变量重名的是外层代码块中的变量，那就叫做 <strong>屏蔽</strong> 了；</li>
+<li>变量重声明只会发生在使用短变量声明的时候，否则无法通过编译。如果要在此处声明全新的变量，那么就应该使用包含关键字<strong>var</strong>的声明语句，但是这时就不能与同一个代码块中的任何变量有重名了；</li>
+<li>被<strong>声明并赋值</strong>的变量必须有多个，并且其中至少有一个是新的变量。这是我们可以说对其中旧的变量进行了重声明；</li>
+</ol>
+<h3 id="作用域"><a href="#作用域" class="headerlink" title="作用域"></a>作用域</h3><p>任何语句里面都有作用域这个概念，比如Python中的<strong>LEGB</strong>原则，那么Go中是如何的呢？Go 语言的代码块是一层套一层的，就像大圆套小圆，一个代码块可以有若干个子代码块，最多只会有一个直接包含他的代码块，后者可以称之为前者的外层代码快。而代码块的划分间接决定了其中程序实体的作用域。</p>
+<p>一个程序实体被创造出来就是为了让别的代码块引用的，那么什么样的代码块可以用到这个变量，依据什么原则？程序实体的访问权限有三种：<strong>包级私有，块级私有，可公开访问</strong>。这其实就是在Go在语言层面，依据代码块对程序实体的作用域进行的定义。前两种访问权限对应的都是代码包和代码块，最后一种访问权限对应的是全域代码块。总之，一个程序实体（变量，函数，自定义的类型等）总是被限制在某个代码快中，而这个作用域最大的用处就是对程序实体的访问权限控制。</p>
+<h4 id="如果一个变量与外层代码块中变量重名会发生什么情况？"><a href="#如果一个变量与外层代码块中变量重名会发生什么情况？" class="headerlink" title="如果一个变量与外层代码块中变量重名会发生什么情况？"></a>如果一个变量与外层代码块中变量重名会发生什么情况？</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> block = <span class="string">"package"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	block := <span class="string">"function"</span></span><br><span class="line">	&#123;</span><br><span class="line">		block := <span class="string">"inner"</span></span><br><span class="line">		fmt.Printf(<span class="string">"The block is %s.\n"</span>, block)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"The block is %s.\n"</span>, block)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>执行结果如下图：</p>
+<p><img src="var.png" alt="作用域"></p>
+<p>也就是说，<strong>内层代码块中的变量会屏蔽外层代码块中的变量，让其暂时不可访问</strong></p>
+<h4 id="可重名变量与变量重声明区别"><a href="#可重名变量与变量重声明区别" class="headerlink" title="可重名变量与变量重声明区别"></a>可重名变量与变量重声明区别</h4><ol>
+<li>变量重声明中的变量一定是在某一个代码块内的。注意，这里的“某一个代码块内”并不包含它的任何子代码块，否则就变成了“多个代码块之间”。而可重名变量指的正是在多个代码块之间的由相同的标识符代表的变量。</li>
+<li>变量重声明是对同一个变量的多次声明，这里的变量只有一个。而可重名变量中涉及的变量肯定是有多个的。</li>
+<li>不论对变量重声明多少次，其类型必须始终一致，具体遵从它第一次被声明时给定的类型。而可重名变量之间不存在类似的限制，它们的类型可以是任意的。</li>
+<li>如果可重名变量所在的代码块之间存在直接或间接的嵌套关系，那么它们之间一定会存在“屏蔽”的现象。但是这种现象绝对不会在变量重声明的场景下出现。</li>
+</ol>
+<h3 id="类型判断"><a href="#类型判断" class="headerlink" title="类型判断"></a>类型判断</h3><p>可以使用类型断言表达式断言类型的变量，<code>X.(T)</code>,语法是这样的：<code>value, ok := variable.(type)</code>, 这里的<code>variable</code>必须要是接口类型，<code>type</code> 是你要判断的类型，例如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> container = []<span class="keyword">string</span>&#123;<span class="string">"zero"</span>, <span class="string">"one"</span>, <span class="string">"two"</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	value, ok := <span class="keyword">interface</span>&#123;&#125;(container).([]<span class="keyword">string</span>)</span><br><span class="line">	fmt.Println(value, ok)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里由于<code>container</code>不是接口类型，所以先转换成接口类型，然后判断它是不是 <code>[]string</code> 类型，这个表达式的结果赋值给两个变量，<code>value</code> 和 <code>ok</code>，<code>ok</code> 是 <code>bool</code> 类型，它将代表类型判断的结果，<code>true</code> 或者 <code>false</code>。如果 <code>ok</code> 是 <code>true</code>，那么 <code>value</code> 将是 <code>[]string</code> 类型的值，否则 <code>value</code> 就是 <code>nil</code>。 上面可以将整个表达式的结果赋值给一个变量，不过这个时候，如果判断失败，那么程序将会 <code>panic</code>。</p>
+<p>上面的 <code>interface{}</code> 表示空接口，由于空接口没有任何要实现的方法，所以可以看成任何类型都实现了 <code>interface{}</code>，要分清的是，<code>{}</code> 空的花括号除了可以代表空的代码块之外，还可以表示不包含任何内容的数据结构（或者说数据类型）。例如：<code>struct{}</code> 表示不包含任何字段和方法的空结构体类型。当然<code>{}</code>还可以用于表示其值不包含任何元素，比如说的空的切片值：<code>[]string{}</code>, 空的字典值：<code>map[int]string{}</code>;</p>
+<h3 id="类型转换"><a href="#类型转换" class="headerlink" title="类型转换"></a>类型转换</h3><p>类型转换的语法是：<code>T(X)</code>,这里的<code>T</code>指的是目标类型，<code>X</code> 值得是要转换的变量，叫做源值，类型叫做源类型，代表值的字面量，或者表达式，如果是表达式，这个表达式的值只能是一个值，而不能使多个值。</p>
+<p>如果从源类型到目标类型的转换时不合法的，那么将会已发一个panic，<a href="https://golang.google.cn/ref/spec#Conversions" target="_blank" rel="noopener">详情请看</a>。</p>
+<ul>
+<li>对于整数类型值、整数常量之间的类型转换，原则上只要源值在目标类型的可表示范围内就是合法的。</li>
+<li>第二，虽然直接把一个整数值转换为一个<code>string</code>类型的值是可行的，但值得关注的是，被转换的整数值应该可以代表一个有效的 Unicode 代码点，否则转换的结果将会是<code>�</code>（仅由高亮的问号组成的字符串值）。</li>
+</ul>
+<p><code>string</code> 类型和各种切片类型之间的转换，一个值从<code>string</code>类型向<code>[]byte</code>转换时代表着以utf8编码的字符会被拆成零散，独立的字节，除了与ASCII编码兼容的那部分，以utf8编码的单一字节是无法代表一个字符的。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">string</span>([]<span class="keyword">byte</span>&#123;<span class="string">'\xe4'</span>, <span class="string">'\xbd'</span>, <span class="string">'\xa0'</span>, <span class="string">'\xe5'</span>, <span class="string">'\xa5'</span>, <span class="string">'\xbd'</span>&#125;) <span class="comment">// 你好</span></span><br></pre></td></tr></table></figure>
+<p>例如，这里三个字节，<code>\xe4</code>, <code>\xbd</code>, <code>\xa0</code> 才代表一个<code>你</code>, 而 <code>\xe5</code>, <code>\xa5</code>, <code>\xbd</code> 代表一个<code>好</code>。</p>
+<p>其次一个值从string类型向<code>[]rune</code>类型转换的时候，代表着的字符串会被拆分成一个个Unicode字符。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">string</span>([]<span class="keyword">rune</span>&#123;<span class="string">'\u4F60'</span>, <span class="string">'\u597D'</span>&#125;) <span class="comment">// 你好</span></span><br></pre></td></tr></table></figure>
+<h3 id="别名类型，潜在类型走一波"><a href="#别名类型，潜在类型走一波" class="headerlink" title="别名类型，潜在类型走一波"></a>别名类型，潜在类型走一波</h3><p>我们可以用<code>Go</code>的 <code>type</code> 关键字基于Go语言基本类型以及高级类型自定义类型。在他们当中一个叫做<strong>别名类型</strong>的，我们可以这样声明:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> MyString = <span class="keyword">string</span></span><br></pre></td></tr></table></figure>
+<p>这条语句表示，<code>MyString</code> 是 <code>string</code> 的别名，本质上他们是完全相同的，只是区别在名称上。源类型和别名类型是一对概念，是两个对立的称呼。别名类型主要是为了代码重构而存在。别名类型之间可以直接赋值，不用类型转换：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> a <span class="keyword">int32</span></span><br><span class="line">	<span class="keyword">var</span> b <span class="keyword">rune</span></span><br><span class="line">	fmt.Println(a == b)  <span class="comment">// true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Go 语言内建类型中就存在两个别名类型，<code>byte</code> 是 <code>uint8</code> 的别名类型，而 <code>rune</code> 是 <code>int32</code> 的别名类型；</p>
+<p>一定要注意，如果这样声明：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> MyString2 <span class="keyword">string</span>  <span class="comment">// 这里没有等号：=</span></span><br></pre></td></tr></table></figure>
+<p>这里 <code>MyString2</code> 和 <code>string</code> 就是不同的类型了，这里的 <code>MyString2</code> 是一个新类型，不同于其他任何类型，这种方式也叫做对类型的在定义。对于类型再定义来说，<code>string</code> 可以看做是 <code>MyString2</code> 的潜在类型，<strong>潜在类型</strong> 的含义是某个类型本质上是哪个类型或者哪个类型的集合。潜在类型相同的不同类型之间是可以进行转换的。因此 <code>MyString2</code> 类型的值与 <code>string</code> 类型的值可以使用类型转换表达式进行互换。但对于集合类型<code>[]MyString2</code> 与 <code>[]string</code> 来说这样做却是不合法的，因为 <code>[]MyString2</code> 与 <code>[]string</code> 的潜在类型不同，分别是 <code>MyString2</code> 与 <code>string</code>。</p>
+<p>另外，即使两个值的潜在类型相同，他们的值之间也不能进行判等合比较，变量之间也不能赋值。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Go/" rel="tag"># Go</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/02/03/Dockerfile/" rel="prev" title="Dockerfile">
+      <i class="fa fa-chevron-left"></i> Dockerfile
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/10/29/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%B8%89%E3%80%8B%EF%BC%9A%E7%A8%8B%E5%BA%8F%E7%BB%93%E6%9E%84%E5%92%8C%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE/" rel="next" title="Go语言基础《三》：程序结构和基本数据类型">
+      Go语言基础《三》：程序结构和基本数据类型 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#变量声明"><span class="nav-number">1.</span> <span class="nav-text">变量声明</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#var-声明"><span class="nav-number">1.1.</span> <span class="nav-text">var 声明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#短变量声明"><span class="nav-number">1.2.</span> <span class="nav-text">短变量声明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#变量重声明"><span class="nav-number">1.3.</span> <span class="nav-text">变量重声明</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#作用域"><span class="nav-number">2.</span> <span class="nav-text">作用域</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#如果一个变量与外层代码块中变量重名会发生什么情况？"><span class="nav-number">2.1.</span> <span class="nav-text">如果一个变量与外层代码块中变量重名会发生什么情况？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#可重名变量与变量重声明区别"><span class="nav-number">2.2.</span> <span class="nav-text">可重名变量与变量重声明区别</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#类型判断"><span class="nav-number">3.</span> <span class="nav-text">类型判断</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#类型转换"><span class="nav-number">4.</span> <span class="nav-text">类型转换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#别名类型，潜在类型走一波"><span class="nav-number">5.</span> <span class="nav-text">别名类型，潜在类型走一波</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="之前使用过 sync.WaitGroup 来实现一对多的 goroutine 协作流程同步，sync.WaitGroup 只要保证计数周期的完整性就是可以复用的，sync.WaitGroup 使用的黄金规则可以总计为：统一 Add，并发 Done，然后 Wait。但是今天我们使用另一个工具来实现同步：context.Context。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 扩展包：context">
+<meta property="og:url" content="https://blog.fudenglong.site/2018/11/12/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-context/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:description" content="之前使用过 sync.WaitGroup 来实现一对多的 goroutine 协作流程同步，sync.WaitGroup 只要保证计数周期的完整性就是可以复用的，sync.WaitGroup 使用的黄金规则可以总计为：统一 Add，并发 Done，然后 Wait。但是今天我们使用另一个工具来实现同步：context.Context。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/11/12/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-context/cover.jpeg">
+<meta property="article:published_time" content="2018-11-12T12:51:53.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.800Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2018/11/12/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-context/cover.jpeg">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2018/11/12/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-context/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Go 扩展包：context | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2018/11/12/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-context/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Go 扩展包：context
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-11-12 20:51:53" itemprop="dateCreated datePublished" datetime="2018-11-12T20:51:53+08:00">2018-11-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Go-%E6%89%A9%E5%B1%95%E5%8C%85/" itemprop="url" rel="index">
+                    <span itemprop="name">Go 扩展包</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span id="/2018/11/12/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-context/" class="post-meta-item leancloud_visitors" data-flag-title="Go 扩展包：context" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/11/12/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-context/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/11/12/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-context/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>之前使用过 <code>sync.WaitGroup</code> 来实现一对多的 goroutine 协作流程同步，<code>sync.WaitGroup</code> 只要保证计数周期的完整性就是可以复用的，<code>sync.WaitGroup</code> 使用的黄金规则可以总计为：<strong>统一 <code>Add</code>，并发 <code>Done</code>，然后 <code>Wait</code></strong>。但是今天我们使用另一个工具来实现同步：<code>context.Context</code>。</p>
+<img src="/2018/11/12/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-context/cover.jpeg" class="" title="cover">
+<a id="more"></a>
+<p>我们先看一个使用 <code>sync.WaitGroup</code> 实现的例子：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"sync"</span></span><br><span class="line">	<span class="string">"sync/atomic"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">addNum</span><span class="params">(nump *<span class="keyword">int32</span>, id <span class="keyword">int</span>, deferFunc <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> deferFunc()</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; ; i++ &#123;</span><br><span class="line">		currentNum := atomic.LoadInt32(nump)</span><br><span class="line">		newNum := currentNum + <span class="number">1</span></span><br><span class="line">		time.Sleep(time.Nanosecond * <span class="number">200</span>)</span><br><span class="line">		<span class="keyword">if</span> atomic.CompareAndSwapInt32(nump, currentNum, newNum) &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"%d The number: %d [%d-%d]\n"</span>, currentNum, newNum, id, i)</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">coordinateWithSyncGroup</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		total  = <span class="number">12</span></span><br><span class="line">		num    <span class="keyword">int32</span></span><br><span class="line">		stride = <span class="number">3</span></span><br><span class="line">	)</span><br><span class="line">	fmt.Printf(<span class="string">"The number: %d [with sync.WaitGroup]\n"</span>, num)</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">1</span>; i &lt;= total; i += stride &#123;</span><br><span class="line">		wg.Add(stride)</span><br><span class="line">		<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; stride; j++ &#123;</span><br><span class="line">			<span class="keyword">go</span> addNum(&amp;num, i+j, wg.Done)</span><br><span class="line">		&#125;</span><br><span class="line">		wg.Wait()</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"End.\n"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	coordinateWithSyncGroup()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>函数输出如下：</p>
+<pre><code>0 The number: 1 [3-0]
+1 The number: 2 [1-0]
+2 The number: 3 [2-1]
+3 The number: 4 [6-0]
+4 The number: 5 [5-0]
+5 The number: 6 [4-0]
+6 The number: 7 [9-0]
+7 The number: 8 [7-0]
+8 The number: 9 [8-0]
+9 The number: 10 [12-0]
+10 The number: 11 [11-0]
+11 The number: 12 [10-2]
+End.
+</code></pre><p>接下来我们换用 <code>context.Context</code> 来实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"context"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"sync/atomic"</span></span><br><span class="line">	<span class="string">"time"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">addNum</span><span class="params">(nump *<span class="keyword">int32</span>, id <span class="keyword">int</span>, deferFunc <span class="keyword">func</span>()</span>)</span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		deferFunc()</span><br><span class="line">	&#125;()</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; ; i++ &#123;</span><br><span class="line">		currentNum := atomic.LoadInt32(nump)</span><br><span class="line">		newNum := currentNum + <span class="number">1</span></span><br><span class="line">		time.Sleep(time.Nanosecond * <span class="number">200</span>)</span><br><span class="line">		<span class="keyword">if</span> atomic.CompareAndSwapInt32(nump, currentNum, newNum) &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"%d The number: %d [%d-%d]\n"</span>, currentNum, newNum, id, i)</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">coordinateWithContext</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		total = <span class="number">12</span></span><br><span class="line">		num   <span class="keyword">int32</span></span><br><span class="line">	)</span><br><span class="line">	fmt.Printf(<span class="string">"The number: %d [with context.Context]\n"</span>, num)</span><br><span class="line">	cxt, cancelFunc := context.WithCancel(context.Background())</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">1</span>; i &lt;= total; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> addNum(&amp;num, i, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> atomic.LoadInt32(&amp;num) == <span class="keyword">int32</span>(total) &#123;</span><br><span class="line">				cancelFunc()</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	&lt;-cxt.Done()</span><br><span class="line">	fmt.Printf(<span class="string">"End.\n"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	coordinateWithContext()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在这个函数体中，我先后调用了 <code>context.Background</code> 函数和 <code>context.WithCancel</code> 函数，并得到了一个可撤销的 <code>context.Context</code> 类型的值（由变量 <code>cxt</code> 代表），以及一个 <code>context.CancelFunc</code> 类型的撤销函数（由变量 <code>cancelFunc</code> 代表）。在后面那条唯一的 <code>for</code> 语句中，我在每次迭代中都通过一条 <code>go</code> 语句，异步地调用 <code>addNum</code>  函数，调用的总次数只依据了 <code>total</code> 变量的值。请注意给予 <code>addNum</code> 函数的最后一个参数值。它是一个匿名函数，其中只包含了一条 <code>if</code> 语句。这条 <code>if</code> 语句会“原子地”加载 <code>num</code> 变量的值，并判断它是否等于 <code>total</code> 变量的值。如果两个值相等，那么就调用 <code>cancelFunc</code> 函数。其含义是，如果所有的 <code>addNum</code> 函数都执行完毕，那么就立即通知分发子任务的 <code>goroutine</code>。这里分发子任务的 <code>goroutine</code>，即为执行 <code>coordinateWithContext</code> 函数的 <code>goroutine</code>。它在执行完 <code>for</code> 语句后，会立即调用 <code>ctx</code> 变量的 <code>Done</code> 函数，并试图针对该函数返回的通道，进行接收操作。由于一旦 <code>cancelFunc· 函数被调用，针对该通道的接收操作就会马上结束，所以，这样做就可以实现“等待所有的</code>addNum` 函数都执行完毕”的功能。</p>
+<p><code>Context</code> 类型可以提供一类代表上下文的值，此类值是并发安全的，也就是说它可以被传播个多个 <code>goroutine</code>。由于 <code>Context</code> 类型实际上是一个接口类型，而 <code>context</code> 包中实现该接口的所有私有类型，都是基于某个类型的指针，所以如此传播并不会影响此类值的功能和安全。<code>Context</code> 的值是可以繁衍的，这意味着我们可以通过一个 <code>Context</code> 值产生出任意个子值。这些子值可以携带其父值的属性和数据，也可以响应我们通过其父值传达的信号。正因为如此，所有的 <code>Context</code> 值共同构成了一颗代表了上下文全貌的树形结构。这棵树的树根（或者称上下文根节点）是一个已经在 <code>context</code> 包中预定义好的值，它是全局唯一的。通过调用 <code>context.Background</code> 函数，我们就可以获取到它。</p>
+<p>除此之外，<code>context</code> 包中还包含了四个用于繁衍 <code>Context</code> 值的函数，即：<code>WithCancel</code>，<code>WithDeadline</code>， <code>WithTimeout</code> 和 <code>WithValue</code>。这些函数的第一个参数的类型都是 <code>context.Context</code>，而名称都为 <code>parent</code>。顾名思义，这个位置上的参数对应的都是它们将会产生的 <code>Context</code> 值的父值。<code>WithCancel</code> 函数用于产生一个可撤销的 <code>parent</code> 的子值。<code>WithDeadline</code> 和 <code>WithTimeout</code> 函数则都可以被用来产生一个会定时撤销的 <code>parent</code> 的子值。至于 <code>WithValue</code> 函数，我们可以通过调用它，产生一个会携带额外数据的 <code>parent</code> 的子值。</p>
+<ol>
+<li>“可撤销的” 在 context 包中代表着什么？“撤销” 一个 Context 值有代表什么？</li>
+</ol>
+<p>这需要从 <code>Context</code> 类型的声明说起，这个接口中有两个方法与 “撤销” 息息相关。<code>Done</code> 方法会返回一个元素类型为 <code>struct{}</code> 的接受通道。不过，这个接收通道的用途并不是传递元素值，而是让调用方去“感知”当前 Context 的撤销信号。一旦当前的 Context 被撤销，这里的接收操作会立即关闭。我们都知道，对于一个未包含任何元素的通道来说，它的关闭会使针对它的接收操作立即结束。</p>
+<p>我们通过调用 <code>context.WithCancel</code> 产生一个可撤销的 <code>Context</code> 值的同时，还会获得一个用于出发撤销信号的函数。通过调用这个撤销函数，我们可以出发针对针对这个 <code>Context</code> 值的撤销信号。一旦触发。撤销信号就会立即传达给这个 <code>Context</code> 值，并且由它的 <code>Done</code> 方法的结果值（一个通道）表达出来。撤销函数只负责出发撤销信号，而对应的可撤销的Context值也只负责传达信号，它们不会管后边具体的“撤销”操作。我们的代码在接收到撤销信号之后，可以进行任意的操作。</p>
+<ol>
+<li>撤销信号是如何在上下文树中传播的？</li>
+</ol>
+<p><code>context</code> 包中的 <code>WithCancel</code>，<code>WithDeadline</code>，<code>WithTimeout</code> 都是用来基于给定的 <code>Context</code> 值产生可撤销的子值的。</p>
+<p><code>WithCancel</code> 函数在被调用后会产生两个结果值。第一个结果值就是那个可撤销的 <code>Context</code> 值，而第二个结果值则是用于触发撤销信号的函数。在撤销函数被调用之后，对应的 <code>Context</code> 值会先关闭它内部的接收通道，也就是它的 <code>Done</code> 方法会返回的那个通道。<strong>然后，它会向它的所有子值（或者说子节点）传达撤销信号。这些子值会如法炮制，把撤销信号继续传播下去。最后，这个 <code>Contxt</code> 值会断开它与其父值之间的关联</strong>。</p>
+<p>我们通过调用 <code>context</code> 包的 <code>WithDeadline</code> 函数或者 <code>WithTimeout</code> 函数生成的 <code>Context</code> 值也是可撤销的。它们不但可以被手动撤销，还会依据在生成时被给定的过期时间，自动地进行定时撤销。这里定时撤销的功能是借助它们内部的计时器来实现的。当过期时间到达时，这两种 <code>Context</code> 值的行为与 <code>Context</code> 值被手动撤销时的行为是几乎一致的，只不过前者会在最后停止并释放掉其内部的计时器。</p>
+<ol>
+<li>怎样通过 <code>Context</code> 值携带数据？怎么样从中获取数据？</li>
+</ol>
+<p><code>WithValue</code> 函数在产生新的 <code>Context</code> 值）的时候需要三个参数，即：父值、键和值。与“字典对于键的约束”类似，这里<strong>键的类型必须是可判等的</strong>。原因很简单，当我们从中获取数据的时候，它需要根据给定的键来查找对应的值。不过，这种 <code>Context</code> 值并不是用字典来存储键和值的，后两者只是被简单地存储在前者的相应字段中而已。<code>Context</code> 类型的 <code>Value</code> 方法就是被用来获取数据的。在我们调用含数据的 <code>Context</code> 值的 <code>Value</code>方法时，它会先判断给定的键，是否与当前值中存储的键相等，如果相等就把该值中存储的值直接返回，否则就到其父值中继续查找。如果其父值中仍然未存储相等的键，那么该方法就会沿着上下文根节点的方向一路查找下去。注意，除了含数据的 <code>Context</code> 值以外，其他几种 <code>Context</code> 值都是无法携带数据的。因此，<code>Context</code> 值的 <code>Value</code> 方法在沿路查找的时候，会直接跨过那几种值。如果我们调用的 <code>Value</code> 方法的所属值本身就是不含数据的，那么实际调用的就将会是其父辈或祖辈的 <code>Value</code> 方法。这是由于这几种 <code>Context</code> 值的实际类型，都属于结构体类型，并且它们都是通过“将其父值嵌入到自身”，来表达父子关系的。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Go/" rel="tag"># Go</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/11/11/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-sync/" rel="prev" title="Go 扩展包：sync">
+      <i class="fa fa-chevron-left"></i> Go 扩展包：sync
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/11/13/Go-%E8%AF%AD%E8%A8%80%E6%A0%87%E5%87%86%E5%BA%93-unsafe/" rel="next" title="Go 扩展包：unsafe">
+      Go 扩展包：unsafe <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

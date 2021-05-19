@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="Docker可以通过从Dockerfile中读取指令自动构建镜像，Dockerfile是一个包含所有命令的文本文件，以便构建给定的镜像。Dockerfile遵循一定的文件格式并且使用一系列指定的命令。 本篇文章讲学习docker推荐的dockerfile书写✍️规范，可以参考Dockerfile Reference ,本节参考官方原文Dockerfile 最佳实践.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Dockerfile">
+<meta property="og:url" content="https://blog.fudenglong.site/2018/02/03/Dockerfile/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:description" content="Docker可以通过从Dockerfile中读取指令自动构建镜像，Dockerfile是一个包含所有命令的文本文件，以便构建给定的镜像。Dockerfile遵循一定的文件格式并且使用一系列指定的命令。 本篇文章讲学习docker推荐的dockerfile书写✍️规范，可以参考Dockerfile Reference ,本节参考官方原文Dockerfile 最佳实践.">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/02/03/Dockerfile/docker.png">
+<meta property="article:published_time" content="2018-02-03T07:21:45.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.784Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="Docker">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2018/02/03/Dockerfile/docker.png">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2018/02/03/Dockerfile/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Dockerfile | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2018/02/03/Dockerfile/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Dockerfile
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-02-03 15:21:45" itemprop="dateCreated datePublished" datetime="2018-02-03T15:21:45+08:00">2018-02-03</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Docker/" itemprop="url" rel="index">
+                    <span itemprop="name">Docker</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span id="/2018/02/03/Dockerfile/" class="post-meta-item leancloud_visitors" data-flag-title="Dockerfile" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/02/03/Dockerfile/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/02/03/Dockerfile/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>13k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>12 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Docker可以通过从<code>Dockerfile</code>中读取指令自动构建镜像，<code>Dockerfile</code>是一个包含所有命令的文本文件，以便构建给定的镜像。<code>Dockerfile</code>遵循一定的文件格式并且使用一系列指定的命令。</p>
+<p>本篇文章讲学习docker推荐的dockerfile书写✍️规范，可以参考<a href="https://docs.docker.com/engine/reference/builder/" target="_blank" rel="noopener">Dockerfile Reference </a>,本节参考官方原文<a href="https://docs.docker.com/develop/develop-images/dockerfile_best-practices/" target="_blank" rel="noopener">Dockerfile 最佳实践</a>.</p>
+<img src="/2018/02/03/Dockerfile/docker.png" class="" title="docker">
+<a id="more"></a>
+<h3 id="用法"><a href="#用法" class="headerlink" title="用法"></a>用法</h3><p><a href="https://docs.docker.com/engine/reference/commandline/build/" target="_blank" rel="noopener"><code>docker build</code></a>命令从<code>Dockerfile</code>和一个<code>contaxt</code>创建一个镜像。<code>context</code>是通过<code>PATH</code>或者<code>URL</code>指定的一系列文件。<code>PATH</code>是本地文件系统的一个目录，<code>URL</code>是一个git仓库地址。</p>
+<p>一个上下文会被递归地处理，所以一个<code>PATH</code>包含了所有的它的子目录，一个<code>URL</code>包含了它的仓库以及它的子模块。下面是一个使用当前目录作为上下文的例子，注意命令最后面的那个<code>.</code>：</p>
+<pre><code>    $ docker build .
+    Sending build context to Docker daemon  6.51 MB
+    ...
+</code></pre><p>要注意的是，整个的构建过程不是docker CLI运行的，而是由docker daemon操作，整个构建过程的第一步就是发送整个上下文目录到docker daemon。强烈建议，最好将你的Dockerfile放置在一个空目录下面然后再开始，只把你需要的文件添加进去。</p>
+<p><code>Dockerfile</code>通过指令引用一个上下文中的文件，例如<code>Copy</code>指令。为了增加构建的性能，可以通过<code>.dockerignore</code>排除上下文目录中的一些文件，具体可以查看<a href="https://docs.docker.com/engine/reference/builder/#dockerignore-file" target="_blank" rel="noopener"><code>.dockerignore</code></a>。</p>
+<p>通常情况下，<code>Dockerfile</code>通常被称作<code>Dockerfile</code>，并且位于上下文根目录中，不过你也可以通过<code>-f</code>命令指定任何操作系统上的<code>Dockerfile</code>文件，例如：</p>
+<pre><code>    $ docker build -f /path/to/a/Dockerfile .
+</code></pre><p>你也可以指定一个仓库名称和标签用于在构建成功之后存储新的镜像：</p>
+<pre><code>    docker build -t shykes/myapp .
+</code></pre><p>如果要给新的镜像打多个标签，你可以使用多个<code>-t</code>参数指定：</p>
+<pre><code>    $ docker build -t shykes/myapp:1.0.2 -t shykes/myapp:latest .
+</code></pre><p>在Docker daemon 运行<code>Dockerfile</code>中的构建命令之前，会进行dockerfile中命令预检查，会在语法错误的时候返回异常消息，例如：</p>
+<pre><code>    $ docker build -t test/myapp .
+    Sending build context to Docker daemon 2.048 kB
+    Error response from daemon: Unknown instruction: RUNCMD
+</code></pre><p>Docker daemon进程会一条一条滴运行<code>Dockerfile</code>中的命令，在必要的时候会将每个命令的结果提交至新的镜像，最后输出新镜像ID，结束之后 docker daemon会自动清理上下文。</p>
+<p>要注意的是，每条指令都是独立运行的，并且会导致创建一个新的镜像。所以<code>RUN cd /tmp</code>对下一条指令没有影响。</p>
+<p>只要有可能，docker会重新使用缓存的镜像以加速docker构建过程，这个对于镜像的构建提速有这非常大的意义。是否使用缓存会在控制台消息中看到，例如：</p>
+<pre><code>    $ docker build -t svendowideit/ambassador .
+    Sending build context to Docker daemon 15.36 kB
+    Step 1/4 : FROM alpine:3.2
+    ---&gt; 31f630c65071
+    Step 2/4 : MAINTAINER SvenDowideit@home.org.au
+    ---&gt; Using cache
+    ---&gt; 2a1c91448f5f
+    Step 3/4 : RUN apk update &amp;&amp;      apk add socat &amp;&amp;        rm -r /var/cache/
+    ---&gt; Using cache
+    ---&gt; 21ed6e7fbb73
+    Step 4/4 : CMD env | grep _TCP= | (sed &#39;s/.*_PORT_\([0-9]*\)_TCP=tcp:\/\/\(.*\):\(.*\)/socat -t 100000000 TCP4-LISTEN:\1,fork,reuseaddr TCP4:\2:\3 \&amp;/&#39; &amp;&amp; echo wait) | sh
+    ---&gt; Using cache
+    ---&gt; 7ea8aef582cc
+    Successfully built 7ea8aef582cc
+</code></pre><h3 id="格式"><a href="#格式" class="headerlink" title="格式"></a>格式</h3><p>下面是<code>Dockerfile</code>的格式</p>
+<pre><code>    # Comment  注释
+    INSTRUCTION arguments  指令
+</code></pre><p>指令不区分大小写，但是惯例上是使用大写以便和他们的参数区分开。docker会顺序运行<code>Dockerfile</code>中的指令，<strong>一个<code>Dockerfile</code>必须以<code>FROM</code>指令开始</strong>。<code>FROM</code>指令用于声明构建的基础镜像。<code>FROM</code>命令只能在一个或者多个<code>ARG</code>命令之前，这些指令用于声明在<code>FROM</code>命令中用到的参数。</p>
+<p>以<code>#</code>开头除非是解析器指令否则docker会将其当做注释，行中的<code>#</code>会被当做是一个参数，例如：</p>
+<pre><code>    # Comment
+    RUN echo &#39;we are running some # of cool things&#39;
+</code></pre><p>注释中不支持换行符。</p>
+<h3 id="解析器指令"><a href="#解析器指令" class="headerlink" title="解析器指令"></a>解析器指令</h3><p>解析器指令是可选的，它会影响<code>Dockerfile</code>中其后的指令被处理的方式。解析器指令不会导致新的镜像层被添加，也不会出现在构建步骤中。解析器指令以一种特殊类型的注释写入，<code># directive=value</code>， <strong>一个指令只能使用一次</strong>。</p>
+<p>一旦注释，空行或构建器指令已经被处理，Docker不再查找解析器指令。相反，它将解析器指令格式的内容内容视为注释，并不再尝试验证它是否可能是解析器指令。因此，所有的解析器指令都必须位于Dockerfile的最顶端。</p>
+<p>解析器指令也是大小写不敏感，但是，惯例上常将他们写作小写，惯例上也会在解析器指令后面保留一个空行，解析器指令中也不支持换行符。</p>
+<p>由于以上规则的限制，下面的例子都是无效的：</p>
+<p>由于换行导致无效：</p>
+<pre><code>    # direc \
+    tive=value
+</code></pre><p>由于出现两次导致无效：</p>
+<pre><code>    # directive=value1
+    # directive=value2
+
+    FROM ImageName
+</code></pre><p>由于出现在一个构建命令之后会被当做注释：</p>
+<pre><code>    FROM ImageName
+    # directive=value
+</code></pre><p>由于出现在一个不是解析器指令的注释后面，因此被当做注释：</p>
+<pre><code>    # About my dockerfile
+    # directive=value
+    FROM ImageName
+</code></pre><p>未知的指令由于无法解析被当做注释，已知的指令也被当做注释因为他出现在注释之后</p>
+<pre><code>    # unknowndirective=value
+    # knowndirective=value
+</code></pre><p>解析器指令中允许出现非换行空白符，因此下面的指令都是同样的效果：</p>
+<pre><code>    #directive=value
+    # directive =value
+    #    directive= value
+    # directive = value
+    #      dIrEcTiVe=value
+</code></pre><p>支持的解析器指令如下：</p>
+<pre><code>- `escape`
+</code></pre><h3 id="escape"><a href="#escape" class="headerlink" title="escape"></a><code>escape</code></h3><ul>
+<li><p><code># escape=\ (backslash)</code></p>
+</li>
+<li><p>或者 </p>
+<pre><code>  # escape=` (backtick)
+</code></pre></li>
+</ul>
+<p><code>escape</code>指令设置用于转义的字符，，默认是：<code>\</code>。<code>escape</code>即用于行中字符换衣也用于转义一个新行，这将允许dockerfile中的指令跨越多行。请注意，不管escapeer解析器指令是否包含在Dockerfile中，除了在行的末尾RUN命令中都不会执行转义。</p>
+<p>设置转义字符为<code>` </code>在Windows上是特别有用的，因为windows上<code>\</code>被用作路径分隔符。</p>
+<p>考虑下面的例子，在Windows上会以一种非显而易见的方式失败，第二行结尾的<code>\</code>会被解释为开始一个新行，而不是和前一个<code>\</code>一起被解释成为<code>\</code>而表示路径分隔符。同样第三行的指令将会被认为是第二行指令的继续</p>
+<pre><code>    FROM microsoft/nanoserver
+    COPY testfile.txt c:\\
+    RUN dir c:\
+</code></pre><p>这将导致：</p>
+<pre><code>    PS C:\John&gt; docker build -t cmd .
+    Sending build context to Docker daemon 3.072 kB
+    Step 1/2 : FROM microsoft/nanoserver
+    ---&gt; 22738ff49c6d
+    Step 2/2 : COPY testfile.txt c:\RUN dir c:
+    GetFileAttributesEx c:RUN: The system cannot find the file specified.
+    PS C:\John&gt;
+
+    PS： 意思为 Powershell
+</code></pre><p>解析方案是通过添加转义解析器指令，以下Dockerfile成功按预期使用Windows上文件路径的自然语义：</p>
+<pre><code>    # escape=`
+
+    FROM microsoft/nanoserver
+    COPY testfile.txt c:\
+    RUN dir c:\
+</code></pre><p>这将会输出：</p>
+<pre><code>    PS C:\John&gt; docker build -t succeeds --no-cache=true .
+    Sending build context to Docker daemon 3.072 kB
+    Step 1/3 : FROM microsoft/nanoserver
+    ---&gt; 22738ff49c6d
+    Step 2/3 : COPY testfile.txt c:\
+    ---&gt; 96655de338de
+    Removing intermediate container 4db9acbb1682
+    Step 3/3 : RUN dir c:\
+    ---&gt; Running in a2c157f842f5
+    Volume in drive C has no label.
+    Volume Serial Number is 7E6D-E0F7
+
+    Directory of c:\
+
+    10/05/2016  05:04 PM             1,894 License.txt
+    10/05/2016  02:22 PM    &lt;DIR&gt;          Program Files
+    10/05/2016  02:14 PM    &lt;DIR&gt;          Program Files (x86)
+    10/28/2016  11:18 AM                62 testfile.txt
+    10/28/2016  11:20 AM    &lt;DIR&gt;          Users
+    10/28/2016  11:20 AM    &lt;DIR&gt;          Windows
+            2 File(s)          1,956 bytes
+            4 Dir(s)  21,259,096,064 bytes free
+    ---&gt; 01c7f3bef04f
+    Removing intermediate container a2c157f842f5
+    Successfully built 01c7f3bef04f
+    PS C:\John&gt;
+</code></pre><h3 id="dockerignore文件"><a href="#dockerignore文件" class="headerlink" title=".dockerignore文件"></a><code>.dockerignore</code>文件</h3><p>在docker命令行工具将上下文发送到docker daemon之前，它会去查找上下文根目录下是否有<code>.dockerignore</code>文件，如果有，docker CLI会排出<code>.dockerignore</code>中匹配的文件或者目录。这将有助于避免添加大型或者敏感文件到docker daemon，从而加快构建过程。</p>
+<p>docker CLI将<code>.dockerignore</code>文件解释为以换行符分隔的模式列表，类似于Unix shell的文件格式。为了匹配，上下文的根目录被认为是工作目录和根目录。例如，<code>/foo/bar</code>或者<code>foo/bar</code>都会被用于去排除一个<code>PATH</code>中的<code>foo</code>子目录下的名为<code>bar</code>的文件或者目录，当<code>PATH</code>用作一个Git仓库的时候，是同样的道理。</p>
+<p><code>.dockerignore</code>文件中以<code>#</code>开始的行被docker CLI解释为一个注释。</p>
+<p>下面是一个<code>.dockerignore</code>文件的例子：</p>
+<pre><code>    # comment
+    */temp*
+    */*/temp*
+    temp?
+</code></pre><p>这个文件将导致以下的构建行为：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Rule</th>
+<th style="text-align:center">行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code># comment</code></td>
+<td style="text-align:center">注释被忽略</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>*/temp*</code></td>
+<td style="text-align:center">排除在根目录的任何直接子目录中名称以<code>temp</code>开头的文件和目录。例如，纯文件<code>/somedir/temporary.txt</code>被排除，目录<code>/somedir/temp</code>也被排除。</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>*/*/temp*</code></td>
+<td style="text-align:center">从根目录下两个级别的任何子目录中排除以<code>temp</code>开头的文件和目录。例如，排除<code>/somedir/subdir/temporary.txt</code>。</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>temp?</code></td>
+<td style="text-align:center">排除根目录中任何以<code>temp</code>开头的文件或者目录</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>匹配是使用Go的<a href="http://golang.org/pkg/path/filepath#Match" target="_blank" rel="noopener">filepath.Match</a>规则完成的。预处理步骤删除前导和尾随空白，并消除<code>.</code>和<code>..</code>。预处理后空白的行将被忽略。</p>
+<p>除了go的规则之外，docker还支持一个特别的通配符字符串<code>**</code>，用于匹配任意数量的目录（包括0）。例如：<code>**/*.go</code>将会排除所有目录包括上下文根目录中的任何以<code>.go</code>结尾的文件。</p>
+<p>以<code>!</code>开始的行用于排除例外情况，下面是使用此机制的示例文件：</p>
+<pre><code>    *.md
+    !README.md
+</code></pre><p>所有除了<code>Readme.md</code>的markdown文件将被排除。</p>
+<p>你甚至可以在<code>.dockerignore</code>中排除<code>Dockerfile</code>，但是它任然会被发送到docker daemon, 因为它需要他完成工作。但是<code>ADD</code>和<code>COPY</code>指令不能把它添加到镜像。</p>
+<p>最后，如果你只是想去包含某些文件而不是排除某些文件，你可以这样做，先用<code>*</code>排除任何文件，然后用<code>!</code>指令指定那些你仅仅要包含的文件。</p>
+<h3 id="FROM"><a href="#FROM" class="headerlink" title="FROM"></a><code>FROM</code></h3><p><code>FROM</code>指令有三种格式，用于指定新镜像的<a href="https://docs.docker.com/glossary/" target="_blank" rel="noopener">基础镜像</a>:</p>
+<ul>
+<li><p><code>FROM &lt;image&gt; [AS &lt;name&gt;]</code></p>
+</li>
+<li><p><code>FROM &lt;image&gt;[:&lt;tag&gt;] [AS &lt;name&gt;]</code></p>
+</li>
+<li><p><code>FROM &lt;image&gt;[@&lt;digest&gt;] [AS &lt;name&gt;]</code></p>
+</li>
+</ul>
+<p>FROM指令初始化一个新的构建环境，并设置后续指令的基础映像。由于这个，一个有效的<code>Dockerfile</code>文件必须以一个<code>FROM</code>指令开始，基础镜像可以是任何有效的镜像。关于<code>FROM</code>指令有以下的一些注意点：</p>
+<ul>
+<li><p><code>ARG</code> 指令是唯一<code>Dockerfile</code>中在<code>FROM</code>之前被处理的命令；</p>
+</li>
+<li><p>在单个<code>Dockerfile</code>文件中<code>FROM</code>指令可以出现多次用于创建多个镜像或者将一个构建作为下一个的依赖；</p>
+</li>
+<li><p>可选地可以使用<code>AS name</code>指定新构建的名称，以用于之后的<code>FROM</code>指令和<code>COPY --from=&lt;name|index&gt;</code>以引用此阶段构建的镜像；</p>
+</li>
+<li><p><code>tag</code>和<code>digest</code>是可选的，<code>tag</code>默认值是<code>latest</code>，如果指定的<code>tag</code>没有找到，docker将会返回错误。</p>
+</li>
+</ul>
+<h4 id="理解ARG和FROM如何交互"><a href="#理解ARG和FROM如何交互" class="headerlink" title="理解ARG和FROM如何交互"></a>理解<code>ARG</code>和<code>FROM</code>如何交互</h4><p><code>FROM</code>指令支持由第一个<code>FROM</code>之前发生的任何<code>ARG</code>指令声明的变量。</p>
+<pre><code>    ARG  CODE_VERSION=latest
+    FROM base:${CODE_VERSION}
+    CMD  /code/run-app
+
+    FROM extras:${CODE_VERSION}
+    CMD  /code/run-extras
+</code></pre><p>在<code>FROM</code>之前声明的<code>ARG</code>不在构建阶段，所以它不能在<code>FROM</code>之后的任何指令中使用。要使用在第一个<code>FROM</code>之前声明的<code>ARG</code>的默认值，可以在构建阶段内使用没有值的<code>ARG</code>指令：</p>
+<pre><code>    ARG VERSION=latest
+    FROM busybox:$VERSION
+    ARG VERSION
+    RUN echo $VERSION &gt; image_version
+</code></pre><h3 id="RUN"><a href="#RUN" class="headerlink" title="RUN"></a><code>RUN</code></h3><p><code>RUN</code>命令有两种格式，关于这两种格式的不同请看：<a href="https://stackoverflow.com/questions/42805750/dockerfile-cmd-shell-versus-exec-form" target="_blank" rel="noopener">https://stackoverflow.com/questions/42805750/dockerfile-cmd-shell-versus-exec-form</a></p>
+<ul>
+<li><p>shell 格式，命令被一个shell中运行，linux上默认是：<code>/bin/sh -c</code>, Windows上是：<code>cmd /S /C</code>;</p>
+</li>
+<li><p>exec 格式，例如：<code>[&quot;executable&quot;, &quot;param1&quot;, &quot;param2&quot;]</code></p>
+</li>
+</ul>
+<p><code>RUN</code>指令将在当前镜像的顶层运行命令，并将结果提交已构成新的镜像，生成的镜像用于接下来的步骤。分层运行指令并且生成提交符合Docker的核心概念，容器可以从镜像历史中的任何一点创建，这点很想代码版本控制系统。</p>
+<p>exec格式可以避免字符串替换，并且可运行在一个没有指定shell可执行文件的镜像中。</p>
+<p>shell格式的默认shell可执行文件可以通过<code>SHELL</code>指令设置。shell格式中可以通过<code>\</code>将较长的命令换行，例如：</p>
+<pre><code>    RUN /bin/bash -c &#39;source $HOME/.bashrc; \
+    echo $HOME&#39;
+</code></pre><p>其实就是</p>
+<pre><code>    RUN /bin/bash -c &#39;source $HOME/.bashrc; echo $HOME&#39;
+</code></pre><p>为了除了<code>/bin/sh</code>之外的shell，可以在exec格式中指定，exec格式传入的是一个json数组，意味着你必须使用双引号而不能使用单引号，例如：</p>
+<pre><code>    RUN [&quot;/bin/bash&quot;, &quot;-c&quot;, &quot;echo hello&quot;]
+</code></pre><p>还有，exec格式不同于shell格式的是它不会调用一个命令shell，这意味着正常的shell处理过程不会发生。例如：<code>RUN [ &quot;echo&quot;, &quot;$HOME&quot; ]</code>, 将不会发生变量替换。你如果要实现这个你可以用shell格式或者在exec格式中直接使用shell，例如：<code>RUN [ &quot;sh&quot;, &quot;-c&quot;, &quot;echo $HOME&quot; ]</code>; 当用exec直接执行一个shell和使用shell格式就没区别了，环境变量的替换是由shell完成而不是docker。在json格式中，必须要转义反斜线。例如：<code>RUN [&quot;c:\windows\system32\tasklist.exe&quot;]</code> 由于不是一个有效的json将会被当做shell格式来执行，正确的应该是：<code>RUN [&quot;c:\\windows\\system32\\tasklist.exe&quot;]</code>。</p>
+<p><code>RUN</code>指令会缓存结果用于下次使用，例如：<code>RUN apt-get dist-upgrade -y</code>的执行结果将被缓存并用于下次构建。指令缓存可以被<code>--no-cache</code>禁止，例如：<code>docker build --no-cache</code>。</p>
+<h3 id="CMD"><a href="#CMD" class="headerlink" title="CMD"></a><code>CMD</code></h3><p>CMD命令有三种格式：</p>
+<ul>
+<li><p><code>CMD [&quot;executable&quot;,&quot;param1&quot;,&quot;param2&quot;]</code>, exec格式，推荐格式；</p>
+</li>
+<li><p><code>CMD [&quot;param1&quot;,&quot;param2&quot;]</code>, 作为<code>ENTRYPOINT</code>的默认参数；</p>
+</li>
+<li><p><code>CMD command param1 param2</code> shell 格式</p>
+</li>
+</ul>
+<p><code>Dockerfile</code>中只允许有一个<code>CMD</code>命令，如果出现多个，只有第一个有用。</p>
+<p>之前介绍容器的时候曾经说过，<code>Docker</code>不是虚拟机，容器就是进程，既然是进程，那么在启动容器的时候，需要指定所运行的程序及参数。<code>CMD</code>指令就是用于指定默认的容器主进程的启动命令的。</p>
+<p>在运行时可以指定新的命令来替代镜像设置中的这个默认命令，比如，ubuntu 镜像默认的<code>CMD</code>是 <code>/bin/bash</code>，如果我们直接<code>docker run -it ubuntu</code>的话，会直接进入<code>bash</code>。我们也可以在运行时指定运行别的命令，如 <code>docker run -it ubuntu cat /etc/os-release</code>。这就是用 <code>cat /etc/os-release</code> 命令替换了默认的 <code>/bin/bash</code> 命令了，输出了系统版本信息。</p>
+<p>如果在<code>CMD</code>命令中省略了可执行文件，你必须声明一个<code>ENTRYPOINT</code>指令。</p>
+<p><code>CMD</code>命令使用提醒：</p>
+<ul>
+<li><p>如果<code>CMD</code>命令被用于为<code>ENTRYPOINT</code>指令提供参数，那么这两个命令都必须使用JSON数组格式。</p>
+</li>
+<li><p>如果<code>CMD</code>命令使用exec格式，因为其被解释为一个json数组，因此你必须使用双引号而不是单引号。</p>
+</li>
+<li><p>不同于shell格式，exec格式不会调用一个命令行shell，这意味着正常的shell处理过程不会发生。例如：<code>CMD [ &quot;echo&quot;, &quot;$HOME&quot; ]</code>将不提供对变量<code>$HOME</code>的解析。如果你想要shell的处理过程，你可以使用shell格式或者直接执行一个shell，例如：<code>CMD [ &quot;sh&quot;, &quot;-c&quot;, &quot;echo $HOME&quot; ]</code>。</p>
+</li>
+</ul>
+<p>如果你想在没有shell的情况下运行你的<code>&lt;command&gt;</code>，那么你必须将这个命令表示为一个JSON数组，并给出可执行文件的完整路径。数组形式是CMD的首选格式。任何附加参数都必须在数组中分别表示为字符串：</p>
+<pre><code>    FROM ubuntu
+    CMD [&quot;/usr/bin/wc&quot;,&quot;--help&quot;]
+</code></pre><p>如果你的容器每次在启动的时候执行相同的可执行文件，那么你可以使用<code>ENTRYPOINT</code>指令配合<code>CMD</code>。</p>
+<h3 id="LABEL"><a href="#LABEL" class="headerlink" title="LABEL"></a><code>LABEL</code></h3><p>格式如下：<code>LABEL &lt;key&gt;=&lt;value&gt; &lt;key&gt;=&lt;value&gt; &lt;key&gt;=&lt;value&gt; ...</code></p>
+<p><code>LABEL</code>用于给镜像添加元数据，一个<code>LABEL</code>是一个键值对，要在<code>LABEL</code>值中包含空格，可以像在命令行解析中一样使用引号和反斜杠。看着几个例子：</p>
+<pre><code>    LABEL &quot;com.example.vendor&quot;=&quot;ACME Incorporated&quot;
+    LABEL com.example.label-with-value=&quot;foo&quot;
+    LABEL version=&quot;1.0&quot;
+    LABEL description=&quot;This text illustrates \
+    that label-values can span multiple lines.&quot;
+</code></pre><p>一个镜像可以有多个标签，可以有两种方式来写，例如下面：</p>
+<pre><code>    LABEL multi.label1=&quot;value1&quot; multi.label2=&quot;value2&quot; other=&quot;value3&quot;
+</code></pre><p>或者</p>
+<pre><code>    LABEL multi.label1=&quot;value1&quot; \
+          multi.label2=&quot;value2&quot; \
+          other=&quot;value3&quot;
+</code></pre><p>标签是可以继承的，新的镜像会继承在来自父镜像的<code>LABEL</code>,对于同名的标签，最近设置的会覆盖先前设置的，可以通过<code>docker inspect</code>查看镜像的标签：</p>
+<pre><code>    &quot;Labels&quot;: {
+            &quot;com.example.vendor&quot;: &quot;ACME Incorporated&quot;
+            &quot;com.example.label-with-value&quot;: &quot;foo&quot;,
+            &quot;version&quot;: &quot;1.0&quot;,
+            &quot;description&quot;: &quot;This text illustrates that label-values can span multiple lines.&quot;,
+            &quot;multi.label1&quot;: &quot;value1&quot;,
+            &quot;multi.label2&quot;: &quot;value2&quot;,
+            &quot;other&quot;: &quot;value3&quot;
+    },
+</code></pre><h3 id="EXPOSE"><a href="#EXPOSE" class="headerlink" title="EXPOSE"></a><code>EXPOSE</code></h3><pre><code>    EXPOSE &lt;port&gt; [&lt;port&gt;/&lt;protocol&gt;...]
+</code></pre><p><code>EXPOSE</code>指令用于声明docker容器在运行时监听的端口，你也可以指定监听的协议是TCP还是UDP，默认：TCP；</p>
+<p><code>EXPOSE</code>指令不实际发布端口。它用作构建镜像的人和运行容器的人之间的文档类型，关于哪个端口打算发布。要在运行容器时实际发布端口，可以在<code>docker run</code>上使用<code>-p</code>标志来发布和映射一个或多个端口，或使用<code>-P</code>标志来发布所有公开的端口并将它们映射到高阶端口。</p>
+<h3 id="ENV"><a href="#ENV" class="headerlink" title="ENV"></a><code>ENV</code></h3><pre><code>    ENV &lt;key&gt; &lt;value&gt;
+    ENV &lt;key&gt;=&lt;value&gt; ...
+</code></pre><p><code>ENV</code>指令用于设置环境变量<code>key</code>为值<code>value</code>, 这个值将存在于所有后代Dockerfile命令的环境中，并且可以在许多内联中被替换。</p>
+<p><code>ENV</code>有两种形式，第一种是：<code>ENV &lt;key&gt; &lt;value&gt;</code>, 将设置一个变量为一个值，<code>&lt;key&gt;</code>后面第一个空格之后的整个字符串将被视为<code>&lt;value&gt;</code> - 包括诸如空格和引号之类的字符。</p>
+<p>第二种形式是<code>ENV &lt;key&gt;=&lt;value&gt; ...</code>，允许同时设置多个变量。注意这种格式使用<code>=</code>进行赋值，同命令行解析一样，引号和反斜线可以用于去在值中包含空格，例如：</p>
+<pre><code>    ENV myName=&quot;John Doe&quot; myDog=Rex\ The\ Dog \
+        myCat=fluffy
+</code></pre><p>等同于：</p>
+<pre><code>    ENV myName John Doe
+    ENV myDog Rex The Dog
+    ENV myCat fluffy
+</code></pre><p>使用<code>ENV</code>设置的环境变量将保留在镜像中，你可以通过<code>docker inspect</code>命令查看，可以在运行时通过<code>docker run --env &lt;key&gt;=&lt;value&gt;</code>进行更改。</p>
+<h3 id="ADD"><a href="#ADD" class="headerlink" title="ADD"></a><code>ADD</code></h3><p><code>ADD</code>命令有两种格式：</p>
+<pre><code>    ADD [--chown=&lt;user&gt;:&lt;group&gt;] &lt;src&gt;... &lt;dest&gt;
+    ADD [--chown=&lt;user&gt;:&lt;group&gt;] [&quot;&lt;src&gt;&quot;,... &quot;&lt;dest&gt;&quot;]  这种格式允许路径中存在空格
+
+    --chown仅仅用于创建linux上的容器的时候
+</code></pre><p><code>ADD</code>用于从<code>&lt;src&gt;</code>指定的文件，目录或者远端URL复制文件，并且把他们添加到<code>&lt;dest&gt;</code>指定的镜像文件系统中。可以指定多个<code>&lt;src&gt;</code>，但如果他们是文件或者目录，他们相对于构建的上下文。</p>
+<pre><code>    ADD hom* /mydir/        # 添加所有以&quot;home&quot;开始的文件
+    ADD hom?.txt /mydir/    # ? 将被替换为任何单一的字符，例如： &quot;home.txt&quot;
+</code></pre><p><code>&lt;dest&gt;</code>是一个绝对路径，或者是一个相对<code>WORKDIR</code>路径，源数据将被复制到目标容器中。</p>
+<pre><code>    ADD test relativeDir/          # 添加&quot;test&quot;到 `WORKDIR`/relativeDir/
+    ADD test /absoluteDir/         # 添加&quot;test&quot;到 /absoluteDir/
+</code></pre><p>如果要添加的目录或者文件包含特殊字符，你需要去转义这些字符而遵循golang的规则，防止他们被当做一个匹配模式。例如，为了添加一个名为<code>arr[0].txt</code>的文件，可以这样做：</p>
+<pre><code>    ADD arr[[]0].txt /mydir/    # copy a file named &quot;arr[0].txt&quot; to /mydir/
+</code></pre><p>除非可选的<code>--chown</code>标志指定给定的用户名，组名或<code>UID</code>/<code>GID</code>组合来请求所添加内容的特定所有权，否则所有新文件和目录都将使用<code>UID</code>和<code>GID</code>为0创建。<code>--chown</code>标志的格式允许使用用户名和组名字符串，或者以任何组合方式直接使用整数<code>UID</code>和<code>GID</code>。如果只是提供了用户名而没有组名，或者只是提供了<code>UID</code>而没有提供<code>GID</code>，那么相同的<code>UID</code>将作为<code>GID</code>。下面展示使用<code>--chown</code>的例子：</p>
+<pre><code>    ADD --chown=55:mygroup files* /somedir/
+    ADD --chown=bin files* /somedir/
+    ADD --chown=1 files* /somedir/
+    ADD --chown=10:11 files* /somedir/
+</code></pre><p>如果容器根文件系统不包含<code>/etc/passwd</code>或<code>/etc/group</code>文件，并且在<code>--chown</code>标志中使用了用户名或组名，则构建将在ADD操作中失败。使用数字标识不需要查找，也不依赖于容器根文件系统内容。</p>
+<p>在<code>&lt;src&gt;</code>是远程文件URL的情况下，目标将具有600的权限，如果正在检索的远程文件具有HTTP<code>Last-Modified</code>标头，则将使用该标头的时间戳来设置目标文件上的<code>mtime</code>。但是，与在ADD过程中处理的任何其他文件一样，在确定文件是否已更改以及缓存是否应更新时，<code>mtime</code>将不会在考虑之内。</p>
+<p>需要注意以下几点：</p>
+<ol>
+<li><p>如果通过STDIN输入<code>Dockerfile</code>（<code>docker build - &lt; somefile</code>）,是没有构建上下文的，所以<code>Dockerfile</code>只能包含一个机遇URL的<code>ADD</code>指令；你也可以传递一个压缩文件（<code>docker build - &lt; archive.tar.gz</code>）,<code>Dockerfile</code>位于根目录下面，剩下的部分作为构建的上下文。</p>
+</li>
+<li><p>如果你的URL文件使用身份验证进行保护，则你将需要使用<code>RUN wget</code>，<code>RUN curl</code>或使用容器内的其他工具，<code>ADD</code>指令不支持身份验证。</p>
+</li>
+</ol>
+<p><code>ADD</code>指令遵循以下几个原则：</p>
+<ul>
+<li><p><code>&lt;src&gt;</code>路径必须存在于构建上下文中，你不能这样：<code>ADD ../something /something</code>；</p>
+</li>
+<li><p>如果<code>&lt;src&gt;</code>是一个URL并且<code>&lt;dest&gt;</code>不以结尾的斜杠结尾，那么文件将从URL下载并复制到<code>&lt;dest&gt;</code>，文件将从URL下载复制到<code>&lt;dest&gt;</code>;</p>
+</li>
+<li><p>如果<code>&lt;src&gt;</code>是一个URL，并且<code>&lt;dest&gt;</code>以结尾的斜杠结束，则从URL中推断出该文件名，并将该文件下载到<code>&lt;dest&gt;/&lt;filename&gt;。</code>例如，<code>ADD http://example.com/foobar /</code>会创建文件<code>/foobar</code>。</p>
+</li>
+<li><p>如果<code>&lt;src&gt;</code>是一个目录，则目录的整个内容将被复制，包括文件系统的元数据。</p>
+</li>
+<li><p>如果指定了多个<code>&lt;src&gt;</code>资源（直接或由于使用通配符），则<code>&lt;dest&gt;</code>必须是一个目录，并且必须以斜杠/结尾。</p>
+</li>
+<li><p>如果<code>&lt;dest&gt;</code>不以结尾的斜杠结尾，则它将被视为常规文件，<code>&lt;src&gt;</code>的内容将写入<code>&lt;dest&gt;</code>。</p>
+</li>
+<li><p>如果<code>&lt;dest&gt;</code>不存在，则会在路径中创建所有缺少的目录.</p>
+</li>
+</ul>
+<h3 id="COPY"><a href="#COPY" class="headerlink" title="COPY"></a><code>COPY</code></h3><p><code>COPY</code>命令有两种形式</p>
+<ul>
+<li><code>COPY [--chown=&lt;user&gt;:&lt;group&gt;] &lt;src&gt;... &lt;dest&gt;</code> </li>
+<li><code>COPY [--chown=&lt;user&gt;:&lt;group&gt;] [&quot;&lt;src&gt;&quot;,... &quot;&lt;dest&gt;&quot;]</code> 如果路径里面包含空格就用这中格式</li>
+</ul>
+<p><code>COPY</code>指令从<code>&lt;src&gt;</code>复制新的文件或者目录添加到容器文件系统中的<code>&lt;dest&gt;</code>路径。可以声明多个资源，但是文件或者目录的路径将被解释为相对于构建的上下文。文件路径中可以通配符：</p>
+<pre><code>    COPY hom* /mydir/        # adds all files starting with &quot;hom&quot;
+    COPY hom?.txt /mydir/    # ? is replaced with any single character, e.g., &quot;home.txt&quot;
+</code></pre><p><code>&lt;dest&gt;</code>是一个绝对路径或者相对于<code>WORKDIR</code>的路径</p>
+<pre><code>    COPY test relativeDir/   # adds &quot;test&quot; to `WORKDIR`/relativeDir/
+    COPY test /absoluteDir/  # adds &quot;test&quot; to /absoluteDir/
+</code></pre>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Docker/" rel="tag"># Docker</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/01/27/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%B8%80%E3%80%8B%EF%BC%9A%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4%EF%BC%8C%E5%B7%A5%E4%BD%9C%E5%8C%BA%EF%BC%8C%E5%8C%85%E7%AE%A1%E7%90%86/" rel="prev" title="Go语言基础《一》：基本命令，工作区，包管理">
+      <i class="fa fa-chevron-left"></i> Go语言基础《一》：基本命令，工作区，包管理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/10/28/GO-%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%BA%8C%E3%80%8B%EF%BC%9A%E5%8F%98%E9%87%8F%EF%BC%8C%E4%BD%9C%E7%94%A8%E5%9F%9F%EF%BC%8C%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2%EF%BC%8C%E6%BD%9C%E5%9C%A8%E7%B1%BB%E5%9E%8B/" rel="next" title="GO语言基础《二》：变量，作用域，类型转换，潜在类型">
+      GO语言基础《二》：变量，作用域，类型转换，潜在类型 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#用法"><span class="nav-number">1.</span> <span class="nav-text">用法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#格式"><span class="nav-number">2.</span> <span class="nav-text">格式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#解析器指令"><span class="nav-number">3.</span> <span class="nav-text">解析器指令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#escape"><span class="nav-number">4.</span> <span class="nav-text">escape</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dockerignore文件"><span class="nav-number">5.</span> <span class="nav-text">.dockerignore文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FROM"><span class="nav-number">6.</span> <span class="nav-text">FROM</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#理解ARG和FROM如何交互"><span class="nav-number">6.1.</span> <span class="nav-text">理解ARG和FROM如何交互</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RUN"><span class="nav-number">7.</span> <span class="nav-text">RUN</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CMD"><span class="nav-number">8.</span> <span class="nav-text">CMD</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LABEL"><span class="nav-number">9.</span> <span class="nav-text">LABEL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#EXPOSE"><span class="nav-number">10.</span> <span class="nav-text">EXPOSE</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ENV"><span class="nav-number">11.</span> <span class="nav-text">ENV</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ADD"><span class="nav-number">12.</span> <span class="nav-text">ADD</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#COPY"><span class="nav-number">13.</span> <span class="nav-text">COPY</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

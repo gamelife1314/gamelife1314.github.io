@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="从前我以为 SSH 只是为了登录到远程服务器，没想到它的端口转发这么强大，简直惊呆了我自己，首先我从今天遇到的问题先说起吧。我们服务器上跑了个数据库，当然它只配置了localhost访问，为了在不改变其他配置（新增用户，允许白名单域名访问）的情况下能访问数据库，该怎么办？答案是使用SSH 端口转发 例如，我的数据库运行在服务器：xinhuxx.com 上，那么现在本地建立端口转发：  ssh ro">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SSH 端口转发">
+<meta property="og:url" content="https://blog.fudenglong.site/2018/10/29/SSH%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:description" content="从前我以为 SSH 只是为了登录到远程服务器，没想到它的端口转发这么强大，简直惊呆了我自己，首先我从今天遇到的问题先说起吧。我们服务器上跑了个数据库，当然它只配置了localhost访问，为了在不改变其他配置（新增用户，允许白名单域名访问）的情况下能访问数据库，该怎么办？答案是使用SSH 端口转发 例如，我的数据库运行在服务器：xinhuxx.com 上，那么现在本地建立端口转发：  ssh ro">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/10/29/SSH%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/cover.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/10/29/SSH%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/dynamic.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/10/29/SSH%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/proxy.png">
+<meta property="article:published_time" content="2018-10-29T12:51:10.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.956Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="SSH">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2018/10/29/SSH%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/cover.png">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2018/10/29/SSH%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>SSH 端口转发 | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2018/10/29/SSH%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          SSH 端口转发
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-10-29 20:51:10" itemprop="dateCreated datePublished" datetime="2018-10-29T20:51:10+08:00">2018-10-29</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+
+          
+            <span id="/2018/10/29/SSH%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/" class="post-meta-item leancloud_visitors" data-flag-title="SSH 端口转发" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/10/29/SSH%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/10/29/SSH%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>从前我以为 SSH 只是为了登录到远程服务器，没想到它的端口转发这么强大，简直惊呆了我自己，首先我从今天遇到的问题先说起吧。我们服务器上跑了个数据库，当然它只配置了<code>localhost</code>访问，为了在不改变其他配置（新增用户，允许白名单域名访问）的情况下能访问数据库，该怎么办？答案是使用<strong>SSH 端口转发</strong></p>
+<p>例如，我的数据库运行在服务器：<code>xinhuxx.com</code> 上，那么现在本地建立端口转发：</p>
+<blockquote>
+<p>ssh root@xinhuxx.com -L 53306:127.0.0.1:3306 -N -f</p>
+</blockquote>
+<p>然后使用客户端连接数据库：</p>
+<blockquote>
+<p>mycli -h 127.0.0.1 -P 53306 -u root -p root app</p>
+</blockquote>
+<img src="/2018/10/29/SSH%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/cover.png" class="" title="SSH 端口转发">
+<a id="more"></a>
+<p><strong>SSH 端口转发</strong>也被称作SSH隧道，因为它们都是通过SSH登录之后，在<strong>SSH客户端</strong>与<strong>SSH服务端</strong>之间建立了一个隧道，从而进行通信。SSH隧道是非常安全的，因为SSH是通过加密传输数据的(SSH全称为Secure Shell)。</p>
+<p>在本文所有示例中，本地主机<strong>A</strong>为SSH客户端，远程云主机<strong>B</strong>为SSH服务端。从A1主机通过SSH登陆B1主机，指定不同的端口转发选项(<strong>-L</strong>、<strong>-R</strong>和 <strong>-D</strong>)，即可在A1与B1之间建立SSH隧道，从而进行不同的端口转发。在以下的示例中我们都假定<strong>B</strong>的ip为：<code>112.115.9.23</code>，它的防火墙只开放了<code>22</code>端口。</p>
+<h3 id="本地端口转发"><a href="#本地端口转发" class="headerlink" title="本地端口转发"></a>本地端口转发</h3><p>假设主机 <strong>B</strong> 上运行了一个服务，只绑定了 <code>127.0.0.1</code>，端口号为：<code>4000</code>，现在本地主机<strong>A</strong>需要访问这个服务，在没有端口转发的情况下主机<strong>A</strong>是无法访问到主机 <strong>B</strong> 上的这个服务的。我们进行端口转发，<strong>将发送到本地端口的请求，转发到目标端口</strong>，这样就可以通过访问本地端口进而访问远程主机服务，使用 <strong>-L</strong> 参数，指定需要转发的端口，参数规则是这样的：</p>
+<blockquote>
+<p>-L 本地网卡地址:本地端口:目标地址:目标端口</p>
+</blockquote>
+<p>其中<strong>本地网卡地址</strong>是可以省略的，默认为：<code>127.0.0.1</code>, 假设，我们将远程主机<code>4000</code>端口开启的服务绑定在本地<code>5555</code>端口上：</p>
+<blockquote>
+<p>ssh -L localhost:5555:localhost:4000 root@112.115.9.23 -N</p>
+</blockquote>
+<p>这样我们就可以像在主机 <strong>B</strong> 上一样访问这个服务了。这里的 <strong>-N</strong> 参数意思是：<strong>不执行命令，仅仅是为了端口转发</strong>。</p>
+<h3 id="远程端口转发"><a href="#远程端口转发" class="headerlink" title="远程端口转发"></a>远程端口转发</h3><p><strong>A</strong> 和 <strong>B</strong> 的角色换一下，我们现在在<strong>A</strong>上运行一个服务 <code>127.0.0.1:4000</code>, 现在远程主机 <strong>B</strong> 需要访问这个服务，需要进行远程端口转发，<strong>将发送到远程端口的请求，转发到目标端口</strong>，这样，就可以通过访问远程端口，来访问目标端口的服务。使用 <strong>-R</strong> 参数可以达到这个效果，参数形式是这样的：</p>
+<blockquote>
+<p>-R 远程网卡地址:远程端口:目标地址:目标端口</p>
+</blockquote>
+<p>假设，将远程主机的<code>5555</code>端口转发到本地的 <code>4000</code> 端口</p>
+<blockquote>
+<p>ssh -R localhost:5555:localhost:4000 root@112.115.9.23 -N</p>
+</blockquote>
+<p>这样就可以在远程主机<strong>B</strong>上通过 <code>localhost:5555</code> 来访问我们本地的 <code>4000</code> 端口开启的的服务了。</p>
+<h3 id="动态端口转发"><a href="#动态端口转发" class="headerlink" title="动态端口转发"></a>动态端口转发</h3><p>对于<code>本地端口转发</code>和<code>远程端口转发</code>，都存在两个一一对应的端口，分别位于SSH的客户端和服务端，而动态端口转发则只是绑定了一个本地端口，而<code>目标地址:目标端口</code>则是不固定的。<code>目标地址:目标端口</code>是由发起的请求决定的，比如，请求地址为<code>192.168.1.100:3000</code>，则通过SSH转发的请求地址也是<code>192.168.1.100:3000</code>。动态转发的参数形式这样的：</p>
+<blockquote>
+<p>-D 本地网卡地址:本地端口</p>
+</blockquote>
+<p>这时，通过动态端口转发，可以将在本地主机A发起的请求，转发到远程主机B，而由B去真正地发起请求。</p>
+<blockquote>
+<p>ssh -D localhost:5555 root@112.115.9.23 -N</p>
+</blockquote>
+<p>而在本地发起的请求，需要由Socket代理(<a href="https://en.wikipedia.org/wiki/SOCKS" target="_blank" rel="noopener">Socket Proxy</a>)转发到SSH绑定的<code>5555</code>端口。以 Mac 系统为例：</p>
+<p><img src="dynamic.png" alt="启动动态转发"></p>
+<p><img src="proxy.png" alt="启动动态转发"></p>
+<p>这样则在系统上，所有请求都会转发到 <code>5555</code> 端口，然后通过SSH构建的隧道进行转发，如果主机B能够访问外网的话，则可以实现科学上网。。。。</p>
+<h3 id="链式端口转发"><a href="#链式端口转发" class="headerlink" title="链式端口转发"></a>链式端口转发</h3><p>假设有这样三台机器你：<code>A</code>（你家的），<code>B</code>（公司的），<code>C</code>（云主机），满足这几个条件：</p>
+<ol>
+<li><code>A</code>， <code>B</code> 不在同一网段，<code>B</code> 没有公网IP，无法被直接访问到；</li>
+<li><code>A</code>， <code>B</code> 都可以远程登录到C；</li>
+<li><code>C</code> 的IP为：<code>112.115.9.23</code></li>
+</ol>
+<p>现在有这么个情况，你应该很熟悉的，<code>B</code>（公司）主机上运行了一个服务 <code>:3000</code>，需要在<code>A</code>（家）中同样以<code>:3000</code>访问，可以这样做：</p>
+<p>首先将<code>C</code>（云主机）的某个空闲端口，假如 <code>5555</code> 转发到 <code>B</code>（公司）的 <code>3000</code> 端口，在 <code>B</code>（公司）主机上这么操作：</p>
+<blockquote>
+<p>ssh -R 5555:localhost:3000 root@112.115.9.23</p>
+</blockquote>
+<p>然后，在<code>A</code>（家）中的主机上将本地的<code>3000</code>端口转发到<code>C</code>（云主机）的 <code>5555</code> 端口，在 <code>A</code>（家）主机上这么操作：</p>
+<blockquote>
+<p>ssh -L 3000:localhost:5555 root@112.115.9.23</p>
+</blockquote>
+<p>这两步完成之后，你就可以在家里访问公司电脑上运行的服务了。</p>
+<h3 id="参考阅读"><a href="#参考阅读" class="headerlink" title="参考阅读"></a>参考阅读</h3><ol>
+<li><a href="https://blog.fundebug.com/2017/04/24/ssh-port-forwarding/" target="_blank" rel="noopener">玩转端口转发</a></li>
+<li><a href="http://www.pchou.info/linux/2015/11/01/ssh-tunnel.html" target="_blank" rel="noopener">SSH隧道翻墙的原理和实现</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/SSH/" rel="tag"># SSH</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/10/29/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%B8%89%E3%80%8B%EF%BC%9A%E7%A8%8B%E5%BA%8F%E7%BB%93%E6%9E%84%E5%92%8C%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE/" rel="prev" title="Go语言基础《三》：程序结构和基本数据类型">
+      <i class="fa fa-chevron-left"></i> Go语言基础《三》：程序结构和基本数据类型
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/10/29/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E5%9B%9B%E3%80%8B%EF%BC%9A%E6%95%B0%E7%BB%84%E5%92%8C%E5%88%87%E7%89%87/" rel="next" title="Go语言基础《四》：数组和切片">
+      Go语言基础《四》：数组和切片 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#本地端口转发"><span class="nav-number">1.</span> <span class="nav-text">本地端口转发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#远程端口转发"><span class="nav-number">2.</span> <span class="nav-text">远程端口转发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#动态端口转发"><span class="nav-number">3.</span> <span class="nav-text">动态端口转发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#链式端口转发"><span class="nav-number">4.</span> <span class="nav-text">链式端口转发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考阅读"><span class="nav-number">5.</span> <span class="nav-text">参考阅读</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

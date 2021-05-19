@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="本篇文章不是讲docker原理以至于很多高深的概念，因为我不懂啊，我就是初学者，我就是想了解了解是个啥东西，看完之后能给自己给别人吹牛逼，我知道docker了，但是最后呢，再打一下自己的脸，对不起，我还不会用，哈哈哈，言归正传，我们说事情。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Docker 学习总结">
+<meta property="og:url" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:description" content="本篇文章不是讲docker原理以至于很多高深的概念，因为我不懂啊，我就是初学者，我就是想了解了解是个啥东西，看完之后能给自己给别人吹牛逼，我知道docker了，但是最后呢，再打一下自己的脸，对不起，我还不会用，哈哈哈，言归正传，我们说事情。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/1.jpg">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/2.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/3.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/4.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/5.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/6.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/7.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/virtual-machine.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/container-diagram.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/firstapp-run.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/8.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/9.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/10.png">
+<meta property="og:image" content="https://docs.docker.com/engine/article-img/engine-components-flow.png">
+<meta property="og:image" content="https://docs.docker.com/engine/article-img/architecture.svg">
+<meta property="article:published_time" content="2018-01-24T05:39:40.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.776Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="Docker">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/1.jpg">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Docker 学习总结 | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Docker 学习总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-01-24 13:39:40" itemprop="dateCreated datePublished" datetime="2018-01-24T13:39:40+08:00">2018-01-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Docker/" itemprop="url" rel="index">
+                    <span itemprop="name">Docker</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span id="/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" class="post-meta-item leancloud_visitors" data-flag-title="Docker 学习总结" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>28k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>25 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本篇文章不是讲docker原理以至于很多高深的概念，因为我不懂啊，我就是初学者，我就是想了解了解是个啥东西，看完之后能给自己给别人吹牛逼，我知道docker了，但是最后呢，再打一下自己的脸，对不起，我还不会用，哈哈哈，言归正传，我们说事情。</p>
+<img src="/2018/01/24/Docker-%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93/1.jpg" class="" title="cover">
+<a id="more"></a>
+<h3 id="docker为解决什么问题而生"><a href="#docker为解决什么问题而生" class="headerlink" title="docker为解决什么问题而生"></a>docker为解决什么问题而生</h3><p>学习一个新技术的时候，我总是喜欢弄清楚这个技术怎么来的，那我们也聊聊docker吧；你是否之前遇到这样的问题，一直困扰着你？</p>
+<ol>
+<li>开发个PHP，我至少要装个PHP，Apache，MySQL，有时候得装个redis或者memcache吧，好吧，那倒也不难，新手一天，老鸟一个小时也能搞定；</li>
+<li>哎，不行，我听说NGINX不错，我想试试，我还想玩玩Python，Java，我得弄个Tomcat，我操大部分的时间用在了安装软件上，我想要的能一键安装多好啊，想要哪个选哪个，自由组合；</li>
+<li>终于弄完了，Java web项目跑起来了，哎，我的PHP应用怎么访问不了了，我操，要是这些东西能独立开来多好啊，不要混在一起啊；</li>
+<li>吭哧吭哧一个月，项目要上线，线上环境还得弄，一个月之前我是怎么做的来？为啥在我的电脑上好使，到了服务器上就不行了呢？就不能有个能移动的环境吗，我这里弄好了，哪里都可以，在坑人这件事情上，试问苍天绕过谁？</li>
+<li>年纪大了，老板眷顾我，给我招了个小妹妹过来一起写代码，可是妹妹说新电脑环境我弄不好，整了半天还是有问题，哎，此生注定和安装软件结下不解之缘。</li>
+<li>。。。。。。。。。😔😔😔😔😔😔😔</li>
+</ol>
+<p>docker因运维而生，也是为运维服务，它提出的口号是：Build，Ship，and Run Any App，Anywhere</p>
+<p>可以看看作者的演讲PPT，<a href="https://www.slideshare.net/jpetazzo/docker-automation-for-the-rest-of-us?from_action=save" target="_blank" rel="noopener">https://www.slideshare.net/jpetazzo/docker-automation-for-the-rest-of-us?from_action=save</a></p>
+<h3 id="什么是docker？"><a href="#什么是docker？" class="headerlink" title="什么是docker？"></a>什么是docker？</h3><p>前面大概说了docker解决了什么问题，但是也没说完，因为说不完，它可以做的事情很多。像我这样的入门者，第一个问题当然是docker是什么，docker是啥，不同的人不同的说法。</p>
+<p>关于docker是什么，有个著名的隐喻：<strong>集装箱</strong>，但它却起了个<code>docker</code>的名字（码头搬用工），不管这个了。从集装箱你能想到什么，你可以把集装箱装在船只上，火车，火车或者飞机上随便跑，那么集装箱里面装的是什么东西呢？你的应用。形象吧，很形象，很符合docker的气质。为什么集装箱能被拉着到处跑，火车汽车飞机轮船都可以，因为它订了标准，就这么大，超过一寸一分都不行，正因为这个标准集装箱可以到处跑，docker也正是因为这个标准，可以装载着我门开发的“bug”满世界跑，运维工程师们就可以用标准化的工具让全世界看到我们可爱的“bug”。那么docker是什么？是个标准，针对<a href="https://baike.baidu.com/item/PAAS/219931?fr=aladdin" target="_blank" rel="noopener">PASS</a>的自动化运维工具，用过<a href="http://docs.ansible.com/ansible/latest/index.html" target="_blank" rel="noopener">ansible</a>的肯定记得要写playbook，playbook其实也就是个标准。</p>
+<hr>
+<p>以下是摘抄自：<a href="https://cloud.tencent.com/developer/article/1004996" target="_blank" rel="noopener">什么是 Docker ？</a></p>
+<p>如果你正好是一个运维工程师而且你正感觉你的运维环境一团糟，麻烦请你思考一下这是为什么？你是不是正在运维着一个使用 php、java、C#甚至 C/C++等用各种语言编写的应用都在运行的环境里？这个环境是不是因为某种历史原因，使你的操作系统运行着各个版本的内核甚至还有 windows？即使是同样语言编写的业务也运行着不同版本的库？你的整个系统环境是不是甚至找不出来两台硬件、操作系统、库版本以及语言版本完全一样的环境？于是你每次遇到问题都要去排查到底那个坑到底在那里？从网络、内核到应用逻辑。你每次遇到产品升级都要在各种环境上做稳定性测试，发现不同的环境代码 crash 的原因都不尽相同。你就像一个老中医一样去经历各种疑难杂症，如果遇到问题能找到原因甚至都是幸运的，绝大多数情况是解决了但不知道原因和没解决自动好了也不知道原因。于是你们在一个特定的公司的环境中积累着“经验”，成为你们组新手眼中的大神，凭借历经故障养成的条件反射在快速解决不断发生的重复问题，并故弄玄虚的说：这就是工作经验。因为经验经常是搞不清楚原因时的最后一个遮羞布。当别人抱怨你们部门效率低的时候，你一般的反应是：”you can you up，no can no 逼逼！“</p>
+<p>我花了这么多口舌吐槽运维，无非就是想提醒大家”运维标准化的重要性“这一显而不易见的事实。标准化了，才能提高效率。标准化了，才能基于标准建设属于你们系统的自动化运维。那么我们再来看看 docker 是怎么做的？</p>
+<p>首先，标准化就要有标准化的文档规范，要定义系统软件版本等一系列内容。规范好了之后，大家开始实施。但是在长期运维的过程中，很可能出现随着系统的发展，文档内容已经过时了，工程师又来不及更新文档的问题。怎么解决？docker 给出的答案是：用 dockerfile。dockerfile 就是你的文档，并且用来产生镜像。要改变 docker 镜像中的环境，先改 dockerfile，用它产生镜像就行了，保证文档和环境一致。那么现实是，有多少在使用 docker 的人是这样用的？你们是不是嫌这样麻烦，于是干脆直接在线 docker commit 产生镜像，让文档跟现场环境又不符了？或者我还是太理想，因为你们压根连文档都没有？</p>
+<p>其次，标准化要有对应用统一操作的方法。在现实中，即使你用的是 php 开发的应用，启动的方式都可能不尽相同。有用 apache 的，有用 nginx 的，还有用某种不知名 web 容器的，甚至是自己开发 web 容器的。如果操作范围扩大到包含 java 等其它语言，或数据库等其它服务，那么操作方式更是千奇百怪。虽然 UNIX 操作系统早就对此作了统一的规范，就是大家常见的把启动脚本放到/etc/rc.d 中，SYSV 标准中甚至规定了启动脚本该怎么写，应该有哪些方法。但是绝大多数人不知道，或者知道了也不这么做，他们习惯用./start 作为自己业务启动的唯一标准。甚至./是哪个目录可能都记不住。于是 docker 又给出了解决方案：我压根不管你怎么启动，你自己爱咋来咋来，我们用 docker start 或 run 作为统一标准。于是 docker start 可以启动一个 apache、nginx、jvm、mysql 等等。有人病垢 docker 的设计，质疑它为什么设计上一个容器内只给启动一个进程？这就是原因：人家压根不是为了给你当虚拟机用的，人家是为了给启动生产环境的进程做标准化的！</p>
+<hr>
+<h3 id="获取docker"><a href="#获取docker" class="headerlink" title="获取docker"></a>获取docker</h3><h4 id="docker版本及更新介绍"><a href="#docker版本及更新介绍" class="headerlink" title="docker版本及更新介绍"></a>docker版本及更新介绍</h4><p>Docker 有两个可用的版本，<strong>社区版：ommunity Edition (CE)</strong>， <strong>企业版：Enterprise Edition (EE)</strong>，Docker Community Edition（CE）非常适合希望开始使用Docker并尝试使用基于容器的应用程序的开发人员和小型团队，社区版有两个主要的更新通道，<strong>stage</strong>, <strong>edge</strong>:</p>
+<ul>
+<li>stage: 每个季度更新一次，稳定可靠</li>
+<li>edge:  每月更新一次，能够体验最新的功能</li>
+</ul>
+<p>Docker企业版（EE）专为企业级开发人员和IT团队而设计，他们在大规模生产中构建，发布和运行关键业务应用程序.</p>
+<p>Docker 社区版和企业版支持在云平台和本地多个平台上使用，可以根据下列的表格进行自主选择：</p>
+<style>
+    table th:first-of-type {
+        width: 30%;
+    }
+</style>
+
+<p><strong>Desktop</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Platform</th>
+<th style="text-align:center">Docker CE x86_64</th>
+<th style="text-align:center">Docker CE ARM</th>
+<th style="text-align:center">Docker EE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/docker-for-mac/install/" target="_blank" rel="noopener">Docker for Mac (macOS)</a>]</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/docker-for-windows/install/" target="_blank" rel="noopener">Docker for Windows (Microsoft Windows 10)</a></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Cloud</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Platform</th>
+<th style="text-align:center">Docker CE x86_64</th>
+<th style="text-align:center">Docker CE ARM</th>
+<th style="text-align:center">Docker EE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/docker-for-aws/" target="_blank" rel="noopener">Amazon Web Services</a></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/docker-for-azure/" target="_blank" rel="noopener">Microsoft Azure</a></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Server</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Platform</th>
+<th style="text-align:center"><code>Docker CE x86_64</code></th>
+<th style="text-align:center">Docker CE ARM</th>
+<th style="text-align:center">Docker CE ARM64</th>
+<th style="text-align:center">Docker CE IBM Z (s390x)</th>
+<th style="text-align:center"><code>Docker EE x86_64</code></th>
+<th style="text-align:center">Docker EE IBM Z (s390x)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/engine/installation/linux/centos/" target="_blank" rel="noopener">CentOS</a></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/engine/installation/linux/docker-ce/debian/" target="_blank" rel="noopener">Debian</a></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/engine/installation/linux/docker-ce/fedora/" target="_blank" rel="noopener">Fedora</a></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/engine/installation/windows/docker-ee/" target="_blank" rel="noopener">Microsoft Windows Server 2016</a></td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/engine/installation/linux/docker-ee/oracle/" target="_blank" rel="noopener">Oracle Linux</a></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/engine/installation/linux/docker-ee/rhel/" target="_blank" rel="noopener">Red Hat Enterprise Linux</a></td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+</tr>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/engine/installation/linux/docker-ee/suse/" target="_blank" rel="noopener">SUSE Linux Enterprise Server</a></td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">&nbsp;</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+</tr>
+<tr>
+<td style="text-align:center"><a href="https://docs.docker.com/engine/installation/linux/ubuntu/" target="_blank" rel="noopener">Ubuntu</a></td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">✅</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>基于时间的版本发布表</strong></p>
+<p>从docker17.03开始，docker采用了基于时间的版本更新计划，概览大概如下。企业版的发布时一年两次。</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Month</th>
+<th style="text-align:center">Docker CE Edge</th>
+<th style="text-align:center">Docker CE Stable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">January</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center">February</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center">March</td>
+<td style="text-align:center">✅&nbsp;🚩</td>
+<td style="text-align:center">✅</td>
+</tr>
+<tr>
+<td style="text-align:center">April</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center">May</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center">June</td>
+<td style="text-align:center">✅&nbsp;🚩</td>
+<td style="text-align:center">✅</td>
+</tr>
+<tr>
+<td style="text-align:center">July</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center">August</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center">September</td>
+<td style="text-align:center">✅&nbsp;🚩</td>
+<td style="text-align:center">✅</td>
+</tr>
+<tr>
+<td style="text-align:center">October</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center">November</td>
+<td style="text-align:center">✅</td>
+<td style="text-align:center">&nbsp;</td>
+</tr>
+<tr>
+<td style="text-align:center">December</td>
+<td style="text-align:center">✅&nbsp;🚩</td>
+<td style="text-align:center">✅</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>🚩: 在Linux发行版上，这些版本只会出现在<code>stable</code>的通道中，而不会出现在<code>edge</code>通道中。因此，在Linux发行版上，您需要启用这两个通道;</p>
+<p><strong>更新和补丁</strong></p>
+<ol>
+<li>给定的Docker EE版本将在发布后至少<code>一年</code>内收到补丁和更新；</li>
+<li>给定的Docker CE稳定版本将在下一个Docker CE稳定版本发布后的<code>一个月</code>内收到补丁和更新；</li>
+<li>给定的Docker CE Edge版本在后续的Docker CE Edge或Stable版本之后将不会收到任何补丁或更新。</li>
+</ol>
+<h4 id="安装docker"><a href="#安装docker" class="headerlink" title="安装docker"></a>安装docker</h4><p>因为我的开发平台是Mac，所以针对docker CE在Mac上的安装做个示例，其他平台可以参考官方给出的流程，<a href="https://docs.docker.com/engine/installation/" target="_blank" rel="noopener">官方docker安装文档</a>。</p>
+<hr>
+<p><a href="https://docs.docker.com/docker-for-mac/" target="_blank" rel="noopener">Docker for Mac</a>对系统的最低要求是macOS 10.10.3 Yosemite, 如果系统不满要求，那就得安装<a href="https://docs.docker.com/toolbox/overview/" target="_blank" rel="noopener">Docker Toolbox</a>.</p>
+<p><a href="http://brew.sh/" target="_blank" rel="noopener">Homebrew</a>的<a href="https://caskroom.github.io/" target="_blank" rel="noopener">Cask</a>已经支持docker for Mac，因此可以使用Homebrew Cask 来进行安装：</p>
+<blockquote>
+<p>brew cask install docker</p>
+</blockquote>
+<p>如果需要手动安装，可以下载<a href="https://download.docker.com/mac/stable/Docker.dmg" target="_blank" rel="noopener">stable</a>或者<a href="https://download.docker.com/mac/edge/Docker.dmg" target="_blank" rel="noopener">edge</a>,Mac上安装软件很简单，同安装其他软件一样，双击下载的<code>Docker.dmg</code>文件，然后只需把那只叫做<a href="https://blog.docker.com/2013/10/call-me-moby-dock/" target="_blank" rel="noopener">Moby</a>的鲸鱼图标复制到<code>Applications</code>文件夹即可；</p>
+<p><img src="2.png" alt="docker mac 安装"></p>
+<p>运行的时候只需要点击docker的图标就可以了；</p>
+<p><img src="3.png" alt="docker mac 启动"></p>
+<p>运行成功之后，上方菜单栏会出现docker的图标；</p>
+<p><img src="4.png" alt="docker mac 启动标识"></p>
+<p>初次启动的时候，可能会有如下信息：</p>
+<p><img src="5.png" alt="docker dor mac first"></p>
+<p>启动成功之后将会看到：</p>
+<p><img src="6.png" alt="docker dor mac running"></p>
+<p>启动终端，查看docker是否安装成功：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">➜  ~ docker --version</span><br><span class="line">Docker version 17.12.0-ce, build c97c6d6</span><br><span class="line">➜  ~ docker-machine --version</span><br><span class="line">docker-machine version 0.13.0, build 9ba6da9</span><br><span class="line">➜  ~ docker-compose --version</span><br><span class="line">docker-compose version 1.18.0, build 8dd22a9</span><br></pre></td></tr></table></figure>
+<p>如果<code>docker version</code>，<code>docker info</code> 都运行正确的话，可以尝试启动一个<a href="https://store.docker.com/images/nginx" target="_blank" rel="noopener">nginx</a>试试：</p>
+<p><code>docker run -d -p 8090:80 --name webserver nginx</code></p>
+<p>一切正常的话，打开浏览器，输入：<code>http://localhost:8090</code>你将看到：</p>
+<p><img src="7.png" alt="docker mac nginx"></p>
+<p>列出你创建的容器：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">➜  ~ docker container ls -a</span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                  NAMES</span><br><span class="line">e8f1f0e34944        nginx               &quot;nginx -g &#39;daemon of…&quot;   3 minutes ago       Up 3 minutes        0.0.0.0:8090-&gt;80&#x2F;tcp   webserver</span><br></pre></td></tr></table></figure></p>
+<p>停止启动的容器：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">➜  ~ docker container stop e8f1f0e34944</span><br><span class="line">e8f1f0e34944</span><br></pre></td></tr></table></figure>
+<p>删除你创建的容器：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">➜  ~ docker container rm e8f1f0e34944</span><br><span class="line">e8f1f0e34944</span><br></pre></td></tr></table></figure>
+<p>查看已经下载的镜像：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">➜  ~ docker image ls</span><br><span class="line">REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE</span><br><span class="line">nginx               latest              3f8a4339aadd        4 weeks ago         108MB</span><br></pre></td></tr></table></figure>
+<h4 id="镜像服务（加速器）"><a href="#镜像服务（加速器）" class="headerlink" title="镜像服务（加速器）"></a>镜像服务（加速器）</h4><p>我们常用的Registry是docker官方的<a href="https://hub.docker.com/" target="_blank" rel="noopener">Docker Hub</a>,这也是默认的 Registry，并拥有大量的高质量的官方镜像。还有<a href="https://quay.io/repository/" target="_blank" rel="noopener">quay.io</a>。由于某些原因，在国内访问这些服务可能会比较慢。国内的一些云服务商提供了针对 Docker Hub 的镜像服务（Registry Mirror），这些镜像服务被称为加速器。常见的有：<a href="https://cr.console.aliyun.com/#/accelerator" target="_blank" rel="noopener">阿里云加速器</a>,<a href="https://www.daocloud.io/mirror#accelerator-doc" target="_blank" rel="noopener">DaoCloud加速器</a>；</p>
+<h3 id="开始使用docker"><a href="#开始使用docker" class="headerlink" title="开始使用docker"></a>开始使用docker</h3><p>经过上面的步骤，想必你现在已经非常激动准备学习docker了，那我们就试试吧。接下来的教程中我们将分为以下六个部分来介绍：</p>
+<ol>
+<li><a href="#docker定位">Orientation（定位）</a></li>
+<li><a href="#构建并运行你的第一个应用程序">Build and run your first app</a></li>
+<li>Turn your app into a scaling service</li>
+<li>Span your service across multiple machines</li>
+<li>Add a visitor counter that persists data</li>
+<li>Deploy your swarm to production</li>
+</ol>
+<p>应用程序本身非常简单，所以你不会被代码干扰太多。毕竟，Docker的价值在于它如何构建，发布和运行应用程序;对于你的应用程序实际上做什么是完全不可知的。</p>
+<h4 id="docker定位"><a href="#docker定位" class="headerlink" title="docker定位"></a>docker定位</h4><p>我们一直在定义新的概念，所以非常建议在开始之前阅读一下<a href="https://www.docker.com/what-docker" target="_blank" rel="noopener">什么是docker</a></p>
+<p>在继续开始之前，你也需要掌握以下的基本知识：</p>
+<ul>
+<li>IP地址和端口</li>
+<li>虚拟机</li>
+<li>编辑配置文件</li>
+<li>基本熟悉代码依赖和构建的概念</li>
+<li>机器资源属于, 像CPU利用率，RAM使用</li>
+</ul>
+<h5 id="容器的简要说明"><a href="#容器的简要说明" class="headerlink" title="容器的简要说明"></a>容器的简要说明</h5><p>镜像（image）是一个轻量级的，独立的可执行程序包，包含运行一个软件所需的所有东西，包括代码，运行时，库，环境变量和配置文件。</p>
+<p>容器是镜像的运行时示例，镜像运行时在内存中变成的内容，默认情况下，它与主机完全隔离，只有在配置的情况下才可访问主机的端口和文件。</p>
+<p>容器在系统内核上就地运行应用程序，同通过管理程序获得一个接入主机资源的虚拟机相比，他有更好的性能特点，容器可以获得本地访问权限，每个容器都以独立的进程运行，相比其他的应用程序，不需要更多的内存。</p>
+<h5 id="虚拟机-VS-容器"><a href="#虚拟机-VS-容器" class="headerlink" title="虚拟机 VS 容器"></a>虚拟机 VS 容器</h5><p>虚拟机运行应用程序的原理：</p>
+<p><img src="virtual-machine.png" alt="virtual machine"></p>
+<p>虚拟机运行客户操作系统， 注意在每个box中都有一个系统层。这是资源密集型，这将导致磁盘镜像，应用程序状态同系统设置，系统安装的依赖以及系统补丁纠缠在一起，而且容易丢失，很难复制。传统虚拟机技术就是虚拟出一套硬件后，在其上运行一个完整操作系统，在该系统上再运行所需应用进程；</p>
+<p>容器运行应用程序的原理：</p>
+<p><img src="container-diagram.png" alt="container 原理图"></p>
+<p>容器可以共享一个内核，并且唯一需要在容器镜像中的信息是可执行文件及其包依赖关系，它们永远不需要安装在主机系统上。这些进程的运行就如同本地的进程一样，你可以使用<code>docker ps</code>命令管理他们，就像你在linux平台使用<code>ps</code>命令查看本地进程一样，最后，因为他们包含了所有的依赖关系，就没有配置依赖的纠葛。一个集装箱化的应用程序可以随处运行。</p>
+<h4 id="构建并运行你的第一个应用程序"><a href="#构建并运行你的第一个应用程序" class="headerlink" title="构建并运行你的第一个应用程序"></a>构建并运行你的第一个应用程序</h4><p>在本节开始之前，你可以运行<code>docker run hello-world</code>去测试你是否已经成功安装好docker了，不出问题，你将看到下面的结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">➜  ~ docker run hello-world</span><br><span class="line">Unable to find image &#39;hello-world:latest&#39; locally</span><br><span class="line">latest: Pulling from library&#x2F;hello-world</span><br><span class="line">ca4f61b1923c: Pull complete</span><br><span class="line">Digest: sha256:66ef312bbac49c39a89aa9bcc3cb4f3c9e7de3788c944158df3ee0176d32b751</span><br><span class="line">Status: Downloaded newer image for hello-world:latest</span><br><span class="line"></span><br><span class="line">Hello from Docker!</span><br><span class="line">This message shows that your installation appears to be working correctly.</span><br><span class="line"></span><br><span class="line">To generate this message, Docker took the following steps:</span><br><span class="line"> 1. The Docker client contacted the Docker daemon.</span><br><span class="line"> 2. The Docker daemon pulled the &quot;hello-world&quot; image from the Docker Hub.</span><br><span class="line">    (amd64)</span><br><span class="line"> 3. The Docker daemon created a new container from that image which runs the</span><br><span class="line">    executable that produces the output you are currently reading.</span><br><span class="line"> 4. The Docker daemon streamed that output to the Docker client, which sent it</span><br><span class="line">    to your terminal.</span><br><span class="line"></span><br><span class="line">To try something more ambitious, you can run an Ubuntu container with:</span><br><span class="line"> $ docker run -it ubuntu bash</span><br><span class="line"></span><br><span class="line">Share images, automate workflows, and more with a free Docker ID:</span><br><span class="line"> https:&#x2F;&#x2F;cloud.docker.com&#x2F;</span><br><span class="line"></span><br><span class="line">For more examples and ideas, visit:</span><br><span class="line"> https:&#x2F;&#x2F;docs.docker.com&#x2F;engine&#x2F;userguide&#x2F;</span><br></pre></td></tr></table></figure>
+<h5 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h5><p>现在是时候用docker的方式构建一个应用程序了，我们将从这个应用程序的底部开始构建，这个应用程序是一个容器，然后我们再在这一层上添加新的东西。在这个层次上面是一个服务，它定义了容器在生产环境中的行为，这个将在接下里的一节中讲到。最后在顶层是stacks，定义所有服务的交互，将在第五部分讲到。结构层次大概是这样式的：</p>
+<ul>
+<li>stacks</li>
+<li>Services</li>
+<li>containers（我们现在在这里）</li>
+</ul>
+<h5 id="Your-new-development-environment"><a href="#Your-new-development-environment" class="headerlink" title="Your new development environment"></a>Your new development environment</h5><p>过去，你写一个PythonAPP的时候，流程的第一步就是在你的电脑上安装Python运行库。但是这将造成这样的情况，不仅需要一个能完美运行应用程序的本地环境，同时还需要一个与之匹配的生产环境。</p>
+<p>使用docker，你可以将一个基础的可移植的Python运行环境作为一个镜像，然后你的构建将包括Python基础的镜像和你的应用程序代码，确保你的应用程序，它的依赖和运行时都是在一起的。</p>
+<p>这些可移植的镜像可以由一个叫做<code>Dockerfile</code>的文件来进行定义。</p>
+<h5 id="Dockerfile"><a href="#Dockerfile" class="headerlink" title="Dockerfile"></a>Dockerfile</h5><p>接下来要跟着一起来动手了，只有在动手的过程中才能体会到生命的乐趣。创建一个新的目录，并且切换到新的目录下创建一个文件：<code>Dockerfile</code>，复制粘贴下面的内容然后保存，可以看看里面的解释。</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 使用一个官方的Python运行时作为基础</span></span><br><span class="line"><span class="keyword">FROM</span> python:<span class="number">3.6</span>-slim</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置工作目录为/app</span></span><br><span class="line"><span class="keyword">WORKDIR</span><span class="bash"> /app</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 复制当前目录的内容到/app</span></span><br><span class="line"><span class="keyword">ADD</span><span class="bash"> . /app</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装requirements.txt中声明包</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> pip install --trusted-host mirrors.aliyun.com --index http://mirrors.aliyun.com/pypi/simple/ -r requirements.txt</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 暴露端口80给容器外部的环境</span></span><br><span class="line"><span class="keyword">EXPOSE</span> <span class="number">80</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 定义一个环境变量</span></span><br><span class="line"><span class="keyword">ENV</span> NAME World</span><br><span class="line"></span><br><span class="line"><span class="comment"># 当容器启动的时候运行app.py</span></span><br><span class="line"><span class="keyword">CMD</span><span class="bash"> [<span class="string">"python"</span>, <span class="string">"app.py"</span>]</span></span><br></pre></td></tr></table></figure>
+<p><code>Dockerfile</code>中涉及到几个文件我们还没有创建，<code>app.py</code>以及<code>requirements.txt</code>。</p>
+<h5 id="应用程序"><a href="#应用程序" class="headerlink" title="应用程序"></a>应用程序</h5><p>我们在<code>Dockerfile</code>所在的目录下再创建两个文件：<code>app.py</code>以及<code>requirements.txt</code>，文件内容如下所述，这就算是补全我们的应用程序，虽说简单，但是五脏俱全。</p>
+<p>requirements.txt</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Flask</span><br><span class="line">Redis</span><br></pre></td></tr></table></figure>
+<p>app.py</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask</span><br><span class="line"><span class="keyword">from</span> redis <span class="keyword">import</span> Redis, RedisError</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"></span><br><span class="line"><span class="comment"># Connect to Redis</span></span><br><span class="line">redis = Redis(host=<span class="string">"redis"</span>, db=<span class="number">0</span>, socket_connect_timeout=<span class="number">2</span>, socket_timeout=<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route("/")</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hello</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        visits = redis.incr(<span class="string">"counter"</span>)</span><br><span class="line">    <span class="keyword">except</span> RedisError:</span><br><span class="line">        visits = <span class="string">"&lt;i&gt;cannot connect to Redis, counter disabled&lt;/i&gt;"</span></span><br><span class="line"></span><br><span class="line">    html = <span class="string">"&lt;h3&gt;Hello &#123;name&#125;!&lt;/h3&gt;"</span> \</span><br><span class="line">           <span class="string">"&lt;b&gt;Hostname:&lt;/b&gt; &#123;hostname&#125;&lt;br/&gt;"</span> \</span><br><span class="line">           <span class="string">"&lt;b&gt;Visits:&lt;/b&gt; &#123;visits&#125;"</span></span><br><span class="line">    <span class="keyword">return</span> html.format(name=os.getenv(<span class="string">"NAME"</span>, <span class="string">"world"</span>), hostname=socket.gethostname(), visits=visits)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line">    app.run(host=<span class="string">'0.0.0.0'</span>, port=<span class="number">80</span>)</span><br></pre></td></tr></table></figure>
+<p>现在我们将看到<code>pip install -r requirements.txt</code>安装了flask和redis的Python扩展，应用将打印环境变量<code>NAME</code>以及<code>socker.gethostname()</code>的输出，但是由于我们没有安装redis服务，所以我们期望这里打印错误信息。</p>
+<h5 id="build-app"><a href="#build-app" class="headerlink" title="build app"></a>build app</h5><p>现在我们构建我们的APP，在开始构建的使我们，在我们的应用目录下执行<code>ls</code>，应该至少看到以下这几个文件：<code>Dockerfile, requirements.txt, app.py</code></p>
+<p>现在我们执行构建命令，这将创建一个新的镜像，我们也使用<code>-t</code>创建一个友好的标签。</p>
+<pre><code>    docker build -t firstapp .
+</code></pre><p>构建的惊险在哪里？可以使用<code>docker images</code> 查看</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">➜  firstapp docker images</span><br><span class="line">REPOSITORY          TAG                 IMAGE ID            CREATED              SIZE</span><br><span class="line">firstapp            latest              75d0aed11846        About a minute ago   166MB</span><br></pre></td></tr></table></figure>
+<h5 id="Run-the-app"><a href="#Run-the-app" class="headerlink" title="Run the app"></a>Run the app</h5><p>运行容器的时候，我们将使用<code>-p</code>参数将主机的<code>4040</code>端口映射到容器的80端口：</p>
+<pre><code>    docker run -p 4040:80 firstapp
+</code></pre><p>启动成功的时候你将看到一个来自容器内部的消息：<code>* Running on http://0.0.0.0:80/ (Press CTRL+C to quit)</code>, 因为容器并不知道我们将80端口映射到了<code>4040</code>，所以在浏览器中输入以下URL进行访问：<code>http://localhost:4040</code>,我们将看到以下的结果：</p>
+<p><img src="firstapp-run.png" alt="firstapp-run"></p>
+<p style="color: red">使用`CTRL+C`进行退出</p>
+
+<p>现在我们将以分离模式在后台运行我们的应用程序，这个命令将返回一个运行应用程序的容器ID：</p>
+<pre><code>    docker run -d -p 4040:80 firstapp
+</code></pre><p>我们的容器现在运行与后台，可以通过：<code>docker container ls</code>命令查看正在运行的容器机器信息：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">➜  firstapp docker container ls</span><br><span class="line">CONTAINER ID        IMAGE               COMMAND             CREATED              STATUS              PORTS                  NAMES</span><br><span class="line">869b8478cea7        firstapp            &quot;python app.py&quot;     About a minute ago   Up About a minute   0.0.0.0:4040-&gt;80&#x2F;tcp   flamboyant_wright</span><br></pre></td></tr></table></figure>
+<p>现在我们可以使用<code>docker container stop {containerID}</code>来结束容器进程，例如：<code>docker container stop 869b8478cea7</code></p>
+<h5 id="share-your-image"><a href="#share-your-image" class="headerlink" title="share your image"></a>share your image</h5><p>为了验证可移植性，我们将刚刚创建的镜像上传然后在其他地方运行。毕竟你需要知道当部署应用到生产环境的时候如何推送镜像到registry。一个registry是一系列的集合，一个仓库是一系列镜像的集合。一个 Docker Registry 中可以包含多个仓库（Repository）；每个仓库可以包含多个标签（Tag）；每个标签对应一个镜像。</p>
+<p>通常，一个仓库会包含同一个软件不同版本的镜像，而标签就常用于对应该软件的各个版本。我们可以通过 <code>&lt;仓库名&gt;:&lt;标签&gt;</code> 的格式来指定具体是这个软件哪个版本的镜像。如果不给出标签，将以 <code>latest</code> 作为默认标签。</p>
+<p>以 Ubuntu 镜像 为例，ubuntu 是仓库的名字，其内包含有不同的版本标签，如，14.04, 16.04。我们可以通过 <code>ubuntu:14.04</code>，或者 <code>ubuntu:16.04</code> 来具体指定所需哪个版本的镜像。如果忽略了标签，比如 <code>ubuntu</code>，那将视为 <code>ubuntu:latest</code>。</p>
+<p>仓库名经常以 两段式路径 形式出现，比如 <code>jwilder/nginx-proxy</code>，前者往往意味着 Docker Registry 多用户环境下的用户名，后者则往往是对应的软件名。但这并非绝对，取决于所使用的具体 Docker Registry 的软件或服务。</p>
+<p>执行命令<code>docker login</code>使用dockerID进行登录。</p>
+<p>执行命令<code>docker tag image username/repository:tag</code> 给镜像打标签，例如：<code>docker tag firstapp gamelife1314/firstapp:0.1</code></p>
+<p>执行命令<code>docker push gamelife1314/firstapp:0.1</code>发布镜像；</p>
+<p>发布成功之后我们可以使用<code>docker run -p 4040:80 gamelife1314/firstapp:0.1</code>在任何机器上运行我们的应用程序了。</p>
+<h5 id="本节常用docker命令列表"><a href="#本节常用docker命令列表" class="headerlink" title="本节常用docker命令列表"></a>本节常用docker命令列表</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">docker build -t friendlyhello .                     # 使用当前目录下的Dockerfile创建镜像</span><br><span class="line">docker run -p 4000:80 friendlyhello                 # 运行&quot;friendlyhello&quot;镜像，并且将主机4000端口映射到容器内部80端口</span><br><span class="line">docker run -d -p 4000:80 friendlyhello              # 同上，但是该容器以分离模式运行在后台</span><br><span class="line">docker container ls                                 # 列出所有正在运行的容器</span><br><span class="line">docker container ls -a                              # 列出所有容器，即使停止运行的</span><br><span class="line">docker container stop &lt;hash&gt;                        # 平缓终止指定的容器</span><br><span class="line">docker container kill &lt;hash&gt;                        # 强制终止指定的容器</span><br><span class="line">docker container rm &lt;hash&gt;                          # 删除指定的容器</span><br><span class="line">docker container rm $(docker container ls -a -q)    # 删除所有容器</span><br><span class="line">docker image ls -a                                  # 列出本机上所有镜像</span><br><span class="line">docker image rm &lt;image id&gt;                          # 从本机移除指定的容器</span><br><span class="line">docker image rm $(docker image ls -a -q)            # 从本机上删除所有镜像</span><br><span class="line">docker login                                        # 使用docker信令登录当前会话</span><br><span class="line">docker tag &lt;image&gt; username&#x2F;repository:tag          # 给镜像打标签，然后上传</span><br><span class="line">docker push username&#x2F;repository:tag                 # 上传标签化的镜像</span><br><span class="line">docker run username&#x2F;repository:tag                  # 从registry运行镜像</span><br></pre></td></tr></table></figure>
+<h4 id="Services"><a href="#Services" class="headerlink" title="Services"></a>Services</h4><p>在这部分中，我们扩展了应用程序并实现了负载平衡。要做到这一点，我们必须在分布式应用程序的层次结构中上一级：服务。</p>
+<p>在分布式应用程序中，应用程序的不同部分被称为“服务”。例如，如果您想象一个视频共享站点，它可能包括一个用于将应用程序数据存储在数据库中的服务，后台运行的转码服务，一个用于前端的服务等等。</p>
+<p>服务实际上只是“生产中的容器”。服务只运行一个镜像，但它定义了镜像运行的方式 - 应该使用哪个端口，容器应该运行多少个副本以便达到所需的容量，以及等等。Scaling a service changes the number of container instances running that piece of software, assigning more computing resources to the service in the process（扩展一个服务会改变运行该软件的容器实例的数量，已分配给程序中的服务更多的计算资源）.</p>
+<h5 id="第一个docker-compose-yaml文件格式"><a href="#第一个docker-compose-yaml文件格式" class="headerlink" title="第一个docker-compose.yaml文件格式"></a>第一个<code>docker-compose.yaml</code>文件格式</h5><p><code>docker-compose.yaml</code>是一个YAML格式的文件，描述了生产环境中docker的行为方式。</p>
+<p><code>docker-compose.yaml</code>:<br><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">version:</span> <span class="string">"3"</span></span><br><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">web:</span></span><br><span class="line">    <span class="comment"># 使用前一节创建的镜像</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">gamelife1314/firstapp:0.1</span></span><br><span class="line">    <span class="attr">deploy:</span></span><br><span class="line">      <span class="attr">replicas:</span> <span class="number">5</span></span><br><span class="line">      <span class="attr">resources:</span></span><br><span class="line">        <span class="attr">limits:</span></span><br><span class="line">          <span class="attr">cpus:</span> <span class="string">"0.1"</span></span><br><span class="line">          <span class="attr">memory:</span> <span class="string">50M</span></span><br><span class="line">      <span class="attr">restart_policy:</span></span><br><span class="line">        <span class="attr">condition:</span> <span class="string">on-failure</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">"4040:80"</span></span><br><span class="line">    <span class="attr">networks:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">webnet</span></span><br><span class="line"><span class="attr">networks:</span></span><br><span class="line">  <span class="attr">webnet:</span></span><br></pre></td></tr></table></figure></p>
+<p>这个<code>docker-compose.yaml</code> 告诉docker做以下的事情：</p>
+<ul>
+<li>从registry中拉取创建的镜像；</li>
+<li>运行镜像的5个实例作为一个服务叫做<code>web</code>，限制每一个实例使用资源的上限 10% of the CPU (across all cores), 以及 50MB of RAM.</li>
+<li>如果有一个失败，立即重启容器；</li>
+<li>映射主机的4040端口到容器的80端口；</li>
+<li>指示web容器通过叫做webnet的负载均衡网络共享端口80；</li>
+<li>使用默认设置定义webnet网络；</li>
+</ul>
+<h5 id="运行你的负载均衡应用程序"><a href="#运行你的负载均衡应用程序" class="headerlink" title="运行你的负载均衡应用程序"></a>运行你的负载均衡应用程序</h5><p>首先运行命令：<code>docker swarm init</code></p>
+<p>然后运行：<code>docker stack deploy -c docker-compose.yaml firstapp</code> firstapp是应用程序名称；</p>
+<p>我们单个service stack 在一个主机上运行了镜像的5个实例，可以通过<code>docker srevice ls</code>查看我们应用的服务id；</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">➜  firstapp docker service ls</span><br><span class="line">ID                  NAME                MODE                REPLICAS            IMAGE                       PORTS</span><br><span class="line">vyonexbatp5t        firstapp_web        replicated          5&#x2F;5                 gamelife1314&#x2F;firstapp:0.1   *:4040-&gt;80&#x2F;tcp</span><br></pre></td></tr></table></figure>
+<p>从输出可以看到，我们服务的id（<code>vyonexbatp5t</code>），名称(<code>firstapp_web</code>)，模式<code>replicated</code>，副本个数以及端口映射；</p>
+<p>运行于一个服务中的一个容器叫做<strong>task</strong>(A single container running in a service is called a task), 每个task都有一个数字增加唯一的ID，最终同你在docker-composer.yaml中定义的数量一致；我们通过如下命令查看service中的task：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">➜  firstapp docker service ps firstapp_web</span><br><span class="line">ID                  NAME                IMAGE                       NODE                    DESIRED STATE       CURRENT STATE           ERROR               PORTS</span><br><span class="line">qiomtjzp1wer        firstapp_web.1      gamelife1314&#x2F;firstapp:0.1   linuxkit-025000000001   Running             Running 8 minutes ago</span><br><span class="line">m86tz9u8nc8p        firstapp_web.2      gamelife1314&#x2F;firstapp:0.1   linuxkit-025000000001   Running             Running 8 minutes ago</span><br><span class="line">r2sh5vc9svno        firstapp_web.3      gamelife1314&#x2F;firstapp:0.1   linuxkit-025000000001   Running             Running 8 minutes ago</span><br><span class="line">ukz1xon9fm63        firstapp_web.4      gamelife1314&#x2F;firstapp:0.1   linuxkit-025000000001   Running             Running 8 minutes ago</span><br><span class="line">wkbb1mhejp1q        firstapp_web.5      gamelife1314&#x2F;firstapp:0.1   linuxkit-025000000001   Running             Running 8 minutes ago</span><br></pre></td></tr></table></figure></p>
+<p>如果你只列出系统中的所有容器，也会显示任务，但不会按服务过滤，使用下列命令可以查看服务的task：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">➜  firstapp docker container ls -q</span><br><span class="line">c54e64d866bf</span><br><span class="line">5de4b75faeff</span><br><span class="line">e036d76ffa62</span><br><span class="line">1a96c0d4e293</span><br><span class="line">17b2ef20a6ce</span><br></pre></td></tr></table></figure>
+<p>通过在浏览器中访问：<code>http://localhost:4040</code>可以看到每次请求的时候，hostname都会变化，因为我们启动了5个实例，每个实例都在各自的容器中运行，每次请求的时候基于轮询机制选择一个container处理请求；</p>
+<p>但你需要扩展你的应用的时候，你只需要更改<code>docker-compose.yaml</code>中的<code>replicas</code>的数量，然后重新执行<code>docker stack deploy</code>命令：</p>
+<pre><code>    docker stack deploy -c docker-compose.yaml firstapp
+</code></pre><p>停止APP和swarm：</p>
+<ul>
+<li>停止应用：<code>docker stack rm firstapp</code></li>
+<li>停止swarm： <code>docker swarm leave --force</code></li>
+</ul>
+<h5 id="本节用到的docker命令"><a href="#本节用到的docker命令" class="headerlink" title="本节用到的docker命令"></a>本节用到的docker命令</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker stack ls                                            # List stacks or apps</span><br><span class="line">docker stack deploy -c &lt;composefile&gt; &lt;appname&gt;             # 运行指定compose文件</span><br><span class="line">docker service ls                                          # List running services associated with an app</span><br><span class="line">docker service ps &lt;service&gt;                                # List tasks associated with an app</span><br><span class="line">docker inspect &lt;task or container&gt;                         # 内省容器或者任务</span><br><span class="line">docker container ls -q                                     # 列出容器ID</span><br><span class="line">docker stack rm &lt;appname&gt;                                  # 停止应用</span><br><span class="line">docker swarm leave --force                                 # Take down a single node swarm from the manager</span><br></pre></td></tr></table></figure>
+<h4 id="Swarms"><a href="#Swarms" class="headerlink" title="Swarms"></a>Swarms</h4><p>在前一节，我们将我们开发的<code>firstapp</code>通过转化为服务来定义应该如何在生产中运行，并在此过程中将运行的进程数量扩展5倍。</p>
+<p>本节中，我们将把我们的应用部署在一个集群中，并在多台机器上运行它。通过将多台机器连接到称为集群的“Dockerized”集群，使多容器，多机器应用成为可能。</p>
+<p>什么是swarm？swarm是一群运行着docker并加入到集群的一组机器。在这之后，我们可以继续运行docker命令，但是它是由docker集群管理器在集群上运行。集群中的机器可以是物理的也可以是虚拟的。在加入集群后，他们被称为节点。</p>
+<p>Swarm管理器可以使用多种策略来运行容器，比如“最空的节点”（emptiest node）-—— 它用容器填充最少使用的机器。或“全局”，这确保了每台机器只能得到指定容器的一个实例。你可以指示swarm manager在Compose文件中使用这些策略。</p>
+<p>swarm管理器是集群中唯一可以执行你命令的机器，以及认证其他的机器以加入swarm集群成为一个worker，worker在那里仅仅提供能力，并没有权利去告诉其他机器做什么。</p>
+<p>到目前未知，我们还只是在本地机器上使用docker，但是docker可以切换到swarm模式，切换到swarm模式之后，会使当前机器成为一个swam管理器，从接下来开始，docker会在swarm上运行你的命令，而不仅仅是在当前机器上。</p>
+<h5 id="创建并设置swarm"><a href="#创建并设置swarm" class="headerlink" title="创建并设置swarm"></a>创建并设置swarm</h5><p>首先应用：<code>docker searm init</code>命令使本机成为了swarm管理器，然后在其他机器上执行命令：<code>docker swarm join</code>加入我们创建的集群；</p>
+<p><span style="color: red">Local VMs (Mac, Linux, Windows 7 and 8)</span>，在这些设备上，你首先需要一套管理程序创建虚拟机，<a href="https://www.virtualbox.org/wiki/Downloads" target="_blank" rel="noopener">下载virtualbox</a>并且安装。不过要注意的是你如果工作在Windows10或者已经安装了Hyper-V，就没必要安装virtualbox了。如果你已经安装了<a href="https://docs.docker.com/toolbox/overview/" target="_blank" rel="noopener">Docker toolbox</a>，那么你也就已经安装过virtualbox。按照如下创建两个虚拟机：</p>
+<pre><code>    docker-machine create --driver virtualbox myvm1
+    docker-machine create --driver virtualbox myvm2
+</code></pre><p><span style="color: red">Local VMs (Windows 10/Hyper-V)</span>, 请参照<a href="https://docs.docker.com/get-started/part4/#create-a-cluster" target="_blank" rel="noopener">https://docs.docker.com/get-started/part4/#create-a-cluster</a></p>
+<p>到这里，我们已经创建了两个虚拟机：<code>myvm1</code>和<code>myvm2</code>, 使用<code>docker-macbine ls</code>查看已经创建的虚拟机：</p>
+<pre><code>    ➜  ~ docker-machine ls
+    NAME    ACTIVE   DRIVER       STATE     URL                         SWARM   DOCKER        ERRORS
+    myvm1   -        virtualbox   Running   tcp://192.168.99.100:2376           v18.01.0-ce
+    myvm2   -        virtualbox   Running   tcp://192.168.99.101:2376           v18.01.0-ce
+</code></pre><p>接下来，初始化swarm并且添加节点，我们让第一台机器成为swarm管理器，然后让第二台节点加入集群作为一个worker。给虚拟机发送命令使用：<code>docker-machine ssh</code>，我们让<code>myvm1</code>成为docker管理器，例如：</p>
+<pre><code>➜  ~ docker-machine ssh myvm1 &quot;docker swarm init --advertise-addr 192.168.99.100&quot;
+Swarm initialized: current node (w5zifdyhjd6dzrz26l8mapw73) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-3gtyem6r1g1chuzjox3cp095wispcuifa63th119qmqr1tvq0q-aclwkny59p8sd6m1qdxhtjd4y 192.168.99.100:2377
+
+To add a manager to this swarm, run &#39;docker swarm join-token manager&#39; and follow the instructions.
+</code></pre><p>这里有两个端口需要解释一下：<code>2377</code>和<code>2376</code>，总是运行命令<code>docker swarm init</code>和<code>docker swarm join</code>在<code>2377</code>端口（docker manager port）,也可以不填，让它默认；<code>docker-machine ls</code>命令返回的<code>2376</code>端口是docker Damon的端口。</p>
+<p><strong>还有要注意的是在执行命令<code>docker swarm init</code>之前，确保打开各个机器上<code>7946</code>和<code>4789</code>端口</strong></p>
+<p>现在我们让<code>myvm2</code>加入这个swarm集群作为一个worker，使用命令：<code>docker swarm join --token &lt;token&gt; &lt;ip&gt;:&lt;port&gt;</code>, <code>ip</code>是swarm管理器的ip，这里就是<code>myvm1</code>的地址，例如：</p>
+<pre><code>➜  ~ docker-machine ssh myvm2 &quot;docker swarm join --token SWMTKN-1-3gtyem6r1g1chuzjox3cp095wispcuifa63th119qmqr1tvq0q-aclwkny59p8sd6m1qdxhtjd4y 192.168.99.100:2377&quot;
+This node joined a swarm as a worker.
+</code></pre><p>执行命令：<code>docker node ls</code>查看docker集群中的节点，例如：</p>
+<pre><code>➜  ~ docker-machine ssh myvm1 &quot;docker node ls&quot;
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS
+w5zifdyhjd6dzrz26l8mapw73 *   myvm1               Ready               Active              Leader
+xw9rm1a3vboycgelfujbtvbx6     myvm2               Ready               Active
+</code></pre><p>如果你想重新开始，在每个机器节点运行<code>docker swarm leave</code>。</p>
+<h5 id="在swarm集群中部署我们的APP"><a href="#在swarm集群中部署我们的APP" class="headerlink" title="在swarm集群中部署我们的APP"></a>在swarm集群中部署我们的APP</h5><p>到目前为止，我们还只是使用<code>docker-machine ssh</code>去和虚拟机通信，还有一个方式是运行<code>docker-machine env &lt;machine&gt;</code>获取或者运行一个命令配置你当前的shell然后和虚拟中的docker引擎通信。这个方法对于部署应用更好，因为它允许我们使用本地的<code>docker-compose.yaml</code>文件“远程”地部署应用，而不必复制到任何地方。默认我们在执行docker命令的时候，它会从本地环境中获取一个默认的docker host，然而我们在执行命令：<code>eval $(docker-machine env myvm1)</code>，我们接下来的命令就会直接操作<code>myvm1</code>中docker引擎，不过这个改变只是在当前shell，并不影响其他的shell或者后面新打开的shell；因为docker整个的架构是一个cs架构，docker命令的执行最终都是提交到服务器，我们在开发的过程中，都是默认连接到我们的本地docker服务器，如果要操作远程的docker，我们只需更改环境变量：<code>DOCKER_HOST</code>。</p>
+<p>我们看看从<code>docker-machine env myvm1</code>中获取了哪些命令：</p>
+<pre><code>➜  firstapp docker-machine env myvm1
+export DOCKER_TLS_VERIFY=&quot;1&quot;
+export DOCKER_HOST=&quot;tcp://192.168.99.100:2376&quot;
+export DOCKER_CERT_PATH=&quot;/Users/fudenglong/.docker/machine/machines/myvm1&quot;
+export DOCKER_MACHINE_NAME=&quot;myvm1&quot;
+# Run this command to configure your shell:
+# eval $(docker-machine env myvm1)
+</code></pre><p>果不其然，这里设置了<code>DOCKER_HOST</code>，让接下运行命令直接操作虚拟机中的docker，那我们执行以下命令：<code>eval $(docker-machine env myvm1)</code>;</p>
+<p>接下来，我们开始在我们的swarm中部署我们的应用，到这里，我们已经设置了我们的当前shell操作虚拟机中的docker，我们依然采用在前一节中开发的<code>docker-composer.yaml</code>来部署我们的应用，应该还记得<code>docker stack deploy</code>命令吧，然后使用<code>docker service ps &lt;service_name&gt;</code>查看我们的应用是否已经部署。</p>
+<p>执行部署命令：<code>docker stack deploy -c docker-compose.yml firstapp</code>，任然可以通过<code>docker service ls</code> 和 <code>docekr service ps &lt;service_name&gt;</code>查看服务：</p>
+<pre><code>➜  firstapp docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE                       PORTS
+tma8f1zhxbbg        firstapp_web        replicated          2/5                 gamelife1314/firstapp:0.1   *:4040-&gt;80/tcp
+➜  firstapp docker service ps firstapp_web
+ID                  NAME                IMAGE                       NODE                DESIRED STATE       CURRENT STATE              ERROR               PORTS
+j208a3t9ksbx        firstapp_web.1      gamelife1314/firstapp:0.1   myvm1               Running             Running 4 minutes ago
+4b90tmv13wuw        firstapp_web.2      gamelife1314/firstapp:0.1   myvm2               Running             Preparing 12 minutes ago
+jb96cckpn9n4        firstapp_web.3      gamelife1314/firstapp:0.1   myvm2               Running             Preparing 12 minutes ago
+scjn2ooqaeov        firstapp_web.4      gamelife1314/firstapp:0.1   myvm1               Running             Running 4 minutes ago
+4c4d50ngzh4i        firstapp_web.5      gamelife1314/firstapp:0.1   myvm2               Running             Preparing 12 minutes ago
+</code></pre><p>从上面看到，我的副本只启动了两个，其他的还在准备中，网速原因需要时间获取镜像。不过我们可以访问我们的服务了，地址栏中输入：<code>http://192.168.99.100:4040</code>，将会看到：<br><img src="8.png" alt="docker-swarp-app"></p>
+<p>这儿将有5个可能的容器ID随机循环，正好验证了负载均衡。</p>
+<h5 id="迭代和扩展应用"><a href="#迭代和扩展应用" class="headerlink" title="迭代和扩展应用"></a>迭代和扩展应用</h5><p>扩展应用只需更改<code>docker-compose.yaml</code>，然后通过<code>docker stack deploy -c docker-compose.yaml firstapp</code>命令来更新；</p>
+<p>更新代码之后可以重新构建应用，然后push，最后只需简单的执行命令<code>docker stack deploy -c docker-compose.yaml firstapp</code>就可以应用这些变化。</p>
+<p>如果有新的节点要加入，只需简单的执行命令：<code>docker swarm join</code>命令加入一个新的节点，然后执行<code>docker stack deploy -c docker-compose.yaml firstapp</code>，我们的应用就会利用这些资源。</p>
+<h5 id="清理或者重启"><a href="#清理或者重启" class="headerlink" title="清理或者重启"></a>清理或者重启</h5><p>可以执行命令：<code>docker stack rm firstapp</code> 删除我们的应用；</p>
+<p>你也可行删除创建的swarm集群，通过在worker上执行命令：<code>docker-machine ssh myvm2 &quot;docker swarm leave&quot;</code> 或者在manager上执行：<code>docker-machine ssh myvm1 &quot;docker swarm leave --force&quot;</code>,不过先别动，我们接下来还要用。</p>
+<p>恢复我们的shell至原始状态：<code>eval $(docker-machine env -u)</code>。</p>
+<p>可以重启我们的虚拟机通过<code>docker-machine restart myvm1</code>，更多的操作请看：<code>docker-machine --help</code></p>
+<h5 id="本节中用到的命令"><a href="#本节中用到的命令" class="headerlink" title="本节中用到的命令"></a>本节中用到的命令</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">docker-machine create --driver virtualbox myvm1                             # 创建一个虚拟机 (Mac, Win7, Linux)</span><br><span class="line">docker-machine create -d hyperv --hyperv-virtual-switch &quot;myswitch&quot; myvm1    # Win10创建虚拟机</span><br><span class="line">docker-machine ssh myvm1 &quot;docker node ls&quot;                                   # 查看swarm集群中的节点</span><br><span class="line">docker-machine ssh myvm1 &quot;docker node inspect &lt;node ID&gt;&quot;                    # 查看一个节点的详细信息</span><br><span class="line">docker-machine ssh myvm1 &quot;docker swarm join-token -q worker&quot;                # 查看 join token</span><br><span class="line">docker-machine ssh myvm1                                                    # 打开一个ssh会话，连接到指定的虚拟机</span><br><span class="line">docker node ls                                                              # 查看集群中的节点（登录到manager）</span><br><span class="line">docker-machine ssh myvm2 &quot;docker swarm leave&quot;                               # 离开集群</span><br><span class="line">docker-machine ssh myvm1 &quot;docker swarm leave -f&quot;                            # 主节点离开，杀死集群</span><br><span class="line">docker-machine ls                                                           # 列出虚拟机，星号表明与当前shell正在通信的机器</span><br><span class="line">docker-machine start myvm1                                                  # 启动一个没在运行的虚拟机</span><br><span class="line">docker-machine env myvm1                                                    # 查看myvm1的环境变量和命令</span><br><span class="line">eval $(docker-machine env myvm1)                                            # Mac连接当前shell到myvm1的命令</span><br><span class="line">&amp; &quot;C:\Program Files\Docker\Docker\Resources\bin\docker-machine.exe&quot; env myvm1 | Invoke-Expression   # Windows command to connect shell to myvm1</span><br><span class="line">docker stack deploy -c &lt;file&gt; &lt;app&gt;                                         # 部署一个APP，当前shell必须连接到swarm管理器，使用本地的compose文件</span><br><span class="line">docker-machine scp docker-compose.yml myvm1:~                               # 复制文件到节点的目录</span><br><span class="line">docker-machine ssh myvm1 &quot;docker stack deploy -c &lt;file&gt; &lt;app&gt;&quot;              # 复制一个文件，你必须首先复制compose文件到myvm1</span><br><span class="line">eval $(docker-machine env -u)                                               # 断开当前shell到虚拟机的连接，使用本地原生的docker</span><br><span class="line">docker-machine stop $(docker-machine ls -q)                                 # 停止所有的虚拟机</span><br><span class="line">docker-machine rm $(docker-machine ls -q)                                   # 删除所有的虚拟机以及所有的磁盘镜像</span><br></pre></td></tr></table></figure>
+<h4 id="Stacks"><a href="#Stacks" class="headerlink" title="Stacks"></a>Stacks</h4><p>在前一部分中，我们创建了一个swarm，它是有一群运行着docker的机器组成的集群，而且部署了一个应用，容器在多个机器上运行。</p>
+<p>在本部分中，我们将到达分布式应用的顶部，我们将讲解新的概念：stack。<strong>stack是由一组共享依赖的相关服务组成，可以被一起部署和扩展</strong>，单个stack能够定义和协调真个应用程序的功能。</p>
+<p>我们从第三部分就开始一直在使用compose文件部署应用，但是这是运行在单个机器上上的单个服务堆栈。在这里，我们可以应用我们已经学到的东西，让多个服务相互关联，并在多个机器上部署运行。</p>
+<h5 id="添加一个新的服务并且重新部署"><a href="#添加一个新的服务并且重新部署" class="headerlink" title="添加一个新的服务并且重新部署"></a>添加一个新的服务并且重新部署</h5><p>编辑我们的<code>docker-compose.yaml</code>，添加新的可视化服务：<br><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">version:</span> <span class="string">"3"</span></span><br><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">web:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">gamelife1314/firstapp:0.1.1</span></span><br><span class="line">    <span class="attr">deploy:</span></span><br><span class="line">      <span class="attr">replicas:</span> <span class="number">5</span></span><br><span class="line">      <span class="attr">resources:</span></span><br><span class="line">        <span class="attr">limits:</span></span><br><span class="line">          <span class="attr">cpus:</span> <span class="string">"0.1"</span></span><br><span class="line">          <span class="attr">memory:</span> <span class="string">50M</span></span><br><span class="line">      <span class="attr">restart_policy:</span></span><br><span class="line">        <span class="attr">condition:</span> <span class="string">on-failure</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">"4040:80"</span></span><br><span class="line">    <span class="attr">networks:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">webnet</span></span><br><span class="line">  <span class="attr">visualizer:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">dockersamples/visualizer:stable</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">"8080:8080"</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">"/var/run/docker.sock:/var/run/docker.sock"</span></span><br><span class="line">    <span class="attr">deploy:</span></span><br><span class="line">      <span class="attr">placement:</span></span><br><span class="line">        <span class="attr">constraints:</span> <span class="string">[node.role</span> <span class="string">==</span> <span class="string">manager]</span></span><br><span class="line">    <span class="attr">networks:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">webnet</span></span><br><span class="line"><span class="attr">networks:</span></span><br><span class="line">  <span class="attr">webnet:</span></span><br></pre></td></tr></table></figure></p>
+<p>然后保证连接当前shell到myvm1，否则重新执行：<code>eval $(docker-machine env myvm1)</code>;</p>
+<p>接下来重新部署，执行命令：<code>docker stack deploy -c docker-compose.yaml firstapp</code></p>
+<p>部署完成之后，执行命令<code>docker service ls</code>查看服务器运行情况：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">➜  firstapp docker service ls</span><br><span class="line">ID                  NAME                  MODE                REPLICAS            IMAGE                             PORTS</span><br><span class="line">xr8uo13ffc74        firstapp_visualizer   replicated          1&#x2F;1                 dockersamples&#x2F;visualizer:stable   *:8080-&gt;8080&#x2F;tcp</span><br><span class="line">tma8f1zhxbbg        firstapp_web          replicated          5&#x2F;5                 gamelife1314&#x2F;firstapp:0.1.1       *:4040-&gt;80&#x2F;tcp</span><br></pre></td></tr></table></figure></p>
+<p>看到完美运行之后，打开浏览器输入<code>http://192.168.99.100:8080/</code>，应该看到如下结果：<br><img src="9.png" alt="docker stack 可视化"></p>
+<h5 id="数据持久化"><a href="#数据持久化" class="headerlink" title="数据持久化"></a>数据持久化</h5><p>和前面添加可视化服务一样，我们新添加一个新的服务<code>redis</code>用户持久化数据。</p>
+<ul>
+<li>首先修改<code>docker-compose.yaml</code>，添加redis服务，如下：</li>
+</ul>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">version:</span> <span class="string">"3"</span></span><br><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">web:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">gamelife1314/firstapp:0.1.1</span></span><br><span class="line">    <span class="attr">deploy:</span></span><br><span class="line">      <span class="attr">replicas:</span> <span class="number">5</span></span><br><span class="line">      <span class="attr">resources:</span></span><br><span class="line">        <span class="attr">limits:</span></span><br><span class="line">          <span class="attr">cpus:</span> <span class="string">"0.1"</span></span><br><span class="line">          <span class="attr">memory:</span> <span class="string">50M</span></span><br><span class="line">      <span class="attr">restart_policy:</span></span><br><span class="line">        <span class="attr">condition:</span> <span class="string">on-failure</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">"4040:80"</span></span><br><span class="line">    <span class="attr">networks:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">webnet</span></span><br><span class="line">  <span class="attr">visualizer:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">dockersamples/visualizer:stable</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">"8080:8080"</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">"/var/run/docker.sock:/var/run/docker.sock"</span></span><br><span class="line">    <span class="attr">deploy:</span></span><br><span class="line">      <span class="attr">placement:</span></span><br><span class="line">        <span class="attr">constraints:</span> <span class="string">[node.role</span> <span class="string">==</span> <span class="string">manager]</span></span><br><span class="line">    <span class="attr">networks:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">webnet</span></span><br><span class="line">  <span class="attr">redis:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">redis</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">"6379:6379"</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">"/home/docker/data:/data"</span></span><br><span class="line">    <span class="attr">deploy:</span></span><br><span class="line">      <span class="attr">placement:</span></span><br><span class="line">        <span class="attr">constraints:</span> <span class="string">[node.role</span> <span class="string">==</span> <span class="string">manager]</span></span><br><span class="line">    <span class="attr">command:</span> <span class="string">redis-server</span> <span class="string">--appendonly</span> <span class="literal">yes</span></span><br><span class="line">    <span class="attr">networks:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">webnet</span></span><br><span class="line"><span class="attr">networks:</span></span><br><span class="line">  <span class="attr">webnet:</span></span><br></pre></td></tr></table></figure>
+<p>docker官方镜像库中存在一个官方镜像发Redis，可以直接使用短名称<code>redis</code>，不必使用<code>username/tag</code>这样的格式；redis镜像已经预先配置了向容器外部暴露6379端口，我们的compose文件中又把这个端口暴露给虚拟机外部，我们可以直接在外部使用；</p>
+<p>最重要的是，我们确定了两件事情，保证redis的数据持久化。第一，redis总是运行在swarm管理器上，这样他每次都是使用相同的文件系统。第二，redis存储它的数据在redis容器的<code>/data</code>目录中，为了不让在容器重启之后删除数据，我们把redis的数据持久化到swarm管理器上，通过挂在数据卷<code>/home/docker/data:/data</code>。</p>
+<ul>
+<li><p>在swarm管理器上创建目录<code>/home/docker/data</code>：<code>docker-machine ssh myvm1 &quot;mkdir ./data&quot;</code></p>
+</li>
+<li><p>通过<code>docker-macnine ls</code>查看你的shell是否连接到<code>myvm1</code>(active是星号),如果没有，重新执行：<code>eval $(docker-machine env myvm1)</code>;</p>
+</li>
+<li><p>运行命令：<code>docker stack deploy -c docker-compose.yaml firstapp</code></p>
+</li>
+<li><p>浏览器中输入：<code>http://192.168.99.100:4040/</code>,应该会看到：</p>
+</li>
+</ul>
+<p><img src="10.png" alt="docker stack"></p>
+<h3 id="Docker-概述"><a href="#Docker-概述" class="headerlink" title="Docker 概述"></a>Docker 概述</h3><p>docker是一个用于开发，运输和运行应用程序的开放平台。Docker能够让你将应用程序与基础架构分离，从而可以快速交付软件。使用Docker，你可以像管理应用程序一样管理基础架构。通过利用Docker的方法来快速地提交，测试和部署代码，可以显着缩短编写代码和在生产环境中运行代码之间的延迟。</p>
+<h4 id="docker-platform"><a href="#docker-platform" class="headerlink" title="docker platform"></a>docker platform</h4><p>Docker提供了在称为容器的松散隔离的环境中打包和运行应用程序的能力。容器的隔离性和安全性可以让你同时在一个平台上运行多个容器。容器是非常轻量级的，因为他们不需要额外的管理程序，而是直接运行在主机系统的内核中。这意味着你可以在给定的硬件平台上运行更多的容器而不是虚拟机，你甚至可以再虚拟主机中运行docker。</p>
+<p>docker提供工具和平台来管理容器的声明周期：</p>
+<ul>
+<li>使用容器开发应用程序及其支持组件；</li>
+<li>容器成为测试和发布应用程序的单位；</li>
+<li>准备就绪后，可以将你的应用程序作为一个容器部署到生产环境中去，无论生产环境在本地还是数据中心，云服务商，操作都是一样的。</li>
+</ul>
+<h4 id="docker-engine"><a href="#docker-engine" class="headerlink" title="docker engine"></a>docker engine</h4><p>docker engine 是具有以下主要组件的CS应用程序：</p>
+<ul>
+<li>服务（Server）是一个一致运行的守护进程，叫做：dockerd.</li>
+<li>可以通过Server提供的RESTFUL api 和服务进行通信以及指示他做什么。</li>
+<li>一个命令行接口CLI客户端，docker 命令,</li>
+</ul>
+<p><img src="https://docs.docker.com/engine/article-img/engine-components-flow.png" alt="https://docs.docker.com/engine/article-img/engine-components-flow.png"></p>
+<p>docker cli 通过docker提供的restful api来和docker daemon 服务进行交互，我们可以使用docker命令或者直接使用docker提供api；</p>
+<p>daemon服务创建并管理docker对象，例如：镜像，容器，网络以及数据卷。</p>
+<h4 id="What-can-I-use-Docker-for"><a href="#What-can-I-use-Docker-for" class="headerlink" title="What can I use Docker for?"></a>What can I use Docker for?</h4><p><strong>快速，一致地应用程序交付</strong></p>
+<p>docker通过使用提供给开发者应用和服务的容器，让开发者工作在一个标准的环境中，从而简化开发的生命周期。docker非常适合持续集成(CI)和持续交付(CD)的工作流程。参考以下的案例场景：</p>
+<ul>
+<li>开发者通过docker与同事分享本地开发的代码；</li>
+<li>使用docker将应用程序推送到测试环境，执行手动和自动测试；</li>
+<li>当开发者发现bug的时候，他们可以在开发环境中修复并且重新提交到测试环境进行验证；</li>
+<li>测试完成之后，将修复之后的版本推送给客户就如同将更新的镜像推送到生产一样简单。</li>
+</ul>
+<p><strong>响应式部署和扩容</strong></p>
+<p>Docker的基于容器的平台允许高度可移植的工作负载。 Docker容器可以在开发人员的本地笔记本电脑，数据中心的物理或虚拟机器，云提供程序或混合环境中运行。 Docker的可移植性和轻量级特性也使得动态管理工作负载变得非常容易，几乎实时地按业务需求扩展或拆除应用程序和服务。</p>
+<p><strong>同一硬件平台上能干更多事情</strong></p>
+<p>Docker是轻量级和快速的。它为基于虚拟机管理程序的虚拟机提供了一种可行的，具有成本效益的替代方案，因此您可以使用更多计算容量来实现业务目标。 </p>
+<p>Docker是高密度环境和中小型部署的理想选择，您需要用更少的资源做更多的事情。</p>
+<h4 id="Docker-架构"><a href="#Docker-架构" class="headerlink" title="Docker 架构"></a>Docker 架构</h4><p>docker使用了一个CS架构，docker客户端和docker的守护进程进行通信。Docker守护进程负责构建，运行和分发Docker容器。docker客户端可以运行在同一个机器上，但是docker客户端也可以连接远端的docker服务。docker客户端和docker守护进程的交互通过一个restfulAPI，或者Unix socket，或者一盒网络接口。</p>
+<p><img src="https://docs.docker.com/engine/article-img/architecture.svg" alt="docker架构"></p>
+<h5 id="docker-daemon"><a href="#docker-daemon" class="headerlink" title="docker daemon"></a>docker daemon</h5><p>docker 守护进程（dockerd）监听API请求，管理docker对象，例如：镜像，网络，容器和卷。守护进程之间也可以相互交流管理docker的服务。</p>
+<h5 id="docker-client"><a href="#docker-client" class="headerlink" title="docker client"></a>docker client</h5><p>docker 客户端是很多用户用于和docker交互的方式。例如，当你用命令：<code>docker run</code>的时候，客户端会将命令发送给<code>dockerd</code>，然后<code>dockerd</code>处理他们。<code>docker</code>客户端使用docker的API，可以同一个或者多个docker守护进程进行交互。</p>
+<h5 id="Docker-registries"><a href="#Docker-registries" class="headerlink" title="Docker registries"></a>Docker registries</h5><p>docker registry 用于存储docker镜像。docker hub 和  docker cloud 是公共的 registry，任何人都可以使用。docker默认从docker hub 获取镜像。当然你也可以使用自己的registry。</p>
+<p>当你用<code>docker pull</code>或者<code>docker run</code>命令的时候，需要的镜像会从你配置的registry获取。当你用<code>docker push</code>的时候，你的镜像会被推送到你配置的registry。</p>
+<p>[Docker Store]允许你出售后者购买docker镜像，也可以免费发布。例如，您可以购买包含来自软件供应商的应用程序或服务的Docker镜像，并使用该镜像将应用程序部署到您的测试和生产环境中。您可以通过拉取新版本的图像并重新部署容器来升级应用程序。</p>
+<h5 id="Docker-Objects"><a href="#Docker-Objects" class="headerlink" title="Docker Objects"></a>Docker Objects</h5><h6 id="images-镜像"><a href="#images-镜像" class="headerlink" title="images 镜像"></a>images 镜像</h6><p>镜像是一个只读模板，带有创建一个容器的基本指令。通常情况下，一个镜像是依赖于另一个镜像，然后在添加一些自定义的东西。例如，你可能会创建一个镜像依赖于<code>ubuntu</code>镜像，但是会安装Apache web服务器和应用程序，以及使应用程序运行的具体细节。</p>
+<p>你可以自己创建镜像，也可以使用有由他人创建的发布在registry中的镜像。为了创建一个镜像，你可能会创建一个Dockerfile并且使用一些简单的语法定义创建你的镜像的步骤。Dockerfile中每个指令都会在镜像中创建一个新层。当你改变Dockerfile重建镜像的时候，只有那些发生改变的层才会被重建。和其他虚拟化技术起来，这是镜像轻快，小巧快速的体现。</p>
+<h6 id="container-容器"><a href="#container-容器" class="headerlink" title="container 容器"></a>container 容器</h6><p>一个容器是一个镜像运行的示例，你可以使用docker的API创建，启动，停止，移动和删除镜像，你可以将一个容器连接到一个或多个网络，将存储连接到它，甚至可以基于当前状态创建一个新的镜像。</p>
+<p>默认情况下，一个容器和主机上的其他容器是相对独立的，你可以控制容器的网络，存储或其他底层子系统与其他容器或主机的隔离程度。</p>
+<p>一个容器有一个镜像定义以在启动或者创建的时候提供的配置选项，当一个容器被移除的时候，如果他的状态的任何改变没有被持久化存储，都将消失。</p>
+<h6 id="执行docker-run的例子"><a href="#执行docker-run的例子" class="headerlink" title="执行docker run的例子"></a>执行<code>docker run</code>的例子</h6><p>以下命令启动一个<code>ubuntu</code>容器，以交互式方式附加到本地命令行会话，并运行<code>/bin/bash</code></p>
+<pre><code> docker run -i -t ubuntu /bin/bash
+</code></pre><p>当你运行这个命令的时候，流程大概是这样的（这里假设你使用默认的registry）：</p>
+<ol>
+<li><p>如果你本地没有<code>ubuntu</code>这个镜像，docker将从你配置的registry拉取，就像你手动执行：<code>docker pull ubuntu</code>一样；</p>
+</li>
+<li><p>docker创建一个新的容器就像手动执行<code>docker create</code>一样。</p>
+</li>
+<li><p>Docker将一个读写文件系统分配给容器，作为它的最后一层。这允许正在运行的容器在其本地文件系统中创建或修改文件和目录。</p>
+</li>
+<li><p>如果没有指定任何网络选项，Docker会创建一个网络接口来将容器连接到默认网络。这包括分配一个IP地址给容器。默认情况下，容器可以使用主机的网络连接连接到外部网络。</p>
+</li>
+<li><p>docker启动容器并且执行：<code>/bin/bash</code>,由于容器是交互式运行并且连接我们的终端（使用<code>-i</code>或者<code>-t</code>标识）,因此你可以使用键盘输出，而且输出将输出到你的终端。</p>
+</li>
+<li><p>当你输入<code>exit</code>退出终端的时候，容器将会停止但是没有被移除，你可以再次启动它或者移除。</p>
+</li>
+</ol>
+<h5 id="Services-1"><a href="#Services-1" class="headerlink" title="Services"></a>Services</h5><p>通过服务，你可以跨多个Docker守护进程扩展容器，这些守护进程可以作为一个拥有多个manager和worker的群组一起工作。swarm中的每个成员都是一个Docker守护进程，守护进程都使用Docker API进行通信。服务允许你定义所需的状态，例如在任何给定时间必须可用的服务副本的数量。默认情况下，该服务在所有工作节点之间进行负载平衡。对于消费者来说，Docker服务似乎是一个单一的应用程序。 Docker引擎在Docker 1.12及更高版本中支持swarm模式。</p>
+<h4 id="底层技术"><a href="#底层技术" class="headerlink" title="底层技术"></a>底层技术</h4><p>docker使用go开发的，并且利用了linux底层的一些特性来完成他的功能。</p>
+<h5 id="Namespaces"><a href="#Namespaces" class="headerlink" title="Namespaces"></a>Namespaces</h5><p>docker使用名为namespaces的技术为容器提供独立的工作空间。当你运行该容器的时候，docker会为该容器创建一组命名空间。</p>
+<p>docker引擎使用linux上如下的命名空间：</p>
+<ol>
+<li><strong>The <code>pid</code> namespace</strong>: 进程独立(pid: process id)</li>
+<li><strong>The <code>net</code> namespace</strong>: 管理网络（net: networking）</li>
+<li><strong>The <code>ipc</code> namespace</strong>: 管理对ipc资源的访问(IPC: InterProcess Communication)</li>
+<li><strong>The <code>mnt</code> namespace</strong>: 管理文件系统挂载点（mnt: mount）</li>
+<li><strong>The <code>uts</code> namespace</strong>: 隔离内核和版本标识符(UTS: Unix Timesharing System).</li>
+</ol>
+<h5 id="Control-groups"><a href="#Control-groups" class="headerlink" title="Control groups"></a>Control groups</h5><p>Linux上的Docker Engine也依赖于另一种称为控制组（cgroups）的技术。 cgroup将应用程序限制为一组特定的资源。控制组允许Docker引擎将可用的硬件资源共享给容器，并可选地强制实施限制和约束。例如，可以将可用内存限制在特定的容器中。</p>
+<h5 id="Union-file-systems"><a href="#Union-file-systems" class="headerlink" title="Union file systems"></a>Union file systems</h5><p>Union文件系统或UnionFS是通过创建图层来运行的文件系统，使得它们非常轻巧，快速。 Docker引擎使用UnionFS为容器提供构建块。 Docker引擎可以使用多种UnionFS变体，包括AUFS，btrfs，vfs和DeviceMapper。</p>
+<h5 id="Container-format"><a href="#Container-format" class="headerlink" title="Container format"></a>Container format</h5><p>Docker引擎将名称空间，控制组和UnionFS组合成一个名为容器格式的包装器。默认的容器格式是libcontainer。将来，Docker可能会通过集成诸如BSD Jails或Solaris Zones等技术来支持其他容器格式。</p>
+<h3 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h3><ol>
+<li><a href="https://cloud.tencent.com/developer/article/1004996" target="_blank" rel="noopener">什么是 Docker ？</a></li>
+<li><a href="https://cloud.tencent.com/developer/article/1004996" target="_blank" rel="noopener">干货合集 Docker快速入门与进阶</a></li>
+<li><a href="https://www.gitbook.com/book/yeasy/docker_practice/details" target="_blank" rel="noopener">docker 从入门到实践</a></li>
+<li><a href="https://docs.docker.com/" target="_blank" rel="noopener">docker 官方文档</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Docker/" rel="tag"># Docker</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/01/10/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/" rel="prev" title="正则表达式">
+      <i class="fa fa-chevron-left"></i> 正则表达式
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/01/27/Go%E8%AF%AD%E8%A8%80%E5%9F%BA%E7%A1%80%E3%80%8A%E4%B8%80%E3%80%8B%EF%BC%9A%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4%EF%BC%8C%E5%B7%A5%E4%BD%9C%E5%8C%BA%EF%BC%8C%E5%8C%85%E7%AE%A1%E7%90%86/" rel="next" title="Go语言基础《一》：基本命令，工作区，包管理">
+      Go语言基础《一》：基本命令，工作区，包管理 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#docker为解决什么问题而生"><span class="nav-number">1.</span> <span class="nav-text">docker为解决什么问题而生</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#什么是docker？"><span class="nav-number">2.</span> <span class="nav-text">什么是docker？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#获取docker"><span class="nav-number">3.</span> <span class="nav-text">获取docker</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#docker版本及更新介绍"><span class="nav-number">3.1.</span> <span class="nav-text">docker版本及更新介绍</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#安装docker"><span class="nav-number">3.2.</span> <span class="nav-text">安装docker</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#镜像服务（加速器）"><span class="nav-number">3.3.</span> <span class="nav-text">镜像服务（加速器）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#开始使用docker"><span class="nav-number">4.</span> <span class="nav-text">开始使用docker</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#docker定位"><span class="nav-number">4.1.</span> <span class="nav-text">docker定位</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#容器的简要说明"><span class="nav-number">4.1.1.</span> <span class="nav-text">容器的简要说明</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#虚拟机-VS-容器"><span class="nav-number">4.1.2.</span> <span class="nav-text">虚拟机 VS 容器</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#构建并运行你的第一个应用程序"><span class="nav-number">4.2.</span> <span class="nav-text">构建并运行你的第一个应用程序</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Introduction"><span class="nav-number">4.2.1.</span> <span class="nav-text">Introduction</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Your-new-development-environment"><span class="nav-number">4.2.2.</span> <span class="nav-text">Your new development environment</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Dockerfile"><span class="nav-number">4.2.3.</span> <span class="nav-text">Dockerfile</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#应用程序"><span class="nav-number">4.2.4.</span> <span class="nav-text">应用程序</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#build-app"><span class="nav-number">4.2.5.</span> <span class="nav-text">build app</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Run-the-app"><span class="nav-number">4.2.6.</span> <span class="nav-text">Run the app</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#share-your-image"><span class="nav-number">4.2.7.</span> <span class="nav-text">share your image</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#本节常用docker命令列表"><span class="nav-number">4.2.8.</span> <span class="nav-text">本节常用docker命令列表</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Services"><span class="nav-number">4.3.</span> <span class="nav-text">Services</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#第一个docker-compose-yaml文件格式"><span class="nav-number">4.3.1.</span> <span class="nav-text">第一个docker-compose.yaml文件格式</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#运行你的负载均衡应用程序"><span class="nav-number">4.3.2.</span> <span class="nav-text">运行你的负载均衡应用程序</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#本节用到的docker命令"><span class="nav-number">4.3.3.</span> <span class="nav-text">本节用到的docker命令</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Swarms"><span class="nav-number">4.4.</span> <span class="nav-text">Swarms</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#创建并设置swarm"><span class="nav-number">4.4.1.</span> <span class="nav-text">创建并设置swarm</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#在swarm集群中部署我们的APP"><span class="nav-number">4.4.2.</span> <span class="nav-text">在swarm集群中部署我们的APP</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#迭代和扩展应用"><span class="nav-number">4.4.3.</span> <span class="nav-text">迭代和扩展应用</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#清理或者重启"><span class="nav-number">4.4.4.</span> <span class="nav-text">清理或者重启</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#本节中用到的命令"><span class="nav-number">4.4.5.</span> <span class="nav-text">本节中用到的命令</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Stacks"><span class="nav-number">4.5.</span> <span class="nav-text">Stacks</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#添加一个新的服务并且重新部署"><span class="nav-number">4.5.1.</span> <span class="nav-text">添加一个新的服务并且重新部署</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#数据持久化"><span class="nav-number">4.5.2.</span> <span class="nav-text">数据持久化</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Docker-概述"><span class="nav-number">5.</span> <span class="nav-text">Docker 概述</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#docker-platform"><span class="nav-number">5.1.</span> <span class="nav-text">docker platform</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#docker-engine"><span class="nav-number">5.2.</span> <span class="nav-text">docker engine</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#What-can-I-use-Docker-for"><span class="nav-number">5.3.</span> <span class="nav-text">What can I use Docker for?</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Docker-架构"><span class="nav-number">5.4.</span> <span class="nav-text">Docker 架构</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#docker-daemon"><span class="nav-number">5.4.1.</span> <span class="nav-text">docker daemon</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#docker-client"><span class="nav-number">5.4.2.</span> <span class="nav-text">docker client</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Docker-registries"><span class="nav-number">5.4.3.</span> <span class="nav-text">Docker registries</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Docker-Objects"><span class="nav-number">5.4.4.</span> <span class="nav-text">Docker Objects</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#images-镜像"><span class="nav-number">5.4.4.1.</span> <span class="nav-text">images 镜像</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#container-容器"><span class="nav-number">5.4.4.2.</span> <span class="nav-text">container 容器</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#执行docker-run的例子"><span class="nav-number">5.4.4.3.</span> <span class="nav-text">执行docker run的例子</span></a></li></ol></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Services-1"><span class="nav-number">5.4.5.</span> <span class="nav-text">Services</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#底层技术"><span class="nav-number">5.5.</span> <span class="nav-text">底层技术</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Namespaces"><span class="nav-number">5.5.1.</span> <span class="nav-text">Namespaces</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Control-groups"><span class="nav-number">5.5.2.</span> <span class="nav-text">Control groups</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Union-file-systems"><span class="nav-number">5.5.3.</span> <span class="nav-text">Union file systems</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Container-format"><span class="nav-number">5.5.4.</span> <span class="nav-text">Container format</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考文章"><span class="nav-number">6.</span> <span class="nav-text">参考文章</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>

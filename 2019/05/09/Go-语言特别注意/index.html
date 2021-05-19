@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="k2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://blog.fudenglong.site').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":true,"show_result":true,"style":"mac"},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":true},
+    bookmark: {"enable":true,"color":"#222","save":"manual"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="之所以说是坑，是因为不了解其背后的本质，当你站在历史的源头，主动寻求真相的时候，你就会发现一切皆是必然。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 语言特别注意">
+<meta property="og:url" content="https://blog.fudenglong.site/2019/05/09/Go-%E8%AF%AD%E8%A8%80%E7%89%B9%E5%88%AB%E6%B3%A8%E6%84%8F/index.html">
+<meta property="og:site_name" content="I&#39;m Michael">
+<meta property="og:description" content="之所以说是坑，是因为不了解其背后的本质，当你站在历史的源头，主动寻求真相的时候，你就会发现一切皆是必然。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2019/05/09/Go-%E8%AF%AD%E8%A8%80%E7%89%B9%E5%88%AB%E6%B3%A8%E6%84%8F/1.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2019/05/09/Go-%E8%AF%AD%E8%A8%80%E7%89%B9%E5%88%AB%E6%B3%A8%E6%84%8F/2.png">
+<meta property="article:published_time" content="2019-05-08T16:01:25.000Z">
+<meta property="article:modified_time" content="2021-05-19T13:58:49.804Z">
+<meta property="article:author" content="Michael">
+<meta property="article:tag" content="GO">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2019/05/09/Go-%E8%AF%AD%E8%A8%80%E7%89%B9%E5%88%AB%E6%B3%A8%E6%84%8F/1.png">
+
+<link rel="canonical" href="https://blog.fudenglong.site/2019/05/09/Go-%E8%AF%AD%E8%A8%80%E7%89%B9%E5%88%AB%E6%B3%A8%E6%84%8F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Go 语言特别注意 | I'm Michael</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">I'm Michael</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">何以解忧，唯有暴富</p>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">10</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">55</span></a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404.html" rel="section"><i class="fa fa-fw fa-heartbeat"></i>公益 404</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2019/05/09/Go-%E8%AF%AD%E8%A8%80%E7%89%B9%E5%88%AB%E6%B3%A8%E6%84%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Michael">
+      <meta itemprop="description" content="何以解忧，唯有暴富">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="I'm Michael">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Go 语言特别注意
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-05-09 00:01:25" itemprop="dateCreated datePublished" datetime="2019-05-09T00:01:25+08:00">2019-05-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 21:58:49" itemprop="dateModified" datetime="2021-05-19T21:58:49+08:00">2021-05-19</time>
+              </span>
+
+          
+            <span id="/2019/05/09/Go-%E8%AF%AD%E8%A8%80%E7%89%B9%E5%88%AB%E6%B3%A8%E6%84%8F/" class="post-meta-item leancloud_visitors" data-flag-title="Go 语言特别注意" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2019/05/09/Go-%E8%AF%AD%E8%A8%80%E7%89%B9%E5%88%AB%E6%B3%A8%E6%84%8F/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2019/05/09/Go-%E8%AF%AD%E8%A8%80%E7%89%B9%E5%88%AB%E6%B3%A8%E6%84%8F/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-file-word-o"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-clock-o"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>之所以说是坑，是因为不了解其背后的本质，当你站在历史的源头，主动寻求真相的时候，你就会发现一切皆是必然。</p>
+<a id="more"></a>
+<h3 id="GO-环境变量-GOPATH，-GOROOT，GOBIN？"><a href="#GO-环境变量-GOPATH，-GOROOT，GOBIN？" class="headerlink" title="GO 环境变量 GOPATH， GOROOT，GOBIN？"></a>GO 环境变量 <code>GOPATH</code>， <code>GOROOT</code>，<code>GOBIN</code>？</h3><ul>
+<li><p><code>GOROOT</code>: 是 GO 的安装目录，例如在我的Mac上面是：<code>GOROOT=&quot;/usr/local/go&quot;</code></p>
+</li>
+<li><p><code>GOBIN</code>: GO 生成的可执行程序的放置路径；</p>
+</li>
+<li><p><code>GOPATH</code>: 可以理解为GO语言的工作区，用于放置 GO 的源码文件（source file），安装后的归档文件（archive file，后缀名为：.a），生成的可执行文件（executable file），它可以配置为多个目录，例如：<code>GOPATH=&quot;/Users/denglong.fu.o/.go:/Users/denglong.fu.o/workspace/go&quot;</code></p>
+<p>  具体来说，Go 的源码文件放置在 <code>$GOPATH/src</code> 目录下，安装后生成的归档文件放置在 <code>$GOPATH/pkg/${平台名称}</code> 目录下，可执行文件放置在目录 <code>$GOPATH/bin</code> 目录下。</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;Users&#x2F;denglong.fu.o&#x2F;workspace&#x2F;go</span><br><span class="line">├── bin  </span><br><span class="line">│   └── example1 &#x2F;&#x2F; 可执行文件</span><br><span class="line">├── pkg  </span><br><span class="line">│   └── darwin_amd64  </span><br><span class="line">│       └── github.com  </span><br><span class="line">│           └── go-study  </span><br><span class="line">│               └── article3  </span><br><span class="line">│                   └── lib1.a &#x2F;&#x2F; 归档文件</span><br><span class="line">└── src  </span><br><span class="line">    └── github.com  </span><br><span class="line">        └── go-study  </span><br><span class="line">            ├── article3  </span><br><span class="line">            │   ├── lib1  </span><br><span class="line">            │   │   ├── hello.go &#x2F;&#x2F; 包</span><br><span class="line">            │   │   └── internal  </span><br><span class="line">            │   │       └── hello.go &#x2F;&#x2F; internal 包</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="Go-代码组织方式？"><a href="#Go-代码组织方式？" class="headerlink" title="Go 代码组织方式？"></a>Go 代码组织方式？</h3><p>Go 语言的代码时以 <strong>包(package)</strong> 为组织方式，在文件系统中，包对应目录，由于目录可以有子目录，相应的包也可有子包。一般情况下，包的名是和目录名称一样的，一个包（目录）下的文件都属于同一个包。我们在引用一个包的中代码之前，首先要导入这个包，例如：</p>
+<pre><code>    import &quot;github.com/labstack/echo&quot;
+</code></pre><p>一个包的实际导入路径就是从 <code>GOPATH</code> 的 <code>src</code> 目录开始寻找，如果 <code>GOPATH</code> 有多个目录，那就一次从每个目录的 <code>src</code> 目录下开始寻找这个包（文件件/目录）。</p>
+<h3 id="go-install-go-get-go-build-go-run？"><a href="#go-install-go-get-go-build-go-run？" class="headerlink" title="go install, go get, go build, go run？"></a><code>go install</code>, <code>go get</code>, <code>go build</code>, <code>go run</code>？</h3><p><code>go install</code> ，源码文件是以代码包的形式组织起来的，一个代码包其实就是对应一个目录，安装某个代码包（或者子包）而产生的归档文件是与这个代码包所在的目录同名的，注意不是和包名称相同，因为包名称可以和目录不同，虽然强烈建议将他们设置相同。或者，你可以这样理解，将某个代码包（目录）下的源码文件（<code>.go</code>）打包生成一个以源码文件所在目录名称为名，以 <code>.a</code> 为后缀的压缩文件。为了说明包名和目录名称不同的情况，我举个例子：</p>
+<p><img src="1.png" alt="1.png"></p>
+<p>这个例子中中，我将 <code>lib1</code> 目录下的 <code>hello.go</code> 包名声明为 <code>hello</code>，并没有按照建议将其声明为：<code>lib1</code>，这个时候生成的归档文档如下：</p>
+<pre><code>    /Users/denglong.fu.o/workspace/go/pkg/darwin_amd64/github.com/go-study/article3/lib1.a
+</code></pre><p>生成的归档文件的名称同源码 <code>hello.go</code> 所在目录名相同，那么如果我们要导入这个包该如何操作呢？</p>
+<p><img src="2.png" alt="2.png"></p>
+<p>我们的导入路径没变，是要告诉 Go 编译器到 <code>GOPATH/src/github.com/go-study/article3/lib1</code> 目录下导入们需要的包，但是我们必须重命名导入到当前域中的包名，当然我们也可以这样：</p>
+<pre><code>    import lib1 &quot;github.com/go-study/article3/lib1&quot;
+</code></pre><p><code>go build</code>，由于构建，同 <code>go install</code> 一样，都会执行编译，打包操作，但是构建库源码文件如果是库源码文件，构建的结果只会存在与临时目录中，这里构建的意义主要用于检查和验证。但是如果构建的是命令源码文件，那么就会在当前目录下生成可执行文件。这些规则是在不加任何参数的情况下，我们可以通过 <code>go help build</code> 查看更多的构建选项，总结一下，构建库源码文件意义在于检查验证，构建命令源码文件会生成可执行程序。</p>
+<pre><code>    go build -o hello.a  -v -x article3/lib1/hello.go
+    WORK=/var/folders/rd/8778clcn5cd5p2w9dcj5gz6s1n0wx1/T/go-build377595102
+    mkdir -p $WORK/b001/
+    cp /Users/denglong.fu.o/Library/Caches/go-build/45/454b03117dabc5d1f2990d025402be88dfb758b709074c46529e1cc2d6b52747-d hello.a
+    rm -r $WORK/b001/
+</code></pre><p><code>go get</code>，会自动从主流的代码托管网站下载并且安装代码包，安装的位置是 <code>GOPATH</code> 包含的第一个工作区的相应目录中。如果存在环境变量 <code>GOBIN</code> ，那么仅包含命令源码文件的代码包会生成可执行文件，并且安装到 <code>GOBIN</code> 所在目录中或者 <code>GOPATH/bin</code> 目录中。</p>
+<p><code>go run</code>, 详见 <code>go help run</code>，主要用于编译和运行 main 包，编译 main 包生成临时的可执行文件并且运行；</p>
+<h3 id="命令源码文件，库源码文件，测试源码文件？"><a href="#命令源码文件，库源码文件，测试源码文件？" class="headerlink" title="命令源码文件，库源码文件，测试源码文件？"></a>命令源码文件，库源码文件，测试源码文件？</h3><p><code>命令源码文件</code>属于 main 包，包含无参数无结果的 main 函数，是独立可运行程序的入口，main 函数的运行结束意味着当前程序运行的结束，同一个代码包中不要放多个命令源码文件，命令源码文件也不要跟库源码文件放在同一个代码包。可以通过 <code>go run</code> 直接运行 main 包，或者通过 <code>go build</code> 生成可执行程序，或者通过 <code>go install</code> 在 <code>GOBIN</code> 目录或者工作区 <code>GOPATH/bin</code> 目录生成可执行文件。例如如下代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"flag"</span></span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> name <span class="keyword">string</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span>  &#123;</span><br><span class="line">	flag.StringVar(&amp;name, <span class="string">"name"</span>, <span class="string">"everyone"</span>, <span class="string">"greet user"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>  &#123;</span><br><span class="line">	flag.Parse()</span><br><span class="line">	fmt.Printf(<span class="string">"hello %s\n"</span>, name)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>库源码文件</code>不是能被直接运行的源码文件，它仅用于存放程序实体，这些程序是以可以被其他代码使用。这里的其他代码可以与被使用的程序实体在同一个源码文件内，也可以在其他源码文件，甚至其他的代码包。</p>
+<h3 id="Go-程序实体权限访问规则？"><a href="#Go-程序实体权限访问规则？" class="headerlink" title="Go 程序实体权限访问规则？"></a>Go 程序实体权限访问规则？</h3><p>Go 的程序实体（函数，常量，变量，结构体，结果口）访问权限规则控制超级简单，即使<strong>首字母是否大写</strong>，首字母大写以为该程序实体可导出，可以被包外的代码引用，否则只能在包内访问。除此之外，Go 还有一种称之为 <strong>模块级私有</strong>的权限控制规则，具体规则是 <code>internal</code> 包中的代码中声明的 <strong>公开程序实体（首字母大写）</strong>仅能被该代码包的的直接父级及其子包中的代码引用。</p>
+<h3 id="Go-语言中变量的作用域？"><a href="#Go-语言中变量的作用域？" class="headerlink" title="Go 语言中变量的作用域？"></a>Go 语言中变量的作用域？</h3><p>在 Go 语言中，当一个程序实体被创造出来的时候，它的作用域总是被限制在某个代码块中，而这个作用域最大的用处就是对程序实体的访问权限控制。前面提过的三种访问权限规则比较粗粒度：包级私有，模块级私有以及可公开访问的程序实体。通过这种细粒度的权限访问控制，整个代码块就像大圆套小圆，最外层的是全局代码块，当需要查找一个变量的时候，就从当前代码块一直向上查找知道全局代码块，如果没有，编译器就报错了。当内层的变量名称和外层的名称相同时，内层的变量就会在当前代码块中屏蔽掉对外层代码中的变量的访问。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> name = <span class="string">"package"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	name := <span class="string">"function"</span></span><br><span class="line">	&#123;</span><br><span class="line">		name := <span class="string">"block"</span></span><br><span class="line">		fmt.Printf(<span class="string">"this is %s\n"</span>, name)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"this is %s\n"</span>, name)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>改程序会输出：</p>
+<pre><code>    this is block
+    this is function
+</code></pre><h3 id="类型断言和类型转换？"><a href="#类型断言和类型转换？" class="headerlink" title="类型断言和类型转换？"></a>类型断言和类型转换？</h3><p>要判断一个变量是不是某个类型，必须使用类型断言表达式，<code>value, ok := X.(T)</code>，其中 X 必须是接口类型，例如：</p>
+<pre><code>    var container = []string{&quot;zero&quot;, &quot;one&quot;, &quot;two&quot;}
+    container, ok := interface{}(container).([]string)
+</code></pre><p>类型断言表达式可以返回两个值，如果断言成功，那么就会将 X 转换为 T 类型的值并且赋值给 value，否则就是 value 就是 nil。这里的 ok 也可以没有，但是当断言失败的时候机会发生 panic。</p>
+<p>由于 Go 语言中，变量的类型在程序运行初期就确定下来了，如果要把一个变量的类型转换为另一个就得使用类型断言表达式：<code>T(x)</code>，在类型断言中，有一些需要注意的地方：</p>
+<ul>
+<li><p>对于整数值，如果源值在目标类型的可表示范围之内就是合法的，否则就会发生高位截断。如下：</p>
+<pre><code>  var srcInt = int16(-255)
+  dstInt := int8(srcInt)
+</code></pre><p>  不知道你有没有猜到，dstInt 的值是-1，因为在计算机中，整数是以补码形式存储的，正数的补码使其自身，负数的补码是原码各位取反加一。所以 -255 就是 1111111100000001，截取之后及时1了。</p>
+</li>
+<li><p>将整数转换为 string 类型值是可行的，但是这个整数值必须可以代表一个有效的 Unicode 码点，否则就成了：<code>�</code></p>
+</li>
+</ul>
+<h3 id="别名类型，潜在类型？"><a href="#别名类型，潜在类型？" class="headerlink" title="别名类型，潜在类型？"></a>别名类型，潜在类型？</h3><p>别名类型可以通过如下的方式声明：</p>
+<pre><code>    type MyString = string
+</code></pre><p>这样 MyString 和 string 其实就是同一个类型，他们之间的值可以相互比较相互赋值，系统中 rune 就是 int32 的别名，byte 就是 uint8 的别名。但如果是这样，就大不相同了：<br>        type MyString = string</p>
+<p>这相当于声明了一个新的类型，MyString 和 string 类型的变量不能相互肤质，比较，如果要赋值，必须先通过类型转换表达式转换类型，个人觉得这种好像声明好像没什么用。</p>
+<h3 id="数组和切片？"><a href="#数组和切片？" class="headerlink" title="数组和切片？"></a>数组和切片？</h3><p>数组和切边都属于集合类型，都可以容纳相同类型的多个元素，不同的是，数组类型的值长度是固定的，而切片类型的值长度是不固定的。数组长度和存储元素的类型共同构成了数组的类型，比如 <code>[1]string</code> 和 <code>[2]string</code> 就是两个不同的类型，数组的长度必须在声明的时候就给定。来看几种声明方式：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	a1 := [<span class="number">1</span>]<span class="keyword">int</span>&#123;<span class="number">0</span>&#125;</span><br><span class="line">	a2 := [<span class="number">2</span>]<span class="keyword">int</span>&#123;<span class="number">0</span>, <span class="number">1</span>&#125;</span><br><span class="line">	<span class="keyword">var</span> a3 [<span class="number">3</span>]<span class="keyword">int</span></span><br><span class="line">	fmt.Println(a1, a2, a3)</span><br><span class="line"></span><br><span class="line">	s1 := []<span class="keyword">int</span>&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>&#125;</span><br><span class="line">	s2 := a3[<span class="number">0</span>:]</span><br><span class="line">	<span class="keyword">var</span> s3 []<span class="keyword">int</span></span><br><span class="line">	s4 := <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">2</span>, <span class="number">10</span>)</span><br><span class="line">	fmt.Println(s1, s2, s3, s4, s3 == <span class="literal">nil</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>程序输出如下：</p>
+<pre><code>[0] [0 1] [0 0 0]
+[1 2 3] [0 0 0] [] [0 0] true
+</code></pre><p>可以看到，切片类型的字面量中，没有长度，只有类型，切片的长度可以自动随着其中元素数量的增加而增长。切片实际上是对底层数组的一个引用，也正因为如此，<code>s3</code> 为 <code>nil</code>，因为我们只是声明了它的类型，并没有初始化它。数组和切片都是有长度和容量的，对于数组而言，长度和容量相同的，对于切片，长度是当前所含元素的个数，而容量就不一定了，它的是动态可变的。</p>
+<h3 id="通道的接收操作和发送操作什么情况下会被阻塞？"><a href="#通道的接收操作和发送操作什么情况下会被阻塞？" class="headerlink" title="通道的接收操作和发送操作什么情况下会被阻塞？"></a>通道的接收操作和发送操作什么情况下会被阻塞？</h3><p>对于 <strong>缓冲通道</strong>，如果通道已满，对它的发送操作就会被阻塞，知道有元素被取走。</p>
+<p>对于 <strong>非缓冲通道</strong>，无论是发送操作还是接收操作，一开始都会被阻塞，知道配对的操作开始执行，由此可见，非缓冲通道使用同步的方式传递数据，数据是直接从发送方复制给接收方的，中间不会用费缓冲通道中转，相比之下，缓冲通道是在用异步的方式传递数据。</p>
+<h3 id="通道操作何时会引发-panic？"><a href="#通道操作何时会引发-panic？" class="headerlink" title="通道操作何时会引发 panic？"></a>通道操作何时会引发 panic？</h3><ol>
+<li><p>往未初始化的通道中发送值，或者从中接收值，会导致程序阻塞，如果阻塞了 主 goroutine 就会发生 panic；</p>
+</li>
+<li><p>关闭已经关闭的通道；</p>
+</li>
+<li><p>往已经关闭的通道发送值。</p>
+</li>
+</ol>
+<h3 id="为什么说根据通道接收表达式第二个值判断通道是否已经关闭有延迟？"><a href="#为什么说根据通道接收表达式第二个值判断通道是否已经关闭有延迟？" class="headerlink" title="为什么说根据通道接收表达式第二个值判断通道是否已经关闭有延迟？"></a>为什么说根据通道接收表达式第二个值判断通道是否已经关闭有延迟？</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	ch := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>, <span class="number">4</span>)</span><br><span class="line">	ch &lt;- <span class="number">1</span></span><br><span class="line">	ch &lt;- <span class="number">2</span></span><br><span class="line">	ch &lt;- <span class="number">3</span></span><br><span class="line">	<span class="built_in">close</span>(ch)</span><br><span class="line">	<span class="keyword">var</span> v <span class="keyword">int</span></span><br><span class="line">	<span class="keyword">var</span> ok <span class="keyword">bool</span></span><br><span class="line">	v, ok = &lt;- ch</span><br><span class="line">	fmt.Println(v, ok)</span><br><span class="line">	v, ok = &lt;- ch</span><br><span class="line">	fmt.Println(v, ok)</span><br><span class="line">	v, ok = &lt;- ch</span><br><span class="line">	fmt.Println(v, ok)</span><br><span class="line">	v, ok = &lt;- ch</span><br><span class="line">	fmt.Println(v, ok)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出如下：</p>
+<pre><code>    1 true
+    2 true
+    3 true
+    0 false
+</code></pre><p>通道关闭之后，只要通道中还有值，第二个值就不会是 false，知道将所有的值取完。这里要注意的是，通道关闭之后，也可以从通道中取出值，此时的值通道类型零值。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/GO/" rel="tag"># GO</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/04/21/MySQL-%E5%B8%B8%E7%94%A8%E9%97%AE%E9%A2%98%E6%95%B4%E7%90%86/" rel="prev" title="MySQL 常用问题整理">
+      <i class="fa fa-chevron-left"></i> MySQL 常用问题整理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/01/29/Let-s-Encrypt-DV-%E8%AF%81%E4%B9%A6%E7%94%B3%E8%AF%B7/" rel="next" title="Let's Encrypt DV 证书申请">
+      Let's Encrypt DV 证书申请 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#GO-环境变量-GOPATH，-GOROOT，GOBIN？"><span class="nav-number">1.</span> <span class="nav-text">GO 环境变量 GOPATH， GOROOT，GOBIN？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Go-代码组织方式？"><span class="nav-number">2.</span> <span class="nav-text">Go 代码组织方式？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#go-install-go-get-go-build-go-run？"><span class="nav-number">3.</span> <span class="nav-text">go install, go get, go build, go run？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#命令源码文件，库源码文件，测试源码文件？"><span class="nav-number">4.</span> <span class="nav-text">命令源码文件，库源码文件，测试源码文件？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Go-程序实体权限访问规则？"><span class="nav-number">5.</span> <span class="nav-text">Go 程序实体权限访问规则？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Go-语言中变量的作用域？"><span class="nav-number">6.</span> <span class="nav-text">Go 语言中变量的作用域？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#类型断言和类型转换？"><span class="nav-number">7.</span> <span class="nav-text">类型断言和类型转换？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#别名类型，潜在类型？"><span class="nav-number">8.</span> <span class="nav-text">别名类型，潜在类型？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数组和切片？"><span class="nav-number">9.</span> <span class="nav-text">数组和切片？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#通道的接收操作和发送操作什么情况下会被阻塞？"><span class="nav-number">10.</span> <span class="nav-text">通道的接收操作和发送操作什么情况下会被阻塞？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#通道操作何时会引发-panic？"><span class="nav-number">11.</span> <span class="nav-text">通道操作何时会引发 panic？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#为什么说根据通道接收表达式第二个值判断通道是否已经关闭有延迟？"><span class="nav-number">12.</span> <span class="nav-text">为什么说根据通道接收表达式第二个值判断通道是否已经关闭有延迟？</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Michael"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Michael</p>
+  <div class="site-description" itemprop="description">何以解忧，唯有暴富</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">44</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:fudenglong1417@gmail.com" title="E-Mail → mailto:fudenglong1417@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/gamelife1314" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;gamelife1314" rel="noopener" target="_blank"><i class="fa fa-fw fa-weibo"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备 15012817号-2 </a>
+      <img src="/uploads/img/beian.png" style="display: inline-block;">
+  </div>
+
+<div class="copyright">
+  
+  &copy; 2017 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Michael</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    <span title="站点总字数">461k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">6:59</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+<script type="text/x-mathjax-config">
+    MathJax.Ajax.config.path['mhchem'] = '//cdn.jsdelivr.net/npm/mathjax-mhchem@3';
+
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],
+      processEscapes: true,
+      skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    },
+    TeX: {
+        extensions: ['[mhchem]/mhchem.js'],
+      equationNumbers: {
+        autoNumber: 'AMS'
+      }
+    }
+  });
+
+  MathJax.Hub.Register.StartupHook('TeX Jax Ready', function() {
+    MathJax.InputJax.TeX.prefilterHooks.Add(function(data) {
+      if (data.display) {
+        var next = data.script.nextSibling;
+        while (next && next.nodeName.toLowerCase() === '#text') {
+          next = next.nextSibling;
+        }
+        if (next && next.nodeName.toLowerCase() === 'br') {
+          next.parentNode.removeChild(next);
+        }
+      }
+    });
+  });
+
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for (i = 0; i < all.length; i += 1) {
+      element = document.getElementById(all[i].inputID + '-Frame').parentNode;
+      if (element.nodeName.toLowerCase() == 'li') {
+        element = element.parentNode;
+      }
+      element.classList.add('has-jax');
+    }
+  });
+</script>
+<script>
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML', () => {
+    MathJax.Hub.Typeset();
+  }, window.MathJax);
+</script>
+
+    
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el: '#valine-comments',
+      verify: false,
+      notify: false,
+      appId: 'dVxPiBGnkrFuAuGXoKBgMen7-gzGzoHsz',
+      appKey: '0MossccApzoNGeRDcuDccAAg',
+      placeholder: "Just go go",
+      avatar: 'mm',
+      meta: guest,
+      pageSize: '10' || 10,
+      visitor: true,
+      lang: '' || 'zh-cn',
+      path: location.pathname,
+      recordIP: true,
+      serverURLs: ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>
