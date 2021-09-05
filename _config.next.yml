@@ -88,8 +88,8 @@ menu:
   categories: /categories/ || fa fa-th
   archives: /archives/ || fa fa-archive
   # schedule: /schedule/ || fa fa-calendar
-  sitemap: /sitemap.xml || fa fa-sitemap
-  commonweal: /404/ || fa fa-heartbeat
+  # sitemap: /sitemap.xml || fa fa-sitemap
+  # commonweal: /404/ || fa fa-heartbeat
 
 # Enable / Disable menu icons / item badges.
 menu_settings:
@@ -601,8 +601,8 @@ disqusjs:
 # For more information: https://changyan.kuaizhan.com
 changyan:
   enable: true
-  appid:  cytk7bf4l
-  appkey: dc9e07f2815ef0eabdb3e514008830f3
+  appid:  cyvDU2T8v
+  appkey: fba98f386f07fa193b93c76d73ca1677
 
 # LiveRe comments system
 # You can get your uid from https://livere.com/insight/myCode (General web site)
