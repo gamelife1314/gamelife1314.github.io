@@ -356,13 +356,13 @@ codeblock:
   # Code Highlight theme
   # All available themes: https://theme-next.js.org/highlight/
   theme:
-    enable: true
+    enable: false
     light: xcode
     dark: xcode
   prism:
-    enable: false
-    light: prism-material-light
-    dark: prism-material-light
+    enable: true
+    light: prism-material-dark
+    dark: prism-material-dark
   # Add copy button on codeblock
   copy_button:
     enable: true
@@ -398,7 +398,7 @@ bookmark:
 
 # `Follow me on GitHub` banner in the top-right corner.
 github_banner:
-  enable: true
+  enable: false
   permalink: https://github.com/gamelife1314
   title: Follow me on GitHub
 
@@ -416,7 +416,7 @@ github_banner:
 # ---------------------------------------------------------------
 
 font:
-  enable: false
+  enable: true
 
   # Uri of fonts host, e.g. https://fonts.googleapis.com (Default).
   host:
@@ -430,7 +430,7 @@ font:
   global:
     external: true
     family: Lato
-    size:
+    size: 1
 
   # Font settings for site title (.site-title).
   title:
@@ -447,12 +447,12 @@ font:
   # Font settings for posts (.post-body).
   posts:
     external: true
-    family:
+    family: "Ma Shan Zheng, Long Cang, cursive"
 
   # Font settings for <code> and code blocks.
   codes:
     external: true
-    family:
+    family: "Source Code Pro"
 
 
 # ---------------------------------------------------------------
@@ -600,7 +600,7 @@ disqusjs:
 # Changyan
 # For more information: https://changyan.kuaizhan.com
 changyan:
-  enable: true
+  enable: false
   appid:  cyvDU2T8v
   appkey: fba98f386f07fa193b93c76d73ca1677
 
