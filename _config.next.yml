@@ -736,7 +736,7 @@ local_search:
   # If manual, trigger search by pressing enter key or search button.
   trigger: auto
   # Show top n results per article, show all results by setting to -1
-  top_n_per_article: 1
+  top_n_per_article: 5
   # Unescape html strings to the readable one.
   unescape: false
   # Preload the search data when the page loads.
@@ -799,9 +799,9 @@ note:
 # Tabs tag
 tabs:
   # Make the nav bar of tabs with long content stick to the top.
-  sticky: false
+  sticky: true
   transition:
-    tabs: false
+    tabs: true
     labels: true
 
 # PDF tag
