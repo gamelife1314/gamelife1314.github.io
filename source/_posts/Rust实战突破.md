@@ -517,7 +517,7 @@ fn main() {
 
 #### 默认类型参数和关联参数
 
-rust 官方提供了一个 `use std::ops::Add;` trait，可以用于重载 `+` 运算符，定义如下：
+`rust` 官方提供了一个 `use std::ops::Add;`，可以用于重载 `+` 运算符，定义如下：
 
 ```rust
 trait Add<RHS=Self> {
@@ -572,5 +572,84 @@ fn main() {
     let meter = Meters(1);
     let millimeters = Millimeters(1);
     assert_eq!(Millimeters(1001), millimeters + meter);
+}
+```
+
+#### 完全限定语法
+
+`Rust` 既不能避免一个 `trait` 与另一个 `trait` 拥有相同名称的方法，也不能阻止为同一类型同时实现这两个 `trait`。甚至直接在类型上实现开始已经有的同名方法也是可能的。下面的示例中通过在方法名称前面添加 `trait` 限定符，我们向 `rust` 指定我们需要哪个实现。
+
+```rust
+#![allow(unused)]
+
+trait Pilot {
+    fn fly(&self);
+}
+
+trait Wizard {
+    fn fly(&self);
+}
+
+struct Human;
+
+impl Pilot for Human {
+    fn fly(&self) {
+        println!("This is your captain speaking.");
+    }
+}
+
+impl Wizard for Human {
+    fn fly(&self) {
+        println!("Up!");
+    }
+}
+
+impl Human {
+    fn fly(&self) {
+        println!("*waving arms furiously*");
+    }
+}
+
+fn main() {
+    let person = Human;
+    person.fly();         // 直接调用 Human 的方法
+    Pilot::fly(&person);  // 调用 Human 为 Pilot 的 fly 实现
+    Wizard::fly(&person); // 调用 Human 为 Wizard 的 fly 实现
+}
+
+```
+
+像上面这种 `fly` 方法有一个 `self` 参数，即使有多个类型实现同一 `trait`，在使用 `Trait::method(self)`时，`rust` 可以根据 `self` 类型帮我们定位具体哪个类型的实现。然而，当遇到关联函数，即第一个参数不是 `self` 时，`rust` 就不能帮我们计算出该使用哪个类型了。下面的示例中使用完全限定语法消除歧义，该语法为：
+
+> `<Type as Trait>::function(receiver_if_method, next_arg, ...);`
+> 
+>  关联函数没有 `receiver`
+
+```rust
+#![allow(unused)]
+
+trait Animal {
+    fn baby_name() -> String;
+}
+
+struct Dog;
+
+impl Dog {
+    fn baby_name() -> String {
+        String::from("Spot")
+    }
+}
+
+impl Animal for Dog {
+    fn baby_name() -> String {
+        String::from("puppy")
+    }
+}
+
+fn main() {
+    // Dog 类型的实现
+    println!("A baby dog is called a {}", Dog::baby_name());
+    // Dog 类型为 Animal trait 的实现
+    println!("A baby dog is called a {}", <Dog as Animal>::baby_name());
 }
 ```
