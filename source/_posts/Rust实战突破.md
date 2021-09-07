@@ -355,6 +355,8 @@ fn main() {
 
 > `|val| val + x`
 
+#### 简单示例 
+
 这种超级简便的语法使得它在临时使用时非常方便，输入和返回值类型都可以自行推导，但是必须指定输入参数名称。在声明参数是，同函数不同，它是使用 `||` 而不是 `()` 将参数包裹起来；另外们对于单个表达式的闭包，`{}` 是可以省略的。
 
 ```rust
@@ -372,6 +374,8 @@ fn main() {
     println!("a + 1 = {}", plus_one(a));
 }
 ```
+
+#### 捕获变量
 
 闭包会自动满足函数功能的要求，使得闭包不需要类型说明就可以工作。这允许变量捕获（`capture`）灵活地适应使用场合，既可移动（`move`）又可借用（`borrow`）变量。闭包可以通过：`引用 &T`， `可变引用 &mut T`，`值 T`  自动捕获变量，也可以通过 `move` 强制获得变量的所有权：
 
@@ -422,6 +426,8 @@ fn main() {
     // println!("numbers length is {}", numbers.len());
 }
 ```
+
+#### 作为函数入参
 
 虽然闭包可以自动做类型推断，但是在编写函数以闭包作为参数时，还是得必须明确指定类型，可以通过以下三个之一来指定闭包捕获变量的类型，他们的受限程度依次递减：
 
@@ -478,6 +484,8 @@ fn main() {
 }
 ```
 
+#### 作为返回值
+
 闭包可以作为输入参数，也可以作为返回值返回，由于闭包的类型是未知的，所以只有使用 `impl Trait` 才能返回一个闭包。除此之外，还必须使用 `move` 关键字，它表明所有的捕获都是通过值进行的。因为在函数退出时，任何通过引用的捕获都被丢弃，在闭包中留下无效的引用。
 
 ```rust
@@ -509,6 +517,63 @@ fn main() {
 }
 ```
 
+#### 函数指针
+
+通过函数指针允许我们使用函数作为另一个函数的参数，函数的类型是 `fn`，注意和 `Fn` 区分，后者是闭包实现的 `trait` 类型，`fn` 被称为函数指针。 函数指针实现了所有三个闭包 `trait`（`Fn`、`FnMut` 和 `FnOnce`），所以总是可以在调用期望闭包的函数时传递函数指针作为参数。倾向于编写使用泛型和闭包 `trait` 的函数，这样它就能接受函数或闭包作为参数。
+
+{% tabs 函数和闭包作为参数 %}
+
+<!-- tab 闭包作为参数 -->
+
+```rust
+#![allow(unused)]
+fn main() {
+    let list_of_numbers = vec![1, 2, 3];
+    let list_of_strings: Vec<String> = list_of_numbers.iter().map(|i| i.to_string()).collect();
+    println!("{:?}", list_of_strings);
+}
+```
+<!-- endtab -->
+
+<!-- tab 函数作为参数 -->
+```rust
+#![allow(unused)]
+fn main() {
+    let list_of_numbers = vec![1, 2, 3];
+    let list_of_strings: Vec<String> = list_of_numbers.iter().map(ToString::to_string).collect();
+    println!("{:?}", list_of_strings);
+}
+```
+<!-- endtab -->
+
+<!-- tab 元组结构体 -->
+
+在构造元组结构体时使用 `()` 语法进行初始化，很像是函数调用，实际上它们确实被实现为返回由参数构造的实例的函数，所以它们也被称为实现了闭包 `trait` 的函数指针。
+
+```rust
+#![allow(unused)]
+
+#[derive(Debug)]
+enum Status {
+    Value(u32),
+    Stop,
+}
+
+#[derive(Debug)]
+struct State(u32);
+
+fn main() {
+    let list_of_statuses: Vec<Status> = (0u32..5).map(Status::Value).collect();
+    println!("{:?}", list_of_statuses);
+    
+    let list_of_statuses: Vec<State> = (0u32..5).map(State).collect();
+    println!("{:?}", list_of_statuses);
+}
+```
+
+<!-- endtab -->
+
+{% endtabs %}
 
 ### Trait
 
