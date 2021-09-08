@@ -277,7 +277,7 @@ fn main() {
 }
 ```
 
-### 解构
+#### 解构
 
 解构可以非常方便地从一个结构体或者元组中提取某个字段或者全部：
 
@@ -302,6 +302,104 @@ fn main() {
     println!("y = {}", y);
 }
 ```
+
+#### 指针和引用
+
+对指针来说，解构（`destructure`）和解引用（`dereference`）要区分开，因为这两者的概念 是不同的，和 C 那样的语言用法不一样。
+
+- 解引用使用 `*`
+- 解构使用 `&`、`ref`、和 `ref mut`
+
+```rust
+fn main() {
+    // 获得一个 `i32` 类型的引用。`&` 表示取引用。
+    let reference = &4;
+
+    match reference {
+        // 如果用 `&val` 这个模式去匹配 `reference`，就相当于做这样的比较：
+        // `&i32`（译注：即 `reference` 的类型）
+        //    |
+        // `&val`（译注：即用于匹配的模式）
+        // ^ 我们看到，如果去掉匹配的 `&`，`i32` 应当赋给 `val`。
+        // 译注：因此可用 `val` 表示被 `reference` 引用的值 4。
+        &val => println!("Got a value via destructuring: {:?}", val),
+    }
+
+    // 如果不想用 `&`，需要在匹配前解引用。
+    match *reference {
+        val => println!("Got a value via dereferencing: {:?}", val),
+    }
+
+    // 如果一开始就不用引用，会怎样？ `reference` 是一个 `&` 类型，因为赋值语句
+    // 的右边已经是一个引用。但下面这个不是引用，因为右边不是。
+    let _not_a_reference = 3;
+
+    // Rust 对这种情况提供了 `ref`。它更改了赋值行为，从而可以对具体值创建引用。
+    // 下面这行将得到一个引用。
+    let ref _is_a_reference = 3;
+
+    // 相应地，定义两个非引用的变量，通过 `ref` 和 `ref mut` 仍可取得其引用。
+    let value = 5;
+    let mut mut_value = 6;
+
+    // 使用 `ref` 关键字来创建引用。
+    // 译注：下面的 r 是 `&i32` 类型，它像 `i32` 一样可以直接打印，因此用法上
+    // 似乎看不出什么区别。但读者可以把 `println!` 中的 `r` 改成 `*r`，仍然能
+    // 正常运行。前面例子中的 `println!` 里就不能是 `*val`，因为不能对整数解
+    // 引用。
+    match value {
+        ref r => println!("Got a reference to a value: {:?}", r),
+    }
+
+    // 类似地使用 `ref mut`。
+    match mut_value {
+        ref mut m => {
+            // 已经获得了 `mut_value` 的引用，先要解引用，才能改变它的值。
+            *m += 10;
+            println!("We added 10. `mut_value`: {:?}", m);
+        }
+    }
+}
+```
+
+`&` 和 `ref` 都表示获取引用，只是一个出现在表达式左边一个出现在右边，当 `&` 出现在右边的时候等价于 `ref` 出现在左边，`&` 出现在左边的时候等价于 `*` 出现在右边：
+
+```rust
+#![feature(core_intrinsics)]
+
+fn main() {
+    let x = &false;
+    print_type_name_of(x);
+
+    let &x = &false;
+    print_type_name_of(x);
+
+    let ref x = &false;
+    print_type_name_of(x);
+
+    let ref x = 1;
+    let x = &1;
+    let &y = x;
+    let y = *x;
+    print_type_name_of(x);
+    print_type_name_of(y);
+}
+
+fn print_type_name_of<T>(_: T) {
+    println!("{}", unsafe { std::intrinsics::type_name::<T>() })
+}
+```
+
+输出：
+```
+&bool
+bool
+&&bool
+&i32
+i32
+```
+
+参考：[https://users.rust-lang.org/t/ref-keyword-versus/18818/2](https://users.rust-lang.org/t/ref-keyword-versus/18818/2)
 
 ### 方法
 
@@ -646,7 +744,15 @@ fn main() {
 
 ### Trait
 
-`trait` 告诉 Rust 编译器某个特定类型拥有可能与其他类型共享的功能。可以通过 `trait` 以一种抽象的方式定义共享的行为。
+`trait` 用于定义共享的行为，`trait` 告诉 `Rust` 编译器某个特定类型拥有可能与其他类型共享的功能。可以通过 `trait` 以一种抽象的方式定义共享的行为，可以使用 `trait bounds` 指定泛型是任何拥有特定行为的类型。`trait` 定义是一种将方法签名组合起来的方法，目的是定义一个实现某些目的所必需的行为的集合，这里定义的方法可以只是签名说明而没有函数体。
+
+```rust
+
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+
+```
 
 #### 默认类型和关联参数
 
@@ -784,5 +890,334 @@ fn main() {
     println!("A baby dog is called a {}", Dog::baby_name());
     // Dog 类型为 Animal trait 的实现
     println!("A baby dog is called a {}", <Dog as Animal>::baby_name());
+}
+```
+
+#### 自定义实现
+
+实现 `trait` 时需要注意的一个限制是，只有当 `trait` 或者要实现 `trait` 的类型位于 `crate` 的本地作用域时，才能为该类型实现 `trait`，这个限制是被称为`相干性（coherence）` 的程序属性的一部分，或者更具体的说是`孤儿规则（orphan rule）`。这条规则确保了其他人编写的代码不会破坏你代码，反之亦然。没有这条规则的话，两个`crate`可以分别对相同类型实现相同的`trait`，而`Rust`将无从得知应该使用哪一个实现。
+
+```rust
+trait Summary {
+    fn summarize(&self) -> String;
+}
+
+struct Article {
+    content: String,
+}
+
+impl Summary for Article {
+    fn summarize(&self) -> String {
+        self.content.clone()
+    }
+}
+
+fn main() {
+    let article = Article {
+        content: "hello".to_string(),
+    };
+    println!("{}", article.summarize())
+}
+```
+
+#### 默认实现
+
+默认实现指我们在定义 `trait` 方法时提供默认的实现行为，在为类型实现`trait`时，就可以不用再去实现它的方法了。默认实现的`trait`方法中还允许我们调用相同`trait`的其他方法，即使他们没有实现。
+
+```rust
+trait Summary {
+    fn author(&self) -> String;
+
+    fn summarize(&self) -> String {
+        format!("author is {}", self.author())
+    }
+}
+
+struct Article {
+    content: String,
+    author: String,
+}
+
+impl Summary for Article {
+    fn author(&self) -> String {
+        self.author.clone()
+    }
+}
+
+fn main() {
+    let article = Article {
+        content: "hello".to_string(),
+        author: "michael".to_owned(),
+    };
+    println!("{}", article.summarize())
+}
+```
+
+#### 作为参数
+
+我们可以将函数参数定义为实现了某个`trait`的类型，这样我们不用于去关心`trait`背后的具体类型，只在乎这些类型的行为。实现这一目标以多种不同的语法方式，它们是等价的，只是表现形式不同。
+
+{% tabs trait作为参数 %}
+
+<!-- tab impl -->
+如下，我们定义 `notify` 函数，指定 `item` 参数为实现了 `Summary` 的一个类型。
+
+```rust
+trait Summary {
+    fn author(&self) -> String;
+
+    fn summarize(&self) -> String {
+        format!("author is {}", self.author())
+    }
+}
+
+fn notify(item: impl Summary) {
+    println!("notify: {}", item.summarize())
+}
+
+```
+<!-- endtab -->
+
+<!-- tab trait bound  -->
+
+`impl` 看起来比较直观，它实际上是一个较长形式的语法糖，称之为 `trait bound`，所以前面的 `impl Summary` 等价于如下的形式：
+
+```rust
+fn notify(item: impl Summary) {
+    println!("notify: {}", item.summarize())
+}
+
+fn notify_bound<T: Summary>(item: T) {
+    println!("notify: {}", item.summarize())
+}
+```
+
+`impl` 形式在参数较少时比较方便，在参数较多时就看起来比较冗余，使用 `trait bound` 看起来就比较方便：
+
+```rust
+fn notify_para2(item1: impl Summary, item2: impl Summary) {
+    println!(
+        "notify1: {}, notify2: {}",
+        item1.summarize(),
+        item2.summarize()
+    )
+}
+
+fn notify_para2_bound<T: Summary>(item1: T, item2: T) {
+    println!(
+        "notify1: {}, notify2: {}",
+        item1.summarize(),
+        item2.summarize()
+    )
+}
+```
+<!-- endtab -->
+
+<!-- tab 多个 trait bound -->
+
+`trait bound` 可以理解为将 `trait` 绑定到某个泛型上，当需要将参数声明为实现了多个`trait`的类型时，可以使用 `+` ：
+
+```rust
+fn notify_two_trait(item: impl Summary + Display) {
+    println!("{}", item)
+}
+
+fn notify_two_trait_bound<T: Summary + Display>(item: T) {
+    println!("{}", item)
+}
+```
+
+使用过多的 `trait bound` 也有缺点。每个泛型有其自己的 `trait bound`，所以有多个泛型参数的函数在名称和参数列表之间会有很长的 `trait bound` 信息，这使得函数签名难以阅读。为此，`Rust` 有另一个在函数签名之后的 **`where`** 从句中指定 `trait bound` 的语法。
+
+```rust
+fn notify_complex<T: Summary + Display, U: Debug + Copy>(item1: T, item2: U) {
+    println!("item1: {}, item2: {:?}", item1, item2)
+}
+
+fn notify_complex_where<T, U>(item1: T, item2: U)
+where
+    T: Summary + Display,
+    U: Debug + Copy,
+{
+    println!("item1: {}, item2: {:?}", item1, item2)
+}
+```
+
+<!-- endtab -->
+
+{% endtabs %}
+
+#### 作为返回值
+
+我们可以将函数的返回值定义为实现了某个trait的类型，例如我们指定 `returns_summarizable` 函数返回实现了 `Summary` 的类型：
+
+```rust
+#![allow(unused)]
+
+use std::fmt::{Debug, Display};
+
+trait Summary {
+    fn summarize(&self) -> String;
+}
+
+struct Article {
+    content: String,
+    author: String,
+}
+
+impl Summary for Article {
+    fn summarize(&self) -> String {
+        self.content.clone()
+    }
+}
+
+struct Tweet {
+    content: String,
+    author: String,
+}
+
+impl Summary for Tweet {
+    fn summarize(&self) -> String {
+        self.content.clone()
+    }
+}
+
+fn returns_summarizable() -> impl Summary {
+    Tweet {
+        content: String::from("of course, as you probably already know, people"),
+        author: "michael".to_string(),
+    }
+}
+
+fn main() {
+    let tweet = returns_summarizable();
+    println!("{}", tweet.summarize());
+}
+```
+
+但是如果我们想从一个函数中返回多种实现了同一`trait`的类型，就不可以了，如下面这段代码就不能通过编译，因为`rust`需要在编译时期就确定函数返回值的大小。返回不同的类型，意味着函数的返回值大小是不确定的，这对于 `rust` 来说是不允许的。
+
+```rust
+fn try_return_multiple_types(switch: bool) -> impl Summary {
+    if switch {
+        Tweet {
+            content: String::from("of course, as you probably already know, people"),
+            author: "michael".to_string(),
+        }
+    } else {
+        Article {
+            content: String::from("of course, as you probably already know, people"),
+            author: "michael".to_string(),
+        }
+    }
+}
+```
+
+如果我们确实想这样做，我们可以使用 `Box<T>` 类型，这个类型将数据实际存储在堆上，保留该数据的指针，所以其大小是固定的，这样就实现了动态分发：
+
+```rust
+fn try_return_multiple_types(switch: bool) -> Box<dyn Summary> {
+    if switch {
+        Box::new(Tweet {
+            content: String::from("of course, as you probably already know, people"),
+            author: "michael".to_string(),
+        })
+    } else {
+        Box::new(Article {
+            content: String::from("of course, as you probably already know, people"),
+            author: "michael".to_string(),
+        })
+    }
+}
+```
+
+#### 有条件地实现方法
+
+有时候我们在为某一个泛型结构体实现方法的时候，首先需要它的类型实现某些`trait`。如下示例中，类型 `Pair<T>` 总是实现了 `new` 方法，不过只有那些为 `T` 类型实现了 `PartialOrd trait` （来允许比较） 和 `Display trait` （来启用打印）的 `Pair<T>` 才会实现 `cmp_display` 方法：
+
+```rust
+#![allow(unused)]
+
+use std::fmt::Display;
+
+struct Pair<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Pair<T> {
+    fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+}
+
+impl<T: Display + PartialOrd> Pair<T> {
+    fn cmp_display(&self) {
+        if self.x >= self.y {
+            println!("The largest member is x = {}", self.x);
+        } else {
+            println!("The largest member is y = {}", self.y);
+        }
+    }
+}
+
+fn main() {
+    let pair = Pair { x: 1, y: 0 };
+    pair.cmp_display();
+}
+```
+
+也可以对任何实现了特定 `trait` 的类型有条件地实现 `trait`。对任何满足特定 `trait bound` 的类型实现 `trait` 被称为 `blanket implementations`，他们被广泛的用于 `Rust` 标准库中。例如，标准库为任何实现了 `Display trait` 的类型实现了 `ToString trait`。这个 `impl` 块看起来像这样：
+
+```rust
+impl<T: Display> ToString for T {
+    // --snip--
+}
+```
+
+所以可以对任何实现了 `Display trait` 的类型调用由 `ToString` 定义的 `to_string` 方法。
+
+> `let s = 3.to_string();`
+
+
+#### 父 trait
+
+在前面的例子中，我们演示过可以在 `trait` 的默认实现中使用相同`trait`的其他方法，即使该方法未实现。但是，我们有时也需要在当前`trait`中使用其他`trait`中的功能，这就形成了 `trait` 依赖，被依赖的`trait`的我们称之为当前`trait`的 **`父trait`**。
+
+下面的例子中，`OutlinePrint` 在定义的默认方法 `outline_print` 调用了 `fmt::Display` 中的 `to_string` 方法：
+
+```rust
+#![allow(unused)]
+
+use std::fmt;
+
+trait OutlinePrint: fmt::Display {
+    fn outline_print(&self) {
+        let output = self.to_string();
+        let len = output.len();
+        println!("{}", "*".repeat(len + 4));
+        println!("*{}*", " ".repeat(len + 2));
+        println!("* {} *", output);
+        println!("*{}*", " ".repeat(len + 2));
+        println!("{}", "*".repeat(len + 4));
+    }
+}
+
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+impl OutlinePrint for Point {}
+
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
+fn main() {
+    let point = Point { x: 1, y: 2 };
+    point.outline_print();
 }
 ```
