@@ -21,8 +21,9 @@ categories:
 
 <!-- more -->
 
+### 表达式
 
-### `loop` 返回
+#### `loop`
 
 不同于其他语言，`rust` 的 `loop` 循环是可以返回值的，因为 `loop` 循环是一个表达式，表达式可以求值，这样就可以作为赋值语句使用，如下示例：
 
@@ -42,9 +43,119 @@ fn main() {
 }
 ```
 
-### match 匹配
+#### `if let`
+
+由于 `match` 模式匹配必须要指出所有的可能性，所以在使用上不是很优雅，因此有了 `if let`，可以说它是 `match` 的语法糖，可以按需只匹配自己想要的。
+
+```rust
+fn main() {
+    let number = Some(5);
+    if let Some(value) = number {
+        println!("value is {}", value);
+    }
+
+    // rust 中的 None 值
+    let none: Option<i32> = None;
+    if let Some(n) = none {
+        println!("value is {}", n);
+    } else {
+        println!("value is none");
+    }
+}
+```
+
+
+#### while let
+
+同 `if let` 类似，`while let` 可以简化代码的书写方式，使得呈现上更加优雅。
+
+{% tabs loop and while let, 2 %}
+
+<!-- tab loop match -->
+
+```rust
+fn main() {
+    let mut number = Some(0);
+    loop {
+        match number {
+            Some(value) => {
+                if value > 9 {
+                    number = None;
+                } else {
+                    number = Some(value + 1);
+                    println!("number is {:?}", number);
+                }
+            }
+            None => break,
+        }
+    }
+    println!("number is none: {}", number.is_none());
+}
+```
+
+<!-- endtab -->
+
+<!-- tab while let -->
+
+```rust
+fn main() {
+    let mut number = Some(0);
+    while let Some(value) = number {
+        if value > 9 {
+            number = None;
+        } else {
+            number = Some(value + 1);
+            println!("number is {:?}", number);
+        }
+    }
+    println!("number is none: {}", number.is_none());
+}
+```
+
+<!-- endtab -->
+
+{% endtabs %}
+
+### 零类型
+
+`rust` 中某些类型的是不占用任何内存的，享受 `rust` 为他们提供的优化，我们可以用标准库提供的 `std::mem::size_of_val` 函数进行测量。
+
+```rust
+#![allow(unused)]
+
+enum Color {
+    R(i16),
+    G(i16),
+    B(i16),
+}
+// 该枚举等价于，所以他们可以被当做函数使用
+// fn Color::R(c: i16) -> Color { /* ... */ }
+// fn Color::G(c: i16) -> Color { /* ... */ }
+// fn Color::B(c: i16) -> Color { /* ... */ }
+
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+fn main() {
+    // 同样一个函数，我们再赋值给一个变量时，在指定函数指针类型时，占用8个字节
+    // 不指定时，为函数项类型，占用0字节，函数项类型在必要时可以自动转化为函数指针类型
+    let add = add;
+    let add_ptr: fn(i32, i32) -> i32 = add;
+    println!("add size: {}", std::mem::size_of_val(&add)); // 0
+    println!("add_ptr size: {}", std::mem::size_of_val(&add_ptr)); // 8
+
+    // 枚举项占用的大小也是0
+    println!("Color::B size: {}", std::mem::size_of_val(&Color::B)); // 0
+}
+```
+
+
+### match
 
 `rust`提供`match`关键字用于模式匹配，类似于其他语言中的`switch`，不同的是`match`必须列出所有可能情况。
+
+#### 示例
 
 ```rust
 fn main() {
@@ -116,29 +227,7 @@ fn main() {
 }
 ```
 
-
-### if let
-
-由于 `match` 模式匹配必须要指出所有的可能性，所以在使用上不是很优雅，因此有了 `if let`，可以说它是 `match` 的语法糖，可以按需只匹配自己想要的。
-
-```rust
-fn main() {
-    let number = Some(5);
-    if let Some(value) = number {
-        println!("value is {}", value);
-    }
-
-    // rust 中的 None 值
-    let none: Option<i32> = None;
-    if let Some(n) = none {
-        println!("value is {}", n);
-    } else {
-        println!("value is none");
-    }
-}
-```
-
-### 卫语句
+#### 卫语句
 
 `match` 模式匹配可以加上 `if`条件语句来过滤分支，提供更加灵活的匹配方式：
 
@@ -154,7 +243,7 @@ fn main() {
 }
 ```
 
-### @ 绑定
+#### @ 绑定
 
 `match` 提供了 `@` 运算符用于将值绑定到变量：
 
@@ -188,9 +277,9 @@ fn main() {
 }
 ```
 
-### 结构体解构
+### 解构
 
-结构体解构可以非常方便地从一个结构体中提取某个字段或者全部：
+解构可以非常方便地从一个结构体或者元组中提取某个字段或者全部：
 
 ```rust
 fn main() {
@@ -213,58 +302,6 @@ fn main() {
     println!("y = {}", y);
 }
 ```
-
-### while let
-
-同 `if let` 类似，`while let` 可以简化代码的书写方式，使得呈现上更加优雅。
-
-{% tabs loop and while let, 2 %}
-
-<!-- tab loop match -->
-
-```rust
-fn main() {
-    let mut number = Some(0);
-    loop {
-        match number {
-            Some(value) => {
-                if value > 9 {
-                    number = None;
-                } else {
-                    number = Some(value + 1);
-                    println!("number is {:?}", number);
-                }
-            }
-            None => break,
-        }
-    }
-    println!("number is none: {}", number.is_none());
-}
-```
-
-<!-- endtab -->
-
-<!-- tab while let -->
-
-```rust
-fn main() {
-    let mut number = Some(0);
-    while let Some(value) = number {
-        if value > 9 {
-            number = None;
-        } else {
-            number = Some(value + 1);
-            println!("number is {:?}", number);
-        }
-    }
-    println!("number is none: {}", number.is_none());
-}
-```
-
-<!-- endtab -->
-
-{% endtabs %}
-
 
 ### 方法
 
@@ -427,7 +464,7 @@ fn main() {
 }
 ```
 
-#### 作为函数入参
+#### 作为入参
 
 虽然闭包可以自动做类型推断，但是在编写函数以闭包作为参数时，还是得必须明确指定类型，可以通过以下三个之一来指定闭包捕获变量的类型，他们的受限程度依次递减：
 
@@ -519,7 +556,7 @@ fn main() {
 
 #### 函数指针
 
-通过函数指针允许我们使用函数作为另一个函数的参数，函数的类型是 `fn`，注意和 `Fn` 区分，后者是闭包实现的 `trait` 类型，`fn` 被称为函数指针。 函数指针实现了所有三个闭包 `trait`（`Fn`、`FnMut` 和 `FnOnce`），所以总是可以在调用期望闭包的函数时传递函数指针作为参数。倾向于编写使用泛型和闭包 `trait` 的函数，这样它就能接受函数或闭包作为参数。
+通过函数指针允许我们使用函数作为另一个函数的参数，函数的类型是 `fn`，注意和 `Fn` 区分，后者是闭包实现的 `trait` 类型，`fn` 被称为函数指针。 函数指针实现了**所有三个闭包** `trait`（`Fn`、`FnMut` 和 `FnOnce`），所以总是可以在调用期望闭包的函数时传递函数指针作为参数。倾向于编写使用泛型和闭包 `trait` 的函数，这样它就能接受函数或闭包作为参数。`Fn` 系列 `trait` 由标准库提供，**所有的闭包都实现了 `trait` `Fn`、`FnMut` 或 `FnOnce` 中的一个**，所以闭包和函数可以自动互相转换。
 
 {% tabs 函数和闭包作为参数 %}
 
@@ -546,8 +583,7 @@ fn main() {
 ```
 <!-- endtab -->
 
-<!-- tab 元组结构体 -->
-
+<!-- tab 元组结构体，枚举项作为参数 -->
 在构造元组结构体时使用 `()` 语法进行初始化，很像是函数调用，实际上它们确实被实现为返回由参数构造的实例的函数，所以它们也被称为实现了闭包 `trait` 的函数指针。
 
 ```rust
@@ -570,7 +606,40 @@ fn main() {
     println!("{:?}", list_of_statuses);
 }
 ```
+<!-- endtab -->
 
+<!-- tab 闭包和函数指针相互转换 -->
+
+```rust
+#![allow(unused)]
+
+#[derive(Debug)]
+struct RGB(i32, i32, i32);
+
+fn color(s: &str) -> RGB {
+    RGB(1, 1, 1)
+}
+
+fn show(f: fn(s: &str) -> RGB) {
+    println!("color is {:?}", f(""));
+}
+
+fn show_with_trait<T: Fn(&str) -> RGB>(f: T) {
+    println!("show color with trait is {:?}", f(""));
+}
+
+fn main() {
+    let c = |s: &str| RGB(2, 2, 2);
+
+    // 闭包和函数自动转换为函数指针
+    show(c);
+    show(color);
+
+    // 闭包和函数都实现了 Fn trait
+    show_with_trait(c);
+    show_with_trait(color);
+}
+```
 <!-- endtab -->
 
 {% endtabs %}
@@ -579,8 +648,7 @@ fn main() {
 
 `trait` 告诉 Rust 编译器某个特定类型拥有可能与其他类型共享的功能。可以通过 `trait` 以一种抽象的方式定义共享的行为。
 
-
-#### 默认类型参数和关联参数
+#### 默认类型和关联参数
 
 `rust` 官方提供了一个 `use std::ops::Add;`，可以用于重载 `+` 运算符，定义如下：
 
