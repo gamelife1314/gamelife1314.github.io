@@ -1228,9 +1228,10 @@ fn main() {
 
 参考文章：
 
-1. https://stackoverflow.com/questions/31012923/what-is-the-difference-between-copy-and-clone?answertab=active#tab-top
-2. https://doc.rust-lang.org/std/marker/trait.Copy.html#whats-the-difference-between-copy-and-clone
-3. https://zhuanlan.zhihu.com/p/21730929
+1. [`https://stackoverflow.com/questions/31012923/what-is-the-difference-between-copy-and-clone?answertab=active#tab-top`](https://stackoverflow.com/questions/31012923/what-is-the-difference-between-copy-and-clone?answertab=active#tab-top)
+2. [`https://doc.rust-lang.org/std/marker/trait.Copy.html#whats-the-difference-between-copy-and-clone`](https://doc.rust-lang.org/std/marker/trait.Copy.html#whats-the-difference-between-copy-and-clone)
+3. [`https://zhuanlan.zhihu.com/p/21730929`](https://zhuanlan.zhihu.com/p/21730929)
+4. [`https://hashrust.com/blog/moves-copies-and-clones-in-rust/`](`https://hashrust.com/blog/moves-copies-and-clones-in-rust/ `)
 
 ##### Copy
 
