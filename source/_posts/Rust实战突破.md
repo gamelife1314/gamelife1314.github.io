@@ -1231,7 +1231,7 @@ fn main() {
 1. [`https://stackoverflow.com/questions/31012923/what-is-the-difference-between-copy-and-clone?answertab=active#tab-top`](https://stackoverflow.com/questions/31012923/what-is-the-difference-between-copy-and-clone?answertab=active#tab-top)
 2. [`https://doc.rust-lang.org/std/marker/trait.Copy.html#whats-the-difference-between-copy-and-clone`](https://doc.rust-lang.org/std/marker/trait.Copy.html#whats-the-difference-between-copy-and-clone)
 3. [`https://zhuanlan.zhihu.com/p/21730929`](https://zhuanlan.zhihu.com/p/21730929)
-4. [`https://hashrust.com/blog/moves-copies-and-clones-in-rust/`](`https://hashrust.com/blog/moves-copies-and-clones-in-rust/ `)
+4. [`https://hashrust.com/blog/moves-copies-and-clones-in-rust/`](https://hashrust.com/blog/moves-copies-and-clones-in-rust/)
 
 ##### Copy
 
@@ -1245,7 +1245,7 @@ fn main() {
 
 `i32` 实现了 `Copy`，所以我们在使用 `let` 表达式的时候，其实是复制而不是所有权转移。
 
-实现 `Copy` 的基本类型： [https://doc.rust-lang.org/std/marker/trait.Copy.html#implementors](https://doc.rust-lang.org/std/marker/trait.Copy.html#implementors)
+实现 `Copy` 的基本类型： [`https://doc.rust-lang.org/std/marker/trait.Copy.html#implementors`](https://doc.rust-lang.org/std/marker/trait.Copy.html#implementors)
 
 ```rust
 fn main() {
@@ -1316,7 +1316,7 @@ pub trait Clone: Sized {
 
 `clone` 方法一般用于基于语义的复制操作。所以，它做什么事情，跟具体类型的作用息息相关。比如对于 `Box` 类型，`clone` 就是执行的深拷贝，而对于 `Rc` 类型，`clone` 做的事情就是把引用计数值加`1`。你可以根据情况在 `clone` 函数中编写任意的逻辑。但是有一条规则需要注意：对于实现了 `Copy` 的类型，它的 `clone` 方法应该跟 `Copy` 语义相容，等同于按位拷贝。
 
-实现了 `Clone` 的所有基本类型： [https://doc.rust-lang.org/std/clone/trait.Clone.html#implementors](https://doc.rust-lang.org/std/clone/trait.Clone.html#implementors)
+实现了 `Clone` 的所有基本类型： [`https://doc.rust-lang.org/std/clone/trait.Clone.html#implementors`](https://doc.rust-lang.org/std/clone/trait.Clone.html#implementors)
 
 下面这段代码是{% label success@编译通过 %}的，可以看到，`String` 虽然未实现 `Copy`，但是它实现了 `Clone`。
 
