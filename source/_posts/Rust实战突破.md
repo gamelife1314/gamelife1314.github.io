@@ -399,7 +399,25 @@ bool
 i32
 ```
 
-参考：[https://users.rust-lang.org/t/ref-keyword-versus/18818/2](https://users.rust-lang.org/t/ref-keyword-versus/18818/2)
+参考：[`https://users.rust-lang.org/t/ref-keyword-versus/18818/2`](https://users.rust-lang.org/t/ref-keyword-versus/18818/2)
+
+#### 可反驳性
+
+模式有两种形式：`refutable`（可反驳的）和 `irrefutable`（不可反驳的）。能匹配任何传递的可能值的模式被称为是不可反驳的（`irrefutable`），反之，对某些可能的值进行匹配会失败的模式被称为是可反驳的（`refutable`）。
+
+举个例子，`let x = 5;` 中的 `x` 可以匹配任何值不会失败，所以称为不可反驳。`if let Some(x) = a_value` 中，如果 `a_value` 是 `None`，那么这个表达式就匹配不上，所以称为可反驳。
+
+为什么有这么个模式？因为，函数参数，`let`，`for` 只能接收不可反驳的模式，也就是说只允许匹配成功，是一种确定性操作。而 `if let`，或者 `while let` 表达式被限制为只能接收可反驳的模式，也就是说他们允许出现匹配不上，即匹配失败的情况，再者说，他们的出现就是为了处理成功和失败这两种情况。下面的这段代码就会{% label danger@编译失败 %}，因为没有处理 `a_value` 为 `None` 的情况，`let` 也处理不了：
+
+```rust
+fn main() {
+    let a_value: Option<i32> = Some(32);
+    let Some(x) = a_value;
+    println!("{}", x);
+}
+```
+
+基于此，`match` 匹配分支必须使用可反驳模式，除了最后一个分支需要使用能匹配任何剩余值的不可反驳模式。`Rust` 允许我们在只有一个匹配分支的 `match` 中使用不可反驳模式，不过这么做不是特别有用，并可以被更简单的 `let` 语句替代。
 
 ### 方法
 
