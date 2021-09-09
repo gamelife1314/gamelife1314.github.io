@@ -1221,3 +1221,108 @@ fn main() {
     point.outline_print();
 }
 ```
+
+#### Copy 和 Clone
+
+`Copy` 和 `Clone` 直接从字面意义上感觉没什么区别，它们最终都是产生了一个新的对象，但是这两个 `trait` 面向的对象不同，`Copy` 面向编译器，而 `Clone` 面向开发者。换句话说就是`copy`操作编译器帮我们做了，但是 `clone` 需要我们自己手动调用。
+
+参考文章：
+
+1. https://stackoverflow.com/questions/31012923/what-is-the-difference-between-copy-and-clone?answertab=active#tab-top
+2. https://doc.rust-lang.org/std/marker/trait.Copy.html#whats-the-difference-between-copy-and-clone
+3. https://zhuanlan.zhihu.com/p/21730929
+
+##### Copy
+
+`Copy` 的全称是 [`std::marker::Copy`](https://doc.rust-lang.org/std/clone/trait.Clone.html)，它的内部其实什么方法都没有，但是实现它必须实现 `Clone`。一旦一个类型实现 `Copy` 意味着在任何需要的时候，我们可以简单的通过内存拷贝（C语言的按位拷贝`memcpy`）实现该类型的复制，而不会出现任何问题。在变量绑定、函数参数传递、函数返回值传递等场景下，它都是 `copy` 语义，而不再是默认的 `move` 语义
+
+> `pub trait Copy: Clone { }`
+
+{% tabs Copy对所有权移动的影响 %}
+
+<!-- tab 实现 Copy -->
+
+`i32` 实现了 `Copy`，所以我们在使用 `let` 表达式的时候，其实是复制而不是所有权转移。
+
+实现 `Copy` 的基本类型： [https://doc.rust-lang.org/std/marker/trait.Copy.html#implementors](https://doc.rust-lang.org/std/marker/trait.Copy.html#implementors)
+
+```rust
+fn main() {
+    let a = 3;
+    let b = a;
+    println!("{} {}", a, b);
+}
+```
+<!-- endtab -->
+
+<!-- tab 未实现Copy -->
+
+[`String` 没有实现 `Copy`](https://doc.rust-lang.org/std/marker/trait.Copy.html#when-cant-my-type-be-copy)，所以它在使用 `let` 表达式的时候，是所有权转移，下面的代码{% label danger@编译失败 %}
+
+```rust
+fn main() {
+    let a = "hello world".to_string();
+    let b = a;
+    println!("{} {}", a, b);
+}
+```
+
+![String not implement Copy](./string-not-implement-copy.PNG)
+
+<!-- endtab -->
+
+{% endtabs %}
+
+并不是所有的类型都可以实现 `Copy` 。`Rust` 规定，对于自定义类型，只有所有的成员都实现了 `Copy` ，这个类型才有资格实现 `Copy`。例如下面的类型：
+
+```rust
+#[derive(Copy, Clone)]
+struct Point {
+   x: i32,
+   y: i32,
+}
+```
+
+但是看下面的 `PointList` 类型，他就不能实现 `Copy`，因为 [`Vec<T>`](https://doc.rust-lang.org/std/vec/struct.Vec.html) 没有实现 `Copy`。
+
+```rust
+struct PointList {
+    points: Vec<Point>,
+}
+```
+
+虽然 `PointList` 不能实现 `Copy`，但是是由于共享引用 `&T` 可以 `Copy`，所以我们可以实现一个 `PointListWrapper`，包含 `PointList` 的一个引用，这样即使 `PointList` 不能 `Copy`，`PointListWrapper` 也可以 `Copy`。
+
+```rust
+#[derive(Copy, Clone)]
+struct PointListWrapper<'a> {
+    point_list_ref: &'a PointList,
+}
+```
+
+##### Clone
+
+`Clone` 的全称是 [`std::clone::Clone;`](https://doc.rust-lang.org/std/clone/trait.Clone.html)，他定义了两个方法，其中 `clone_from` 默认实现。
+
+```rust
+pub trait Clone: Sized {
+    fn clone(&self) -> Self;
+    fn clone_from(&mut self, source: &Self) {
+        *self = source.clone()
+    }
+}
+```
+
+`clone` 方法一般用于基于语义的复制操作。所以，它做什么事情，跟具体类型的作用息息相关。比如对于 `Box` 类型，`clone` 就是执行的深拷贝，而对于 `Rc` 类型，`clone` 做的事情就是把引用计数值加`1`。你可以根据情况在 `clone` 函数中编写任意的逻辑。但是有一条规则需要注意：对于实现了 `Copy` 的类型，它的 `clone` 方法应该跟 `Copy` 语义相容，等同于按位拷贝。
+
+实现了 `Clone` 的所有基本类型： [https://doc.rust-lang.org/std/clone/trait.Clone.html#implementors](https://doc.rust-lang.org/std/clone/trait.Clone.html#implementors)
+
+下面这段代码是{% label success@编译通过 %}的，可以看到，`String` 虽然未实现 `Copy`，但是它实现了 `Clone`。
+
+```rust
+fn main() {
+    let a = "hello world".to_string();
+    let b = a.clone();
+    println!("{} {}", a, b);
+}
+```
