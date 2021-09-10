@@ -672,7 +672,12 @@ fn main() {
 
 #### 函数指针
 
-通过函数指针允许我们使用函数作为另一个函数的参数，函数的类型是 `fn`，注意和 `Fn` 区分，后者是闭包实现的 `trait` 类型，`fn` 被称为函数指针。 函数指针实现了**所有三个闭包** `trait`（`Fn`、`FnMut` 和 `FnOnce`），所以总是可以在调用期望闭包的函数时传递函数指针作为参数。倾向于编写使用泛型和闭包 `trait` 的函数，这样它就能接受函数或闭包作为参数。`Fn` 系列 `trait` 由标准库提供，**所有的闭包都实现了 `trait` `Fn`、`FnMut` 或 `FnOnce` 中的一个**，所以闭包和函数可以自动互相转换。
+[函数指针](https://doc.rust-lang.org/std/primitive.fn.html)是指向代码而非数据的指针。它们可以像函数一样被调用。与引用一样，函数指针被假定为不为空，因此如果想通过 FFI 传递函数指针并能够容纳空指针，需要使用所需的的类型 `Option<fn()> `。
+
+函数指针的类型是 `fn`，注意和 `Fn` 区分，后者是闭包实现的 `trait` 类型。 函数指针实现了**所有三个闭包** `trait`（`Fn`、`FnMut` 和 `FnOnce`），所以总是可以在调用期望闭包的函数时传递函数指针作为参数。倾向于编写使用泛型和闭包 `trait` 的函数，这样它就能接受函数或闭包作为参数。`Fn` 系列 `trait` 由标准库提供，**所有的闭包都实现了 `Fn`、`FnMut` 或 `FnOnce` 中的一个或多个**。
+
+我们可以将一个闭包转换为函数指针作为参数传入，但是仅限于没有捕获任何环境变量的闭包，这个从闭包和函数的概念上也能区分出来，闭包相对于函数，就是捕获了环境变量。没有捕获任何环境变量的闭包会被编译器重写为匿名独立函数。
+
 
 {% tabs 函数和闭包作为参数 %}
 
@@ -724,7 +729,9 @@ fn main() {
 ```
 <!-- endtab -->
 
-<!-- tab 闭包和函数指针相互转换 -->
+<!-- tab 闭包转换为函数指针类型 -->
+
+没有捕获任何环境变量的闭包会被编译器重写为匿名独立函数。
 
 ```rust
 #![allow(unused)]
@@ -732,30 +739,47 @@ fn main() {
 #[derive(Debug)]
 struct RGB(i32, i32, i32);
 
-fn color(s: &str) -> RGB {
+fn color() -> RGB {
     RGB(1, 1, 1)
 }
 
-fn show(f: fn(s: &str) -> RGB) {
-    println!("color is {:?}", f(""));
-}
-
-fn show_with_trait<T: Fn(&str) -> RGB>(f: T) {
-    println!("show color with trait is {:?}", f(""));
+fn show(f: fn() -> RGB) {
+    println!("color is {:?}", f());
 }
 
 fn main() {
-    let c = |s: &str| RGB(2, 2, 2);
 
-    // 闭包和函数自动转换为函数指针
+    let c = || RGB(2, 2, 2);
+
+    // 闭包自动转换为函数指针
     show(c);
     show(color);
-
-    // 闭包和函数都实现了 Fn trait
-    show_with_trait(c);
-    show_with_trait(color);
 }
 ```
+<!-- endtab -->
+
+<!-- tab 闭包不能转换为函数 -->
+
+闭包捕获环境变量之后，就不能再转换为函数了。这里有个例子：https://stackoverflow.com/questions/52696907/why-does-passing-a-closure-to-function-which-accepts-a-function-pointer-not-work?answertab=active#tab-top 
+
+```rust
+fn main() {
+    let a = String::from("abc");
+
+    let x = || println!("{}", a);
+
+    fn wrap(c: fn() -> ()) -> () {
+        c()
+    }
+
+    wrap(x);
+}
+```
+
+编译这段代码就会报错，帮我们指出闭包只有在没有捕获任何环境变量的情况下才能转换为函数，不得不说 `rust` 的编译器还是很友好：
+
+![closure convert to fn failed](closure-convert-to-fn-failed.PNG)
+
 <!-- endtab -->
 
 {% endtabs %}
@@ -1200,7 +1224,7 @@ impl<T: Display> ToString for T {
 
 #### 父 trait
 
-在前面的例子中，我们演示过可以在 `trait` 的默认实现中使用相同`trait`的其他方法，即使该方法未实现。但是，我们有时也需要在当前`trait`中使用其他`trait`中的功能，这就形成了 `trait` 依赖，被依赖的`trait`的我们称之为当前`trait`的 **`父trait`**。
+在前面的例子中，我们演示过可以在 `trait` 的默认实现中使用相同`trait`的其他方法，即使该方法未实现。但是，我们有时也需要在当前`trait`中使用其他`trait`中的功能，这就形成了 `trait` 依赖，被依赖的`trait`的我们称之为当前`trait`的 **父trait**。
 
 下面的例子中，`OutlinePrint` 在定义的默认方法 `outline_print` 调用了 `fmt::Display` 中的 `to_string` 方法：
 
@@ -1240,7 +1264,7 @@ fn main() {
 }
 ```
 
-#### Copy 和 Clone
+#### Copy、Clone
 
 `Copy` 和 `Clone` 直接从字面意义上感觉没什么区别，它们最终都是产生了一个新的对象，但是这两个 `trait` 面向的对象不同，`Copy` 面向编译器，而 `Clone` 面向开发者。换句话说就是`copy`操作编译器帮我们做了，但是 `clone` 需要我们自己手动调用。
 
@@ -1345,3 +1369,172 @@ fn main() {
     println!("{} {}", a, b);
 }
 ```
+
+#### Fn、FnMut、FnOnce
+
+这三个 `trait` 位于 `std::ops` 模块中，其实是对函数调用运算符 `()` 的重载，区别在于 `receiver` 的类型，可以看到 `Fn` 的受限成都最高，`FnOnce` 最低：
+
+```rust
+
+pub trait FnOnce<Args> {
+    type Output;
+    extern "rust-call" fn call_once(self, args: Args) -> Self::Output;
+}
+
+pub trait FnMut<Args>: FnOnce<Args> {
+    extern "rust-call" fn call_mut(
+        &mut self, 
+        args: Args
+    ) -> Self::Output;
+}
+
+pub trait Fn<Args>: FnMut<Args> {
+    extern "rust-call" fn call(&self, args: Args) -> Self::Output;
+}
+```
+
+其中 `Once` 的意义， 正如[闭包会捕获其环境](https://kaisery.github.io/trpl-zh-cn/ch13-01-closures.html#%E9%97%AD%E5%8C%85%E4%BC%9A%E6%8D%95%E8%8E%B7%E5%85%B6%E7%8E%AF%E5%A2%83) 中描述的那样：
+
+ - `FnOnce` 消费从周围作用域捕获的变量，闭包周围的作用域被称为其环境，`environment`。为了消费捕获到的变量，闭包必须获取其所有权并在定义闭包时将其移动进闭包。其名称的 `Once` 部分代表了闭包不能多次获取相同变量的所有权的事实，所以它只能被调用一次。
+
+ - 由于所有闭包都可以被调用至少一次，所以所有闭包都实现了 `FnOnce` 。
+
+##### FnOnce
+
+[`FnOnce`](https://doc.rust-lang.org/std/ops/trait.FnOnce.html) 获取了 `receiver` 的所有权，如果一个类型仅仅实现了 `FnOnce` 它只可以被调用一次。`FnOnce` 由可能消耗捕获变量的闭包以及实现 `FnMut` 的所有类型自动实现。
+
+由于 `Fn` 和 `FnMut` 都是 `FnOnce` 的 `subtraits` ，因此可以在需要 `FnOnce` 的地方使用 `Fn` 或 `FnMut` 的任何实例。如果我们在一个类函数类型参数使用场景中，如果我们期望只调用它一次，就使用 `FnOnce` 作为其类型，如果我们需要调用它多次是就使用 `FnMut` 作为其类型，如果我们还想要它不改变状态时，我们就用 `Fn`。
+
+从 [`implementors`](https://doc.rust-lang.org/std/ops/trait.FnOnce.html#implementors) 也可以看出，对于任何实现了 `FnOnce` 的类型 `F`，`&F` 和 `&mut F` 也自动实现 `FnOnce`。
+
+{% tabs FnOnce %}
+
+<!-- tab 闭包捕获非Copy类型，获取其所有权 -->
+
+这个例子中，`consume_and_return_x` 捕获了 `x` 并获得了其所有权，并且在第一次调用时已经将 `x` 的所有权转移，所以无法再次调用。
+
+```rust
+fn consume_with_relish<F>(func: F)
+where
+    F: FnOnce() -> String,
+{
+
+    // func 消耗了它捕获的环境变量，所以它只能被运行一次
+    println!("Consumed: {}", func());
+
+    println!("Delicious!");
+
+    // 如果再尝试调用，func()，将会出现编译错误
+    // func();
+}
+
+fn main() {
+    let x = String::from("x");
+    let consume_and_return_x = move || x;
+    consume_with_relish(consume_and_return_x);
+}
+```
+
+<!-- endtab -->
+
+<!-- tab 闭包捕获可Copy类型 -->
+
+当我们将前面例子中变量 `x` 的类型由 `String` 改为 `i32`，我们来看几个变种类型，改动很小。
+
+```rust
+fn consume_with_relish<F>(func: F)
+where
+    F: FnOnce() -> i32,
+{
+    println!("Consumed: {}", func());
+    // 这里调用会出现编译错误，在首次调用时，会将捕获的变量 x 消耗掉
+    // func(); 
+}
+
+fn main() {
+    let x = 1;
+    // 这里 x 移入闭包的时候，由于 x 默认实现了 Copy 类型，所以执行的是 copy 操作，而不是获取所有权
+    let consume_and_return_x = move || x;
+    consume_with_relish(consume_and_return_x);
+    println!("print x again: {}", x)
+}
+```
+
+但是由于 `i32` 是可复制的，所以生成的闭包也是可复制的，还记得 `Copy` 的含义，当所有成员都实现 `Copy` 的时候，这个类型就可能实现 `Copy`。我们可以将上面示例中泛型参数 `F` 的类型声明为以下任何一种，就可以实现 `func` 多次调用，我们其实是在告诉编译器，可以通过 `Copy` 避免所有权的转移：
+
+- `F: FnOnce() -> i32 + Copy`
+- `F: Copy + FnOnce() -> i32`
+- `F: Copy + FnOnce() -> i32 + Copy`
+
+<!-- endtab -->
+
+<!-- tab 非Copy类型，获取所有权，但是并不消耗 -->
+
+下面的例子运行是没有问题的，`consume_and_return_x` 获取了变量 `x` 的所有权，因为 `String` 不可 `Copy`。但是我们在使用的时候并没有消耗它的所有权，所以是可以多次使用的。这个时候 `consume_and_return_x` 其实已经实现了 `Fn`。
+
+```rust
+fn consume_with_relish<F>(func: F)
+where
+    F: Fn(),
+{
+    func();
+    func();
+}
+
+
+fn main() {
+    let x = String::from("hello");
+    let consume_and_return_x = move || println!("{}", x);
+    consume_and_return_x();
+    consume_and_return_x();
+    consume_with_relish(consume_and_return_x);
+}
+```
+
+<!-- endtab -->
+
+{% endtabs %}
+
+##### FnMut
+
+`FnMut` 实例可以被重复多次调用，并且可以改变环境变量。它被那些捕获了环境变量可变引用的闭包，所有`Fn` 的实现者，以及函数指针自动实现。对于任何实现了 `FnMut` 的类型 `F`，`&mut F` 也实现了 `FnMut`。
+
+另外，因为 `FnOnce` 是 `FnMut` 的 **父trait**，所以任何需要 `FnOnce` 的地方都可以传入 `FnMut`。当你需要对一个类似函数类型的参数限定为，可调用多次并且可改变内部状态时，可以使用 `FnMut`。
+
+
+```rust
+fn do_twice<F>(mut func: F)
+where
+    F: FnMut(),
+{
+    func();
+    func();
+}
+
+fn main() {
+    let mut x: usize = 1;
+
+    let add_two_to_x = || x += 2;
+    do_twice(add_two_to_x);
+    println!("x: {}", x);
+}
+```
+
+##### Fn
+
+`Fn` 要和 函数指针 [`fn`](https://doc.rust-lang.org/std/primitive.fn.html) 区别，`Fn` 被那些仅捕获环境中变量不可变引用的闭包，或者不捕获任何东西的闭包，或者函数指针自动实现。需要 `Fn`或者`FnMut` 的地方，都可以传入 `Fn`。如果类型 `F` 实现 `Fn`，那么 `&F` 也将自动实现 `Fn`。
+
+```rust
+fn call_with_one<F>(func: F) -> usize
+where
+    F: Fn(usize) -> usize,
+{
+    func(1)
+}
+
+fn main() {
+    let double = |x| x * 2;
+    assert_eq!(call_with_one(double), 2);
+}
+```
+
