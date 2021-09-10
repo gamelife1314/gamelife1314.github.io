@@ -1538,3 +1538,145 @@ fn main() {
 }
 ```
 
+### 错误
+
+任何程序都不能完全正确地按照开发者的意愿去运行，总会遇到错误，例如打开文件时，文件不存在。Rust 将程序可能出现的错误分为**可恢复错误（recoverable）**和**不可恢复错误（unrecoverable）**。可恢复错误通常意味着意料之中的情况，我们可以选择向用户报告错误或者进行重试。不可恢复的错误往往意味着bug，比如数组访问越界。
+
+Rust 中没有异常，如果遇到可恢复错误就返回 `Result<T, E>` 让开发者处理，遇到不可恢复的错误就 `panic!`。
+
+#### panic!，不可恢复错误
+
+当程序遇到不可处理的异常时，选择 `panic` 未尝不可。可以通过宏 `panic!`，退出程序。
+
+当程序 `panic` 时，程序默认会开始**展开（unwinding）**，这意味着 Rust 会回溯栈并清理它遇到的每一个函数的数据，不过这个回溯并清理的过程有很多工作。另一种选择是直接**终止（abort）**，这会不清理数据就退出程序，那么程序所使用的内存需要由操作系统来清理。如果你需要项目的最终二进制文件越小越好，`panic` 时通过在 `Cargo.toml` 的 `[profile]` 部分增加 `panic = 'abort'`，可以由展开切换为终止。例如，如果你想要在`release`模式中 `panic` 时直接终止：
+
+```
+[profile.release]
+panic = 'abort'
+```
+我们可以通过将 `RUST_BACKTRACE` 设置为一个非 `0` 的数值，用于在程序 `panic` 时得到程序的调用栈。
+
+```rust
+fn main() {
+    let v = vec![1, 2, 3];
+
+    v[99];
+}
+```
+
+这里还提示我们可以通过将 `RUST_BACKTRACE` 设置为 `full`，得到更详细的调用栈。
+
+![数组越界panic](vec-over-panic.png)
+
+
+#### Result，可恢复错误
+
+程序往往不会严重到不能执行，在出现异常情况时，返回一个错误大多是比较合适的处理方式。Rust 中经常通过枚举类型 `Result` 代表返回一个错误或者一个期望的值。如下面 `Result` 的定义所示，它被定义为一个泛型，在处理正确时返回 `Ok(T)`，出现错误时返回错误 `Err(E)`。
+
+```rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+我们来看一个打开文件的例子，目的是获得操作文件的句柄，在文件不存在时，我们创建新的文件，如果都失败或者其他未知错误，直接 `panic`：
+
+```rust
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let file_name = "hello.txt";
+
+    let f = File::open(file_name);
+
+    let f = match f {
+        Ok(file) => file,
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => match File::create(file_name) {
+                Ok(fc) => fc,
+                Err(err) => panic!("create file failed: {:?}", err),
+            },
+            other_err => panic!("open file failed: {:?}", other_err),
+        },
+    };
+}
+```
+
+看着上面层层嵌套的 `match`，在感叹其强大的匹配功能的同时，也会感慨较深的代码嵌套不易阅读，我们尝试对其进行简化，其中 `unwrap_or_else` 接受一个闭包，它在前面的返回值没有问题时，直接返回；当遇到错误时，调用我们传入的闭包继续处理，期望返回我们需要的类型。
+
+```rust
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let file_name = "hello.txt";
+    let f = File::open(file_name).unwrap_or_else(|error| {
+        if error.kind() == ErrorKind::NotFound {
+            File::create(file_name).unwrap_or_else(|error| {
+                panic!("{:?}", error);
+            })
+        } else {
+            panic!("meet unkown error: {:?}", error);
+        }
+    });
+}
+```
+
+#### 错误传播
+
+当我们开发一个功能在遇到错误时，经常会选择向上传递错误，让调用者自由选择处理的方式，例如我们开发一个函数，读取指定的文件内容，我们可能会这样写：
+
+```rust
+use std::fs::File;
+use std::io::{Error, ErrorKind, Read};
+
+fn read_file_content(file: &str) -> Result<String, Error> {
+    let f = File::open(file);
+    let mut f = match f {
+        Ok(f) => f,
+        Err(err) => return Err(err),
+    };
+    let mut content = String::new();
+
+    match f.read_to_string(&mut content) {
+        Ok(_) => Ok(s),
+        Err(err) => Err(err),
+    }
+}
+```
+
+看到的是，我们使用 `match` 完成错误匹配，选择继续执行还是返回。但也展现出语法繁琐，所以就有了 **?** 运算符。`?` 在遇到返回值 `OK(value)`，将取出 `value` 继续执行，如果遇到 `Err`，将会返回当前的错误。我们来改写上面的例子：
+
+```rust
+use std::fs::File;
+use std::io::{Error, ErrorKind, Read};
+
+fn read_file_content(file: &str) -> Result<String, Error> {
+    let mut content = String::new();
+    File::open(file)?.read_to_string(&mut content)?;
+    Ok(s)
+}
+```
+
+`match` 表达式与问号运算符所做的有一点不同：`?` 运算符所使用的错误值被传递给了 `from` 函数，它定义于标准库的 `From trait` 中，其用来将错误从一种类型转换为另一种类型。当 `?` 运算符调用 `from` 函数时，收到的错误类型被转换为由当前函数返回类型所指定的错误类型。这在当函数返回单个错误类型来代表所有可能失败的方式时很有用，即使其可能会因很多种原因失败。只要每一个错误类型都实现了 `from` 函数来定义如何将自身转换为返回的错误类型，`?` 运算符会自动处理这些转换。总结就是，`?` 将收集到错误值自动转换为要返回的错误类型。
+
+另外，由于 `main` 函数是比较特殊的，它返回什么类型是由限制的，一般情况下它的返回值是 `()`，但是为了方便，他也允许返回 `Result<(), E>`，因此，我们也可以在 `main` 中使用 `?`：
+
+```rust
+use std::fs::File;
+use std::io::{Error, Read};
+
+fn read_file_content(file: &str) -> Result<String, Error> {
+    let mut content = String::new();
+    File::open(file)?.read_to_string(&mut content)?;
+    Ok(content)
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let content = read_file_content("hello.txt")?;
+    println!("content is: {}", content);
+    Ok(())
+}
+```

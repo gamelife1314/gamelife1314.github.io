@@ -447,7 +447,8 @@ font:
   # Font settings for posts (.post-body).
   posts:
     external: true
-    family: "Ma Shan Zheng, Long Cang, cursive"
+    # family: "Ma Shan Zheng, Long Cang, cursive"
+    family: "cursive"
 
   # Font settings for <code> and code blocks.
   codes:
