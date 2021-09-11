@@ -119,4 +119,10 @@ search:
   content: true
   format: html
 
+all_minifier: true
 
+js_concator:
+  enable: true
+  bundle_path: '/js/bundle.js'
+  front: false
+  silent: false
