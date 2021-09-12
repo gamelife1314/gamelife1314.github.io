@@ -704,7 +704,7 @@ fn main() {
 ```
 <!-- endtab -->
 
-<!-- tab 元组结构体，枚举项作为参数 -->
+<!-- tab 元组结构体作为参数 -->
 在构造元组结构体时使用 `()` 语法进行初始化，很像是函数调用，实际上它们确实被实现为返回由参数构造的实例的函数，所以它们也被称为实现了闭包 `trait` 的函数指针。
 
 ```rust
@@ -729,7 +729,7 @@ fn main() {
 ```
 <!-- endtab -->
 
-<!-- tab 闭包转换为函数指针类型 -->
+<!-- tab 闭包转换为函数 -->
 
 没有捕获任何环境变量的闭包会被编译器重写为匿名独立函数。
 
@@ -1660,7 +1660,7 @@ fn read_file_content(file: &str) -> Result<String, Error> {
 }
 ```
 
-`match` 表达式与问号运算符所做的有一点不同：`?` 运算符所使用的错误值被传递给了 `from` 函数，它定义于标准库的 `From trait` 中，其用来将错误从一种类型转换为另一种类型。当 `?` 运算符调用 `from` 函数时，收到的错误类型被转换为由当前函数返回类型所指定的错误类型。这在当函数返回单个错误类型来代表所有可能失败的方式时很有用，即使其可能会因很多种原因失败。只要每一个错误类型都实现了 `from` 函数来定义如何将自身转换为返回的错误类型，`?` 运算符会自动处理这些转换。总结就是，`?` 将收集到错误值自动转换为要返回的错误类型。
+`match` 表达式与问号运算符所做的有一点不同：`?` 运算符所使用的错误值被传递给了 `from` 函数，它定义于标准库的 `From trait` 中，其用来将错误从一种类型转换为另一种类型。当 `?` 运算符调用 `from` 函数时，收到的错误类型被转换为由当前函数返回类型所指定的错误类型。这在当函数返回单个错误类型来代表所有可能失败的方式时很有用，即使其可能会因很多种原因失败。只要每一个错误类型都实现了 `from` 函数来定义如何将自身转换为返回的错误类型，`?` 运算符会自动处理这些转换。**总结就是，? 将收集到错误值自动转换为要返回的错误类型。**
 
 另外，由于 `main` 函数是比较特殊的，它返回什么类型是由限制的，一般情况下它的返回值是 `()`，但是为了方便，他也允许返回 `Result<(), E>`，因此，我们也可以在 `main` 中使用 `?`：
 
@@ -1678,5 +1678,310 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let content = read_file_content("hello.txt")?;
     println!("content is: {}", content);
     Ok(())
+}
+```
+
+#### ? 运算符
+
+`?` 除了可以用于 `Result` 类型之外，还可以用于 `Option` 类型。如果 `x` 是 `Option`，那么若 `x` 是 `Some` ，对 `x?` 表达式求值将返回底层值，否则无论函数是否正在执行都将终止且返回 `None` 。
+
+```rust
+#[derive(Debug, Copy, Clone)]
+struct Person {
+    job: Option<Job>,
+}
+
+impl Person {
+    fn work_phone_area_code(&self) -> Option<u8> {
+        self.job?.phone_number?.area_code
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+struct Job {
+    phone_number: Option<PhoneNumber>,
+}
+
+#[derive(Debug, Copy, Clone)]
+struct PhoneNumber {
+    area_code: Option<u8>,
+    number: i32,
+}
+
+fn main() {
+    let p = Person {
+        job: Some(Job {
+            phone_number: Some(PhoneNumber {
+                area_code: Some(128),
+                number: 439222222,
+            }),
+        }),
+    };
+    assert_eq!(p.work_phone_area_code(), Some(128));
+}
+```
+
+#### Option
+
+[`Option`](https://doc.rust-lang.org/std/option/enum.Option.html#implementations) 自己实现了很多有用的方法，可以更快速的完成我们的代码编写。
+
+{%tabs Option Methods %}
+
+<!-- tab map -->
+
+[`map`](https://doc.rust-lang.org/std/option/enum.Option.html#method.map) 可以做的 `Some` -> `Some`，`None` -> `None` 的映射，可以串起来调用，我们来举一个煮饭的例子。`map` 中返回的是一个新的类型，当然这个类型可以是 `Option`，不过这将导致 `Option` 嵌套。
+
+```rust
+#![allow(dead_code)]
+
+#[derive(Debug)]
+enum Food {
+    Apple,
+    Carrot,
+    Potato,
+}
+
+#[derive(Debug)]
+struct Peeled(Food);
+#[derive(Debug)]
+struct Chopped(Food);
+#[derive(Debug)]
+struct Cooked(Food);
+
+fn cook(food: Option<Food>) -> Option<Cooked> {
+    food.map(|f| Peeled(f))
+        .map(|Peeled(f)| Chopped(f))
+        .map(|Chopped(f)| Cooked(f))
+}
+
+fn eat(food: Option<Cooked>) {
+    match food {
+        Some(f) => println!("Mmm. I love {:?}", f),
+        None => println!("Oh no! It wasn't edible."),
+    }
+}
+
+fn main() {
+    let apple = Some(Food::Apple);
+    let carrot = Some(Food::Carrot);
+    let potato = None;
+
+    eat(cook(apple));
+    eat(cook(carrot));
+    eat(cook(potato));
+}
+```
+
+<!-- endtab -->
+
+<!--tab and_then -->
+
+[`and_then`](https://doc.rust-lang.org/std/option/enum.Option.html#method.and_then) 当 `Option` 是 `None` 时，返回 `None`。否则将 `Some` 中包裹的值传入闭包函数，这个闭包返回一个新的 `Option`。 
+
+```rust
+#![allow(unused)]
+
+fn sq(x: u32) -> Option<u32> {
+    Some(x * x)
+}
+fn nope(_: u32) -> Option<u32> {
+    None
+}
+
+fn main() {
+    assert_eq!(Some(2).and_then(sq).and_then(sq), Some(16));
+    assert_eq!(Some(2).and_then(sq).and_then(nope), None);
+    assert_eq!(Some(2).and_then(nope).and_then(sq), None);
+    assert_eq!(None.and_then(sq).and_then(sq), None);
+}
+```
+
+<!-- endtab -->
+
+{% endtabs %}
+
+#### 定义错误类型
+
+定义自己的错误类型在传递错误信息时是必要的，我们来看一个例子，将一个字符串数组中的第一个元素转换为数字并且乘以2。下面的代码中我们也定义了自己的 `Result` 类型，定义自己的错误类型需要实现 [`Error`](https://doc.rust-lang.org/std/error/trait.Error.html)。
+
+```rust
+use std::error;
+use std::fmt;
+
+type Result<T> = std::result::Result<T, DoubleFirstError>;
+
+#[derive(Debug, Clone)]
+struct DoubleFirstError;
+
+impl fmt::Display for DoubleFirstError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "double first int error")
+    }
+}
+
+impl error::Error for DoubleFirstError {}
+
+fn double_first(vec: &Vec<&str>) -> Result<i32> {
+    vec.first().ok_or(DoubleFirstError).and_then(|s| {
+        s.parse::<i32>()
+            .map_err(|_| DoubleFirstError)
+            .map(|i| 2 * i)
+    })
+}
+
+fn print(result: Result<i32>) {
+    match result {
+        Ok(r) => println!("the result is {}", r),
+        Err(e) => println!("err is {}", e),
+    }
+}
+
+fn main() {
+    let numbers = vec!["42", "93", "18"];
+    let empty = vec![];
+    let strings = vec!["tofu", "93", "18"];
+
+    print(double_first(&numbers));
+    print(double_first(&empty));
+    print(double_first(&strings));
+}
+```
+
+#### `Box<error::Error>`
+
+当我们只关注错误信息，而不关注错误类型的时候，我们可以将错误装进 `Box`，我们对上面的例子稍加修改：
+
+```rust
+use std::error;
+use std::fmt;
+
+type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
+
+#[derive(Debug, Clone)]
+struct DoubleFirstError;
+
+impl fmt::Display for DoubleFirstError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "double first int error")
+    }
+}
+
+impl error::Error for DoubleFirstError {}
+
+fn double_first(vec: &Vec<&str>) -> Result<i32> {
+    vec.first().ok_or(DoubleFirstError.into()).and_then(|s| {
+        s.parse::<i32>()
+            .map_err(|_| DoubleFirstError.into())
+            .map(|i| 2 * i)
+    })
+}
+
+fn print(result: Result<i32>) {
+    match result {
+        Ok(r) => println!("the result is {}", r),
+        Err(e) => println!("err is {}", e),
+    }
+}
+
+fn main() {
+    let numbers = vec!["42", "93", "18"];
+    let empty = vec![];
+    let strings = vec!["tofu", "93", "18"];
+
+    print(double_first(&numbers));
+    print(double_first(&empty));
+    print(double_first(&strings));
+}
+```
+
+
+### 类型转换
+
+Rust 使用 trait 解决类型之间的转换问题。最一般的转换会用到 [`From`](https://doc.rust-lang.org/std/convert/trait.From.html) 和 [`Into`](https://doc.rust-lang.org/std/convert/trait.Into.html) 两个 trait。
+
+
+#### `From`、`Into`
+
+[`From`](https://doc.rust-lang.org/std/convert/trait.From.html) 定义怎么根据另一种类型生成自己，而在定义 `From` 之后，我们就自然的获得了 [`Into`](https://doc.rust-lang.org/std/convert/trait.Into.html)，因为它就是 `From` 倒过来，但是在使用 `Into` 的时候，我们得指明要转换的类型。
+
+```rust
+#[derive(Debug, Copy, Clone)]
+struct Number {
+    value: i32,
+}
+
+impl From<i32> for Number {
+    fn from(item: i32) -> Self {
+        Number { value: item }
+    }
+}
+
+fn main() {
+    let number = Number::from(188);
+    println!("{:?}", number);
+    let number: Number = 166i32.into();
+    println!("{:?}", number);
+}
+```
+
+#### `TryFrom`、`TryInto`
+
+类似于 [`From`](https://doc.rust-lang.org/std/convert/trait.From.html) 和 [`Into`](https://doc.rust-lang.org/std/convert/trait.Into.html)，不过 [`TryFrom`](https://doc.rust-lang.org/std/convert/trait.TryFrom.html) 和 [`TryInto`](https://doc.rust-lang.org/std/convert/trait.TryInto.html) 用于易出错的转换，他们的返回值类型是 `Result` 类型。
+
+```rust
+use std::convert::{TryFrom, TryInto};
+
+#[derive(Debug, PartialEq)]
+struct EvenNumber(i32);
+
+impl TryFrom<i32> for EvenNumber {
+    type Error = ();
+    fn try_from(item: i32) -> Result<Self, Self::Error> {
+        if item % 2 == 0 {
+            Ok(EvenNumber(item))
+        } else {
+            Err(())
+        }
+    }
+}
+
+fn main() {
+    // try from
+    assert_eq!(EvenNumber::try_from(8), Ok(EvenNumber(8)));
+    assert_eq!(EvenNumber::try_from(5), Err(()));
+
+    let result: Result<EvenNumber, ()> = 8i32.try_into();
+    assert_eq!(Ok(EvenNumber(8)), result);
+    let result: Result<EvenNumber, ()> = 5i32.try_into();
+    assert_eq!(Err(()), result)
+}
+```
+
+#### `ToString`、`FromStr`
+
+在我们需要将类型转换成字符串类型时，我们只需实现 [`ToString`](https://doc.rust-lang.org/std/string/trait.ToString.html)，但是最好的是实现 [`fmt::Display`](https://doc.rust-lang.org/std/fmt/trait.Display.html)，它会自动提供 `to_string()` 方法。
+
+另外，我们也经常需要将字符串转换成我们需要的目标类型，只要目标类型实现了 [`FromStr`](https://doc.rust-lang.org/std/str/trait.FromStr.html)，我们就可以使用字符串的 `parse` 方法解析，不过我们得提供要转换到的目标类型，或者使用涡轮鱼（turbo fish）语法。
+
+```rust
+use std::fmt::{Display, Formatter, Result};
+
+struct Circle {
+    radius: i32,
+}
+
+impl Display for Circle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "Circle({})", self.radius)
+    }
+}
+
+fn main() {
+    let circle = Circle { radius: 12 };
+    println!("{}", circle.to_string());
+
+    let num: i32 = "45".parse().unwrap();
+    let num1 = "55".parse::<i32>().unwrap();
+    println!("num: {}, num1: {}", num, num1);
 }
 ```
