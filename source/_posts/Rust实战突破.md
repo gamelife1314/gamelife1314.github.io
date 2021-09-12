@@ -1538,6 +1538,120 @@ fn main() {
 }
 ```
 
+#### Deref、DerefMut
+
+[`Deref`](https://doc.rust-lang.org/std/ops/trait.Deref.html) 允许我们重载解引用运算符 `*`，它包含一个 `deref` 方法：
+
+```rust
+pub trait Deref {
+    type Target: ?Sized;
+    fn deref(&self) -> &Self::Target;
+}
+```
+
+常规引用是一个指针类型，一种理解指针的方式是将其看成指向储存在其他某处值的箭头。下面的示例中创建了一个 `i32` 值的引用，接着使用解引用运算符来跟踪所引用的数据：
+
+```rust
+fn main() {
+    let x = 5;
+    let y = &x;
+
+    assert_eq!(5, x);
+    assert_eq!(5, *y);
+}
+```
+
+定义我们自己的 `MyBox` 类型，实现 `Deref`，`deref` 方法体中写入了 `&self.0`，这样 `deref` 返回了我希望通过 `*` 运算符访问的值的引用。没有 `Deref trait` 的话，编译器只会解引用 `&` 引用类型。
+
+```rust
+use std::ops::Deref;
+
+#[derive(Debug)]
+struct MyBox<T>(T);
+
+impl<T> MyBox<T> {
+    fn new(item: T) -> Self {
+        MyBox(item)
+    }
+}
+
+impl<T> Deref for MyBox<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+fn main() {
+    let x = 5;
+    let y = MyBox::new(x);
+
+    assert_eq!(5, x);
+    assert_eq!(5, *y);
+    // Rust 将 * 运算符替换为先调用 deref 方法再进行普通解引用的操作，如此我们便不用担心是否还需手动调用 deref 方法了
+    assert_eq!(5, *(y.deref()));
+}
+```
+
+##### 隐式引用强制转换
+
+[隐式引用强制转换](https://doc.rust-lang.org/book/ch15-02-deref.html#implicit-deref-coercions-with-functions-and-methods)是 Rust 在函数或方法传参上的一种便利，这仅仅用在实现了 `Deref` 的 trait，隐式引用强制将这样一个类型转换为另一个类型或者引用。例如，`&String` 转换为 `&str`，因为 `String` 实现了 `Deref` 返回了 `&str`。
+
+```rust
+use std::ops::Deref;
+
+#[derive(Debug)]
+struct MyBox<T>(T);
+
+impl<T> MyBox<T> {
+    fn new(item: T) -> Self {
+        MyBox(item)
+    }
+}
+
+impl<T> Deref for MyBox<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+fn hello(name: &str) {
+    println!("hello: {}", name);
+}
+
+fn main() {
+    hello("apple");
+    hello(&String::from("potato"));
+    hello(&MyBox::new("michael"));
+
+    let people = MyBox::new(String::from("hello"));
+    // 如果没有隐式引用强制转换，我们就得这样做
+    // *people == *(people.deref()) -> String
+    // &(*people) -> &String
+    // &(*people)[..] -> &str
+    hello(&(*people)[..]);
+}
+```
+
+##### 隐式引用强制转换与可变性
+
+类似于如何使用 `Deref` 重载不可变引用的 `*` 运算符，Rust 提供了 [`DerefMut`](https://doc.rust-lang.org/std/ops/trait.DerefMut.html) 用于重载可变引用的 `*` 运算符。
+
+Rust 在发现类型和 trait 实现满足三种情况时会自动进行引用强制转换：
+
+- 当 `T: Deref<Target=U>` 时从 `&T` 到 `&U`；
+- 当 `T: DerefMut<Target=U>` 时从 `&mut T` 到 `&mut U`；
+- 当 `T: Deref<Target=U>` 时从 `&mut T` 到 `&U`；
+
+#### Drop
+
+[`Drop`](https://doc.rust-lang.org/std/ops/trait.Drop.html)，其允许我们在值要离开作用域时执行一些代码。可以为任何类型提供 `Drop` 的实现，同时所指定的代码被用于释放类似于文件或网络连接的资源。在 Rust 中，可以指定每当值离开作用域时被执行的代码，编译器会自动插入这些代码。
+
+指定在值离开作用域时应该执行的代码的方式是实现 `Drop`。`Drop` 要求实现一个叫做 `drop` 的方法，它获取一个 `self` 的可变引用。
+
+![实现Drop](drop_trait.png)
+
 ### 错误
 
 任何程序都不能完全正确地按照开发者的意愿去运行，总会遇到错误，例如打开文件时，文件不存在。Rust 将程序可能出现的错误分为**可恢复错误（recoverable）**和**不可恢复错误（unrecoverable）**。可恢复错误通常意味着意料之中的情况，我们可以选择向用户报告错误或者进行重试。不可恢复的错误往往意味着bug，比如数组访问越界。
@@ -2097,3 +2211,163 @@ fn main() {
 <!-- endtab -->
 
 {% endtabs %}
+
+### 智能指针
+
+**指针**是一个包含内存地址变量的通用概念，rust 中使用 `&` 或者 `ref` 引用一个变量。**智能指针**是一类数据结构，他们的表现类似指针，但是也拥有额外的元数据和功能。在 Rust 中，普通引用和智能指针的一个额外的区别是引用是一类只借用数据的指针；相反，在大部分情况下，智能指针拥有他们指向的数据。
+
+本节介绍几个常见的智能指针类型。
+
+#### Box<T> 指向堆上的数据
+
+[`Box<T>`](https://doc.rust-lang.org/std/boxed/struct.Box.html) 将数据存储在堆上，留在栈上的仅仅是数据的指针，除此之外，box 没有性能损失。它们多用于如下场景：
+
+- 当在编译时不确定类型大小，又想在需要确切大小的上下文中使用时，例如，使用 `Box<dyn error:Error>` 动态分发；
+- 当有大量数据并希望在转移所有权的时候，不发生数据拷贝；
+- 当希望拥有一个值并只关心它的类型是否实现了特定 trait 而不是其具体类型的时候；
+
+
+##### 数据存储在堆上
+
+如下示例，定义了变量 `b`，其值是一个指向被分配在堆上的值 `5` 的 `Box`。我们可以像数据是储存在栈上的那样访问 `box` 中的数据，正如任何拥有数据所有权的值那样，当像 `b` 这样的 `box` 在 `main` 的末尾离开作用域时，它将被释放。
+
+```rust
+fn main() {
+    let b = Box::new(5);
+    println!("b = {}", b);
+}
+```
+
+##### 创建递归类型
+
+Rust 需要在编译时知道类型占用多少空间。一种无法在编译时知道大小的类型是 递归类型（recursive type），其值的一部分可以是相同类型的另一个值。我们探索一下 [cons list](https://en.wikipedia.org/wiki/Cons)，一个函数式编程语言中的常见类型，来展示这个（递归类型）概念。
+
+`cons list` 的每一项都包含两个元素：当前项的值和下一项。其最后一项值包含一个叫做 `Nil` 的值且没有下一项。`cons list` 通过递归调用 `cons` 函数产生。代表递归的终止条件（base case）的规范名称是 `Nil`，它宣布列表的终止。
+
+下面这段代码是{% label danger@不能编译通过 %}的，编译提示我们这个类型大小{% label danger@无限大 %}：
+
+![错误递归类型](recursive-list.png)
+
+另外编译器还提醒我们，不能直接存储一个值，而是应该存储一个指向这个值的指针，还提示我们应该用 `Box<List>`：
+
+    = help: insert indirection (e.g., a `Box`, `Rc`, or `&`) at some point to
+    make `List` representable
+
+因为 `Box<T>` 是一个指针，我们总是知道它需要多少空间：指针的大小并不会根据其指向的数据量而改变，我们对上面的程序做出修改：
+
+```rust
+#![allow(unused)]
+
+#[derive(Debug)]
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+fn main() {
+    use List::{Cons, Nil};
+    let list = Cons(1, Box::new(Cons(2, Box::new(Cons(3, Box::new(Nil))))));
+    println!("{:?}", list);
+}
+```
+
+#### Rc<T> 引用计数
+
+大部分情况下所有权是非常明确的：可以准确地知道哪个变量拥有某个值。然而，有些情况单个值可能会有多个所有者。例如，在图数据结构中，多个边可能指向相同的节点，而这个节点从概念上讲为所有指向它的边所拥有。节点直到没有任何边指向它之前都不应该被清理。
+
+为了启用多所有权，Rust 有一个叫做 [`Rc<T>`](https://doc.rust-lang.org/alloc/rc/struct.Rc.html) 的类型。其名称为 引用计数（reference counting）的缩写。引用计数意味着记录一个值引用的数量来知晓这个值是否仍在被使用。如果某个值有零个引用，就代表没有任何有效引用并可以被清理。
+
+可以将其想象为客厅中的电视。当一个人进来看电视时，他打开电视。其他人也可以进来看电视。当最后一个人离开房间时，他关掉电视因为它不再被使用了。如果某人在其他人还在看的时候就关掉了电视，正在看电视的人肯定会抓狂的！
+
+`Rc<T>` 用于当我们希望在堆上分配一些内存供程序的多个部分读取，而且无法在编译时确定程序的哪一部分会最后结束使用它的时候。如果确实知道哪部分是最后一个结束使用的话，就可以令其成为数据的所有者，正常的所有权规则就可以在编译时生效。
+
+> `Rc<T>` 只能用于单线程场景
+
+##### 使用 `Rc<T>` 共享数据
+
+我们继续看上面的例子，这一次，我们希望创建两个共享第三个列表所有权的列表，其概念将会看起来如下图所示：
+
+![Rc<T>共享数据](rct-example.svg)
+
+我们使用之前的 `Box<List>` 尝试时，发现{% label danger@编译失败 %}：
+
+```rust
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+
+fn main() {
+    let a = Cons(5,
+        Box::new(Cons(10,
+            Box::new(Nil))));
+    let b = Cons(3, Box::new(a));
+    let c = Cons(4, Box::new(a));
+}
+```
+
+![Rc<T>Box例子失败](rct-example-failed.png)
+
+我们修改 `List` 的定义为使用 `Rc<T>` 代替 `Box<T>`，现在每一个 `Cons` 变量都包含一个值和一个指向 `List` 的 `Rc<T>`。当创建 `b` 时，不同于获取 `a` 的所有权，这里会克隆 `a` 所包含的 `Rc<List>`，这会将引用计数从 `1` 增加到 `2` 并允许 `a` 和 `b` 共享 `Rc<List>` 中数据的所有权。创建 `c` 时也会克隆 `a`，这会将引用计数从 `2` 增加为 `3`。每次调用 `Rc::clone`，`Rc<List>` 中数据的引用计数都会增加，直到有零个引用之前其数据都不会被清理。
+
+```rust
+use std::rc::Rc;
+
+#[derive(Debug)]
+enum List {
+    Cons(i32, Rc<List>),
+    Nil,
+}
+
+use List::{Cons, Nil};
+
+fn main() {
+    let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
+    let b = Cons(3, Rc::clone(&a));
+    let c = Cons(4, Rc::clone(&a));
+
+    println!("a: {:?}", a);
+    println!("b: {:?}", b);
+    println!("c: {:?}", c);
+}
+```
+
+##### Rc::strong_count
+
+可以使用 [`Rc::strong_count`](https://doc.rust-lang.org/alloc/rc/struct.Rc.html#method.strong_count) 查看 `Rc<T>` 的引用计数值。
+
+```rust
+#![allow(unused)]
+
+use std::rc::Rc;
+
+#[derive(Debug)]
+enum List {
+    Cons(i32, Rc<List>),
+    Nil,
+}
+
+use List::{Cons, Nil};
+
+fn main() {
+    let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
+    println!("count after creating a = {}", Rc::strong_count(&a));
+    let b = Cons(3, Rc::clone(&a));
+    println!("count after creating b = {}", Rc::strong_count(&a));
+    {
+        let c = Cons(4, Rc::clone(&a));
+        println!("count after creating c = {}", Rc::strong_count(&a));
+    }
+    println!("count after c goes out of scope = {}", Rc::strong_count(&a));
+}
+```
+
+这将输出：
+
+    count after creating a = 1
+    count after creating b = 2
+    count after creating c = 3
+    count after c goes out of scope = 2
+
