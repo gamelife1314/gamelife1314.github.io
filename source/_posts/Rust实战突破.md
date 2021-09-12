@@ -1069,7 +1069,7 @@ fn notify_two_trait_bound<T: Summary + Display>(item: T) {
 }
 ```
 
-使用过多的 `trait bound` 也有缺点。每个泛型有其自己的 `trait bound`，所以有多个泛型参数的函数在名称和参数列表之间会有很长的 `trait bound` 信息，这使得函数签名难以阅读。为此，`Rust` 有另一个在函数签名之后的 **`where`** 从句中指定 `trait bound` 的语法。
+使用过多的 `trait bound` 也有缺点。每个泛型有其自己的 `trait bound`，所以有多个泛型参数的函数在名称和参数列表之间会有很长的 `trait bound` 信息，这使得函数签名难以阅读。为此，`Rust` 有另一个在函数签名之后的 `where` 从句中指定 `trait bound` 的语法。
 
 ```rust
 fn notify_complex<T: Summary + Display, U: Debug + Copy>(item1: T, item2: U) {
@@ -1894,7 +1894,6 @@ fn main() {
 }
 ```
 
-
 ### 类型转换
 
 Rust 使用 trait 解决类型之间的转换问题。最一般的转换会用到 [`From`](https://doc.rust-lang.org/std/convert/trait.From.html) 和 [`Into`](https://doc.rust-lang.org/std/convert/trait.Into.html) 两个 trait。
@@ -1985,3 +1984,116 @@ fn main() {
     println!("num: {}, num1: {}", num, num1);
 }
 ```
+
+### 泛型
+
+泛型可以极大地降低代码重复度，我们可以定义泛型结构体，泛型函数，泛型方法，泛型枚举等。但是我们不用担心泛型的性能，Rust 通过在编译时进行泛型代码的单态化(monomorphization)来保证效率。**单态化**是一个通过填充编译时使用的具体类型，将通用代码转换为特定代码的过程。
+
+{% tabs 泛型种类 %}
+
+<!-- tab 枚举 -->
+泛型枚举我们最常见的应该是：[`Option`](https://doc.rust-lang.org/std/option/enum.Option.html) 和 [`Result`](https://doc.rust-lang.org/std/result/enum.Result.html)。
+
+```rust
+pub enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+pub enum Option<T> {
+    None,
+    Some(T),
+}
+```
+<!-- endtab -->
+
+<!-- tab 结构体和方法 -->
+```rust
+struct Point<T, U> {
+    x: T,
+    y: U,
+}
+
+impl<T, U> Point<T, U> {
+    fn mixup<V, W>(self, other: Point<V, W>) -> Point<T, W> {
+        Point {
+            x: self.x,
+            y: other.y,
+        }
+    }
+}
+
+fn main() {
+    let p1 = Point { x: 5, y: 10.4 };
+    let p2 = Point { x: "Hello", y: 'c'};
+
+    let p3 = p1.mixup(p2);
+
+    println!("p3.x = {}, p3.y = {}", p3.x, p3.y);
+}
+```
+<!-- endtab -->
+
+<!-- tab 函数 -->
+
+```rust
+fn largest<T: PartialOrd + Copy>(list: &[T]) -> T {
+    let mut largest = list[0];
+
+    for &item in list.iter() {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let result = largest(&number_list);
+    println!("The largest number is {}", result);
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+
+    let result = largest(&char_list);
+    println!("The largest char is {}", result);
+}
+```
+<!-- endtab -->
+
+<!-- tab trait -->
+
+也可以参考： https://doc.rust-lang.org/stable/rust-by-example/generics/gen_trait.html#traits 
+
+```rust
+use std::ops::Mul;
+
+trait Area<T> {
+    fn area(&self) -> T;
+}
+
+struct Rectangle<T> {
+    width: T,
+    height: T,
+}
+
+impl<T: Copy + Mul<Output = T>> Area<T> for Rectangle<T> {
+    fn area(&self) -> T {
+        self.width * self.height
+    }
+}
+
+fn main() {
+    let rec = Rectangle {
+        width: 2,
+        height: 4,
+    };
+    println!("{}", rec.area());
+}
+```
+
+<!-- endtab -->
+
+{% endtabs %}
