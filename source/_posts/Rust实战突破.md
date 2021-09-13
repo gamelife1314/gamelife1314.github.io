@@ -2371,3 +2371,191 @@ fn main() {
     count after creating c = 3
     count after c goes out of scope = 2
 
+#### RefCell
+
+内部可变性（Interior mutability）是 Rust 中的一个设计模式，它允许你即使在有不可变引用时也可以改变数据，这通常是借用规则所不允许的。不同于 `Rc<T>`，[`RefCell<T>`](https://doc.rust-lang.org/std/cell/struct.RefCell.html) 代表其数据的唯一的所有权。我们之前学习的借用规则是这样的：
+
+- 在任意给定时刻，只能拥有一个可变引用或任意数量的不可变引用之一（而不是两者）。
+- 引用必须总是有效的。
+
+对于引用和 `Box<T>`，借用规则的不可变性作用于编译时。对于 `RefCell<T>`，这些不可变性作用于运行时。对于引用，如果违反这些规则，会得到一个编译错误。而对于 `RefCell<T>`，如果违反这些规则程序会 `panic` 并退出。
+
+在编译时检查借用规则的优势是这些错误将在开发过程的早期被捕获，同时对运行时没有性能影响，因为所有的分析都提前完成了。为此，在编译时检查借用规则是大部分情况的最佳选择，这也正是其为何是 Rust 的默认行为。相反在运行时检查借用规则的好处则是允许出现特定内存安全的场景，而它们在编译时检查中是不允许的。静态分析，正如 Rust 编译器，是天生保守的。
+
+因为一些分析是不可能的，如果 Rust 编译器不能通过所有权规则编译，它可能会拒绝一个正确的程序；从这种角度考虑它是保守的。如果 Rust 接受不正确的程序，那么用户也就不会相信 Rust 所做的保证了。然而，如果 Rust 拒绝正确的程序，虽然会给程序员带来不便，但不会带来灾难。`RefCell<T>` 正是用于当你确信代码遵守借用规则，而编译器不能理解和确定的时候。
+
+如下为选择 `Box<T>`，`Rc<T>` 或 `RefCell<T>` 的理由：
+
+- `Rc<T>` 允许相同数据有多个所有者；`Box<T>` 和 `RefCell<T>` 有单一所有者。
+- `Box<T>` 允许在编译时执行不可变或可变借用检查；`Rc<T>` 仅允许在编译时执行不可变借用检查；`RefCell<T>` 允许在运行时执行不可变或可变借用检查。
+- 因为 `RefCell<T>` 允许在运行时执行可变借用检查，所以我们可以在即便 `RefCell<T>` 自身是不可变的情况下修改其内部的值。
+
+> `RefCell<T>` 只能用于单线程场景
+
+来看一个例子，我们定义了 `Messenger` 用于发送消息，真实场景可能是发送短信或者发送邮件，注意它的 `receiver` 是 `&ref`；然后我们定义结构体 `LimitTracker`，它用来实现我们的业务功能，当调用它的 `set_value` 方法时，根据业务逻辑发送不同的消息。
+
+```rust
+#![allow(unused)]
+fn main() {
+pub trait Messenger {
+    fn send(&self, msg: &str);
+}
+
+pub struct LimitTracker<'a, T: Messenger> {
+    messenger: &'a T,
+    value: usize,
+    max: usize,
+}
+
+impl<'a, T> LimitTracker<'a, T>
+    where T: Messenger {
+    pub fn new(messenger: &T, max: usize) -> LimitTracker<T> {
+        LimitTracker {
+            messenger,
+            value: 0,
+            max,
+        }
+    }
+
+    pub fn set_value(&mut self, value: usize) {
+        self.value = value;
+
+        let percentage_of_max = self.value as f64 / self.max as f64;
+
+        if percentage_of_max >= 1.0 {
+            self.messenger.send("Error: You are over your quota!");
+        } else if percentage_of_max >= 0.9 {
+             self.messenger.send("Urgent warning: You've used up over 90% of your quota!");
+        } else if percentage_of_max >= 0.75 {
+            self.messenger.send("Warning: You've used up over 75% of your quota!");
+        }
+    }
+}
+}
+```
+
+现在我们对 `LimitTracker` 的功能进行测试，但是肯定不能真正实现 `Messenger`，所以需要对其打桩，计划是对其进行 `Mock`，记录发送的消息，初步计划是这样的：
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct MockMessenger {
+        sent_messages: Vec<String>,
+    }
+
+    impl MockMessenger {
+        fn new() -> MockMessenger {
+            MockMessenger { sent_messages: vec![] }
+        }
+    }
+
+    impl Messenger for MockMessenger {
+        fn send(&self, message: &str) {
+            self.sent_messages.push(String::from(message));
+        }
+    }
+
+    #[test]
+    fn it_sends_an_over_75_percent_warning_message() {
+        let mock_messenger = MockMessenger::new();
+        let mut limit_tracker = LimitTracker::new(&mock_messenger, 100);
+
+        limit_tracker.set_value(80);
+
+        assert_eq!(mock_messenger.sent_messages.len(), 1);
+    }
+}
+```
+
+不出意外，{% label danger@编译失败 %}，不能对不可变引用做修改：
+
+![编译失败](refcell-mock-failed.png)
+
+按照编译器的提示，改成这样，依然编译失败，`receiver` 类型不匹配：
+
+```rust
+impl Messenger for MockMessenger {
+        fn send(&mut self, message: &str) {
+            self.sent_messages.push(String::from(message));
+        }
+    }
+```
+
+![编译失败](refcell-mock-failed-again.png)
+
+然后我们引出我们今天的大招，`RefCell`，看下面的修改，我们使用 `borrow_mut` 和 `borrow` 分别在运行时进行可变借用和不可变借用：
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+
+    struct MockMessenger {
+        // Vec<String> -> RefCell<Vec<String>>
+        sent_messages: RefCell<Vec<String>>,
+    }
+
+    impl MockMessenger {
+        fn new() -> MockMessenger {
+            MockMessenger {
+                sent_messages: RefCell::new(vec![]),
+            }
+        }
+    }
+
+    impl Messenger for MockMessenger {
+        fn send(&self, message: &str) {
+            // borrow_mut，可变借用
+            self.sent_messages.borrow_mut().push(String::from(message));
+        }
+    }
+
+    #[test]
+    fn it_sends_an_over_75_percent_warning_message() {
+        let mock_messenger = MockMessenger::new();
+        let mut limit_tracker = LimitTracker::new(&mock_messenger, 100);
+
+        limit_tracker.set_value(80);
+
+        // borrow，不可变借用
+        assert_eq!(mock_messenger.sent_messages.borrow().len(), 1);
+    }
+}
+```
+
+![测试通过](refcell-mock-pass.png)
+
+##### 结合 Rc`<`T`>` 和 RcCell`<`T`>`
+
+`Rc<T>` 通过引用计数的方式可以让一个值有多个所有者，`RcCell<T>` 可以在运行时获取值的可变引用对其修改。下面的例子中，通过对 `value` 的修改，`a`，`b`，`c` 都改了。 
+
+```rust
+use std::rc::Rc;
+
+#[derive(Debug)]
+enum List {
+    Cons(Rc<RefCell<i32>>, Rc<List>),
+    Nil,
+}
+
+use std::cell::RefCell;
+use List::{Cons, Nil};
+
+fn main() {
+    let value = Rc::new(RefCell::new(5));
+    let a = Rc::new(Cons(Rc::clone(&value), Rc::new(Nil)));
+    let b = Cons(Rc::new(RefCell::new(6)), Rc::clone(&a));
+    let c = Cons(Rc::new(RefCell::new(10)), Rc::clone(&a));
+
+    *value.borrow_mut() += 10;
+
+    println!("a: {:?}", a);
+    println!("b: {:?}", b);
+    println!("c: {:?}", c);
+}
+```
+
+![一处修改处处改](rct-and-refcellt.png)
