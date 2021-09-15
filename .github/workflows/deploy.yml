@@ -34,9 +34,9 @@ jobs:
       uses: sma11black/hexo-action@v1.0.3
       with:
         deploy_key: ${{ secrets.GH_DEPLOY_PRI }}
-        user_name: MichaelFu  # (or delete this input setting to use bot account)
-        user_email: michael.fudenglong@qq.com  # (or delete this input setting to use bot account)
-        commit_msg: ${{ github.event.head_commit.message }}  # (or delete this input setting to use hexo default settings)
+        user_name: MichaelFu
+        user_email: 1185694600@qq.com
+        commit_msg: ${{ github.event.head_commit.message }}
     # Use the output from the `deploy` step(use for test action)
     - name: Get the output
       run: |
