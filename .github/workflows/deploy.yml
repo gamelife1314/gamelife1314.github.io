@@ -35,7 +35,7 @@ jobs:
       with:
         deploy_key: ${{ secrets.GH_DEPLOY_PRI }}
         user_name: MichaelFu
-        user_email: 1185694600@qq.com
+        user_email: michael.fudenglong@qq.com
         commit_msg: ${{ github.event.head_commit.message }}
     # Use the output from the `deploy` step(use for test action)
     - name: Get the output
