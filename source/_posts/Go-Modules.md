@@ -253,6 +253,57 @@ retract (
 
 > require example.com/m v4.1.2+incompatible
 
+### 环境变量
+
+go命令中的模块行为可以由下面列出的[环境变量](https://golang.google.cn/ref/mod#environment-variables)进行配置，所有的环境请查看：[https://pkg.go.dev/cmd/go#hdr-Environment_variables](https://pkg.go.dev/cmd/go#hdr-Environment_variables)
+
+- `GO111MODULE`，控制 go命令以模块方式运行还是 `GOPATH` 模式，有三个可选的值：
+
+    1. `off`：go命令忽略 `go.mod` 文件并且以 `GOPATH` 模式运行；
+    2. `on`，或者不设置，go命令将以模块的方式运行，即使没有找到 `go.mod` 文件；
+    3. `auto`，Go1.15 之前的默认值，如过在当当前目录或者父目录中找到 `go.mod` 文件，将以模块方式运行；
+
+- `GOMODCACHE`，go命令用于存储下载的模块和相关文件，默认是：`$GOPATH/pkg/mod`，更多请读[Module cache ](https://golang.google.cn/ref/mod#module-cache)；
+
+- `GOINSECURE`，逗号分隔的以模块路径为前缀的模式匹配列表；
+
+- `GONOPROXY`，逗号分隔的以模块路径为前缀的模式匹配列表，匹配的模块将直接从仓库下载；
+
+- `GONOSUMDB`，逗号分隔的以模块路径为前缀的模式匹配列表，匹配的模块不会去做校验；
+
+- `GOPATH`，包含Go代码的列表；模块模式下，模块缓存被放在第一个 `GOPATH` 目录的 `pkg/mod` 子目录，如果没有设置，默认是 `$HOME/go`；
+
+- `GOPROXY`，模块代理 URL 列表，以 `,` 或 `|` 分隔。当 go 命令查找某个模块的信息时，它会依次访问列表中的每个代理，直到收到成功响应或终端错误为止。代理可能会以 `404`（未找到）或 `410`（已消失）状态响应，以指示该模块在该服务器上不可用。
+    
+    go 命令的错误回退行为由 URL 之间的分隔符决定。如果代理 URL 后跟 `,`，则 go 命令在 `404` 或 `410` 错误后回退到下一个 URL，所有其他错误都被视为终端错误。如果代理 URL 后跟一个 `|`，则 go 命令在出现任何错误（包括超时等非 HTTP 错误）后会回退到下一个源。
+
+    `GOPROXY URL` 可能具有 `https`、`http` 或 `file` 协议。默认为 `https`，模块缓存可以直接用作文件代理：
+
+    > GOPROXY=file://$(go env GOMODCACHE)/cache/download
+
+    有两个关键字可以用在 proxy url 列表中：
+
+    - `off`：禁止从任何源下载模块；
+    - `direct`：直接从代码仓下载模块，而不是代理；
+
+    `GOPROXY` 默认值是 `https://proxy.golang.org,direct`，可以查看 [nodule proxy](https://golang.google.cn/ref/mod#module-proxy) 获取更多信息。
+
+- `GOSUMDB`，标识要使用的校验数据库的名称以及可选的其公钥和 URL。例如：
+
+    ```
+    GOSUMDB="sum.golang.org"
+    GOSUMDB="sum.golang.org+<publickey>"
+    GOSUMDB="sum.golang.org+<publickey> https://sum.golang.org"
+    ```
+
+    go命令知道连接到 `sum.golang.org` 和 `sum.golang.google.cn` 的公钥。
+
+    如果 `GOSUMDB` 设置为 `off` 或者使用 `go get -insecure`，则不会查询校验数据库，并接受所有无法识别的模块，代价是放弃对所有模块进行已验证的可重复下载的安全保证。绕过特定模块的校验和数据库的更好方法是使用 `GOPRIVATE` 或 `GONOSUMDB` 环境变量。
+
+- `GOVCS`，控制 `go` 命令可以用来下载公共和私有模块或其他与模式匹配的模块的版本控制工具集。如果未设置 `GOVCS`，或者模块与 `GOVCS` 中的任何模式都不匹配，则 `go` 命令可能对公共模块使用 `git` 和 `hg`，或对私有模块使用任何已知的版本控制工具。具体来说，`go` 命令就像 `GOVCS` 被设置为：
+
+    > public:git|hg,private:all
+
 ### 参考链接
 
 1.  [go.mod reference](https://golang.google.cn/doc/modules/gomod-ref) 
