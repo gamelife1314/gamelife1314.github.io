@@ -57,7 +57,7 @@ require (
 )
 ```
 
-该文件被设计成人类可读的文本文件，由注释，关键字，空行以及允许的 `,` 和 `=>` 组成。
+该文件被设计成人类可读的文本文件，由注释，关键字，空行以及允许的 `,` 和 `=>` 组成。初始化一个 `module` 可以使用 [`go mod init`](https://golang.google.cn/ref/mod#go-mod-init) 命令，还有很多用于模块的命令，更多请看：[Module-aware commands](https://golang.google.cn/ref/mod#mod-commands)。
 
 #### module
 
