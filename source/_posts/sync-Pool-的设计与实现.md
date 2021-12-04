@@ -10,7 +10,7 @@ categories:
 
 `sync.Pool` 是一组临时对象，可以用来被复用，以减少内存分配次数，降低GC压力，在大量相同临时对象存在的场景下使用，能较好处理因GC导致CPU突增的情况。`sync.Pool` 使用比较简单，只有三个简单的 API：`New`，`Get` 和 `Put`，并且它是并发安全的，意味着它可以在 goroutine 中安全地使用。
 
-{% asset_img sync.pool.png sync.Pool %}
+{% asset_img sync.pool.jpeg sync.Pool %}
 
 <!-- more -->
 
@@ -475,7 +475,7 @@ func (p *Pool) getSlow(pid int) interface{} {
 
 继续看下 `poolChain` 的 `popTail` 函数，焦点应该for循环的顶部，我们在获取到`poolChain`的最后一个环形队列之后，又获取到了它的next队列，实际上是的前一个队列，如果d为空，我们要向将 d 摘除，那么 next 不能是空，摘除 next 之后，我们继续从前面的环形队列查找。
 
-![](poolchainElt.PNG)
+![](poolchainElt.png)
 
 ```go
 func (c *poolChain) popTail() (interface{}, bool) {
