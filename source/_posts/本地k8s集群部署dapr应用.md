@@ -168,7 +168,7 @@ k8s集群中安装dapr，参考[添加和安装-dapr-helm-图表](https://docs.d
 helm upgrade --install dapr dapr/dapr --version=1.5.1-rc.3 --namespace dapr-system --create-namespace --set global.mtls.enabled=false --wait 
 ```
 
-将 dapr 的事例应用部署到我们的k8s集群中，这里我们部署他的 [`secretstore`](https://github.com/dapr/quickstarts/tree/v1.0.0/secretstore#run-in-kubernetes) 应用：
+这里我们部署他的 [`secretstore`](https://github.com/dapr/quickstarts/tree/v1.0.0/secretstore#run-in-kubernetes) 示例应用：
 
 ```
 # clone 示例应用
@@ -288,7 +288,7 @@ spec:
 EOF
 ```
 
-验证我们的请求服务：
+验证我们的密码获取请求：
 
 > $ curl -k  https://127.0.0.1:6443/nodeapp/getsecret
 
