@@ -314,6 +314,62 @@ curl -k  https://127.0.0.1:8443/nodeapp/getsecret
 ![all ingress](all-ingress.png)
 
 
+### 部署 dapr 组件
+
+这里我们参考[官方文档](https://docs.dapr.io/zh-hans/getting-started/configure-state-pubsub/) 部署状态组件，第一步，安装 redis:
+
+```
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+helm install redis bitnami/redis
+```
+
+redis 启动完成之后，首先部署状态组件：
+
+```
+$ cat <<EOF | kubectl apply -f -
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+  namespace: default
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis-master.default.svc.cluster.local:6379
+  - name: redisPassword
+    secretKeyRef:
+      name: redis
+      key: redis-password
+
+EOF
+```
+
+然后部署发布订阅消息代理组件：
+
+```
+$ cat <<EOF | kubectl apply -f -
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+  namespace: default
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: redis-master.default.svc.cluster.local:6379
+  - name: redisPassword
+    secretKeyRef:
+      name: redis
+      key: redis-password
+
+EOF
+```
+
 ### 参考文章
 
 1. [https://juejin.cn/post/6940850465504493576](https://juejin.cn/post/6940850465504493576)
