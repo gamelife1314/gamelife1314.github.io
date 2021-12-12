@@ -56,9 +56,11 @@ k8s 用于容器编排，但是如果手动通过 k8s API 管理集群，那是�
 
 本接创建 k8s 集群的方式参考自 [如何在本地快速启动一个 K8S 集群](https://juejin.cn/post/6940850465504493576)，执行一条命令：
 
-> export CLUSTER_NAME="test-cluster" 
-> k3d cluster create $CLUSTER_NAME --api-port 6550 --servers 1 --agents 1  --port 6443:443@loadbalancer --wait
-> k3d cluster list
+```
+export CLUSTER_NAME="local-cluster" 
+k3d cluster create local-cluster --port 8080:80@loadbalancer --port 8443:443@loadbalancer --api-port 6443 --servers 1 --agents 2
+k3d cluster list
+```
 
     $ k3d cluster list
     NAME           SERVERS   AGENTS   LOADBALANCER
@@ -112,15 +114,19 @@ date
 
 1. 创建包含一个 nginx 的 Deployment
 
-> kubectl create deployment nginx --image=nginx
+```
+kubectl create deployment nginx --image=nginx
+```
 
 2. 创建Service，通过 ClusterIP 的方式暴露服务：
 
-> kubectl create service clusterip nginx --tcp=80:80
+```
+kubectl create service clusterip nginx --tcp=80:80
+```
 
 3. 创建 Ingress，Ingress 会代理我们的入口流量给我们的service，k3s 默认安装的 ingress 是 [traefik 2.x](https://doc.traefik.io/traefik/routing/routers/#configuring-http-routers)，这里因为我不想把根目录直接暴露出去，每个服务都有一个前缀，例如到达 `nginx service` 的都得以 `/nginx` 开始，所以应该要有个路由重写的过程，最终采用中间件进行路由重写：
 
-```
+```sh
 cat <<EOF | kubectl apply -f -
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -170,7 +176,7 @@ helm upgrade --install dapr dapr/dapr --version=1.5.1-rc.3 --namespace dapr-syst
 
 这里我们部署他的 [`secretstore`](https://github.com/dapr/quickstarts/tree/v1.0.0/secretstore#run-in-kubernetes) 示例应用：
 
-```
+```sh
 # clone 示例应用
 git clone git@github.com:dapr/quickstarts.git
 cd quickstarts
@@ -248,7 +254,9 @@ spec:
 
 查看我们创建的service：
 
-> $ kubectl get svc nodeapp
+```sh
+kubectl get svc nodeapp
+```
 
 
     NAME      TYPE           CLUSTER-IP     EXTERNAL-IP                        PORT(S)           AGE
@@ -290,7 +298,9 @@ EOF
 
 验证我们的密码获取请求：
 
-> $ curl -k  https://127.0.0.1:6443/nodeapp/getsecret
+```
+curl -k  https://127.0.0.1:8443/nodeapp/getsecret
+```
 
 
     eHl6OTg3Ng==
