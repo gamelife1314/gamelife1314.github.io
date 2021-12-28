@@ -1,5 +1,5 @@
 ---
-title: 【Golang】进程的启动和初始化
+title: 【Golang】进程初始化和调度系统
 date: 2021-12-19 20:36:34
 categories:
     - golang
@@ -68,7 +68,7 @@ Local exec file:
 (gdb)
 ```
 
-### 初始化流程
+### 启动流程
 
 实验环境信息如下：
 
@@ -80,8 +80,55 @@ Local exec file:
 
 ![](go进程启动流程.png)
 
+#### g0 和 m0
+
+在进程启动的开始就完成了 `g0` 和 `m0` 的初始化，这两个是运行时的全局变量，定义在 `proc.go` 中：
+
+```go
+// proc.go
+var (
+  m0           m
+  g0           g
+  ...
+)
+```
+
+- **m0**，`m0` 表示进程启动的第一个线程，也叫主线程。它和其他的 `m` 没有什么区别，进程启动通过汇编直接赋值；
+
+- **g0**，每个 `m` 都有一个 `g0`，因为每个线程有一个系统堆栈，g0的主要作用是提供一个栈供 `runtime` 代码执行；
+
+其中全局 `g0` 的初始化如下所示： 
+
+```asm
+// asm_am664.s
+// create istack out of the given (operating system) stack.
+// _cgo_init may update stackguard.
+MOVQ   $runtime·g0(SB), DI      //g0的地址放入DI寄存器
+LEAQ   (-64*1024+104)(SP), BX   //BX = SP - 64*1024 + 104
+MOVQ   BX, g_stackguard0(DI)    //g0.stackguard0 = SP - 64*1024 + 104
+MOVQ   BX, g_stackguard1(DI)     //g0.stackguard1 = SP - 64*1024 + 104
+MOVQ   BX, (g_stack+stack_lo)(DI)  //g0.stack.lo = SP - 64*1024 + 104
+MOVQ   SP, (g_stack+stack_hi)(DI)  //g0.stack.hi = SP
+```
+
+设置好 `g0` 相关的信息之后，在 `x86` 系统上还会设置线程的 `Fs_base` 寄存器，但是在 `arm64` 上，仅仅完成了 `m0` 和 `g0` 的相互绑定：
+
+```asm
+// set the per-goroutine and per-mach "registers"
+MOVD	$runtime·m0(SB), R0
+
+// save m->g0 = g0
+MOVD	g, m_g0(R0)
+// save m0 to g0->m
+MOVD	R0, g_m(g)
+```
+
+#### 并发调度
+
+相比其他语言复杂的并发系统设计，Go语言中将
 
 ### 参考链接
 
 1. [GDB 命令帮助文档](https://visualgdb.com/gdbreference/commands/)
 2. [https://www.codepng.app/](https://www.codepng.app/)
+3. [欧神·并发调度](https://golang.design/under-the-hood/zh-cn/part2runtime/ch06sched/)
