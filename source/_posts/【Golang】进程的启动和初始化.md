@@ -95,7 +95,7 @@ var (
 
 - **m0**，`m0` 表示进程启动的第一个线程，也叫主线程。它和其他的 `m` 没有什么区别，进程启动通过汇编直接赋值；
 
-- **g0**，每个 `m` 都有一个 `g0`，因为每个线程有一个系统堆栈，g0的主要作用是提供一个栈供 `runtime` 代码执行；
+- **g0**，每个 `m` 都有一个 `g0`，因为每个线程有一个系统堆栈，g0的主要作用是提供一个栈供 `runtime` 代码执行，调度器就运行在 `g0` 上；
 
 其中全局 `g0` 的初始化如下所示： 
 
@@ -128,6 +128,99 @@ MOVD	R0, g_m(g)
 相比其他语言复杂的并发系统设计，Go语言中在面向用户时，仅提供一个 `go` 关键字即可实现异步任务和并发调度，但是因其简单，所以在一般系统中，百万级别的 `g` 也是常有的，为了保证这些 `goroutine` 的公平调度，不饿死也不撑死，所以得有一套公平的调度系统，在经历了初期几代的发展之后，现在逐渐形成了当前的 `GPM` 模型。
 
 #### GPM
+
+理解调度器首先要理解三个主要概念：
+
+- `G`: `Goroutine`，即我们在 `Go` 程序中使用 `go` 关键字创建的执行体；
+- `M`: `Machine`，或 worker thread，即传统意义上进程的线程；
+- `P`: `Processor`，即一种人为抽象的、用于执行 `Go` 代码被要求局部资源。只有当 `M` 与一个 `P` 关联后才能执行 `Go` 代码。除非 `M` 发生阻塞或在进行系统调用时间过长时，没有与之关联的 `P`。也可以将 `P` 理解为令牌，`M` 只有拿到这个令牌才能去执行 `G`。
+
+在这种GPM模型中，数量相对固定的是 `P`，大多数情况下都是和CPU数量相等，多了也没有意义。而 `M` 和 `G` 的数量是动态的，在调度初始化中，只设置了 `M` 的上限是 `1000`；对于G而言浮动范围就相对较大，少则数百，多则可能达到百万级别。
+
+```go
+// src/runtime/proc.go
+func schedinit() {
+    ...
+    sched.maxmcount = 10000
+    ...
+}
+```
+
+##### M
+
+`M` 是 `OS` 线程的实体，它的结构体字段有60多个，定义在 `runtime2.go` 文件中，但是它有一些比较重要的字段：
+
+```go
+// src/runtime/runtime2.go 
+type m struct {
+    g0          *g          // 执行调度器指令的Goroutine，每个M都有一个g0
+    gsignal     *g          // 处理信号的G
+    tls         [6]uintptr	// 线程本地存储，在ARM64处理器上貌似没有用到
+    curg        *g			// 当前运行的用户 Goroutine
+    p           puintptr	// 执行 go 代码时持有的 p (如果没有执行则为 nil)
+    spinning    bool		// m 当前没有运行 work 且正处于寻找 work 的活跃状态
+    cgoCallers  *cgoCallers	// cgo 调用崩溃的 cgo 回溯
+    alllink     *m			// 在 allm 上
+    .....
+}
+```
+
+在Go中M只有两个状态：自旋还是非自旋。M的初始化是在 `mcommoninit` 函数中进行，不管是系统刚运行起来时，主线m0的初始化还是新建M的初始化都会调用这个函数：
+
+```go
+func mcommoninit(mp *m, id int64) {
+  _g_ := getg()
+
+  // g0 stack won't make sense for user (and is not necessary unwindable).
+  if _g_ != _g_.m.g0 {
+    callers(1, mp.createstack[:])
+  }
+
+  lock(&sched.lock)
+
+  // 设置ID
+  if id >= 0 {
+    mp.id = id
+  } else {
+    mp.id = mReserveID()
+  }
+
+  mp.fastrand[0] = uint32(int64Hash(uint64(mp.id), fastrandseed))
+  mp.fastrand[1] = uint32(int64Hash(uint64(cputicks()), ^fastrandseed))
+  if mp.fastrand[0]|mp.fastrand[1] == 0 {
+    mp.fastrand[1] = 1
+  }
+
+    // func mpreinit(mp *m) {
+    //     mp.gsignal = malg(32 * 1024) // OS X wants >= 8K
+    //     mp.gsignal.m = mp
+    //     if GOOS == "darwin" && GOARCH == "arm64" {
+    //         // mlock the signal stack to work around a kernel bug where it may
+    //         // SIGILL when the signal stack is not faulted in while a signal
+    //         // arrives. See issue 42774.
+    //         mlock(unsafe.Pointer(mp.gsignal.stack.hi-physPageSize), physPageSize)
+    //     }
+    // }
+    // 创建信号处理的Goroutine
+  mpreinit(mp)
+  if mp.gsignal != nil {
+    mp.gsignal.stackguard1 = mp.gsignal.stack.lo + _StackGuard
+  }
+
+  // 添加到 allm 中，从而当它刚保存到寄存器或本地线程存储时候 GC 不会释放 g.m
+  mp.alllink = allm
+
+  // NumCgoCall() iterates over allm w/o schedlock,
+  // so we need to publish it safely.
+  atomicstorep(unsafe.Pointer(&allm), unsafe.Pointer(mp))
+  unlock(&sched.lock)
+
+  // Allocate memory to hold a cgo traceback if the cgo call crashes.
+  if iscgo || GOOS == "solaris" || GOOS == "illumos" || GOOS == "windows" {
+    mp.cgoCallers = new(cgoCallers)
+  }
+}
+```
 
 
 
