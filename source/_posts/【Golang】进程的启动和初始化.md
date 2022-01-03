@@ -630,6 +630,470 @@ func startTheWorldWithSema(emitTraceEvent bool) int64 {
 }
 ```
 
+##### G
+
+```go
+// src/runtime/runtime2.go
+
+// Stack 描述Goroutine的执行栈，栈的边界范围是 [lo, hi)
+type stack struct {
+	lo uintptr
+	hi uintptr
+}
+
+type g struct {
+	// Stack parameters.
+	// stack describes the actual stack memory: [stack.lo, stack.hi).
+	// stackguard0 is the stack pointer compared in the Go stack growth prologue.
+	// It is stack.lo+StackGuard normally, but can be StackPreempt to trigger a preemption.
+	// stackguard1 is the stack pointer compared in the C stack growth prologue.
+	// It is stack.lo+StackGuard on g0 and gsignal stacks.
+	// It is ~0 on other goroutine stacks, to trigger a call to morestackc (and crash).
+	stack       stack   // offset known to runtime/cgo
+	stackguard0 uintptr // offset known to liblink
+	stackguard1 uintptr // offset known to liblink
+
+	_panic    *_panic // innermost panic - offset known to liblink
+	_defer    *_defer // innermost defer
+	m         *m      // current m; offset known to arm liblink
+	sched     gobuf
+	syscallsp uintptr // if status==Gsyscall, syscallsp = sched.sp to use during gc
+	syscallpc uintptr // if status==Gsyscall, syscallpc = sched.pc to use during gc
+	stktopsp  uintptr // expected sp at top of stack, to check in traceback
+	// param is a generic pointer parameter field used to pass
+	// values in particular contexts where other storage for the
+	// parameter would be difficult to find. It is currently used
+	// in three ways:
+	// 1. When a channel operation wakes up a blocked goroutine, it sets param to
+	//    point to the sudog of the completed blocking operation.
+	// 2. By gcAssistAlloc1 to signal back to its caller that the goroutine completed
+	//    the GC cycle. It is unsafe to do so in any other way, because the goroutine's
+	//    stack may have moved in the meantime.
+	// 3. By debugCallWrap to pass parameters to a new goroutine because allocating a
+	//    closure in the runtime is forbidden.
+	param        unsafe.Pointer
+	atomicstatus uint32
+	stackLock    uint32 // sigprof/scang lock; TODO: fold in to atomicstatus
+	goid         int64
+	schedlink    guintptr
+	waitsince    int64      // approx time when the g become blocked
+	waitreason   waitReason // if status==Gwaiting
+
+	preempt       bool // preemption signal, duplicates stackguard0 = stackpreempt
+	preemptStop   bool // transition to _Gpreempted on preemption; otherwise, just deschedule
+	preemptShrink bool // shrink stack at synchronous safe point
+
+	// asyncSafePoint is set if g is stopped at an asynchronous
+	// safe point. This means there are frames on the stack
+	// without precise pointer information.
+	asyncSafePoint bool
+
+	paniconfault bool // panic (instead of crash) on unexpected fault address
+	gcscandone   bool // g has scanned stack; protected by _Gscan bit in status
+	throwsplit   bool // must not split stack
+	// activeStackChans indicates that there are unlocked channels
+	// pointing into this goroutine's stack. If true, stack
+	// copying needs to acquire channel locks to protect these
+	// areas of the stack.
+	activeStackChans bool
+	// parkingOnChan indicates that the goroutine is about to
+	// park on a chansend or chanrecv. Used to signal an unsafe point
+	// for stack shrinking. It's a boolean value, but is updated atomically.
+	parkingOnChan uint8
+
+	raceignore     int8     // ignore race detection events
+	sysblocktraced bool     // StartTrace has emitted EvGoInSyscall about this goroutine
+	tracking       bool     // whether we're tracking this G for sched latency statistics
+	trackingSeq    uint8    // used to decide whether to track this G
+	runnableStamp  int64    // timestamp of when the G last became runnable, only used when tracking
+	runnableTime   int64    // the amount of time spent runnable, cleared when running, only used when tracking
+	sysexitticks   int64    // cputicks when syscall has returned (for tracing)
+	traceseq       uint64   // trace event sequencer
+	tracelastp     puintptr // last P emitted an event for this goroutine
+	lockedm        muintptr
+	sig            uint32
+	writebuf       []byte
+	sigcode0       uintptr
+	sigcode1       uintptr
+	sigpc          uintptr
+	gopc           uintptr         // pc of go statement that created this goroutine
+	ancestors      *[]ancestorInfo // ancestor information goroutine(s) that created this goroutine (only used if debug.tracebackancestors)
+	startpc        uintptr         // pc of goroutine function
+	racectx        uintptr
+	waiting        *sudog         // sudog structures this g is waiting on (that have a valid elem ptr); in lock order
+	cgoCtxt        []uintptr      // cgo traceback context
+	labels         unsafe.Pointer // profiler labels
+	timer          *timer         // cached timer for time.Sleep
+	selectDone     uint32         // are we participating in a select and did someone win the race?
+
+	// Per-G GC state
+
+	// gcAssistBytes is this G's GC assist credit in terms of
+	// bytes allocated. If this is positive, then the G has credit
+	// to allocate gcAssistBytes bytes without assisting. If this
+	// is negative, then the G must correct this by performing
+	// scan work. We track this in bytes to make it fast to update
+	// and check for debt in the malloc hot path. The assist ratio
+	// determines how this corresponds to scan work debt.
+	gcAssistBytes int64
+}
+```
+
+`G` 其实就是用户函数体，里面保存了要执行的函数参数，函数体的入口。相比于 `P`，`G` 的状态相对较多，主要有以下这些：
+
+```go
+// src/runtime/runtime2.go
+// defined constants
+const (
+	// G status
+	//
+	// Beyond indicating the general state of a G, the G status
+	// acts like a lock on the goroutine's stack (and hence its
+	// ability to execute user code).
+	//
+	// If you add to this list, add to the list
+	// of "okay during garbage collection" status
+	// in mgcmark.go too.
+	//
+	// TODO(austin): The _Gscan bit could be much lighter-weight.
+	// For example, we could choose not to run _Gscanrunnable
+	// goroutines found in the run queue, rather than CAS-looping
+	// until they become _Grunnable. And transitions like
+	// _Gscanwaiting -> _Gscanrunnable are actually okay because
+	// they don't affect stack ownership.
+
+	// _Gidle 表示这个 Goroutine 刚刚被分配，还没有被初始化。
+	_Gidle = iota // 0
+
+	// _Grunnable 意味着这个 Goroutine 在一个可运行队列中，还没有
+    // 执行用户代码，也没有堆栈；
+	_Grunnable // 1
+
+	// _Grunning 意味着这个 Goroutine 正在执行用户代码，拥有运行代码
+    // 必要的堆栈。它不再可运行队列中，当前正在和 m 以及 p 关联。也就是
+    // 说 g.m 以及 g.m.p 都是有效的；
+	_Grunning // 2
+
+	// _Gsyscall 表示这个 Goroutine 正在执行一个系统调用，没有执行用户代码。拥有堆栈
+    // 并且分配了M，所以它不在运行队列中；
+	_Gsyscall // 3
+
+    // _Gwaiting 表示这个 goroutine 在运行时被阻塞。它没有执行用户代码。
+    // 它不在运行队列中，但应记录在某处，例如，因为channel的等待队列，所以
+    // 它可以在必要时被唤醒就绪。除了通道操作可以在适当的在通道锁下读取或者
+    // 写入部分堆栈，其他情况下访问堆栈是不安全的；
+	_Gwaiting // 4
+
+	// _Gmoribund_unused 目前没用的一个状态；
+	_Gmoribund_unused // 5
+
+    // _Gdead 意味着这个 Goroutine 当前没被使用，他可能刚刚退出在一个空闲列表
+    // 中，或者刚刚初始化。它可能有也可能没有分配堆栈。G 及其堆栈由退出 G 或从空
+    // 闲列表中获得 G 的 M 所有。
+	_Gdead // 6
+
+	// _Genqueue_unused 目前没用；
+	_Genqueue_unused // 7
+
+    // _Gcopystack 意味着这个 Goroutine 的栈正在被移动，它没有执行用户代码
+    // 也没有在可运行队列中。该堆栈由将其放入 _Gcopystack 的Goroutine所有。
+	_Gcopystack // 8
+
+    // _Gpreempted 意味着这个Goroutine被强制抢占，它很像 _Gwaiting，但
+    // 目前没有什么负责将它就绪。
+	_Gpreempted // 9
+
+	// _Gscan combined with one of the above states other than
+	// _Grunning indicates that GC is scanning the stack. The
+	// goroutine is not executing user code and the stack is owned
+	// by the goroutine that set the _Gscan bit.
+	//
+	// _Gscanrunning is different: it is used to briefly block
+	// state transitions while GC signals the G to scan its own
+	// stack. This is otherwise like _Grunning.
+	//
+	// atomicstatus&~Gscan gives the state the goroutine will
+	// return to when the scan completes.
+	_Gscan          = 0x1000
+	_Gscanrunnable  = _Gscan + _Grunnable  // 0x1001
+	_Gscanrunning   = _Gscan + _Grunning   // 0x1002
+	_Gscansyscall   = _Gscan + _Gsyscall   // 0x1003
+	_Gscanwaiting   = _Gscan + _Gwaiting   // 0x1004
+	_Gscanpreempted = _Gscan + _Gpreempted // 0x1009
+)
+```
+
+`G` 的初始化是在 `runtime.newproc` 函数中完成的：
+
+```go
+// src/runtime/proc.go 
+//go:nosplit
+func newproc(siz int32, fn *funcval) {
+  // 从 fn 的地址增加一个指针的长度，从而获取第一参数地址
+  argp := add(unsafe.Pointer(&fn), sys.PtrSize)
+  gp := getg()
+  pc := getcallerpc() // 获取调用方 PC/IP 寄存器值
+
+  // 用 g0 系统栈创建 Goroutine 对象
+  // 传递的参数包括 fn 函数入口地址, argp 参数起始地址, siz 参数长度, gp（g0），调用方 pc（goroutine）
+  systemstack(func() {
+    newg := newproc1(fn, argp, siz, gp, pc)
+
+    _p_ := getg().m.p.ptr()
+
+    // 将这里新创建的 g 放入 p 的本地队列或直接放入全局队列
+	// true 表示放入执行队列的下一个，false 表示放入队尾
+    runqput(_p_, newg, true)
+
+    // 如果有空闲的 P、且 spinning 的 M 数量为 0，且主 Goroutine 已经开始运行，则进行唤醒 p
+	// 初始化阶段 mainStarted 为 false，所以 p 不会被唤醒
+    if mainStarted {
+      wakep()
+    }
+  })
+}
+
+type funcval struct {
+	fn uintptr
+	// 变长大小，fn 的数据在应在 fn 之后
+}
+
+// getcallerpc 返回它调用方的调用方程序计数器 PC program conter
+//go:noescape
+func getcallerpc() uintptr
+```
+
+详细的参数获取过程需要编译器的配合，也是实现 Goroutine 的关键，下面是 X86 上面一个简单的事例：
+
+```go
+package main
+
+func hello(msg string) {
+	println(msg)
+}
+
+func main() {
+	go hello("hello world")
+}
+```
+
+    LEAQ go.string.*+1874(SB), AX // 将 "hello world" 的地址给 AX
+    MOVQ AX, 0x10(SP)             // 将 AX 的值放到 0x10
+    MOVL $0x10, 0(SP)             // 将最后一个参数的位置存到栈顶 0x00
+    LEAQ go.func.*+67(SB), AX     // 将 go 语句调用的函数入口地址给 AX
+    MOVQ AX, 0x8(SP)              // 将 AX 存入 0x08
+    CALL runtime.newproc(SB)      // 调用 newproc
+
+这个时候栈的布局如下图所示：
+
+                栈布局
+        |                 |       高地址
+        |                 |
+        +-----------------+ 
+        | &"hello world"  |
+    0x10  +-----------------+ <--- fn + sys.PtrSize
+        |      hello      |
+    0x08  +-----------------+ <--- fn
+        |       size      |
+    0x00  +-----------------+ SP
+        |    newproc PC   |  
+        +-----------------+ callerpc: 要运行的 Goroutine 的 PC
+        |                 |
+        |                 |       低地址
+
+从而当 `newproc` 开始运行时，先获得 `size` 作为第一个参数，再获得 `fn` 作为第二个参数， 然后通过 `add` 计算出 `fn` 参数开始的位置。现在我们知道 `newproc` 会获取需要执行的 `Goroutine` 要执行的函数体的地址、 参数起始地址、参数长度、以及 `Goroutine` 的调用地址。 然后在 `g0` 系统栈上通过 `newproc1` 创建并初始化新的 `Goroutine` ，下面我们来看 `newproc1`。
+
+```go
+// 创建一个运行 fn 的新 g，具有 narg 字节大小的参数，从 argp 开始。
+// callerps 是 go 语句的起始地址。新创建的 g 会被放入 g 的队列中等待运行。
+//
+// This must run on the system stack because it's the continuation of
+// newproc, which cannot split the stack.
+//
+//go:systemstack
+func newproc1(fn *funcval, argp unsafe.Pointer, narg int32, callergp *g, callerpc uintptr) *g {
+  if goexperiment.RegabiDefer && narg != 0 {
+    // TODO: When we commit to GOEXPERIMENT=regabidefer,
+    // rewrite the comments for newproc and newproc1.
+    // newproc will no longer have a funny stack layout or
+    // need to be nosplit.
+    throw("go with non-empty frame")
+  }
+
+  _g_ := getg()  // 因为是在系统栈运行所以此时的 g 为 g0
+
+  if fn == nil {
+    _g_.m.throwing = -1 // do not dump full stacks
+    throw("go of nil func value")
+  }
+  acquirem() // disable preemption because it can be holding p in a local var
+  siz := narg
+  siz = (siz + 7) &^ 7
+
+  // We could allocate a larger initial stack if necessary.
+  // Not worth it: this is almost always an error.
+  // 4*PtrSize: extra space added below
+  // PtrSize: caller's LR (arm) or return address (x86, in gostartcall).
+  if siz >= _StackMin-4*sys.PtrSize-sys.PtrSize {
+    throw("newproc: function arguments too large for new goroutine")
+  }
+
+  // 获得 p
+  _p_ := _g_.m.p.ptr()
+  // 根据 p 获得一个新的 g
+  newg := gfget(_p_)
+  // 初始化阶段，gfget 是不可能找到 g 的
+  // 也可能运行中本来就已经耗尽了
+  if newg == nil {
+    newg = malg(_StackMin)  // 创建一个拥有 _StackMin 大小的栈的 g，_StackMin 是 2048
+    // 将新创建的 g 从 _Gidle 更新为 _Gdead 状态
+    casgstatus(newg, _Gidle, _Gdead)
+    allgadd(newg) // 将 Gdead 状态的 g 添加到 allg，这样 GC 不会扫描未初始化的栈
+  }
+  if newg.stack.hi == 0 {
+    throw("newproc1: newg missing stack")
+  }
+
+  if readgstatus(newg) != _Gdead {
+    throw("newproc1: new g is not Gdead")
+  }
+
+  // 计算运行空间大小，对齐
+  totalSize := 4*sys.PtrSize + uintptr(siz) + sys.MinFrameSize // extra space in case of reads slightly beyond frame
+  totalSize += -totalSize & (sys.StackAlign - 1)               // align to StackAlign
+  // 确定 sp 和参数入栈位置
+  sp := newg.stack.hi - totalSize
+  spArg := sp
+  if usesLR {
+    // caller's LR
+    *(*uintptr)(unsafe.Pointer(sp)) = 0
+    prepGoExitFrame(sp)
+    spArg += sys.MinFrameSize
+  }
+
+  // 处理参数，当有参数时，将参数拷贝到 Goroutine 的执行栈中
+  if narg > 0 {
+    // 从 argp 参数开始的位置，复制 narg 个字节到 spArg（参数拷贝）
+    memmove(unsafe.Pointer(spArg), argp, uintptr(narg))
+    // 栈到栈的拷贝。
+    // 如果启用了 write barrier 并且 源栈为灰色（目标始终为黑色），
+    // 则执行 barrier 拷贝。
+    // 因为目标栈上可能有垃圾，我们在 memmove 之后执行此操作。
+    if writeBarrier.needed && !_g_.m.curg.gcscandone {
+      f := findfunc(fn.fn)
+      stkmap := (*stackmap)(funcdata(f, _FUNCDATA_ArgsPointerMaps))
+      if stkmap.nbit > 0 {
+        // 我们正位于序言部分，因此栈 map 索引总是 0
+        bv := stackmapdata(stkmap, 0)
+        bulkBarrierBitmap(spArg, spArg, uintptr(bv.n)*sys.PtrSize, 0, bv.bytedata)
+      }
+    }
+  }
+
+  // 清理、创建并初始化的 g 的运行现场
+  memclrNoHeapPointers(unsafe.Pointer(&newg.sched), unsafe.Sizeof(newg.sched))
+  newg.sched.sp = sp
+  newg.stktopsp = sp
+  newg.sched.pc = abi.FuncPCABI0(goexit) + sys.PCQuantum // +PCQuantum so that previous instruction is in same function
+  newg.sched.g = guintptr(unsafe.Pointer(newg))
+  gostartcallfn(&newg.sched, fn)
+  // 初始化 g 的基本状态
+  newg.gopc = callerpc
+  newg.ancestors = saveAncestors(callergp)
+  newg.startpc = fn.fn // 入口 pc
+  if _g_.m.curg != nil {
+    newg.labels = _g_.m.curg.labels
+  }
+  if isSystemGoroutine(newg, false) {
+    atomic.Xadd(&sched.ngsys, +1)
+  }
+  // Track initial transition?
+  newg.trackingSeq = uint8(fastrand())
+  if newg.trackingSeq%gTrackingPeriod == 0 {
+    newg.tracking = true
+  }
+  // 现在将 g 更换为 _Grunnable 状态
+  casgstatus(newg, _Gdead, _Grunnable)
+
+  // 分配 goid
+  if _p_.goidcache == _p_.goidcacheend {
+    // Sched.goidgen 为最后一个分配的 id，相当于一个全局计数器
+    // 这一批必须为 [sched.goidgen+1, sched.goidgen+GoidCacheBatch].
+    // 启动时 sched.goidgen=0, 因此主 Goroutine 的 goid 为 1
+    _p_.goidcache = atomic.Xadd64(&sched.goidgen, _GoidCacheBatch)
+    _p_.goidcache -= _GoidCacheBatch - 1
+    _p_.goidcacheend = _p_.goidcache + _GoidCacheBatch
+  }
+  newg.goid = int64(_p_.goidcache)
+  _p_.goidcache++
+  if raceenabled {
+    newg.racectx = racegostart(callerpc)
+  }
+  if trace.enabled {
+    traceGoCreate(newg, newg.startpc)
+  }
+  releasem(_g_.m)
+
+  return newg
+}
+```
+
+为了证明创建新的goroutine是在系统栈运行，可以debug程序，在 `newproc1` 函数中断点，查看此时的goroutine是哪个：
+
+    (dlv) c
+    > runtime.newproc1() /usr/local/go/src/runtime/proc.go:4286 (hits total:1) (PC: 0x4de9c)
+    Warning: debugging optimized function
+    4281:			throw("go with non-empty frame")
+    4282:		}
+    4283:
+    4284:		_g_ := getg()
+    4285:
+    =>4286:		if fn == nil {
+    4287:			_g_.m.throwing = -1 // do not dump full stacks
+    4288:			throw("go of nil func value")
+    4289:		}
+    4290:		acquirem() // disable preemption because it can be holding p in a local var
+    4291:		siz := narg
+    (dlv) p _g_.m.g0.goid
+    0
+    (dlv) p _g_.goid
+    0  // 当前g关联的m的g0ID和当前g的id相同，说明是在g0栈上运行
+    (dlv)
+
+由于执行 newproc1 是在 systemstack() 函数中，我们来看这个函数的描述：
+
+```go
+// systemstack runs fn on a system stack.
+// If systemstack is called from the per-OS-thread (g0) stack, or
+// if systemstack is called from the signal handling (gsignal) stack,
+// systemstack calls fn directly and returns.
+// Otherwise, systemstack is being called from the limited stack
+// of an ordinary goroutine. In this case, systemstack switches
+// to the per-OS-thread stack, calls fn, and switches back.
+// It is common to use a func literal as the argument, in order
+// to share inputs and outputs with the code around the call
+// to system stack:
+//
+//	... set up y ...
+//	systemstack(func() {
+//		x = bigcall(y)
+//	})
+//	... use x ...
+//
+//go:noescape
+func systemstack(fn func())
+```
+
+创建 G 的过程也是相对比较复杂的，我们来总结一下这个过程：
+
+1. 首先尝试从 `P` 本地 `gfree` 链表或全局 `gfree` 队列获取已经执行过的 `g`
+2. 初始化过程中程序无论是本地队列还是全局队列都不可能获取到 `g`，因此创建一个新的 `g`，并为其分配运行线程（执行栈），这时 `g` 处于 `_Gidle` 状态
+3. 创建完成后，`g` 被更改为 `_Gdead` 状态，并根据要执行函数的入口地址和参数，初始化执行栈的 `SP` 和参数的入栈位置，并将需要的参数拷贝一份存入执行栈中
+4. 根据 `SP`、参数，在 `g.sched` 中保存 `SP` 和 `PC` 指针来初始化 `g` 的运行现场
+5. 将调用方、要执行的函数的入口 `PC` 进行保存，并将 `g` 的状态更改为 `_Grunnable`
+6. 给 `Goroutine` 分配 `id`，并将其放入 `P` 本地队列的队头或全局队列（初始化阶段队列肯定不是满的，因此不可能放入全局队列）
+7. 检查空闲的 `P`，将其唤醒，准备执行 `G`，但我们目前处于初始化阶段，主 Goroutine 尚未开始执行，因此这里不会唤醒 P。
+
 ### 参考链接
 
 1. [GDB 命令帮助文档](https://visualgdb.com/gdbreference/commands/)
