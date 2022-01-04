@@ -1094,6 +1094,173 @@ func systemstack(fn func())
 6. 给 `Goroutine` 分配 `id`，并将其放入 `P` 本地队列的队头或全局队列（初始化阶段队列肯定不是满的，因此不可能放入全局队列）
 7. 检查空闲的 `P`，将其唤醒，准备执行 `G`，但我们目前处于初始化阶段，主 Goroutine 尚未开始执行，因此这里不会唤醒 P。
 
+##### sched
+
+`runtime2.go` 文件中结束位置定义了很多全局变量，其中有一个 `sched`，它包含了很多全局资源，访问这些全局资源一般需要锁：
+
+```go
+// src/runtime/runtime2.go
+
+type schedt struct {
+	// 原子访问，确保在32位系统上对齐
+	goidgen   uint64 // 全局goid生成器，newproc1 函数中有使用到
+	lastpoll  uint64 // time of last network poll, 0 if currently polling
+	pollUntil uint64 // time to which current poll is sleeping
+
+	lock mutex
+
+    // 当增加 nmidle，nmidlelocked，nmsys 或者 nmfreed时，确保调用 checkdead()
+    // 这个函数在 src/runtime/proc.go 中，检查运行的M，如果数量是0，则 deadlock
+	midle        muintptr // 等待工作的空闲m列表
+	nmidle       int32    // 空闲M的数量
+	nmidlelocked int32    // number of locked m's waiting for work
+	mnext        int64    // 已经创建的M的数量用于记录M的ID
+	maxmcount    int32    // 最大允许的m的数量，10000
+	nmsys        int32    // 系统线程数量不用于死锁检查
+	nmfreed      int64    // 累计已经释放的M的数量
+
+	ngsys uint32 // 系统goroutine的数量，原子更新
+
+	pidle      puintptr // 空闲p列表
+	npidle     uint32
+	nmspinning uint32 // See "Worker thread parking/unparking" comment in proc.go.
+
+	// 全局的可运行G队列
+	runq     gQueue
+	runqsize int32
+
+	// disable controls selective disabling of the scheduler.
+	//
+	// Use schedEnableUser to control this.
+	//
+	// disable is protected by sched.lock.
+	disable struct {
+		// user disables scheduling of user goroutines.
+		user     bool
+		runnable gQueue // pending runnable Gs
+		n        int32  // length of runnable
+	}
+
+	// 全局_Gdead状态的G
+	gFree struct {
+		lock    mutex
+		stack   gList // Gs with stacks
+		noStack gList // Gs without stacks
+		n       int32
+	}
+
+	// sudog 结构体的全局缓存
+	sudoglock  mutex
+	sudogcache *sudog
+
+	// Central pool of available defer structs of different sizes.
+	deferlock mutex
+	deferpool [5]*_defer
+
+	// freem is the list of m's waiting to be freed when their
+	// m.exited is set. Linked through m.freelink.
+	freem *m
+
+	gcwaiting  uint32 // gc is waiting to run
+	stopwait   int32
+	stopnote   note
+	sysmonwait uint32
+	sysmonnote note
+
+	// While true, sysmon not ready for mFixup calls.
+	// Accessed atomically.
+	sysmonStarting uint32
+
+	// safepointFn should be called on each P at the next GC
+	// safepoint if p.runSafePointFn is set.
+	safePointFn   func(*p)
+	safePointWait int32
+	safePointNote note
+
+	profilehz int32 // cpu profiling rate
+
+	procresizetime int64 // nanotime() of last change to gomaxprocs
+	totaltime      int64 // ∫gomaxprocs dt up to procresizetime
+
+	// sysmonlock protects sysmon's actions on the runtime.
+	//
+	// Acquire and hold this mutex to block sysmon from interacting
+	// with the rest of the runtime.
+	sysmonlock mutex
+
+	_ uint32 // ensure timeToRun has 8-byte alignment
+
+	// timeToRun is a distribution of scheduling latencies, defined
+	// as the sum of time a G spends in the _Grunnable state before
+	// it transitions to _Grunning.
+	//
+	// timeToRun is protected by sched.lock.
+	timeToRun timeHistogram
+}
+
+var (
+	allm       *m
+	gomaxprocs int32
+	ncpu       int32
+	forcegc    forcegcstate
+	sched      schedt
+    ....
+)
+```
+
+我们再来看看 `schedinit` 函数，了解下 `GPM` 的初始化流程：
+
+```go
+// src/runtime/proc.go
+
+func schedinit() {
+    ....
+    _g_ := getg()
+
+    mcommoninit(_g_.m, -1)  // M初始化
+    ...
+
+    lock(&sched.lock)
+    sched.lastpoll = uint64(nanotime())
+    procs := ncpu
+    if n, ok := atoi32(gogetenv("GOMAXPROCS")); ok && n > 0 {
+        procs = n
+    }
+    // P 初始化
+    if procresize(procs) != nil {
+        throw("unknown runnable goroutine during bootstrap")
+    }
+    unlock(&sched.lock)
+}
+```
+
+    TEXT runtime·rt0_go(SB),NOSPLIT,$0
+        ...
+        MOVW	8(RSP), R0	// copy argc
+        MOVW	R0, -8(RSP)
+        MOVD	16(RSP), R0		// copy argv
+        MOVD	R0, 0(RSP)
+        BL	runtime·args(SB)
+        BL	runtime·osinit(SB)
+        BL	runtime·schedinit(SB)
+
+        // create a new goroutine to start program
+        MOVD	$runtime·mainPC(SB), R0		// entry
+        MOVD	RSP, R7
+        MOVD.W	$0, -8(R7)
+        MOVD.W	R0, -8(R7)
+        MOVD.W	$0, -8(R7)
+        MOVD.W	$0, -8(R7)
+        MOVD	R7, RSP
+        BL	runtime·newproc(SB)   //G 的初始化
+        ADD	$32, RSP
+    
+    DATA	runtime·mainPC+0(SB)/8,$runtime·main(SB)
+    GLOBL	runtime·mainPC(SB),RODATA,$8
+
+M/P/G 彼此的初始化顺序遵循：`mcommoninit`、`procresize`、`newproc`，他们分别负责初始化 `M` 资源池（`allm`）、`P` 资源池（`allp`）、`G` 的运行现场（`g.sched`）以及调度队列（`p.runq`）。
+
+
 ### 参考链接
 
 1. [GDB 命令帮助文档](https://visualgdb.com/gdbreference/commands/)
