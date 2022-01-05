@@ -133,9 +133,9 @@ MOVD	R0, g_m(g)
 
 - `G`: `Goroutine`，即我们在 `Go` 程序中使用 `go` 关键字创建的执行体；
 - `M`: `Machine`，或 worker thread，即传统意义上进程的线程；
-- `P`: `Processor`，即一种人为抽象的、用于执行 `Go` 代码被要求局部资源。只有当 `M` 与一个 `P` 关联后才能执行 `Go` 代码。除非 `M` 发生阻塞或在进行系统调用时间过长时，没有与之关联的 `P`。也可以将 `P` 理解为令牌，`M` 只有拿到这个令牌才能去执行 `G`。
+- `P`: `Processor`，即一种人为抽象的、用于执行 `Go` 代码被要求的局部资源。只有当 `M` 与一个 `P` 关联后才能执行 `Go` 代码。`M` 发生阻塞或在进行系统调用时间过长时，是没有与之关联的 `P`。
 
-在这种GPM模型中，数量相对固定的是 `P`，大多数情况下都是和CPU数量相等，多了也没有意义。而 `M` 和 `G` 的数量是动态的，在调度初始化中，只设置了 `M` 的上限是 `1000`；对于G而言浮动范围就相对较大，少则数百，多则可能达到百万级别。
+在这种GPM模型中，数量相对固定的是 `P`，大多数情况下都是和 `CPU` 数量相等，多了也没有意义。而 `M` 和 `G` 的数量是动态的，在调度初始化中，只设置了 `M` 的上限是 `10000`；对于`G`而言浮动范围就相对较大，少则数百，多则可能达到百万级别。
 
 ```go
 // src/runtime/proc.go
@@ -165,7 +165,7 @@ type m struct {
 }
 ```
 
-在Go中M只有两个状态：自旋还是非自旋。M的初始化是在 `mcommoninit` 函数中进行，不管是系统刚运行起来时，主线 `m0` 的初始化还是新建 `M` 的初始化都会调用这个函数：
+在`Go`中`M`只有两个状态：自旋还是非自旋。M的初始化是在 `mcommoninit` 函数中进行，不管是系统刚运行起来时，主线 `m0` 的初始化还是新建 `M` 的初始化都会调用这个函数：
 
 ```go
 func mcommoninit(mp *m, id int64) {
@@ -224,12 +224,12 @@ func mcommoninit(mp *m, id int64) {
 
 ##### P
 
-`P` 只是处理器的一种抽象，而并非真正的处理器，它是可以通过 runtime 提供的方法动态调整的，他可以用来实现 work stealing，每个 P 都持有一个G的本地队列。如果没有P的存在，所有的G只能放在全局的队列中，当M执行完一个G，必须锁住全局队列然后取下一个G拿来运行，这会严重降低运行效率。当有了 `P` 之后，每个P都有一个存储 `G` 的本地队列，当和 `P` 关联的 `M` 运行完一个 `G` 之后，它会按照：当前P的本地队列、全局、网络、偷取的方式获取一个可运行的 `G`。
+`P` 只是处理器的一种抽象，而并非真正的处理器，它是可以通过 `runtime` 提供的方法动态调整的，用来实现 work stealing，每个 `P` 都持有一个`G`的本地队列。如果没有`P`的存在，所有的`G`只能放在全局的队列中，当`M`执行完一个`G`，必须锁住全局队列然后取下一个`G`拿来运行，这会严重降低运行效率。当有了 `P` 之后，每个`P`都有一个存储 `G` 的本地队列，当和 `P` 关联的 `M` 运行完一个 `G` 之后，它会按照：当前P的本地队列、全局、网络、偷取的方式获取一个可运行的 `G`。
 
 ```go
 type p struct {
 	id          int32
-	status      uint32 // one of _Prunning/_Psyscall/_Pgcstop/_Pdead
+	status      uint32 // one of pidle/prunning/...
 	link        puintptr
 	schedtick   uint32     // incremented on every scheduler call
 	syscalltick uint32     // incremented on every system call
@@ -246,7 +246,7 @@ type p struct {
 	goidcache    uint64
 	goidcacheend uint64
 
-	// Queue of runnable goroutines. Accessed without lock.
+	// 无锁访问可运行G队列
 	runqhead uint32
 	runqtail uint32
 	runq     [256]guintptr
@@ -264,19 +264,120 @@ type p struct {
 	// only the owner P can CAS it to a valid G.
 	runnext guintptr
 
-    ...
+	// 可用的G，状态都是 _Gdead，可以用来复用
+	gFree struct {
+		gList
+		n int32
+	}
+
+	sudogcache []*sudog
+	sudogbuf   [128]*sudog
+
+	// Cache of mspan objects from the heap.
+	mspancache struct {
+		// We need an explicit length here because this field is used
+		// in allocation codepaths where write barriers are not allowed,
+		// and eliminating the write barrier/keeping it eliminated from
+		// slice updates is tricky, moreso than just managing the length
+		// ourselves.
+		len int
+		buf [128]*mspan
+	}
+
+	tracebuf traceBufPtr
+
+	// traceSweep indicates the sweep events should be traced.
+	// This is used to defer the sweep start event until a span
+	// has actually been swept.
+	traceSweep bool
+	// traceSwept and traceReclaimed track the number of bytes
+	// swept and reclaimed by sweeping in the current sweep loop.
+	traceSwept, traceReclaimed uintptr
+
+	palloc persistentAlloc // per-P to avoid mutex
+
+	_ uint32 // Alignment for atomic fields below
+
+	// The when field of the first entry on the timer heap.
+	// This is updated using atomic functions.
+	// This is 0 if the timer heap is empty.
+	timer0When uint64
+
+	// The earliest known nextwhen field of a timer with
+	// timerModifiedEarlier status. Because the timer may have been
+	// modified again, there need not be any timer with this value.
+	// This is updated using atomic functions.
+	// This is 0 if there are no timerModifiedEarlier timers.
+	timerModifiedEarliest uint64
+
+	// Per-P GC state
+	gcAssistTime         int64 // Nanoseconds in assistAlloc
+	gcFractionalMarkTime int64 // Nanoseconds in fractional mark worker (atomic)
+
+	// gcMarkWorkerMode is the mode for the next mark worker to run in.
+	// That is, this is used to communicate with the worker goroutine
+	// selected for immediate execution by
+	// gcController.findRunnableGCWorker. When scheduling other goroutines,
+	// this field must be set to gcMarkWorkerNotWorker.
+	gcMarkWorkerMode gcMarkWorkerMode
+	// gcMarkWorkerStartTime is the nanotime() at which the most recent
+	// mark worker started.
+	gcMarkWorkerStartTime int64
+
+	// gcw is this P's GC work buffer cache. The work buffer is
+	// filled by write barriers, drained by mutator assists, and
+	// disposed on certain GC state transitions.
+	gcw gcWork
+
+	// wbBuf is this P's GC write barrier buffer.
+	//
+	// TODO: Consider caching this in the running G.
+	wbBuf wbBuf
+
+	runSafePointFn uint32 // if 1, run sched.safePointFn at next safe point
+
+	// statsSeq is a counter indicating whether this P is currently
+	// writing any stats. Its value is even when not, odd when it is.
+	statsSeq uint32
+
+	// Lock for timers. We normally access the timers while running
+	// on this P, but the scheduler can also do it from a different P.
+	timersLock mutex
+
+	// Actions to take at some time. This is used to implement the
+	// standard library's time package.
+	// Must hold timersLock to access.
+	timers []*timer
+
+	// Number of timers in P's heap.
+	// Modified using atomic instructions.
+	numTimers uint32
+
+	// Number of timerDeleted timers in P's heap.
+	// Modified using atomic instructions.
+	deletedTimers uint32
+
+	// Race context used while executing timer functions.
+	timerRaceCtx uintptr
+
+	// preempt is set to indicate that this P should be enter the
+	// scheduler ASAP (regardless of what G is running on it).
+	preempt bool
+
+	// Padding is no longer needed. False sharing is now not a worry because p is large enough
+	// that its size class is an integer multiple of the cache line size (for any of our architectures).
 }
 ```
 
 目前情况下，`P` 一共有四种状态，`_Pidle`，`_Prunning`，`_Psyscall`，`_Pgcstop` 和 `_Pdead`：
 
-- `_Pidle`：表示没有使用 P 来运行用户代码或调度程序。通常，它位于空闲 P 列表中并且可供调度程序使用，但它可能只是在其他状态之间转换，空闲状态下它的 runq 队列是空的。
+- `_Pidle`：表示没有使用 `P` 来运行用户代码或调度程序。通常，它位于空闲 `P` 列表中并且可供调度程序使用，但它可能只是在其他状态之间转换，空闲状态下它的 `runq` 队列是空的。
 
-- `_Prunning`：表示 `P`正在被`M`持有运行用户代码或者调度器。只有当`M`持有`P`时，它的状态才被允许修改到 `_Prunning`。如果没有活干，那么`P`将切换到`_Pidle`状态；当进行系统调用的时候会切换到 `_Psyscall`；`GC` 期间会切换到 `_Pgcstop`；`M` 也可以将 `P` 的所有权直接交给另一个 `M`（例如，调度到锁定的 `G`）；
+- `_Prunning`：表示 `P`正在被 `M` 持有运行用户代码或者调度器。只有当 `M` 持有 `P` 时，它的状态才被允许修改到 `_Prunning`。如果没有活干，那么`P`将切换到 `_Pidle` 状态；当进行系统调用的时候会切换到 `_Psyscall`；`GC` 期间会切换到 `_Pgcstop`；`M` 也可以将 `P` 的所有权直接交给另一个 `M`（例如，调度到锁定的 `G`）；
 
-- `_Psyscall`：说明`P`没有在运行用户代码，它与系统调用中的 `M` 有亲和关系，但不属于它，并且可能被另一个 `M` 窃取。这与 `_Pidle` 类似，但使用轻量级转换并保持 `M` 亲缘关系;
+- `_Psyscall`：说明 `P` 没有在运行用户代码，它与系统调用中的 `M` 有亲和关系，但不属于它，并且可能被另一个 `M` 窃取。这与 `_Pidle` 类似，但使用轻量级转换并保持 `M` 亲缘关系;
 
-- `_Pgcstop`：这意味着P由于STW而暂停并且被触发STW的M拥有；STW 的`M`会继续使用`P`；从 `_Prunning`转换到`_Pgcstop`会导致M释放它的P并且停止；`P` 会保留它的运行队列，starttheworld 将在具有非空运行队列的P上重启调度程序；
+- `_Pgcstop`：这意味着P由于STW而暂停并且被触发STW的M拥有；STW 的 `M` 会继续使用 `P`；从 `_Prunning` 转换到 `_Pgcstop` 会导致M释放它的P并且停止；`P` 会保留它的运行队列，starttheworld 将在具有非空运行队列的P上重启调度程序；
 
 - `_Pdead`：这个状态说明P将不再被使用；如果 `GOMAXPROCS` 增加，这个P还将被重新使用；一个死的 P 大部分资源都会被剥夺。
 
