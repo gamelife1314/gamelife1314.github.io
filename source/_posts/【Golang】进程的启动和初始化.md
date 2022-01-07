@@ -168,6 +168,7 @@ type m struct {
 在`Go`中`M`只有两个状态：自旋还是非自旋。M的初始化是在 `mcommoninit` 函数中进行，不管是系统刚运行起来时，主线 `m0` 的初始化还是新建 `M` 的初始化都会调用这个函数：
 
 ```go
+// src/runtime/proc.go
 func mcommoninit(mp *m, id int64) {
   _g_ := getg()
 
@@ -1360,6 +1361,58 @@ func schedinit() {
     GLOBL	runtime·mainPC(SB),RODATA,$8
 
 M/P/G 彼此的初始化顺序遵循：`mcommoninit`、`procresize`、`newproc`，他们分别负责初始化 `M` 资源池（`allm`）、`P` 资源池（`allp`）、`G` 的运行现场（`g.sched`）以及调度队列（`p.runq`）。
+
+#### 调度循环
+
+当所有准备工作都就绪之后，也就是调度器初始化，主Goroutine也创建好之后，就是启动调度器调度我们的主Goroutine开始运行了，在我们的Go程序引导启动的最后一步有如下的过程，其中 `mstart` 就是启动调度的入口：
+
+```
+// src/runtime/asm_arm64.s
+
+TEXT runtime·rt0_go(SB),NOSPLIT|TOPFRAME,$0
+    ....
+
+    // create a new goroutine to start program
+	MOVQ	$runtime·mainPC(SB), AX		// entry
+	PUSHQ	AX
+	PUSHQ	$0			// arg size
+	CALL	runtime·newproc(SB)
+	POPQ	AX
+	POPQ	AX
+
+    // start this M
+	CALL	runtime·mstart(SB)
+
+	CALL	runtime·abort(SB)	// mstart should never return
+	RET
+
+	// Prevent dead-code elimination of debugCallV2, which is
+	// intended to be called by debuggers.
+	MOVQ	$runtime·debugCallV2<ABIInternal>(SB), AX
+	RET
+
+TEXT runtime·mstart(SB),NOSPLIT|TOPFRAME,$0
+	CALL	runtime·mstart0(SB)
+	RET // not reached
+
+// mainPC is a function value for runtime.main, to be passed to newproc.
+// The reference to runtime.main is made via ABIInternal, since the
+// actual function (not the ABI0 wrapper) is needed by newproc.
+DATA	runtime·mainPC+0(SB)/8,$runtime·main<ABIInternal>(SB)
+GLOBL	runtime·mainPC(SB),RODATA,$8
+```
+
+`mstart` 是新创建的M的入口，由汇编完成。
+
+```go
+// mstart is the entry-point for new Ms.
+// It is written in assembly, uses ABI0, is marked TOPFRAME, and calls mstart0.
+func mstart()
+```
+
+从汇编代码中可以看到，`mstart` 仅仅调用了 `mstart0`，它不会返回。
+
+
 
 
 ### 参考链接
