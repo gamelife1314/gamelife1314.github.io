@@ -1410,10 +1410,552 @@ GLOBL	runtime·mainPC(SB),RODATA,$8
 func mstart()
 ```
 
-从汇编代码中可以看到，`mstart` 仅仅调用了 `mstart0`，它不会返回。
+从汇编代码中可以看到，`mstart` 仅仅调用了 `mstart0`，而且它不会返回。
 
+```go
+// src/runtime/proc.go
+// mstart0 is the Go entry-point for new Ms.
+// This must not split the stack because we may not even have stack
+// bounds set up yet.
+//
+// May run during STW (because it doesn't have a P yet), so write
+// barriers are not allowed.
+//
+//go:nosplit
+//go:nowritebarrierrec
+func mstart0() {
+  _g_ := getg()
 
+  // 确定执行栈的边界，通过检查G执行栈的边界确定是否为系统栈
+  osStack := _g_.stack.lo == 0
+  if osStack {
+    // Initialize stack bounds from system stack.
+    // Cgo may have left stack size in stack.hi.
+    // minit may update the stack bounds.
+    //
+    // Note: these bounds may not be very accurate.
+    // We set hi to &size, but there are things above
+    // it. The 1024 is supposed to compensate this,
+    // but is somewhat arbitrary.
+    size := _g_.stack.hi
+    if size == 0 {
+      size = 8192 * sys.StackGuardMultiplier
+    }
+    _g_.stack.hi = uintptr(noescape(unsafe.Pointer(&size)))
+    _g_.stack.lo = _g_.stack.hi - size + 1024
+  }
+  // Initialize stack guard so that we can start calling regular
+  // Go code.
+  _g_.stackguard0 = _g_.stack.lo + _StackGuard
+  // This is the g0, so we can also call go:systemstack
+  // functions, which check stackguard1.
+  _g_.stackguard1 = _g_.stackguard0
+  mstart1()
 
+  // Exit this thread.
+  if mStackIsSystemAllocated() {
+    // Windows, Solaris, illumos, Darwin, AIX and Plan 9 always system-allocate
+    // the stack, but put it in _g_.stack before mstart,
+    // so the logic above hasn't set osStack yet.
+    osStack = true
+  }
+  mexit(osStack)
+}
+```
+
+继续看 `mstart1` 函数：
+
+```go
+// The go:noinline is to guarantee the getcallerpc/getcallersp below are safe,
+// so that we can set up g0.sched to return to the call of mstart1 above.
+//go:noinline
+func mstart1() {
+  _g_ := getg()
+
+  // 确定当前的G是g0
+  if _g_ != _g_.m.g0 {
+    throw("bad runtime·mstart")
+  }
+
+  // Set up m.g0.sched as a label returning to just
+  // after the mstart1 call in mstart0 above, for use by goexit0 and mcall.
+  // We're never coming back to mstart1 after we call schedule,
+  // so other calls can reuse the current frame.
+  // And goexit0 does a gogo that needs to return from mstart1
+  // and let mstart0 exit the thread.
+  // 将 m.g0.sched 设置为在上面 mstart0 中的 mstart1 调用之后返回的标签，
+  // 供 goexit0 和 mcall 使用。在调用 schedule 之后，我们永远不会回到 mstart1，
+  // 因此其他调用可以重用当前帧。而goexit0做了一个gogo，需要从mstart1返回，让mstart0退出线程。
+  _g_.sched.g = guintptr(unsafe.Pointer(_g_))
+  _g_.sched.pc = getcallerpc()
+  _g_.sched.sp = getcallersp()
+
+  asminit()
+  minit()
+
+  // Install signal handlers; after minit so that minit can
+  // prepare the thread to be able to handle the signals.
+  // 如果是 m0，设置信号处理器，
+  if _g_.m == &m0 {
+    mstartm0()
+  }
+
+  // 执行启动函数
+  if fn := _g_.m.mstartfn; fn != nil {
+    fn()
+  }
+
+  // 如果当前 m 并非 m0，则要求绑定 p
+  if _g_.m != &m0 {
+    acquirep(_g_.m.nextp.ptr())
+    _g_.m.nextp = 0
+  }
+
+  schedule()
+}
+```
+
+##### M 和 P 的绑定
+
+`M` 与 `P` 的绑定过程只是简单的将 `P` 链表中的 `P` ，保存到 `M` 中的 `P` 指针上。 绑定前，`P` 的状态一定是 `_Pidle`，绑定后 `P` 的状态一定为 `_Prunning`，具体实现是在 `acquirep` 中处理：
+
+```go
+// src/runtime/proc.go
+
+// Associate p and the current m.
+//
+// This function is allowed to have write barriers even if the caller
+// isn't because it immediately acquires _p_.
+//
+//go:yeswritebarrierrec
+func acquirep(_p_ *p) {
+  // Do the part that isn't allowed to have write barriers.
+  wirep(_p_)
+
+  // Have p; write barriers now allowed.
+
+  // Perform deferred mcache flush before this P can allocate
+  // from a potentially stale mcache.
+  _p_.mcache.prepareForSweep()
+
+  if trace.enabled {
+    traceProcStart()
+  }
+}
+
+// wirep is the first step of acquirep, which actually associates the
+// current M to _p_. This is broken out so we can disallow write
+// barriers for this part, since we don't yet have a P.
+//
+//go:nowritebarrierrec
+//go:nosplit
+func wirep(_p_ *p) {
+  _g_ := getg()
+
+  // 检查m是否已经绑定p
+  if _g_.m.p != 0 {
+    throw("wirep: already in go")
+  }
+
+  // 检查p是否已经绑定M或者P的状态不是_Pidle
+  if _p_.m != 0 || _p_.status != _Pidle {
+    id := int64(0)
+    if _p_.m != 0 {
+      id = _p_.m.ptr().id
+    }
+    print("wirep: p->m=", _p_.m, "(", id, ") p->status=", _p_.status, "\n")
+    throw("wirep: invalid p state")
+  }
+
+  // 绑定关系，并且更新P的状态
+  _g_.m.p.set(_p_)
+  _p_.m.set(_g_.m)
+  _p_.status = _Prunning
+}
+```
+
+##### M 的暂止和复始
+
+`M` 是系统线程的抽象，它只有两种状态：`park` 和 `unpark`。无论出于什么原因，当 `M` 需要被暂止时，会调用 `stopm` 将 `M` 进行暂止，并阻塞到它被复始时，这一过程就是工作线程的暂止和复始。它的流程也非常简单，将 `M` 放回至空闲列表中，而后使用 `note` 注册一个暂止通知， 阻塞到它重新被复始。
+
+```go
+// Stops execution of the current m until new work is available.
+// Returns with acquired P.
+func stopm() {
+  _g_ := getg()
+
+  if _g_.m.locks != 0 {
+    throw("stopm holding locks")
+  }
+  if _g_.m.p != 0 {
+    throw("stopm holding p")
+  }
+  if _g_.m.spinning {
+    throw("stopm spinning")
+  }
+
+  lock(&sched.lock)
+  
+  // 将 m 放回到 空闲列表中，因为我们马上就要暂止了
+  mput(_g_.m)
+  unlock(&sched.lock)
+  mPark()
+
+  // 此时已经被复始，说明有任务要执行
+  // 立即 acquire P
+  acquirep(_g_.m.nextp.ptr())
+  _g_.m.nextp = 0
+}
+
+// mPark causes a thread to park itself - temporarily waking for
+// fixups but otherwise waiting to be fully woken. This is the
+// only way that m's should park themselves.
+//go:nosplit
+func mPark() {
+  g := getg()
+  for {
+    // 暂止当前的 M，在此阻塞，直到被唤醒
+    notesleep(&g.m.park)
+
+    // Note, because of signal handling by this parked m,
+    // a preemptive mDoFixup() may actually occur via
+    // mDoFixupAndOSYield(). (See golang.org/issue/44193)
+    noteclear(&g.m.park)
+    if !mDoFixup() {
+      return
+    }
+  }
+}
+
+```
+
+##### 核心调度
+
+核心调度是在 `shedule` 函数中进行的，目的就是找到一个可运行的G去运行。
+
+```go
+// One round of scheduler: find a runnable goroutine and execute it.
+// Never returns.
+func schedule() {
+  _g_ := getg()
+
+  if _g_.m.locks != 0 {
+    throw("schedule: holding locks")
+  }
+
+  // m.lockedg 会在 LockOSThread 下变为非零
+  if _g_.m.lockedg != 0 {
+    stoplockedm()
+    execute(_g_.m.lockedg.ptr(), false) // Never returns.
+  }
+
+  // 我们不应该将正在执行cgo调用的g给调度走，因为cgo调用是在m的g0栈上
+  if _g_.m.incgo {
+    throw("schedule: in cgo")
+  }
+
+top:
+  pp := _g_.m.p.ptr()
+  pp.preempt = false
+
+  // 如果需要 GC，不再进行调度
+  if sched.gcwaiting != 0 {
+    gcstopm()
+    goto top
+  }
+
+  if pp.runSafePointFn != 0 {
+    runSafePointFn()
+  }
+
+  // Sanity check: if we are spinning, the run queue should be empty.
+  // Check this before calling checkTimers, as that might call
+  // goready to put a ready goroutine on the local run queue.
+  if _g_.m.spinning && (pp.runnext != 0 || pp.runqhead != pp.runqtail) {
+    throw("schedule: spinning with local work")
+  }
+
+  checkTimers(pp, 0)
+
+  var gp *g
+  var inheritTime bool
+
+  // Normal goroutines will check for need to wakeP in ready,
+  // but GCworkers and tracereaders will not, so the check must
+  // be done here instead.
+  tryWakeP := false
+  if trace.enabled || trace.shutdown {
+    gp = traceReader()
+    if gp != nil {
+      casgstatus(gp, _Gwaiting, _Grunnable)
+      traceGoUnpark(gp, 0)
+      tryWakeP = true
+    }
+  }
+
+  // 如果正在GC，那就去找GC的g
+  if gp == nil && gcBlackenEnabled != 0 {
+    gp = gcController.findRunnableGCWorker(_g_.m.p.ptr())
+    if gp != nil {
+      tryWakeP = true
+    }
+  }
+
+  if gp == nil {
+    // Check the global runnable queue once in a while to ensure fairness.
+    // Otherwise two goroutines can completely occupy the local runqueue
+    // by constantly respawning each other.
+    // 每调度P上的G61次，就去全局队列找一找
+    if _g_.m.p.ptr().schedtick%61 == 0 && sched.runqsize > 0 {
+      lock(&sched.lock)
+      gp = globrunqget(_g_.m.p.ptr(), 1)
+      unlock(&sched.lock)
+    }
+  }
+
+  // 从当前P的 runnext 或者 runq 中查找
+  if gp == nil {
+    gp, inheritTime = runqget(_g_.m.p.ptr())
+    // We can see gp != nil here even if the M is spinning,
+    // if checkTimers added a local goroutine via goready.
+  }
+
+  // 从其他P中偷取
+  if gp == nil {
+    // findrunnable 挺长的，主要实现是从其他P偷取，查看 netpool 或者全局队列
+    // 如果都找不到那么会调用 stopm 函数进行休眠，指导找到一个可运行的G
+    gp, inheritTime = findrunnable() // blocks until work is available
+  }
+
+  // 找到G了
+
+  // This thread is going to run a goroutine and is not spinning anymore,
+  // so if it was marked as spinning we need to reset it now and potentially
+  // start a new spinning M.
+  // 这个线程将去运行一个G，所以它不能再自旋了，所以如果它是自旋状态我们需要重置。
+  // 并且在这中间可能创建新的M。
+  if _g_.m.spinning {
+    resetspinning()
+  }
+
+  if sched.disable.user && !schedEnabled(gp) {
+    // Scheduling of this goroutine is disabled. Put it on
+    // the list of pending runnable goroutines for when we
+    // re-enable user scheduling and look again.
+    lock(&sched.lock)
+    if schedEnabled(gp) {
+      // Something re-enabled scheduling while we
+      // were acquiring the lock.
+      unlock(&sched.lock)
+    } else {
+      sched.disable.runnable.pushBack(gp)
+      sched.disable.n++
+      unlock(&sched.lock)
+      goto top
+    }
+  }
+
+  // If about to schedule a not-normal goroutine (a GCworker or tracereader),
+  // wake a P if there is one.
+  if tryWakeP {
+    wakep()
+  }
+  if gp.lockedm != 0 {
+    // 如果 g 需要 lock 到 m 上，则会将当前的 p， 给这个要 lock 的 g
+	// 然后阻塞等待一个新的 p
+    startlockedm(gp)
+    goto top
+  }
+
+  // 开始执行
+  execute(gp, inheritTime)
+}
+```
+
+我们接着看 `execute` 函数：
+
+```go
+// Schedules gp to run on the current M.
+// If inheritTime is true, gp inherits the remaining time in the
+// current time slice. Otherwise, it starts a new time slice.
+// Never returns.
+//
+// Write barriers are allowed because this is called immediately after
+// acquiring a P in several places.
+//
+//go:yeswritebarrierrec
+func execute(gp *g, inheritTime bool) {
+  _g_ := getg()
+
+  // 将 g 正式切换为 _Grunning 状态
+  _g_.m.curg = gp
+  gp.m = _g_.m
+  casgstatus(gp, _Grunnable, _Grunning)
+  gp.waitsince = 0
+  gp.preempt = false
+  gp.stackguard0 = gp.stack.lo + _StackGuard
+
+  // 如果 inheritTime 为 true，则 gp 继承剩余的时间片。否则从一个新的时间片开始
+  if !inheritTime {
+    _g_.m.p.ptr().schedtick++
+  }
+
+  // profiling 相关
+  hz := sched.profilehz
+  if _g_.m.profilehz != hz {
+    setThreadCPUProfiler(hz)
+  }
+
+  if trace.enabled {
+    // GoSysExit has to happen when we have a P, but before GoStart.
+    // So we emit it here.
+    if gp.syscallsp != 0 && gp.sysblocktraced {
+      traceGoSysExit(gp.sysexitticks)
+    }
+    traceGoStart()
+  }
+
+  // 设置了一些必要的东西之后开始执行了
+  gogo(&gp.sched)
+}
+```
+
+当开始执行 `execute` 后，`g` 会被切换到 `_Grunning` 状态。 设置自身的抢占信号，将 `m` 和 `g` 进行绑定。 最终调用 `gogo` 开始执行，`gogo` 使用汇编实现：
+
+```asm
+// func gogo(buf *gobuf)
+// restore state from Gobuf; longjmp
+TEXT runtime·gogo(SB), NOSPLIT, $0-8
+	MOVQ	buf+0(FP), BX		/// 运行现场
+	MOVQ	gobuf_g(BX), DX
+	MOVQ	0(DX), CX		// 确认 g != nil
+	JMP	gogo<>(SB)
+
+TEXT gogo<>(SB), NOSPLIT, $0
+	get_tls(CX)
+	MOVQ	DX, g(CX)
+	MOVQ	DX, R14		// set the g register
+	MOVQ	gobuf_sp(BX), SP	// 恢复 SP
+	MOVQ	gobuf_ret(BX), AX
+	MOVQ	gobuf_ctxt(BX), DX
+	MOVQ	gobuf_bp(BX), BP
+	MOVQ	$0, gobuf_sp(BX)	// 清理，辅助 GC
+	MOVQ	$0, gobuf_ret(BX)
+	MOVQ	$0, gobuf_ctxt(BX)
+	MOVQ	$0, gobuf_bp(BX)
+	MOVQ	gobuf_pc(BX), BX  // 获取 g 要执行的函数的入口地址
+	JMP	BX
+```
+
+使用 `JMP BX` 指令执行G（里面的过程着实有点复杂），在执行结束之后会调用 `runtime.goexit` 函数进行运行现场的清理：
+
+```
+// The top-most function running on a goroutine
+// returns to goexit+PCQuantum.
+TEXT runtime·goexit(SB),NOSPLIT|NOFRAME|TOPFRAME,$0-0
+	MOVD	R0, R0	// NOP
+	BL	runtime·goexit1(SB)	// does not return
+```
+
+```go
+// mcall switches from the g to the g0 stack and invokes fn(g),
+// where g is the goroutine that made the call.
+// mcall saves g's current PC/SP in g->sched so that it can be restored later.
+// It is up to fn to arrange for that later execution, typically by recording
+// g in a data structure, causing something to call ready(g) later.
+// mcall returns to the original goroutine g later, when g has been rescheduled.
+// fn must not return at all; typically it ends by calling schedule, to let the m
+// run other goroutines.
+//
+// mcall can only be called from g stacks (not g0, not gsignal).
+//
+// This must NOT be go:noescape: if fn is a stack-allocated closure,
+// fn puts g on a run queue, and g executes before fn returns, the
+// closure will be invalidated while it is still executing.
+func mcall(fn func(*g))
+
+// Finishes execution of the current goroutine.
+func goexit1() {
+  if raceenabled {
+    racegoend()
+  }
+  if trace.enabled {
+    traceGoEnd()
+  }
+  // 切换到 m->g0 栈, 并调用 fn(g).
+  // 通过 mcall 完成 goexit0 的调用
+  mcall(goexit0)
+}
+
+// goexit continuation on g0.
+func goexit0(gp *g) {
+  _g_ := getg()
+
+  // // 切换当前的 g 为 _Gdead
+  casgstatus(gp, _Grunning, _Gdead)
+  if isSystemGoroutine(gp, false) {
+    atomic.Xadd(&sched.ngsys, -1)
+  }
+
+  // 清理
+  gp.m = nil
+  locked := gp.lockedm != 0
+  gp.lockedm = 0
+  _g_.m.lockedg = 0
+  gp.preemptStop = false
+  gp.paniconfault = false
+  gp._defer = nil // 应该已经为 true，但以防万一
+  gp._panic = nil // Goexit 中 panic 则不为 nil， 指向栈分配的数据
+  gp.writebuf = nil
+  gp.waitreason = 0
+  gp.param = nil
+  gp.labels = nil
+  gp.timer = nil
+
+  if gcBlackenEnabled != 0 && gp.gcAssistBytes > 0 {
+    // 刷新 assist credit 到全局池。
+	// 如果应用在快速创建 Goroutine，这可以为 pacing 提供更好的信息。
+    assistWorkPerByte := float64frombits(atomic.Load64(&gcController.assistWorkPerByte))
+    scanCredit := int64(assistWorkPerByte * float64(gp.gcAssistBytes))
+    atomic.Xaddint64(&gcController.bgScanCredit, scanCredit)
+    gp.gcAssistBytes = 0
+  }
+
+  // 解绑 m 和 g
+  dropg()
+
+  if GOARCH == "wasm" { // no threads yet on wasm
+    gfput(_g_.m.p.ptr(), gp)
+    schedule() // never returns
+  }
+
+  if _g_.m.lockedInt != 0 {
+    print("invalid m->lockedInt = ", _g_.m.lockedInt, "\n")
+    throw("internal lockOSThread error")
+  }
+
+  // // 将 g 扔进 gfree 链表中等待复用
+  gfput(_g_.m.p.ptr(), gp)
+  if locked {
+    // The goroutine may have locked this thread because
+    // it put it in an unusual kernel state. Kill it
+    // rather than returning it to the thread pool.
+
+    // Return to mstart, which will release the P and exit
+    // the thread.
+    if GOOS != "plan9" { // See golang.org/issue/22227.
+      gogo(&_g_.m.g0.sched)
+    } else {
+      // Clear lockedExt on plan9 since we may end up re-using
+      // this thread.
+      _g_.m.lockedExt = 0
+    }
+  }
+  
+  // 再次进行调度
+  schedule()
+}
+```
 
 ### 参考链接
 
