@@ -2669,7 +2669,7 @@ func setGNoWB(gp **g, new *g) {
 
 整个调度器循环可以以下面的一张图来描述：
 
-![](schedule-cycle.png)
+![](调度循环.png)
 
 ### 参考链接
 
