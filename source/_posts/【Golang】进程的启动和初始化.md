@@ -2671,6 +2671,195 @@ func setGNoWB(gp **g, new *g) {
 
 ![](调度循环.jpg)
 
+
+#### 系统监控
+
+在创建主goroutine的时候，也在系统栈上启动了 `sysmon`，是时候了解下它的作用了：
+
+```go
+func main() {
+    ....
+    if GOARCH != "wasm" { // no threads on wasm yet, so no sysmon
+        // For runtime_syscall_doAllThreadsSyscall, we
+        // register sysmon is not ready for the world to be
+        // stopped.
+        atomic.Store(&sched.sysmonStarting, 1)
+        systemstack(func() {
+        newm(sysmon, nil, -1)
+        })
+    }
+    ....
+}
+```
+
+系统监控在独立的 `M` 上运行，不需要 `P`，所以不能出现写屏障：
+
+```go
+// Always runs without a P, so write barriers are not allowed.
+//
+//go:nowritebarrierrec
+func sysmon() {
+  lock(&sched.lock)
+  sched.nmsys++
+  checkdead()
+  unlock(&sched.lock)
+
+  // For syscall_runtime_doAllThreadsSyscall, sysmon is
+  // sufficiently up to participate in fixups.
+  atomic.Store(&sched.sysmonStarting, 0)
+
+  lasttrace := int64(0)
+  idle := 0 // how many cycles in succession we had not wokeup somebody
+  delay := uint32(0)
+
+  for {
+    if idle == 0 { // 每次启动先休眠 20us
+      delay = 20
+    } else if idle > 50 { // 1ms 后就翻倍休眠时间
+      delay *= 2
+    }
+    if delay > 10*1000 { // 最大10ms
+      delay = 10 * 1000
+    }
+    usleep(delay)
+    mDoFixup()
+
+    // 如果启用了 schedtrace，sysmon 不应进入深度睡眠，以便它可以在正确的时间打印该信息。
+    //
+    // 如果有任何活动的 P，它也不应该进入深度睡眠，这样它就可以从系统调用中重新获取 P，
+    // 抢占长时间运行的 G，并在所有 P 长时间忙碌时轮询网络。
+    //
+    // 如果某个P由于退出系统调用或者定时器到期而重新被激活，那么sysmon应该从深度睡眠中唤醒，
+    // 以便它可以继续干自己的活。
+    now := nanotime()
+    if debug.schedtrace <= 0 && (sched.gcwaiting != 0 || atomic.Load(&sched.npidle) == uint32(gomaxprocs)) {
+      lock(&sched.lock)
+      if atomic.Load(&sched.gcwaiting) != 0 || atomic.Load(&sched.npidle) == uint32(gomaxprocs) {
+        syscallWake := false
+        next, _ := timeSleepUntil()
+        if next > now {
+          atomic.Store(&sched.sysmonwait, 1)
+          unlock(&sched.lock)
+          // Make wake-up period small enough
+          // for the sampling to be correct.
+          sleep := forcegcperiod / 2
+          if next-now < sleep {
+            sleep = next - now
+          }
+          shouldRelax := sleep >= osRelaxMinNS
+          if shouldRelax {
+            osRelax(true)
+          }
+          syscallWake = notetsleep(&sched.sysmonnote, sleep)
+          mDoFixup()
+          if shouldRelax {
+            osRelax(false)
+          }
+          lock(&sched.lock)
+          atomic.Store(&sched.sysmonwait, 0)
+          noteclear(&sched.sysmonnote)
+        }
+        if syscallWake {
+          idle = 0
+          delay = 20
+        }
+      }
+      unlock(&sched.lock)
+    }
+
+    lock(&sched.sysmonlock)
+    // Update now in case we blocked on sysmonnote or spent a long time
+    // blocked on schedlock or sysmonlock above.
+    now = nanotime()
+
+    // trigger libc interceptors if needed
+    if *cgo_yield != nil {
+      asmcgocall(*cgo_yield, nil)
+    }
+
+    // 如果超过 10ms 没有 poll，则 poll 一下网络
+    lastpoll := int64(atomic.Load64(&sched.lastpoll))
+    if netpollinited() && lastpoll != 0 && lastpoll+10*1000*1000 < now {
+      atomic.Cas64(&sched.lastpoll, uint64(lastpoll), uint64(now))
+      list := netpoll(0) // non-blocking - returns list of goroutines
+      if !list.empty() {
+        // 需要在插入 g 列表前减少空闲锁住的 m 的数量（假装有一个正在运行）
+		// 否则会导致这些情况：
+		// injectglist 会绑定所有的 p，但是在它开始 M 运行 P 之前，另一个 M 从 syscall 返回，
+		// 完成运行它的 G ，注意这时候没有 work 要做，且没有其他正在运行 M 的死锁报告。
+        incidlelocked(-1)
+        injectglist(&list)
+        incidlelocked(1)
+      }
+    }
+    mDoFixup()
+    if GOOS == "netbsd" {
+      // netpoll is responsible for waiting for timer
+      // expiration, so we typically don't have to worry
+      // about starting an M to service timers. (Note that
+      // sleep for timeSleepUntil above simply ensures sysmon
+      // starts running again when that timer expiration may
+      // cause Go code to run again).
+      //
+      // However, netbsd has a kernel bug that sometimes
+      // misses netpollBreak wake-ups, which can lead to
+      // unbounded delays servicing timers. If we detect this
+      // overrun, then startm to get something to handle the
+      // timer.
+      //
+      // See issue 42515 and
+      // https://gnats.netbsd.org/cgi-bin/query-pr-single.pl?number=50094.
+      if next, _ := timeSleepUntil(); next < now {
+        startm(nil, false)
+      }
+    }
+
+    if atomic.Load(&scavenge.sysmonWake) != 0 {
+      // Kick the scavenger awake if someone requested it.
+      wakeScavenger()
+    }
+
+    // 抢占在 syscall 中阻塞的 P、运行时间过长的 G
+    if retake(now) != 0 {
+      idle = 0
+    } else {
+      idle++
+    }
+
+    // 检查是否需要强制触发 GC
+    if t := (gcTrigger{kind: gcTriggerTime, now: now}); t.test() && atomic.Load(&forcegc.idle) != 0 {
+      lock(&forcegc.lock)
+      forcegc.idle = 0
+      var list gList
+      list.push(forcegc.g)
+      injectglist(&list)
+      unlock(&forcegc.lock)
+    }
+    if debug.schedtrace > 0 && lasttrace+int64(debug.schedtrace)*1000000 <= now {
+      lasttrace = now
+      schedtrace(debug.scheddetail > 0)
+    }
+    unlock(&sched.sysmonlock)
+  }
+}
+```
+
+系统监控在运行时扮演的角色无需多言， 因为使用的是运行时通知机制，在 Linux 上由 `Futex` 实现，不依赖调度器， 因此它自身通过 `newm` 在一个 `M` 上独立运行， 自身永远保持在一个循环内直到应用结束。休眠有好几种不同的休眠策略：
+
+- 至少休眠 `20us`
+- 如果抢占 `P` 和 `G` 失败次数超过50、且没有触发 GC，则说明很闲，翻倍休眠
+- 如果休眠翻倍时间超过 `10ms`，保持休眠 `10ms` 不变
+- 休眠结束后，先观察目前的系统状态，如果正在进行 GC，那么继续休眠。 这时的休眠会被设置超时。
+
+如果没有超时被唤醒，则说明 `GC` 已经结束，一切都很好，继续做本职工作。 如果超时，则无关 `GC`，必须开始进行本职善后：
+
+- 如果 `cgo` 调用被 `libc` 拦截，继续触发起调用
+- 如果已经有 `10ms` 没有 `poll` 网络数据，则 `poll` 一下网络数据
+- 抢占在系统调用中阻塞的 `P` 已经运行时间过长的 `G`
+- 检查是不是该触发 `GC` 了
+- 如果距离上一次堆清理已经超过了两分半，则执行清理工作
+
+
 ### 参考链接
 
 1. [GDB 命令帮助文档](https://visualgdb.com/gdbreference/commands/)
