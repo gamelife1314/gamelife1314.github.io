@@ -2859,6 +2859,133 @@ func sysmon() {
 - 检查是不是该触发 `GC` 了
 - 如果距离上一次堆清理已经超过了两分半，则执行清理工作
 
+#### 线程管理
+
+Go语言编程中，用户基本上不会涉及到线程的管理，都是由调度系统完成的，但仍然有一些与线程管理相关的接口。
+
+##### LockOSThread
+
+该方法在 runtime 包中分别提供了私有和公开方法，私有的方法整个运行时只有在 `runtime.main` 调用 `main.init` 、和 `cgo` 的 `C` 调用 `Go` 时候才会使用， 其中 `main.init` 其实也是为了 `cgo` 里 `Go` 调用某些 `C` 图形库时需要主线程支持才使用的。而用户态的公开方法则不同，还额外增加了一个模板线程的处理。
+
+{% tabs LockOSThread %}
+
+<!-- tab 私有方法 -->
+
+```go
+//go:nosplit
+func lockOSThread() {
+  getg().m.lockedInt++
+  dolockOSThread()
+}
+```
+<!-- endtab -->
+
+<!-- tab 公有方法 -->
+```go
+// LockOSThread wires the calling goroutine to its current operating system thread.
+// The calling goroutine will always execute in that thread,
+// and no other goroutine will execute in it,
+// until the calling goroutine has made as many calls to
+// UnlockOSThread as to LockOSThread.
+// If the calling goroutine exits without unlocking the thread,
+// the thread will be terminated.
+//
+// All init functions are run on the startup thread. Calling LockOSThread
+// from an init function will cause the main function to be invoked on
+// that thread.
+//
+// A goroutine should call LockOSThread before calling OS services or
+// non-Go library functions that depend on per-thread state.
+func LockOSThread() {
+  if atomic.Load(&newmHandoff.haveTemplateThread) == 0 && GOOS != "plan9" {
+    // 如果我们需要从锁定的线程启动一个新线程，我们需要模板线程。
+    // 当我们处于一个已知良好的状态时，立即启动它。
+    startTemplateThread()
+  }
+  _g_ := getg()
+  _g_.m.lockedExt++
+  if _g_.m.lockedExt == 0 {
+    _g_.m.lockedExt--
+    panic("LockOSThread nesting overflow")
+  }
+  dolockOSThread()
+}
+```
+<!-- endtab -->
+
+<!-- tab dolockOSThread -->
+
+```go
+// dolockOSThread 在修改 m.locked 后由 LockOSThread 和 lockOSThread 调用。
+// 在此调用期间不允许抢占，否则此函数中的 m 可能与调用者中的 m 不同。
+//go:nosplit
+func dolockOSThread() {
+  if GOARCH == "wasm" {
+    return // no threads on wasm yet
+  }
+  _g_ := getg()
+  _g_.m.lockedg.set(_g_)
+  _g_.lockedm.set(_g_.m)
+}
+```
+<!-- endtab -->
+
+{% endtabs %}
+
+##### UnlockOSThread
+
+Unlock 的部分非常简单，减少计数，再实际 dounlock：
+
+```go
+func unlockOSThread() {
+  _g_ := getg()
+  if _g_.m.lockedInt == 0 {
+    systemstack(badunlockosthread)
+  }
+  _g_.m.lockedInt--
+  dounlockOSThread()
+}
+
+// UnlockOSThread undoes an earlier call to LockOSThread.
+// If this drops the number of active LockOSThread calls on the
+// calling goroutine to zero, it unwires the calling goroutine from
+// its fixed operating system thread.
+// If there are no active LockOSThread calls, this is a no-op.
+//
+// Before calling UnlockOSThread, the caller must ensure that the OS
+// thread is suitable for running other goroutines. If the caller made
+// any permanent changes to the state of the thread that would affect
+// other goroutines, it should not call this function and thus leave
+// the goroutine locked to the OS thread until the goroutine (and
+// hence the thread) exits.
+func UnlockOSThread() {
+  _g_ := getg()
+  if _g_.m.lockedExt == 0 {
+    return
+  }
+  _g_.m.lockedExt--
+  dounlockOSThread()
+}
+```
+
+`dounlockOSThread` 只是简单的将 `lockedg` 和 `lockedm` 两个字段清零：
+
+```go
+// dounlockOSThread 在更新 m->locked 后由 UnlockOSThread 和 unlockOSThread 调用。
+// 在此调用期间不允许抢占，否则此函数中的 m 可能与调用者中的 m 不同。
+//go:nosplit
+func dounlockOSThread() {
+	if GOARCH == "wasm" {
+		return // no threads on wasm yet
+	}
+	_g_ := getg()
+	if _g_.m.lockedInt != 0 || _g_.m.lockedExt != 0 {
+		return
+	}
+	_g_.m.lockedg = 0
+	_g_.lockedm = 0
+}
+```
 
 ### 参考链接
 
