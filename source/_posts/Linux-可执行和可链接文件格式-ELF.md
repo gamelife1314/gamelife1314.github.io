@@ -77,20 +77,20 @@ typedef struct {
 
 上述结构体中各个字段的含义如下所示：
 
-- ` e_ident`：包含一个magic number、ABI信息，该文件使用的平台、大小端规则
-- `e_type`： 文件类型, 表示该文件属于可执行文件、可重定位文件、core dump文件或者共享库
+- `e_ident`：  包含一个 `magic number`、`ABI`信息，该文件使用的平台、大小端规则
+- `e_type`：   文件类型, 表示该文件属于可执行文件、可重定位文件、core dump文件或者共享库
 - `e_machine`：机器类型
 - `e_version`：通常都是1
-- `e_entry`： 表示程序执行的入口地址
-- `e_phoff`： 表示Program Header的入口偏移量（以字节为单位）
-- `e_shoff`：表示Section Header的入口偏移量（以字节为单位）
-- `e_flags`： 保存了这个ELF文件相关的特定处理器的flag
-- `e_ehsize`： 表示ELF Header大小（以字节为单位）
-- `e_phentsize`： 表示Program Header大小（以字节为单位）
-- `e_phnum`： 表示Program Header的数量 （十进制数字）
-- `e_shentsize`：表示Section Header大小（以字节为单位）
-- `e_shnum`： 表示Section Header的数量 （十进制数字）
-- `e_shstrndx`： 表示字符串表的索引，字符串表用来保存ELF文件中的字符串，比如段名、变量名。 然后通过字符串在表中的偏移访问字符串。
+- `e_entry`：  表示程序执行的入口地址
+- `e_phoff`：  表示`Program Header`的入口偏移量（以字节为单位）
+- `e_shoff`：  表示`Section Header`的入口偏移量（以字节为单位）
+- `e_flags`：  保存了这个`ELF`文件相关的特定处理器的`flag`
+- `e_ehsize`： 表示`ELF Header`大小（以字节为单位）
+- `e_phentsize`： 表示`Program Header`大小（以字节为单位）
+- `e_phnum`：     表示`Program Header`的数量 （十进制数字）
+- `e_shentsize`： 表示`Section Header`大小（以字节为单位）
+- `e_shnum`：     表示`Section Header`的数量 （十进制数字）
+- `e_shstrndx`：  表示字符串表的索引，字符串表用来保存`ELF`文件中的字符串，比如段名、变量名。 然后通过字符串在表中的偏移访问字符串。
 
 
 ### Section
@@ -139,16 +139,16 @@ typedef struct {
 
 其中各成员的意义如下：
 
-- `sh_name`：表示该section的名字相对于.shstrtab section的地址偏移量。
-- `sh_type`：表示该section中存放的内容类型，比如符号表，可重定位段等。
-- `sh_flags`： 表示该section的一些属性，比如是否可写，可执行等。
-- `sh_addr`：表示该section在程序运行时的内存地址
-- `sh_offset`： 表示该section相对于ELF文件起始地址的偏移量
-- `sh_size`： 表示该section的大小
-- `sh_link`：配合sh_info保存section的额外信息
-- `sh_info`：保存该section相关的一些额外信息
-- `sh_addralign`：表示该section需要的地址对齐信息
-- `sh_entsize`：有些section里保存的是一些固定长度的条目，比如符号表。对于这些section来讲，sh_entsize里保存的就是条目的长度。
+- `sh_name`：  表示该`section`的名字相对于`.shstrtab section`的地址偏移量。
+- `sh_type`：  表示该`section`中存放的内容类型，比如符号表，可重定位段等。
+- `sh_flags`： 表示该`section`的一些属性，比如是否可写，可执行等。
+- `sh_addr`：  表示该`section`在程序运行时的内存地址
+- `sh_offset`： 表示该`section`相对于ELF文件起始地址的偏移量
+- `sh_size`：   表示该`section`的大小
+- `sh_link`：   配合`sh_info`保存`section`的额外信息
+- `sh_info`：   保存该`section`相关的一些额外信息
+- `sh_addralign`：表示该`section`需要的地址对齐信息
+- `sh_entsize`：  有些`section`里保存的是一些固定长度的条目，比如符号表。对于这些`section`来讲，`sh_entsize`里保存的就是条目的长度。
 
 
 ### Program Header Table
@@ -177,15 +177,238 @@ typedef struct {
 
 各个字段的具体含义如下：
 
-- `p_type`：描述了当前segment是何种类型的或者如何解释当前segment，比如是动态链接相关的或者可加载类型的等
-- `p_flags`：保存了该segment的flag
-- `p_offset`：表示从ELF文件到该segment第一个字节的偏移量
-- `p_vaddr`：表示该segment的第一个字节在内存中的虚拟地址
-- `p_paddr`：对于使用物理地址的系统来讲，这个成员表示该segment的物理地址
-- `p_filesz`：表示该segment的大小，以字节表示
-- `p_memsz`：表示该segment在内存中的大小，以字节表示
-- `p_align`：表示该segment在文件中或者内存中需要以多少字节对齐
+- `p_type`：  描述了当前`segment`是何种类型的或者如何解释当前`segment`，比如是动态链接相关的或者可加载类型的等
+- `p_flags`： 保存了该`segment`的flag
+- `p_offset`：表示从`ELF`文件到该`segment`第一个字节的偏移量
+- `p_vaddr`： 表示该`segment`的第一个字节在内存中的虚拟地址
+- `p_paddr`： 对于使用物理地址的系统来讲，这个成员表示该`segment`的物理地址
+- `p_filesz`：表示该`segment`的大小，以字节表示
+- `p_memsz`： 表示该`segment`在内存中的大小，以字节表示
+- `p_align`： 表示该`segment`在文件中或者内存中需要以多少字节对齐
 
+
+### 实战演练
+
+分析ELF文件经常用到的工具有：`readelf`，`objdump`，`hexdump` 等，我们将下面Go语言编写的 `hello world` 代码编写成二进制进行分析：
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("hello world")
+}
+```
+
+> GOOS=linux go build -o helloworld main.go
+
+首先使用 `readelf -h` 获取文件 `ELF Header` 信息，使用 `hexdump -n 64` 获取前`64`个字节：
+
+```
+user@kwephis296327:~/fdl/elftest$ ll helloworld
+-rw-r--r-- 1 user root 1933415 Feb 19 14:38 helloworld
+user@kwephis296327:~/fdl/elftest$ file helloworld
+helloworld: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, not stripped
+user@kwephis296327:~/fdl/elftest$ readelf -h helloworld
+ELF Header:
+  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00
+  Class:                             ELF64
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           Advanced Micro Devices X86-64
+  Version:                           0x1
+  Entry point address:               0x465860
+  Start of program headers:          64 (bytes into file)
+  Start of section headers:          456 (bytes into file)
+  Flags:                             0x0
+  Size of this header:               64 (bytes)
+  Size of program headers:           56 (bytes)
+  Number of program headers:         7
+  Size of section headers:           64 (bytes)
+  Number of section headers:         23
+  Section header string table index: 3
+user@kwephis296327:~/fdl/elftest$ hexdump -n 64 helloworld
+0000000 457f 464c 0102 0001 0000 0000 0000 0000
+0000010 0002 003e 0001 0000 5860 0046 0000 0000
+0000020 0040 0000 0000 0000 01c8 0000 0000 0000
+0000030 0000 0000 0040 0038 0007 0040 0017 0003
+0000040
+```
+
+根据以上的输出我们获得以下信息：
+
+ - `7f 45 4c 46` 代表 `.ELF` 是该文件类型的特殊标识。
+ - 入口地址，代表程序运行时的第一个函数，我们通过 `objdump` 反汇编工具查看Go程序的入口函数是 `_rt0_amd64_linux`，并不是我们定义的 `main` 函数，因为Go语言是具有 `runtime`，在运行我们的 `main` 函数之前，首先要启动并且初始化自己的调度系统：
+
+    ```
+    user@kwephis296327:~/fdl/elftest$ objdump -D helloworld |grep 465860
+    0000000000465860 <_rt0_amd64_linux>:
+      465860:       e9 5b ca ff ff          jmpq   4622c0 <_rt0_amd64>
+    ```
+  - 程序头的起始位置是第`64`字节，一共有`7`个程序头，每个大小为`56`字节；
+  - 节头的起始位置是第`456`字节，一共有23个`section`，每个大小为`64`字节；
+  - `ELF Header` 的大小为 64字节；
+  
+
+通过 `readelf --program-headers` 命令我们可以获取 `ELF` 文件的程序头表，以及每个 `segment` 对应哪些 `section`：
+
+```
+user@kwephis296327:~/fdl/elftest$ readelf --program-headers helloworld
+
+Elf file type is EXEC (Executable file)
+Entry point 0x465860
+There are 7 program headers, starting at offset 64
+
+Program Headers:
+  Type           Offset             VirtAddr           PhysAddr
+                 FileSiz            MemSiz              Flags  Align
+  PHDR           0x0000000000000040 0x0000000000400040 0x0000000000400040
+                 0x0000000000000188 0x0000000000000188  R      0x1000
+  NOTE           0x0000000000000f9c 0x0000000000400f9c 0x0000000000400f9c
+                 0x0000000000000064 0x0000000000000064  R      0x4
+  LOAD           0x0000000000000000 0x0000000000400000 0x0000000000400000
+                 0x00000000000977ea 0x00000000000977ea  R E    0x1000
+  LOAD           0x0000000000098000 0x0000000000498000 0x0000000000498000
+                 0x000000000009be60 0x000000000009be60  R      0x1000
+  LOAD           0x0000000000134000 0x0000000000534000 0x0000000000534000
+                 0x0000000000015aa0 0x0000000000048510  RW     0x1000
+  GNU_STACK      0x0000000000000000 0x0000000000000000 0x0000000000000000
+                 0x0000000000000000 0x0000000000000000  RW     0x8
+  LOOS+0x5041580 0x0000000000000000 0x0000000000000000 0x0000000000000000
+                 0x0000000000000000 0x0000000000000000         0x8
+
+ Section to Segment mapping:
+  Segment Sections...
+   00
+   01     .note.go.buildid
+   02     .text .note.go.buildid
+   03     .rodata .typelink .itablink .gosymtab .gopclntab
+   04     .go.buildinfo .noptrdata .data .bss .noptrbss
+   05
+   06
+```
+
+通过 `readelf --section-headers` 我们可以看到文件所有的 `section`：
+
+```
+user@kwephis296327:~/fdl/elftest$ readelf --section-headers helloworld
+There are 23 section headers, starting at offset 0x1c8:
+
+Section Headers:
+  [Nr] Name              Type             Address           Offset
+       Size              EntSize          Flags  Link  Info  Align
+  [ 0]                   NULL             0000000000000000  00000000
+       0000000000000000  0000000000000000           0     0     0
+  [ 1] .text             PROGBITS         0000000000401000  00001000
+       00000000000967ea  0000000000000000  AX       0     0     32
+  [ 2] .rodata           PROGBITS         0000000000498000  00098000
+       0000000000043bc4  0000000000000000   A       0     0     32
+  [ 3] .shstrtab         STRTAB           0000000000000000  000dbbe0
+       000000000000017a  0000000000000000           0     0     1
+  [ 4] .typelink         PROGBITS         00000000004dbd60  000dbd60
+       000000000000072c  0000000000000000   A       0     0     32
+  [ 5] .itablink         PROGBITS         00000000004dc4a0  000dc4a0
+       0000000000000050  0000000000000000   A       0     0     32
+  [ 6] .gosymtab         PROGBITS         00000000004dc4f0  000dc4f0
+       0000000000000000  0000000000000000   A       0     0     1
+  [ 7] .gopclntab        PROGBITS         00000000004dc500  000dc500
+       0000000000057960  0000000000000000   A       0     0     32
+  [ 8] .go.buildinfo     PROGBITS         0000000000534000  00134000
+       0000000000000020  0000000000000000  WA       0     0     16
+  [ 9] .noptrdata        PROGBITS         0000000000534020  00134020
+       000000000000e2c4  0000000000000000  WA       0     0     32
+  [10] .data             PROGBITS         0000000000542300  00142300
+       0000000000007790  0000000000000000  WA       0     0     32
+  [11] .bss              NOBITS           0000000000549aa0  00149aa0
+       000000000002d750  0000000000000000  WA       0     0     32
+  [12] .noptrbss         NOBITS           0000000000577200  00177200
+       0000000000005310  0000000000000000  WA       0     0     32
+  [13] .zdebug_abbrev    PROGBITS         000000000057d000  0014a000
+       0000000000000119  0000000000000000           0     0     1
+  [14] .zdebug_line      PROGBITS         000000000057d119  0014a119
+       000000000001c418  0000000000000000           0     0     1
+  [15] .zdebug_frame     PROGBITS         0000000000599531  00166531
+       0000000000005b4e  0000000000000000           0     0     1
+  [16] .debug_gdb_script PROGBITS         000000000059f07f  0016c07f
+       0000000000000022  0000000000000000           0     0     1
+  [17] .zdebug_info      PROGBITS         000000000059f0a1  0016c0a1
+       0000000000033324  0000000000000000           0     0     1
+  [18] .zdebug_loc       PROGBITS         00000000005d23c5  0019f3c5
+       00000000000177bc  0000000000000000           0     0     1
+  [19] .zdebug_ranges    PROGBITS         00000000005e9b81  001b6b81
+       00000000000091a5  0000000000000000           0     0     1
+  [20] .note.go.buildid  NOTE             0000000000400f9c  00000f9c
+       0000000000000064  0000000000000000   A       0     0     4
+  [21] .symtab           SYMTAB           0000000000000000  001bfd28
+       000000000000cb88  0000000000000018          22   124     8
+  [22] .strtab           STRTAB           0000000000000000  001cc8b0
+       000000000000b7b7  0000000000000000           0     0     1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), O (extra OS processing required), G (group), T (TLS),
+  C (compressed), x (unknown), o (OS specific), E (exclude),
+  l (large), p (processor specific)
+```
+
+我们通过最后一个section的地址和大小可以算出该文件的大小为 `0x001cc8b0 + 0x000000000000b7b7 = 0x1D8067 = 1933415` 字节，可以通过 `ls -l` 指令进行验证：
+
+```
+user@kwephis296327:~/fdl/elftest$ ls -l helloworld
+-rw-r--r-- 1 user root 1933415 Feb 19 14:38 helloworld
+```
+
+以 `.zdebug` 开头的 `section` 包含的都是调试信息，在程序真正运行时这些信息是没有意义的，可以通过 `strip` 工具对二进制文件进行瘦身，去掉调试信息：
+
+```
+user@kwephis296327:~/fdl/elftest$ strip helloworld
+user@kwephis296327:~/fdl/elftest$
+user@kwephis296327:~/fdl/elftest$
+user@kwephis296327:~/fdl/elftest$ readelf --section-headers helloworld
+There are 14 section headers, starting at offset 0x149b18:
+
+Section Headers:
+  [Nr] Name              Type             Address           Offset
+       Size              EntSize          Flags  Link  Info  Align
+  [ 0]                   NULL             0000000000000000  00000000
+       0000000000000000  0000000000000000           0     0     0
+  [ 1] .text             PROGBITS         0000000000401000  00001000
+       00000000000967ea  0000000000000000  AX       0     0     32
+  [ 2] .rodata           PROGBITS         0000000000498000  00098000
+       0000000000043bc4  0000000000000000   A       0     0     32
+  [ 3] .typelink         PROGBITS         00000000004dbd60  000dbd60
+       000000000000072c  0000000000000000   A       0     0     32
+  [ 4] .itablink         PROGBITS         00000000004dc4a0  000dc4a0
+       0000000000000050  0000000000000000   A       0     0     32
+  [ 5] .gosymtab         PROGBITS         00000000004dc4f0  000dc4f0
+       0000000000000000  0000000000000000   A       0     0     1
+  [ 6] .gopclntab        PROGBITS         00000000004dc500  000dc500
+       0000000000057960  0000000000000000   A       0     0     32
+  [ 7] .go.buildinfo     PROGBITS         0000000000534000  00134000
+       0000000000000020  0000000000000000  WA       0     0     16
+  [ 8] .noptrdata        PROGBITS         0000000000534020  00134020
+       000000000000e2c4  0000000000000000  WA       0     0     32
+  [ 9] .data             PROGBITS         0000000000542300  00142300
+       0000000000007790  0000000000000000  WA       0     0     32
+  [10] .bss              NOBITS           0000000000549aa0  00149a90
+       000000000002d750  0000000000000000  WA       0     0     32
+  [11] .noptrbss         NOBITS           0000000000577200  00149a90
+       0000000000005310  0000000000000000  WA       0     0     32
+  [12] .note.go.buildid  NOTE             0000000000400f9c  00000f9c
+       0000000000000064  0000000000000000   A       0     0     4
+  [13] .shstrtab         STRTAB           0000000000000000  00149a90
+       0000000000000081  0000000000000000           0     0     1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), O (extra OS processing required), G (group), T (TLS),
+  C (compressed), x (unknown), o (OS specific), E (exclude),
+  l (large), p (processor specific)
+user@kwephis296327:~/fdl/elftest$ ls -l helloworld
+-rw-r--r-- 1 user root 1351320 Feb 19 15:16 helloworld
+```
 
 
 ### 参考文章
@@ -197,3 +420,4 @@ typedef struct {
 4. [LINUX_ELF_EM_H](https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/elf-em.h#L31)
 5. [Program Header](https://refspecs.linuxbase.org/elf/gabi4+/ch5.pheader.html)
 6. [ELF man page](https://man7.org/linux/man-pages/man5/elf.5.html)
+7. [可执行与可链接格式](https://zh.wikipedia.org/wiki/%E5%8F%AF%E5%9F%B7%E8%A1%8C%E8%88%87%E5%8F%AF%E9%8F%88%E6%8E%A5%E6%A0%BC%E5%BC%8F)
