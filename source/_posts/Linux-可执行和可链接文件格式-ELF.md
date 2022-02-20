@@ -24,8 +24,15 @@ tags:
 
 - `Section Header`：定义ELF文件中所有的 `section`，用于链接和重定位。对于可执行文件，有四个主要部分：`.text`、`.data`、`.rodata` 和 `.bss`；
 
+ELF 文件各个部分的布局如下：
+
+![](Elf-layout--en.svg.png)
 
 <!-- more -->
+
+这里有一个ARM上二进制文件的详细示例，可以参考下图：
+
+![](ELF_Executable_and_Linkable_Format_diagram_by_Ange_Albertini.png)
 
 ### ELF Header
 
@@ -241,7 +248,18 @@ user@kwephis296327:~/fdl/elftest$ hexdump -n 64 helloworld
 
 根据以上的输出我们获得以下信息：
 
- - `7f 45 4c 46` 代表 `.ELF` 是该文件类型的特殊标识。
+ - `文件标识`：`7f 45 4c 46` 代表 `.ELF` 是该文件类型的特殊标识；
+ - `Class`：声明该文件是32位还是64位，**32位=01**，**64位=02**；
+ - `Data`：大端序还是小端序，**01=LSB(Least Significant Bit)**，**02=[MSB(Most Significant Bit, big-endian)](https://en.wikipedia.org/wiki/Bit_numbering#Bit_significance_and_indexing)**；
+ - `Version`： 目前固定是01；
+ - `OS/ABI`：每个操作系统在通用功能上都有很大的重叠。 此外，它们中的每一个都有特定的，或者它们之间至少有细微的差异。 正确集的定义是通过[应用程序二进制接口 (ABI)](https://en.wikipedia.org/wiki/Application_binary_interface) 完成的。 通过这种方式，操作系统和应用程序都知道期望什么，并且功能被正确转发。 这两个字段描述了使用的 ABI 和相关版本。 在这种情况下，该值为 00，这意味着没有使用特定的扩展名。 输出将其显示为 [System V](https://en.wikipedia.org/wiki/UNIX_System_V)； 
+ - `ABI version`： ABI 版本号；
+ - `Machine`：机器类型；
+ - `Type`：`type` 字段告诉我们文件的用途是什么。有几种常见的文件类型。
+    - `CORE` (value 4)
+    - `DYN` (Shared object file), for libraries (value 3)
+    - `EXEC` (Executable file), for binaries (value 2)
+    - `REL` (Relocatable file), before linked into an executable file (value 1)
  - 入口地址，代表程序运行时的第一个函数，我们通过 `objdump` 反汇编工具查看Go程序的入口函数是 `_rt0_amd64_linux`，并不是我们定义的 `main` 函数，因为Go语言是具有 `runtime`，在运行我们的 `main` 函数之前，首先要启动并且初始化自己的调度系统：
 
     ```
@@ -421,3 +439,4 @@ user@kwephis296327:~/fdl/elftest$ ls -l helloworld
 5. [Program Header](https://refspecs.linuxbase.org/elf/gabi4+/ch5.pheader.html)
 6. [ELF man page](https://man7.org/linux/man-pages/man5/elf.5.html)
 7. [可执行与可链接格式](https://zh.wikipedia.org/wiki/%E5%8F%AF%E5%9F%B7%E8%A1%8C%E8%88%87%E5%8F%AF%E9%8F%88%E6%8E%A5%E6%A0%BC%E5%BC%8F)
+8. [elf101](https://github.com/corkami/pics/tree/28cb0226093ed57b348723bc473cea0162dad366/binary/elf101)
