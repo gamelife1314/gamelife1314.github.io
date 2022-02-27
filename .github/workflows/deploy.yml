@@ -5,41 +5,47 @@ on:
     branches:
       - source
   schedule:
-    - cron: '30 17 * * *'
+    - cron: "30 17 * * *"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     name: deploy gamelife1314.github.io
     steps:
-    - name: Checkout
-      uses: actions/checkout@v1
-      with:
-        submodules: true # Checkout private submodules(themes or something else).
-    
-    # Caching dependencies to speed up workflows. (GitHub will remove any cache entries that have not been accessed in over 7 days.)
-    - name: Cache node modules
-      uses: actions/cache@v1
-      id: cache
-      with:
-        path: node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-node-
-    - name: Install Dependencies
-      if: steps.cache.outputs.cache-hit != 'true'
-      run: npm ci
-    
-    # Deploy hexo blog website.
-    - name: Deploy
-      id: deploy
-      uses: sma11black/hexo-action@v1.0.3
-      with:
-        deploy_key: ${{ secrets.GH_DEPLOY_PRI }}
-        user_name: MichaelFu
-        user_email: 1185694600@qq.com
-        commit_msg: ${{ github.event.head_commit.message }}
-    # Use the output from the `deploy` step(use for test action)
-    - name: Get the output
-      run: |
-        echo "${{ steps.deploy.outputs.notify }}"
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          submodules: true # Checkout private submodules(themes or something else).
+
+      # Caching dependencies to speed up workflows. (GitHub will remove any cache entries that have not been accessed in over 7 days.)
+      - name: Cache node modules
+        uses: actions/cache@v1
+        id: cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: update config
+        run: |
+          echo "all_minifier: true" >> _config.yml
+
+      # Deploy hexo blog website.
+      - name: Deploy
+        id: deploy
+        uses: sma11black/hexo-action@v1.0.3
+        with:
+          deploy_key: ${{ secrets.GH_DEPLOY_PRI }}
+          user_name: MichaelFu
+          user_email: 1185694600@qq.com
+          commit_msg: ${{ github.event.head_commit.message }}
+
+      # Use the output from the `deploy` step(use for test action)
+      - name: Get the output
+        run: |
+          echo "${{ steps.deploy.outputs.notify }}"
