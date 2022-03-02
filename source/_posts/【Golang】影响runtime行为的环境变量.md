@@ -37,7 +37,7 @@ func schedinit() {
 
 ### GOGC
 
-`GOGC` 用于控制GC的触发频率，默认值是：`100`，意思是直到上次垃圾回收堆内存上涨 `100%` 时触发GC。如果设置 `GOGC=off`将彻底关闭GC。在运行时可以通过 [`debug.SetGCPercent`](https://pkg.go.dev/runtime/debug#SetGCPercent ) 进行动态调整。
+`GOGC` 用于控制GC的触发频率，默认值是：`100`，意思是直到上次垃圾回收堆内存上涨 `100%` 时触发 `GC`。如果设置 `GOGC=off`将彻底关闭 `GC`。在运行时可以通过 [`debug.SetGCPercent`](https://pkg.go.dev/runtime/debug#SetGCPercent ) 进行动态调整。
 
 ### GODEBUG
 
@@ -121,11 +121,11 @@ setting gccheckmark=1 enables verification of the garbage collector's concurrent
 
 #### gcstoptheworld
 
-设置 `gcstoptheworld=1` 将禁用并发 `gc`，这样每次垃圾回收都会 `STW`。`gcstoptheworld=2` 处禁用并发收集之外还会禁用后续的并发清扫。
+设置 `gcstoptheworld=1` 将禁用并发 `GC`，这样每次垃圾回收都会 `STW`。`gcstoptheworld=2` 处禁用并发收集之外还会禁用后续的并发清扫。
 
 #### gctrace
 
-设置 `gctrace=1` 会在每次 `gc` 时，向标准错误输出一行信息，包括收集的总量，停顿的时长等。输出的格式可能会变，目前的格式如下：
+设置 `gctrace=1` 会在每次 `GC` 时，向标准错误输出一行信息，包括收集的总量，停顿的时长等。输出的格式可能会变，目前的格式如下：
 
 > gc # @#s #%: #+#+# ms clock, #+#/#/#+# ms cpu, #->#-># MB, # MB goal, # P
 
@@ -133,14 +133,14 @@ setting gccheckmark=1 enables verification of the garbage collector's concurrent
 
 - `gc`：gc 的次数，随着每次垃圾回收自增；
 - `@#s`：程序的运行时间，单位是秒；
-- `#%`：从程序运行开始到当前GC，花费在GC上的时间占比；
-- `#+#+# ms clock`：`gc` 各个阶段占用的时间；，
+- `#%`：从程序运行开始到当前 `GC`，花费在 `GC`上的时间占比；
+- `#+#+# ms clock`： `GC` 各个阶段占用的时间；，
 - `#+#/#/#+# ms cpu`：垃圾回收占用的CPU时间；
-- `#->#-># MB`：分别表示 `gc` 开始，结束以及当前的堆内存大小；
-- `# MB goal`：当堆内存达到这个值时，触发下次 `gc`；
+- `#->#-># MB`：分别表示  `GC` 开始，结束以及当前的堆内存大小；
+- `# MB goal`：当堆内存达到这个值时，触发下次  `GC`；
 - `# P`：`P` 的个数；
 
-例如查看下面程序的 `gc` 信息：
+例如查看下面程序的  `GC` 信息：
 
 ```go
 package main
@@ -231,7 +231,7 @@ var MemProfileRate int = defaultMemProfileRate(512 * 1024)
 
 #### scavtrace
 
-设置 `scavtrace=1` 会让运行时系统在每次 `gc` 周期打印还给操作系统的内存总量和预估物理内存利用量。目前的格式如下：
+设置 `scavtrace=1` 会让运行时系统在每次  `GC` 周期打印还给操作系统的内存总量和预估物理内存利用量。目前的格式如下：
 
 > scav # # KiB work, # KiB total, #% util
 
@@ -252,7 +252,7 @@ setting tracebackancestors=N extends tracebacks with the stacks at which gorouti
 
 #### asyncpreemptoff
 
-设置 `asyncpreemptoff=1` 会禁用基于信号的异步goroutine抢占。这会使一些循环不可抢占，这可能会延迟 `gc` 以及 `goroutine` 调度。这对于调试 `gc` 问题很有用，因为他禁用了用于异步 `goroutine` 抢占的保守栈扫描。
+设置 `asyncpreemptoff=1` 会禁用基于信号的异步goroutine抢占。这会使一些循环不可抢占，这可能会延迟  `GC` 以及 `goroutine` 调度。这对于调试  `GC` 问题很有用，因为他禁用了用于异步 `goroutine` 抢占的保守栈扫描。
 
 
 ### GOMAXPROCS
