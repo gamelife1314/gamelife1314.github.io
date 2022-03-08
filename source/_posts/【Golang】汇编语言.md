@@ -369,6 +369,46 @@ scale:
 
 左移指令有两个名字：`SAL` 和 `SHL`，两者的效果是一样的，都是讲右边填上0。右移指令不同， `SAR` 执行算数移位（填上符号位），而 `SHR` 执行逻辑移位（填上0）。移位操作的目的操作数可以是一个寄存器或者一个内存位置。
 
+##### 特殊的算数操作
+
+两个64位有符号或无符号整数相乘得到的乘积需要128位来表示。 `x86-64` 指令集对128位（16字节）数的操作提供有限的支持。延续字（2字节），双字（四字节），四字（8字节）的命令管理，Intel 将16字节的数称为八字（oct word）。
+
+|指令|效果|描述|
+|:--:|:--:|:--:|
+|`imulq S`|`R[%rdx]: R[%rax] <- s * R[%rax]`|有符号全乘法|
+|`mulq S`|`R[%rdx]: R[%rax] <- s * R[%rax]`|无符号全乘法|
+|`cqto S`|`R[%rdx]: R[%rax] <- 符号扩展（R[%rax]）`|转换为八字|
+|`idivq S`|`R[%rdx]<-R[%rdx] <- R[%rax] mod S; R[%rax]<-R[%rdx] <- R[%rax] ÷ S; `|有符号除法|
+|`divq S`|`R[%rdx]<-R[%rdx] <- R[%rax] mod S; R[%rax]<-R[%rdx] <- R[%rax] ÷ S; `|无符号除法|
+
+`imulq` 指令有两种不同的形式，双操作数和单操作数，单操作数时，计算两个64位值得全128位乘积，位补码乘法。而 `mulq` 是无符号乘法。这两个指令都要求一个参数必须在寄存器 `%rax` 中，而另一个作为指令的源操作数给出。然后乘积的高64位放在 `%rdx` 中，低64位放在 `%rax` 中。
+
+看下面的代码示例，使用文件 `inttypes.h` 的定义，它是标准C扩展的一部分，只不过，它没有提供128位的值，因此只能依赖GCC提供的对128位的支持，声明一个新的类型 `uint128_t`。
+
+```c
+#include <inttypes.h>
+
+typedef unsigned __int128 uint128_t;
+
+void store_uprod(uint128_t *dest, uint64_t x, uint64_t y) {
+    *dest = x * (uint128_t) y;
+}
+```
+
+> gcc -Og -S imulq.c
+
+生成的汇编代码如下，`dest in %rdi, x in %rsi, y in %rdx`，
+
+```
+store_uprod:
+	movq	%rsi, %rax    // 先将 x 移动到 %rax 寄存器中
+	mulq	%rdx          // 然后将 %rax（x）和 %rdx（y）相乘
+	movq	%rax, (%rdi)  // 结果的低64位存储在 dest 中
+	movq	%rdx, 8(%rdi) // 结果的高64位存储 dest 中
+	ret
+```
+
+
 
 ### 参考链接
 
