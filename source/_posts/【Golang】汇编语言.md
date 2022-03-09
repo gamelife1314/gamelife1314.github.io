@@ -408,6 +408,8 @@ store_uprod:
 	ret
 ```
 
+### Go 汇编
+
 
 
 ### 参考链接
@@ -416,4 +418,7 @@ store_uprod:
 2. [第3章 Go汇编语言](https://chai2010.cn/advanced-go-programming-book/ch3-asm/readme.html)
 3. [Golang Calling Convention](https://particle.cafe/blog/golang-calling-convention.html)
 4. [数学公式语法——Mathjax教程](https://oysz2016.github.io/post/8611e6fb.html)
-
+5. [Plan9 wiki](https://9p.io/wiki/plan9/plan_9_wiki/)
+6. [Go at Google: Language Design in the Service of Software Engineering](https://talks.golang.org/2012/splash.article)
+7. [Go 使用的 plan9 汇编语言初探](https://kcode.icu/posts/go/2021-03-20-go-%E4%BD%BF%E7%94%A8%E7%9A%84-plan9-%E6%B1%87%E7%BC%96%E8%AF%AD%E8%A8%80%E5%88%9D%E6%8E%A2/)
+8. [从Go走进plan9汇编](http://www.4k8k.xyz/article/weixin_40486544/108392947)
