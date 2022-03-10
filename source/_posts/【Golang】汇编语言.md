@@ -422,3 +422,4 @@ store_uprod:
 6. [Go at Google: Language Design in the Service of Software Engineering](https://talks.golang.org/2012/splash.article)
 7. [Go 使用的 plan9 汇编语言初探](https://kcode.icu/posts/go/2021-03-20-go-%E4%BD%BF%E7%94%A8%E7%9A%84-plan9-%E6%B1%87%E7%BC%96%E8%AF%AD%E8%A8%80%E5%88%9D%E6%8E%A2/)
 8. [从Go走进plan9汇编](http://www.4k8k.xyz/article/weixin_40486544/108392947)
+9. [Getting Started with Go Assembly](https://linuxtut.com/en/231350711f9ab6eba95e/)
