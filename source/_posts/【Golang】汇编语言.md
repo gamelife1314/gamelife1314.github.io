@@ -410,7 +410,78 @@ store_uprod:
 
 ### Go 汇编
 
+众所周知，Go 汇编器基于 [`plan9` 汇编](https://9p.io/wiki/plan9/plan_9_wiki/)风格。那什么是 `plan9` 呢？`plan9` 是一种概念操作系统， 基于现代化思想重新设计操作系统，但是没有实现，不过他提出的很多想法都被在很多地方应用，最广泛的莫过于 `UTF-8` 编码的应用。
 
+Go 编译器输出的汇编其是一种抽象，并没有映射到实际的硬件， Go 汇编器会将这个伪汇编翻译成目标硬件的机器语言。拥有这样一个中间层的最大优势在于它更容易适应新的架构，更多详细的可以看 [GopherCon 2016: Rob Pike - The Design of the Go Assembler](https://www.youtube.com/watch?v=KINIAgRpkDA)。关于 Go 汇编最重要的一点是 Go 汇编不直接对应于目标硬件这一事实，有些与硬件直接相关，但有些则没有。就像当我们类似 `MOV` 指令时，工具链位该操作实际生成的可能根本不是移动指令，可能是清除指令或加载指令等，或者他可能与具有该名称的机器指令完全对应。
+
+Go 的汇编程序是一种解析该半抽象指令集的描述并将其转换为要输入到链接器的指令的方法，我们来看以下面一段简单的 `Go` 代码被Go编译器转换成 `Go汇编` 是什么样子：
+
+```go
+package main
+
+//go:noinline
+func add(x, y int) int {
+    return x + y
+}
+
+func main() {
+    println(add(1, 2))
+}
+```
+
+环境信息如下：
+
+> go version go1.17.8 linux/amd64
+> Linux ecs-335906 4.18.0-348.7.1.el8_5.x86_64 #1 SMP Wed Dec 22 13:25:12 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux
+
+我们可以使用下面的不同的命令查看 `Go汇编代码` 和 `目标平台汇编代码`，对比发现虽然指令表达的意义相同，但是寄存器名称还是有差别的，这只是一个超级简单的示例，来展示 `Go汇编` 的独特之处。 
+
+{% tabs Go汇编示例 %}
+
+<!-- tab Go汇编 -->
+
+使用命令：`go tool compile -S add.go`，这将生成的 `GO` 表示的汇编，或者可以使用命令 `go build -gcflags="-S" add.go` 生成。
+
+```
+"".add STEXT nosplit size=4 args=0x10 locals=0x0 funcid=0x0
+	0x0000 00000 (add.go:4)	TEXT	"".add(SB), NOSPLIT|ABIInternal, $0-16
+	0x0000 00000 (add.go:4)	FUNCDATA	$0, gclocals·33cdeccccebe80329f1fdbee7f5874cb(SB)
+	0x0000 00000 (add.go:4)	FUNCDATA	$1, gclocals·33cdeccccebe80329f1fdbee7f5874cb(SB)
+	0x0000 00000 (add.go:4)	FUNCDATA	$5, "".add.arginfo1(SB)
+	0x0000 00000 (add.go:5)	ADDQ	BX, AX
+	0x0003 00003 (add.go:5)	RET
+```
+
+如果我们已经生成可执行文件，我们还可以通过 `GO` 提供的反汇编工具查看 `Go汇编`:
+
+```
+[root@ecs-335906 add]# go tool objdump -s main.add add
+TEXT main.add(SB) /root/workdir/add/add.go
+  add.go:5		0x4553e0		4801d8			ADDQ BX, AX
+  add.go:5		0x4553e3		c3			RET
+```
+
+<!-- endtab -->
+
+<!-- tab 目标机器汇编 -->
+
+在生成对应平台的二进制文件之后，我们通过调试工具查看 `add` 函数的汇编代码。第一种方式我们可以通过 [`dlv`](https://github.com/go-delve/delve) ：
+
+![](dlv_add_asm.png)
+
+或者通过 `gdb`：
+
+![](gdb_add_asm.png)
+
+或者通过反汇编工具 `objdump`：
+
+> objdump -d add > add.obj
+
+![](objdump_add_asm.png)
+
+<!-- endtab -->
+
+{% endtabs %}
 
 ### 参考链接
 
