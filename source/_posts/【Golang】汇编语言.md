@@ -414,6 +414,8 @@ store_uprod:
 
 Go 编译器输出的汇编其是一种抽象，并没有映射到实际的硬件， Go 汇编器会将这个伪汇编翻译成目标硬件的机器语言。拥有这样一个中间层的最大优势在于它更容易适应新的架构，更多详细的可以看 [GopherCon 2016: Rob Pike - The Design of the Go Assembler](https://www.youtube.com/watch?v=KINIAgRpkDA)。关于 Go 汇编最重要的一点是 Go 汇编不直接对应于目标硬件这一事实，有些与硬件直接相关，但有些则没有。就像当我们类似 `MOV` 指令时，工具链位该操作实际生成的可能根本不是移动指令，可能是清除指令或加载指令等，或者他可能与具有该名称的机器指令完全对应。
 
+#### 汇编示例
+
 Go 的汇编程序是一种解析该半抽象指令集的描述并将其转换为要输入到链接器的指令的方法，我们来看以下面一段简单的 `Go` 代码被Go编译器转换成 `Go汇编` 是什么样子：
 
 ```go
@@ -482,6 +484,232 @@ TEXT main.add(SB) /root/workdir/add/add.go
 <!-- endtab -->
 
 {% endtabs %}
+
+#### 编译过程
+
+本节内容主要来源于 [Go: Overview of the Compiler](https://medium.com/a-journey-with-go/go-overview-of-the-compiler-4e5a153ca889) 和 [Introduction to the Go compiler](https://github.com/golang/go/blob/release-branch.go1.13/src/cmd/compile/README.md)。Go的编译过程包含四个阶段，被分成两类：
+
+- `编译前端`：此阶段从源代码运行分析并生成源代码的抽象句法结构，称为 [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree)。
+
+- `编译后端`：第二阶段将源代码的表示形式转换为机器代码，并进行一些优化。
+
+![编译流程](compile-process.png)
+
+由下面的一段代码展示这四个过程：
+
+```go
+package main
+
+func main() {
+	a := 1
+	b := 2
+	if true {
+		add(a, b)
+	}
+}
+
+func add(a, b int) {
+	println(a + b)
+}
+```
+
+##### 解析
+
+这个阶段的主要实现是在 `cmd/compile/internal/syntax` 中，在编译的第一阶段，对源代码进行分词（词法分析）、解析（语法分析），并为每个源文件构建语法树。
+
+每个语法树都是相应源文件的精确表示，其节点对应于源文件的各种元素，例如表达式、声明和语句。语法树还包括位置信息，用于错误报告和调试信息的创建。
+
+{% tabs Go Compile parsing %}
+
+<!-- tab 分词结果 -->
+
+```
+root@b89af2baca14:/WORKDIR/gostudy/compile# go run tokenized.go
+1:1	package	"package"
+1:9	IDENT	"main"
+1:13	;	"\n"
+3:1	func	"func"
+3:6	IDENT	"main"
+3:10	(	""
+3:11	)	""
+3:13	{	""
+4:2	IDENT	"a"
+4:4	:=	""
+4:7	INT	"1"
+4:8	;	"\n"
+5:2	IDENT	"b"
+5:4	:=	""
+5:7	INT	"2"
+5:8	;	"\n"
+6:2	if	"if"
+6:5	IDENT	"true"
+6:10	{	""
+7:3	IDENT	"add"
+7:6	(	""
+7:7	IDENT	"a"
+7:8	,	""
+7:10	IDENT	"b"
+7:11	)	""
+7:12	;	"\n"
+8:2	}	""
+8:3	;	"\n"
+9:1	}	""
+9:2	;	"\n"
+11:1	func	"func"
+11:6	IDENT	"add"
+11:9	(	""
+11:10	IDENT	"a"
+11:11	,	""
+11:13	IDENT	"b"
+11:15	IDENT	"int"
+11:18	)	""
+11:20	{	""
+12:2	IDENT	"println"
+12:9	(	""
+12:10	IDENT	"a"
+12:12	+	""
+12:14	IDENT	"b"
+12:15	)	""
+12:16	;	"\n"
+13:1	}	""
+13:2	;	"\n"
+root@b89af2baca14:/WORKDIR/gostudy/compile#
+```
+
+<!-- endtab -->
+
+<!-- tab 分词代码 -->
+
+```go
+package main
+
+import (
+	"fmt"
+	"go/scanner"
+	"go/token"
+)
+
+func main() {
+	srcCode := []byte(
+		`package main
+
+func main() {
+	a := 1
+	b := 2
+	if true {
+		add(a, b)
+	}
+}
+
+func add(a, b int) {
+	println(a + b)
+}`)
+
+	// Initialize the scanner.
+	var s scanner.Scanner
+	fset := token.NewFileSet()                          // positions are relative to fset
+	file := fset.AddFile("", fset.Base(), len(srcCode)) // register input "file"
+	s.Init(file, srcCode, nil /* no error handler */, scanner.ScanComments)
+
+	// Repeated calls to Scan yield the token sequence found in the input.
+	for {
+		pos, tok, lit := s.Scan()
+		if tok == token.EOF {
+			break
+		}
+		fmt.Printf("%s\t%s\t%q\n", fset.Position(pos), tok, lit)
+	}
+}
+```
+
+<!-- endtab -->
+
+{% endtabs %}
+
+分词之后就可以拿去构建语法树。
+
+##### 类型检查和AST转换
+
+这部分的代码实现主要在 `cmd/compile/internal/gc`，小写 `gc` 代表 `go compile`，大写 `GC` 代表 `Garbage Collector`。
+
+这个阶段的第一件事情是将 `cmd/compile/internal/syntax` 的语法树转换为编译器的 `AST` 表示，接下来就是名称解析和类型推断，确定哪个对象属于哪个标识符，以及每个表达式具有什么类型。
+
+这个阶段还会做一些优化，例如内联，我们可以使用 `go tool compile -w` 查看这些细节：
+
+{% tabs 类型检查和AST转换 %}
+
+<!--tab 允许内敛优化-->
+
+将我们的代码保存为 `main.go` 之后，我们可以使用 `go tool compile -w` 查看这个过程，我们没有看到第7行存在函数调用。
+
+![](compile-allow-inline.png)
+
+<!-- endtab -->
+
+<!--tab 禁用内敛优化-->
+
+禁用内敛优化，我们可以使用 `go tool compile -w -l` 查看这个过程，我们在第7行看到了调用 `add` 函数。
+
+![](compile-disable-inline.png)
+
+<!-- endtab -->
+
+{% endtabs %}
+
+##### SSA 代码生成
+
+这个阶段会将 `AST` 被转换为静态单一分配 (`SSA`（静态单赋值形式）) 形式，这是一种具有特定属性的较低级别的中间表示，可以更轻松地实现优化并最终从中生成机器代码。 在此转换期间，编译器将会根据情况应用高度优化的代码完成代码自动优化。
+
+在 `AST` 到 `SSA` 的转换过程中，某些节点也被降低为更简单的组件，以便编译器的其余部分可以使用它们。例如，内建的 `copy` 被内存移动所取代，并且 `range` 循环被重写为 `for` 循环。
+
+然后，应用一系列与机器无关的通行证和规则。这些不涉及任何单一的计算机架构，因此可以在所有 `GOARCH` 变体上运行。这些通用传递的一些示例包括消除死代码、删除不需要的 `nil` 检查和删除未使用的分支。通用重写规则主要关注表达式，比如用常量值替换一些表达式，优化乘法和浮点运算。
+
+这部分的实现在：
+
+- `cmd/compile/internal/gc` (转换成SSA)
+- `cmd/compile/internal/ssa`
+
+使用如下的命令可以生成 `SSA` 代码：
+
+> GOSSAFUNC=main go tool compile main.go && open ssa.html
+
+这个生成的 `HTML` 文档会展示在生成最终代码的过程中应用了哪些规则，例如下面的，由于我们代码中的 `a` 和 `b` 是常量，`a + b` 的和也是已知的，所以应用 `opt` 规则，直接将其结果存储，并将原来的 `a` 和 `b` 删除。
+
+![](go-compile-ssa-optimize.png)
+
+一旦将所有能用的优化手段都运用完之后，就会生成一个中间的汇编代码，就是我们的 `GO汇编`：
+
+![](go-compile-gen-ir-asm.png)
+
+##### 生成机器代码
+
+这部分的实现主要在：
+
+- `cmd/compile/internal/ssa` (SSA 降级成平台相关的表示，并且进行优化，不再是中间码)
+- `cmd/internal/obj` 机器代码生成
+
+一旦 SSA 被“降低”并且更具体到目标架构，最终的代码优化通道就会运行。这包括另一个死代码消除过程、将值移近它们的用途、删除从不读取的局部变量以及寄存器分配。
+
+作为此步骤的一部分完成的其他重要工作包括堆栈帧布局，它将堆栈偏移量分配给局部变量，以及指针活性分析，它计算在每个 `GC` 安全点处哪些堆栈指针处于活动状态。
+
+在 `SSA` 生成阶段结束时，`Go` 函数已转换为一系列 `obj.Prog` 指令。这些被传递给汇编器（`cmd/internal/obj`），汇编器将它们转换为机器代码并写出最终的目标文件。目标文件还将包含反射数据、导出数据和调试信息。
+
+`Go 汇编` 可以作为链接器的直接输入生成机器代码，例如：
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("hello world")
+}
+```
+
+使用 `go tool compile -S hello.go` 将会直接输出 `Go汇编` 并且生成这个 `hello.o` 文件。使用 `go tool link hello.o` 将会链接并且生成可执行文件：
+
+![](go-compile-obj-ir.png)
+
 
 ### 参考链接
 
