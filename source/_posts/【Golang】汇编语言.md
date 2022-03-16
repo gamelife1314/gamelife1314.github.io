@@ -410,9 +410,9 @@ store_uprod:
 
 ### Go 汇编
 
-众所周知，Go 汇编器基于 [`plan9` 汇编](https://9p.io/wiki/plan9/plan_9_wiki/)。那什么是 `plan9` 呢？`plan9` 是一种概念操作系统， 基于现代化思想重新设计操作系统，但是没有实现，不过他提出的很多想法都被在很多地方应用，最广泛的莫过于 `UTF-8` 编码的应用。
+众所周知，Go 汇编器基于 [`plan9` 汇编](https://9p.io/wiki/plan9/plan_9_wiki/)。那什么是 `plan9` 呢？`plan9` 来自于贝尔实验室的第九号计划，是一种概念操作系统， 基于现代化思想重新设计操作系统，目标是实现 UNIX 最初的承诺：一切皆文件。Plan 9的特色功能有：将所有本地和远程资源以文件形式组织的9P协议，union mounts，改进的进程文件系统以及本地的Unicode支持。在Plan 9中，所有的系统接口（如网络和用户界面接口），都是作为文件系统的一部分呈现，而不像其他操作系统上一样拥有自己独立的接口。
 
-Go 编译器输出的汇编其是一种抽象，并没有映射到实际的硬件， Go 汇编器会将这个伪汇编翻译成目标硬件的机器语言。拥有这样一个中间层的最大优势在于它更容易适应新的架构，更多详细的可以看 [GopherCon 2016: Rob Pike - The Design of the Go Assembler](https://www.youtube.com/watch?v=KINIAgRpkDA)。关于 Go 汇编最重要的一点是 Go 汇编不直接对应于目标硬件这一事实，有些与硬件直接相关，但有些则没有。就像当我们类似 `MOV` 指令时，工具链位该操作实际生成的可能根本不是移动指令，可能是清除指令或加载指令等，或者他可能与具有该名称的机器指令完全对应。
+Go 编译器输出的汇编其是一种抽象，并没有映射到实际的硬件， Go 汇编器会将这个伪汇编翻译成目标硬件的机器语言。拥有这样一个中间层的最大优势在于它更容易适应新的架构，更多详细的可以看 [GopherCon 2016: Rob Pike - The Design of the Go Assembler](https://www.youtube.com/watch?v=KINIAgRpkDA)。关于 Go 汇编最重要的一点是 Go 汇编不直接对应于目标硬件这一事实，有些与硬件直接相关，但有些则没有。就像当我们类似 `MOV` 指令时，工具链位该操作实际生成的可能根本不是移动指令，可能是清除指令或加载指令等，或者他可能与具有该名称的机器指令完全对应。Go汇编作为连接器的输入，在生成机器码的时候才转换成对应平台相关的指令。
 
 #### 汇编示例
 
@@ -666,9 +666,12 @@ func add(a, b int) {
 
 这部分的实现在：
 
-- `cmd/compile/internal/gc` (转换成SSA)
-- `cmd/compile/internal/ssa`
+- `cmd/compile/internal/gc` （AST 转换成SSA）
+- `cmd/compile/internal/ssa` （应用一系列优化手段和基于架构的一些规则）
 
+{% tabs SSA 代码生成 %}
+
+<!-- tabs 生成优化的SSA代码 -->
 使用如下的命令可以生成 `SSA` 代码：
 
 > GOSSAFUNC=main go tool compile main.go && open ssa.html
@@ -680,13 +683,28 @@ func add(a, b int) {
 一旦将所有能用的优化手段都运用完之后，就会生成一个中间的汇编代码，就是我们的 `GO汇编`：
 
 ![](go-compile-gen-ir-asm.png)
+<!-- endtabs -->
+
+<!-- tabs 对比生成未优化的SSA代码 -->
+使用如下的命令可以生成 `SSA` 代码：
+
+> GOSSAFUNC=main go tool compile -l main.go && open ssa.html
+
+这里我们禁用优化，可以看到最终生成的 `SSA` 和我们的源代码基本相同：
+
+![](go-compile-ssa-optimize.png)
+
+<!-- endtabs -->
+
+{% endtabs %}
+
 
 ##### 生成机器代码
 
 这部分的实现主要在：
 
 - `cmd/compile/internal/ssa` (SSA 降级成平台相关的表示，并且进行优化，不再是中间码)
-- `cmd/internal/obj` 机器代码生成
+- `cmd/internal/obj` （机器代码生成）
 
 一旦 SSA 被“降低”并且更具体到目标架构，最终的代码优化通道就会运行。这包括另一个死代码消除过程、将值移近它们的用途、删除从不读取的局部变量以及寄存器分配。
 
