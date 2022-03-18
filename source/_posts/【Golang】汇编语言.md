@@ -474,6 +474,8 @@ void p() {
 }
 ```
 
+![栈结构](pcallq-stack-frame.png)
+
 <!-- endtab -->
 
 <!-- tab 数据传送汇编代码解释 -->
