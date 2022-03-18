@@ -498,7 +498,7 @@ q:
 	ret
 p:
 	subq	$8, %rsp   // 为变量 long 分配空间
-	pushq	$4         // 第8个参数4先放到栈上，通过pushq实现，其实是先执行命令：subq %8, %rsp; 然后执行命令：movq $4, (%rsp)
+	pushq	$4         // 第8个参数4先放到栈上，通过pushq实现，其实是：subq %8, %rsp; movq $4, (%rsp)
 	pushq	$100       // 第7个参数'd'放到栈上，通过pushq实现
 	movl	$3, %r9d   // 第6个参数
 	movl	$99, %r8d  // 第5个参数
