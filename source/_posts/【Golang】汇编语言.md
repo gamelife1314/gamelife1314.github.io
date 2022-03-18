@@ -455,6 +455,70 @@ x86-64 中，可以通过寄存器最多传递6个整形（即整数和指针参
 
 如果一个函数有大雨6个整形参数，超出6个的部分就要通过栈来传递。假设函数 `P` 调用 `Q`，有 `n` 个整形参数，且 `n > 6`，那么 `P` 的代码分配的栈帧必须能够容纳 `7` 到 `n` 好参数的存储空间。也就是说，要把参数 `1~6` 复制到对应的寄存器，把参数 `7~n` 放到栈上，而参数 `7` 位于栈顶。通过栈传递参数的时候，所有的数据大小都向 `8` 的倍数对齐。参数放置到对应的位置以后，程序就可以执行 `call` 指令将控制转移到函数 `Q` 了，函数 `Q` 可以通过寄存器访问参数，有必要的话也可以通过栈访问。相应地，如果函数 `Q` 调用了某个有超过`6`个参数的函数，它也需要在自己的栈帧中为超过`6`个部分的参数分配空间，对应于栈帧结构图中的参数构造区。
 
+{% tabs 数据传送代码示例 %}
+
+<!-- tab 数据传送源代码示例 -->
+
+```c
+// test.c
+#include<stdio.h>
+
+long q(char a, long b, char c, long d, char e, long f, char g, long h) {
+	return a + b + c + d + e + f + g + h; 
+}
+
+void p() {
+	long result;
+	result = q('a', 1, 'b', 2, 'c', 3, 'd', 4);
+	printf("%d", result);
+}
+```
+
+<!-- endtab -->
+
+<!-- tab 数据传送汇编代码解释 -->
+
+使用下面的命令输出汇编代码：
+
+> gcc -Og -S test.c
+
+```asm
+q:
+	movsbq	%dil, %rdi  	// 将第1个参数进行符号扩展，放到64为寄存器%rdi中
+	addq	%rdi, %rsi  	// 将第1个参数和第2个参数相加放到%rsi中
+	movsbq	%dl, %rdx   	// 将第3个参数进行符号位扩展
+	addq	%rsi, %rdx  	// 将前2个参数的和与第3个参数相加放到 %rdx 中
+	addq	%rdx, %rcx  	// 将前3个参数的和与第4个参数相加放到 %rcx 中
+	movsbq	%r8b, %r8   	// 将第5个参数进行符号位扩展
+	addq	%r8, %rcx   	// 将前4个参数的和与第5个参数相加放到 %rcx 中
+	addq	%r9, %rcx   	// 将前5个参数的和与第6个参数相加放到 %rcx 中
+	movsbq	8(%rsp), %rax   // 将第7个参数进行符号位扩展放到 %rax 中
+	addq	%rcx, %rax      // 将前6个参数的和与第7个参数相加放到 %rax 中
+	addq	16(%rsp), %rax  // 将前7个参数的和与第8个参数相加放到 %rax 中返回，返回值存储在 %rax 中
+	ret
+p:
+	subq	$8, %rsp   // 为变量 long 分配空间
+	pushq	$4         // 第8个参数4先放到栈上，通过pushq实现，其实是先执行命令：subq %8, %rsp; 然后执行命令：movq $4, (%rsp)
+	pushq	$100       // 第7个参数'd'放到栈上，通过pushq实现
+	movl	$3, %r9d   // 第6个参数
+	movl	$99, %r8d  // 第5个参数
+	movl	$2, %ecx   // 第4个参数
+	movl	$98, %edx  // 第3个参数
+	movl	$1, %esi   // 第2个参数
+	movl	$97, %edi  // 第1个参数
+	call	q
+	movq	%rax, %rsi
+	movl	$.LC0, %edi
+	movl	$0, %eax
+	call	printf
+	addq	$24, %rsp
+	ret
+
+```
+
+<!-- endtab -->
+
+{% endtabs %}
 
 ### Go 汇编
 
