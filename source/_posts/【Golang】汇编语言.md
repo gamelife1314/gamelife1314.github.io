@@ -870,7 +870,75 @@ func main() {
 
 ##### 常量
 
+虽然Go汇编受 plan9 影响，但仍然有众多不同。在常量估值方面，汇编代码中常量表达式使用Go的运算符优先级规则解析，而不是原始的C规则。例如，对于表达式 `3&1<<2`，它的结果是 `4`（`(3&1)<<2`），而不是 `0`（`3&(1<<2)`）。还有就是数值常量总是被计算为 `64` 位无符号整数，因此 `-2` 会被计算为具有相同二进制形式的整数，它最终表现为 `-2` 还是 `65534`，取决于我们为这个变量添加的类型。例如，下面的代码会输出：
 
+> num1=65534, num2=-2
+
+{% tabs Go汇编语言常量整数 %}
+
+<!-- tab 源代码，asm.go -->
+```go
+package main
+
+import "fmt"
+
+var (
+	num1 uint16
+	num2 int16
+)
+
+func main() {
+	fmt.Printf("num1=%d, num2=%d", num1, num2)
+}
+```
+
+<!-- endtab -->
+
+<!-- tab 源代码，asm.s -->
+```asm
+#include "textflag.h"
+
+GLOBL ·num1(SB),NOPTR,$2
+DATA ·num1(SB)/2,$-2
+
+GLOBL ·num2(SB),NOPTR,$2
+DATA ·num2(SB)/2,$-2
+```
+<!-- endtab -->
+
+{% endtabs %}
+
+在Go汇编中，全局变量由一系列的 `DATA` 指令和紧跟其后的 `GLOBL` 指令完成，每个 `DATA` 指令初始化对应内存的一部分，没有被显示初始化的内存将被清零，`DATA` 指令的通用形式是：
+
+> DATA	symbol+offset(SB)/width, value
+
+具体含义是，将变量 `symbol` 从 `offset` 开始的 `width` 宽度的内存，用 `value` 对应的值进行初始化，`width` 必须是 `1`，`2`，`4`，或者 `8`，`offset`和 `width` 对应的单位都是字节。
+
+`GLOBL` 指令一般跟在 `DATA` 指令之后，声明变量是全局变量，如果 `DATA` 没有对它进行初始化，它的值将是全`0`。例如：
+
+```
+DATA divtab<>+0x00(SB)/4, $0xf4f8fcff
+DATA divtab<>+0x04(SB)/4, $0xe6eaedf0
+...
+DATA divtab<>+0x3c(SB)/4, $0x81828384
+GLOBL divtab<>(SB), RODATA, $64
+
+GLOBL runtime·tlsoffset(SB), NOPTR|RODATA, $4
+```
+
+这个例子中定义和声明了文件私有的（`<>`），`64 Bytes` 的变量 `divtab`。也声明了一个 `4 Bytes` 的未包含指针（`NOPTR`）的只读（`RODATA`）零值变量 `runtime·tlsoffset`。`GLOBL` 除了声明符号的大小之外，可能还会有`1`个参数用来指定符号的一些属性，这些属性定义在文件 [`src/runtime/textflag.h`](https://github.com/golang/go/blob/master/src/runtime/textflag.h) 中，主要有：
+
+- `NOPROF   = 1`: (For `TEXT` items.) Don't profile the marked function. This flag is deprecated.
+- `DUPOK    = 2`: 允许相同符号在二进制文件中有多个，链接器选择其中一个使用即可；
+- `NOSPLIT  = 4`: (For `TEXT` items.) 不要插入用来检查是否需要栈扩展的代码。
+- `RODATA   = 8`: (For `DATA` and `GLOBL` items.) 声明变量是只读的，将被放在二进制文件只读段；
+- `NOPTR   = 16`: (For `DATA` and `GLOBL` items.) 声明的变量不包含任何指针，垃圾回收器不用扫描；
+- `WRAPPER = 32`: (For `TEXT` items.) This is a wrapper function and should not count as disabling `recover`.
+- `NEEDCTXT= 64`: (For `TEXT` items.) This function is a closure so it uses its incoming context register.
+- `LOCAL  = 128`: 此符号是动态共享对象的本地符号。
+- `TLSBSS = 256`: (For `DATA` and `GLOBL` items.) 把这个变量放到线程的本地存储中；
+- `NOFRAME = 512`: （对于 `TEXT` 项。）不要插入指令来分配堆栈帧并保存/恢复返回地址，即使这不是叶函数。仅对声明帧大小为 `0` 的函数有效。
+- `TOPFRAME = 2048`: (For TEXT items.) Function is the outermost frame of the call stack. Traceback should stop at this function.
 
 ### 参考链接
 
