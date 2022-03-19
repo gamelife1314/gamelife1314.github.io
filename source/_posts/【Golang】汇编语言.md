@@ -848,6 +848,29 @@ func main() {
 
 #### 汇编语言
 
+本节的内容主要基于[https://go.dev/doc/asm](https://go.dev/doc/asm)，详细描述Go汇编语言与 `x86-64` 不同的地方，相对于 `x86-64`，Go汇编 添加了一些伪指令用于汇编代码的快速开发，但是使用的指令还有通用寄存器命令仍然与特定平台相关，伪寄存器在链接阶段会被转换。
+
+以 `x86-64` 平台为例，我们可以在以下文件中找到寄存器和指令列表：
+
+- [`src/cmd/internal/obj/x86/list6.go`](https://github.com/golang/go/blob/master/src/cmd/internal/obj/x86/list6.go) (寄存器列表)
+- [`src/cmd/internal/obj/x86/anames.go`](https://github.com/golang/go/blob/master/src/cmd/internal/obj/x86/anames.go) (指令列表)
+
+以通用64位寄存器为例，Go汇编中对寄存器的名称做了些许修改：
+
+|X86-64|rax|rbx|rcx|rdx|rdi|rsi|rbp|rsp|r8|r9|r10|r11|r12|r13|r14|rip|
+|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+|Go汇编|AX|BX|CX|DX|DI|SI|BP|SP|R8|R9|R10|R11|R12|R13|R14|PC|
+
+也有一些指令别名，例如 `MOVD` 实际上就是 `MOVQ` 的别名，这些定义可以查看[https://github.com/golang/go/blob/7ca6902c171b336d98adbb103d701a013229c806/src/cmd/asm/internal/arch/arch.go#L102](https://github.com/golang/go/blob/7ca6902c171b336d98adbb103d701a013229c806/src/cmd/asm/internal/arch/arch.go#L102)。
+
+从Go源代码转换为Go汇编有`3`中不同的方式，根据场景自行取用：
+- `go tool compile -S x.go`
+- `go build -gcflags="-S" x.go`
+- `go build -o main main.go && go tool objdump -s main.main main` （先编译然后反汇编）
+
+##### 常量
+
+
 
 ### 参考链接
 
