@@ -903,6 +903,7 @@ DATA ·num1(SB)/2,$-2
 
 GLOBL ·num2(SB),NOPTR,$2
 DATA ·num2(SB)/2,$-2
+
 ```
 <!-- endtab -->
 
@@ -939,6 +940,129 @@ GLOBL runtime·tlsoffset(SB), NOPTR|RODATA, $4
 - `TLSBSS = 256`: (For `DATA` and `GLOBL` items.) 把这个变量放到线程的本地存储中；
 - `NOFRAME = 512`: （对于 `TEXT` 项。）不要插入指令来分配堆栈帧并保存/恢复返回地址，即使这不是叶函数。仅对声明帧大小为 `0` 的函数有效。
 - `TOPFRAME = 2048`: (For TEXT items.) Function is the outermost frame of the call stack. Traceback should stop at this function.
+
+##### 寄存器
+
+Go汇编定义了一些由工具链维护的伪寄存器，这些寄存器对所有的架构都是通用的：
+
+- `FP`：用于访问函数参数和局部变量；
+- `PC`：程序计数器，等同于x86-64中的 `%rip` ；
+- `SB`：静态基指针，用于访问全局变量；
+- `SP`：栈指针，指向函数栈帧的高地址；
+
+通过 `SB` 和 `FP` 这两个伪寄存器，我们可以访问所有我们定义的函数和变量。
+
+###### SB
+
+`SB` 寄存器可以被看做是对原始内存的访问，所以 `foo(SB)` 指向变量 `foo` 的内存地址，它被用于去引用全局变量和函数。在定义的符号后面添加 `<>` 表示这个符号只能在当前文件内被使用。在符号后面可以添加一个 `offset`，例如 `foo+4(SB)` 表示从 `foo` 的第四个字节开始。
+
+例如，我们定义一个 `uint16` 的变量 `num`，给他赋值 `0xABCD`，十进制是 `43981`，二进制表示是 `10101011 11001101`，我们可以用下面的汇编代码对他进行初始化，Go汇编代码有个要求就是结尾必须有个空行，否则编译会报错：
+
+```asm
+#include "textflag.h"
+
+DATA ·num(SB)/1,$0b11001101
+DATA ·num+1(SB)/1,$0b10101011
+GLOBL ·num(SB),NOPTR,$2
+
+```
+
+###### FP
+
+栈帧是操作系统位函数调用在栈上开辟的内存空间，它包含自己的局部变量和被调函数的参数。我们可以通过Go语言中的 `FP`伪寄存器和一个偏移量访问当前函数的参数。所以说在 `64`位系统上， `0(FP)`是第一个参数，`8(FP)` 是第二个参数。但是当使用这种方式引用函数参数时，我们必须加上变量名，例如 `first_arg+0(FP)`，`second_arg+8(FP)`，这是Go的汇编器强制要求，但是名称是什么无所谓，不必须和函数签名一致。要注意区分的是，`foo+8(FP)` 和 `foo+8(SB)`，前者时相对于 `FP` 进行偏移，而后者是相对于 `foo` 的起始地址进行偏移。
+
+对于Go定义的函数，`go vet` 将会检查参数名称是否和偏移量匹配。另外，在`32` 位系统上，`64` 位值得低 `32` 位和高 `32` 位可以通过在名称后面添加 `_lo` 和 `_hi` 后缀进行区分。例如，`arg_lo+0(FP)` 和 `arg_hi+4(FP)`，如果函数没有对返回值命名，那么默认为 `ret`。
+
+为了说明对 `FP` 伪寄存器的使用，我们准备如下的例子，例子很简单，就是实现对全局变量 `numa` 和 `numb` 的交换，我们使用汇编实现 `p` 和 `q` 函数，就是想演示通过栈如何传递参数以及栈的布局，这两个函数如果用Go实现就是：
+
+> func p() {numa, numb = q(numa, numb)}
+
+> func q(a, b uint32) (ret0, ret1 uint32) {return b, a}
+
+{% tabs Go汇编FP伪寄存器使用 %}
+
+<!-- tab main.go -->
+```go
+package main
+
+import "fmt"
+
+var numa, numb uint32
+
+func p()
+
+func q(a, b uint32) (ret0, ret1 uint32)
+
+func main() {
+	fmt.Println(numa, numb)
+	p()
+	fmt.Println(numa, numb)
+}
+```
+
+将汇编代码和Go代码一起编译运行是没有任何问题的，现在我们来画处当进入 `q` 函数内时，`p` 和 `q` 栈帧示意图。有一点需要提前了解的是，我们在为 `p` 函数分配栈帧的时候，不需要分配它调用 `q` 时存储**返回地址**（`CALL` 指令下一条指令地址）的空间，`CALL` 指令执行的时候会自动扩展栈，将返回地址压栈，可以通过 `dlv` 调试器调试代码查看寄存器值得变化以及对应内存值。所以当我们执行 `q` 函数的时候，看到的栈空间以及 `FP` 的位置如下图：
+
+![](pcallq-goasm-stackframe.png)
+
+<!-- endtab -->
+
+<!-- tab asm.s -->
+
+下面的汇编代码中，只使用了虚拟寄存器 `FP`，在函数 `q` 中，使用硬件寄存器 `SP` 将 `q` 的参数放置到栈上：
+
+```asm
+#include "textflag.h"
+
+DATA  ·numa+0(SB)/4, $1
+GLOBL ·numa(SB),NOPTR,$4
+
+DATA  ·numb+0(SB)/4, $2
+GLOBL ·numb(SB),NOPTR,$4
+
+TEXT ·p(SB), NOSPLIT, $40-0
+    // 作为调用者需要保存栈指针，叶子函数没必要做这个操作
+    SUBQ  $40, SP
+    MOVQ  BP, 32(SP)
+    LEAQ  32(SP), BP
+
+    // x86-64 不能将数据从内存直接移动到另一块内存，所以需要先移动到寄存器做中转
+    // 将全局变量 numa 赋值给 q 的参数 a
+    MOVQ ·numa(SB), AX
+    MOVQ AX, (SP)  // a = numa
+
+    // 将全局变量 numb 赋值给 q 的参数 b
+    MOVQ ·numb(SB), BX
+    MOVQ BX, 8(SP)  // b = numb
+
+    CALL ·q(SB)
+
+	// 将 ret1 给 numb
+	// 将 ret0 给 numa
+    MOVQ 16(SP), AX // 16(SP) is ret0 = 2
+    MOVQ 24(SP), CX // 24(SP) is ret1  = 1
+    MOVQ AX, ·numa(SB)
+    MOVQ CX, ·numb(SB)
+
+    MOVQ 32(SP), BP
+    ADDQ $40, SP
+
+    RET
+
+TEXT ·q(SB), NOSPLIT, $0-24
+    // 将参数a赋值给 ret1
+    MOVQ a+0(FP), DI
+    MOVQ DI, ret1+24(FP) // a->ret1 = 1
+
+    // 将参数b赋值给 ret0
+    MOVQ b+8(FP), SI
+    MOVQ SI, ret0+16(FP) // b->ret0 = 2
+
+    RET
+
+```
+<!-- endtab -->
+
+{% endtabs %}
 
 ### 参考链接
 
