@@ -1164,9 +1164,8 @@ type reader struct {
 
 ```
 
-我们做个示例，使用 `updateVars` 更新 `globalBufSize`，`readerSize`，`readerBufSecond` 以及 `readerR`，Go 代码和汇编代码如下所示，运行这段代码将会输出:
+我们做个示例，使用 `outputVars` 调用 `printInt` 函数，输出 `const_bufSize`，`reader__size`，`reader.buf[1]` 以及 `reader.r`，Go 代码和汇编代码如下所示，运行这段代码将会输出:
 
-	0 0 0 0
 	1024 4100 1 8
 
 
@@ -1177,29 +1176,26 @@ type reader struct {
 #include "textflag.h"
 #include "go_asm.h"
 
-DATA  ·globalBufSize+0(SB)/4, $0
-GLOBL ·globalBufSize(SB),NOPTR,$4
+TEXT ·outputVars(SB), NOSPLIT, $24-8
+    SUBQ  $24, SP
+    MOVQ  BP, 16(SP)
+    LEAQ  16(SP), BP
 
-DATA  ·readerSize+0(SB)/4, $0
-GLOBL ·readerSize(SB),NOPTR,$4
-
-DATA  ·readerBufSecond+0(SB)/4, $0
-GLOBL ·readerBufSecond(SB),NOPTR,$4
-
-DATA  ·readerR+0(SB)/4, $0
-GLOBL ·readerR(SB),NOPTR,$4
-
-TEXT ·updateVars(SB), NOSPLIT, $0-8
-    MOVL $const_bufSize, ·globalBufSize(SB)
-    MOVL $reader__size, ·readerSize(SB)
+    MOVL $const_bufSize, (SP)
+    MOVL $reader__size, 4(SP)
 
     MOVQ addr+0(FP), AX
 
     MOVL reader_buf+4(AX), CX
-    MOVL CX, ·readerBufSecond(SB)
+    MOVL CX, 8(SP)
 
     MOVL reader_r(AX), CX
-    MOVL CX, ·readerR(SB)
+    MOVL CX, 12(SP)
+
+    CALL ·printInt(SB)
+
+    MOVQ 16(SP), BP
+    ADDQ $24, SP
 
     RET
 
@@ -1221,19 +1217,14 @@ type reader struct {
 	r   uint32
 }
 
-var (
-	globalBufSize   uint32
-	readerSize      uint32
-	readerBufSecond uint32
-	readerR         uint32
-)
+func outputVars(r *reader)
 
-func updateVars(r *reader)
+func printInt(a, b, c, d uint32) {
+	fmt.Println(a, b, c, d)
+}
 
 func main() {
-	fmt.Println(globalBufSize, readerSize, readerBufSecond, readerR)
-	updateVars(&reader{buf: [bufSize]uint32{1: 1}, r: 8})
-	fmt.Println(globalBufSize, readerSize, readerBufSecond, readerR)
+	outputVars(&reader{buf: [bufSize]uint32{1: 1}, r: 8})
 }
 
 ```
@@ -1254,6 +1245,134 @@ Go 是一个具有垃圾回收的语言，为了让 GC 运行正确，运行时�
 如果一个函数没有栈帧，指针信息是会被省略的，在 `Text` 指令中，会被表示成 `$0-n`。如果函数是叶子函数，也就是没有函数调用，指针信息也是可以被省略的。否则，必须通过指令 `NO_LOCAL_POINTERS` 来说明函数栈帧是没有包含任何指针的。因为堆栈大小调整是通过移动堆栈来实现的，所以堆栈指针可能会在任何函数调用期间发生变化：即使指向堆栈数据的指针也不能保存在局部变量中。
 
 写汇编函数的时候，我们应该总是提供Go的原型声明，也就是使用Go代码呈现函数签名，这样，既可以位参数和结果提供指针信息，也可以让 `go vet` 检查用于访问它们的偏移量是否正确。
+
+##### 架构相关信息
+
+列出某个平台的所有指令或者其他细节是不现实的，想要看到特定平台下面有哪些指令，例如：ARM 平台，我们可以去这里 [src/cmd/internal/obj/arm](https://github.com/golang/go/blob/master/src/cmd/internal/obj/arm/a.out.go)，这个文件里面有一系列以字母 `A` 开头的常量，例如：
+
+```go
+const (
+	AAND = obj.ABaseARM + obj.A_ARCHSPECIFIC + iota
+	AEOR
+	ASUB
+	ARSB
+	AADD
+	AADC
+	ASBC
+	ARSC
+	ATST
+	ATEQ
+	ACMP
+	ACMN
+	AORR
+	ABIC
+	...
+```
+
+这个列表中指令的名字和拼写，这个平台下对应的汇编器和链接器都是已知的。每个指令虽然都是以 `A` 开头，例如 `AAND`，但是它实际代表的指令是 `AND` ，在汇编代码中也是写作 `AND`。我们熟知的 `X86-64` 结构对应的指令列表是在 [cmd/internal/obj/x86/a.out.go](https://github.com/golang/go/blob/master/src/cmd/internal/obj/x86/a.out.go)。
+
+所有架构共享以下的寻址方式，每个架构可能也有自己特定的寻址方式：
+
+1. `(R1)`， 寄存器简洁寻址；
+2. `4(R1)`，寄存器使用偏移量间接寻址；
+3. `$foo(SB)`，绝对寻址
+
+在Go汇编系统中，如我们上面描述的例子所展示的那样，汇编指令中，我们的数据都是从左流向右，即源操作数在做，目的操作数在右。例如：`MOVQ $0, CX`，将 `0` 移动到 `CX` 寄存器，已达到清空寄存器的目的。这个数据流向规则在那些使用相反方向数据流的架构中依然适用。
+
+下面我们展示几个我们熟知的架构 `X86`平台，其他的请看[A Quick Guide to Go's Assembler](https://go.dev/doc/asm)：
+
+###### 32-bit Intel 386
+
+指向 `g` 结构的运行时指针是通过 `MMU` 中未使用的（就 Go 而言）寄存器的值来维护的。在运行时包中，汇编代码可以包含 `go_tls.h`，它定义了一个依赖于操作系统和体系结构的宏 `get_tls` 用于访问该寄存器。`get_tls` 宏接受一个参数，即加载 `g` 指针的寄存器。
+
+例如，可以使用下面的代码将 `g` 和 `g.m` 分别加载 `AX` 和 `BX` 中：
+
+```
+#include "go_tls.h"
+#include "go_asm.h"
+...
+get_tls(CX)
+MOVL	g(CX), AX     // Move g into AX.
+MOVL	g_m(AX), BX   // Move g.m into BX.
+
+```
+
+这个宏在 `amd64` 架构下也有定义，请查看 [src/runtime/go_tls.h](https://github.com/golang/go/blob/master/src/runtime/go_tls.h)，它的内容是:
+
+```c
+#ifdef GOARCH_arm
+#define LR R14
+#endif
+
+#ifdef GOARCH_amd64
+#define	get_tls(r)	MOVQ TLS, r
+#define	g(r)	0(r)(TLS*1)
+#endif
+
+#ifdef GOARCH_386
+#define	get_tls(r)	MOVL TLS, r
+#define	g(r)	0(r)(TLS*1)
+#endif
+```
+
+x86 系统中， `TLS` 中存储的是当前 `g` 的地址，goroutine ID 存储在 `g.goid` 字段中，`go1.16.*` 版本中，`g.goid` 的偏移量是 `152`，我们可以通过下面的代码实现goid的获取：
+
+{% tabs 汇编方式获取goid %}
+
+<!-- tab asm.s -->
+```
+#include "textflag.h"
+
+TEXT ·gid(SB), NOSPLIT, $0-8
+    MOVQ (TLS), AX
+    MOVQ 152(AX), BX
+    MOVQ BX, ret0+0(FP)
+    RET
+
+```
+<!-- endtab -->
+
+<!-- tab main.go -->
+```go
+package main
+
+import (
+	"fmt"
+)
+
+func gid() uint64
+
+func main() {
+	fmt.Println(gid())
+}
+```
+<!-- endtab -->
+
+{% endtabs %}
+
+偏移量的计算我们可以通过 `dlv` 调试器在用户态任意函数任意位置断住，使用如下的指令获取：
+
+	(dlv) p &runtime.curg
+	(*runtime.g)(0xc000000180)
+	(dlv) p &runtime.curg.goid
+	(*int64)(0xc000000218)
+	(dlv) p 0xc000000218-0xc000000180
+	152
+	(dlv)
+
+
+特有的寻址方式如下：
+
+- `(DI)(BX*2)`: 代表的地址是：`DI + BX * 2`
+- `64(DI)(BX*2)`: 代表的地址是：`64 + DI + BX * 2`，比例因子只能是 `1`，`2`，`4` 或者 `8`。
+
+使用编译器和汇编器的 `-dynlink` 或 `-shared` 模式时，必须假设对固定内存位置（例如全局变量）的任何加载或存储都会覆盖 `CX`。因此，为了安全使用这些模式，汇编代码通常应避免使用 `CX`，除非在内存引用之间。
+
+###### 64-bit Intel 386 (AMD64)
+
+这两种架构在汇编级别表现基本相同，访问运行时 `g` 和 `m` 的方式也和 `32 bit x86` 架构是一样的，只是这里的使用的指令是 `MOVQ` 而不是 `MOVL`。另外。
+
+作为被调用者需要保存 `BP`，汇编器会自动在帧大于0的函数中插入 `BP` 保存和恢复的指令。允许使用 `BP` 作为通用寄存器，但是这会干扰采样分析。
 
 ### 参考链接
 
