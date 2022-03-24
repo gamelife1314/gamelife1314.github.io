@@ -1145,17 +1145,18 @@ GLOBL runtime·tlsoffset(SB), NOPTR|RODATA, $4
 
 这个例子中定义和声明了文件私有的（`<>`），`64 Bytes` 的变量 `divtab`。也声明了一个 `4 Bytes` 的未包含指针（`NOPTR`）的只读（`RODATA`）零值变量 `runtime·tlsoffset`。`GLOBL` 除了声明符号的大小之外，可能还会有`1`个参数用来指定符号的一些属性，这些属性定义在文件 [`src/runtime/textflag.h`](https://github.com/golang/go/blob/master/src/runtime/textflag.h) 中，主要有：
 
-- `NOPROF   = 1`: (For `TEXT` items.) Don't profile the marked function. This flag is deprecated.
+- `NOPROF   = 1`: (For `TEXT` items.) Don't profile the marked function. This flag is deprecated；
 - `DUPOK    = 2`: 允许相同符号在二进制文件中有多个，链接器选择其中一个使用即可；
-- `NOSPLIT  = 4`: (For `TEXT` items.) 不要插入用来检查是否需要栈扩展的代码。
+- `NOSPLIT  = 4`: (For `TEXT` items.) 不要插入用来检查是否需要栈扩展的代码；
 - `RODATA   = 8`: (For `DATA` and `GLOBL` items.) 声明变量是只读的，将被放在二进制文件只读段；
 - `NOPTR   = 16`: (For `DATA` and `GLOBL` items.) 声明的变量不包含任何指针，垃圾回收器不用扫描；
-- `WRAPPER = 32`: (For `TEXT` items.) This is a wrapper function and should not count as disabling `recover`.
-- `NEEDCTXT= 64`: (For `TEXT` items.) This function is a closure so it uses its incoming context register.
-- `LOCAL  = 128`: 此符号是动态共享对象的本地符号。
+- `WRAPPER = 32`: (For `TEXT` items.) This is a wrapper function and should not count as disabling `recover`；
+- `NEEDCTXT= 64`: (For `TEXT` items.) This function is a closure so it uses its incoming context register；
+- `LOCAL  = 128`: 此符号是动态共享对象的本地符号；
 - `TLSBSS = 256`: (For `DATA` and `GLOBL` items.) 把这个变量放到线程的本地存储中；
-- `NOFRAME = 512`: （对于 `TEXT` 项。）不要插入指令来分配堆栈帧并保存/恢复返回地址，即使这不是叶函数。仅对声明帧大小为 `0` 的函数有效。
-- `TOPFRAME = 2048`: (For TEXT items.) Function is the outermost frame of the call stack. Traceback should stop at this function.
+- `NOFRAME = 512`: （对于 `TEXT` 项。）不要插入指令来分配堆栈帧并保存/恢复返回地址，即使这不是叶函数。仅对声明帧大小为 `0` 的函数有效；
+- `TOPFRAME = 2048`: (For TEXT items.) Function is the outermost frame of the call stack. Traceback should stop at this function；
+- `ABIWRAPPER`：表示函数是一个ABI包装器；
 
 ##### 寄存器
 
