@@ -11,6 +11,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: deploy gamelife1314.github.io
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -29,16 +34,16 @@ jobs:
 
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm install
 
-      - name: update config
+      - name: install minify
         run: |
-          echo "all_minifier: true" >> _config.yml
+          npm install hexo-minify --save
 
       # Deploy hexo blog website.
       - name: Deploy
         id: deploy
-        uses: sma11black/hexo-action@v1.0.3
+        uses: sma11black/hexo-action@v1.0.4
         with:
           deploy_key: ${{ secrets.GH_DEPLOY_PRI }}
           user_name: MichaelFu
