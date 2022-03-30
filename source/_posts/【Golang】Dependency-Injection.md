@@ -26,6 +26,8 @@ func NewUserStore(cfg *Config, db *mysql.DB) (*UserStore, error) {...}
 
 4. `Wire` 的依赖图是静态可知的，便于工具可视化；
 
+<!-- more -->
+
 ### 工作原理
 
 `Wire` 有两个基本的概念，`providers` 和 `injectors`，`provider` 其实就是Go原生的函数，它们接受某些参数，称之为返回值的依赖，然后返回某个想要的类型示例。例如：
