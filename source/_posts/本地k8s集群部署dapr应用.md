@@ -33,9 +33,7 @@ categories:
 
 [k3d](https://k3d.io/v5.0.0/) 是讲 [k3s](https://k3s.io/) 运行在 docker 中的社区软件，k3s 是轻量级的 k8s，主要部署于物联网设备，ARM 芯片设备上，耗电少体积小，易部署，我们在本地开发中想创建 k8s 集群，可以选择 k3d+k3s 的方式，当然也有 [minikube](https://link.juejin.cn/?target=https%3A%2F%2Fminikube.sigs.k8s.io%2Fdocs%2F)，[microk8s](https://link.juejin.cn/?target=https%3A%2F%2Fmicrok8s.io%2F)，[kind](https://link.juejin.cn/?target=https%3A%2F%2Fkind.sigs.k8s.io%2F) 等，我首选了 `minikube` + [multipass](https://multipass.run/) 的方式，奈何国内网络限制，加之 multipass 某些想要的功能 M1 还不支持，就放弃了。在 Mac 上安装 k3d 很简单：
 
-> brew install k3d
-> brew install kubectl
-> brew install kubecm
+> brew install k3d kubectl kubecm
 
 #### helm
 
