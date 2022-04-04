@@ -106,6 +106,68 @@ date
 
 ![](rancher-dashboard.png)
 
+### K8S 仪表盘
+
+本节内容参考：[https://docs.rancher.cn/docs/k3s/installation/kube-dashboard/_index](https://docs.rancher.cn/docs/k3s/installation/kube-dashboard/_index)
+
+1. 部署仪表盘
+
+    ```
+    GITHUB_URL=https://github.com/kubernetes/dashboard/releases
+    VERSION_KUBE_DASHBOARD=$(curl -w '%{url_effective}' -I -L -s -S ${GITHUB_URL}/latest -o /dev/null | sed -e 's|.*/||')
+    sudo k3s kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/${VERSION_KUBE_DASHBOARD}/aio/deploy/recommended.yaml
+    ```
+
+2. 仪表盘RBAC配置
+
+    ```yaml dashboard.admin-user.yml
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: admin-user
+      namespace: kubernetes-dashboard
+    ```
+
+    ```yaml dashboard.admin-user-role.yml
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: admin-user
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cluster-admin
+    subjects:
+      - kind: ServiceAccount
+        name: admin-user
+        namespace: kubernetes-dashboard
+    ```
+
+    部署 `admin-user` 配置：
+
+    > kubectl create -f dashboard.admin-user.yml -f dashboard.admin-user-role.yml
+
+3. 获得 Token
+
+    > kubectl -n kubernetes-dashboard describe secret admin-user-token | grep '^token'
+
+4. 要访问仪表盘，你必须创建一个安全通道到你的 K3s 集群
+
+    > kubectl proxy --port=7788 --address='0.0.0.0' --disable-filter=true --accept-hosts '.*'
+
+    使用类似下面的URL访问仪表盘， http://192.168.64.9:7788/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login ，正常情况下，部署在自己的电脑上，直接使用localhost即可，但我是将集群部署到虚拟机里面，所以在访问的时候被检测到不安全访问：
+
+    ![](dashboard-inscure.png)
+
+    为了解决这个问题，使用 ssh 进行建立了一个转发隧道，参考：[https://blog.fundebug.com/2017/04/24/ssh-port-forwarding/](https://blog.fundebug.com/2017/04/24/ssh-port-forwarding/)
+
+    > ssh -L localhost:8877:localhost:7788 -NT ubuntu@192.168.64.9
+
+    然后就访问OK了：
+
+    ![](dashboard-secure.png)
+
+
 ### 验证集群
 
 作为测试我们创建一个nginx应用来验证我们的集群：
