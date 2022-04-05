@@ -100,11 +100,20 @@ kubectl create namespace cattle-system
 helm install rancher rancher-latest/rancher --namespace cattle-system --set hostname=${RANCHER_SERVER_HOSTNAME} --wait
 kubectl -n cattle-system rollout status deploy/rancher
 date
+
+# 如果你想卸载
+helm uninstall  -n cattle-system rancher
+helm uninstall  -n cert-manager cert-manager
 ```
 
 成功安装 Rancher 之后，登录到 rancher 后台，我们可以在后台安装我们想要的组件，例如：[prometheus](https://prometheus.io/)，[grafana](https://grafana.com/)等。
 
 ![](rancher-dashboard.png)
+
+#### MySQL（just for fun）
+
+参考 [https://kubernetes.io/zh/docs/tasks/run-application/run-single-instance-stateful-application/](https://kubernetes.io/zh/docs/tasks/run-application/run-single-instance-stateful-application/)，在我的机器上唯一不同的是，我是arm机器，`mysql:5.6` 镜像无法下载，替换成了 `arm64v8/mariadb:latest`。
+
 
 ### K8S 仪表盘
 
