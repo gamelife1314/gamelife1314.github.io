@@ -44,3 +44,8 @@ registry = "git://mirrors.ustc.edu.cn/crates.io-index"
 ```
 
 <!-- more -->
+
+
+### 参考文章
+
+1. [Notes on cross-compiling Rust](https://john-millikin.com/notes-on-cross-compiling-rust)
