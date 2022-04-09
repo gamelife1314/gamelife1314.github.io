@@ -35,9 +35,9 @@ tags:
 
 <!-- more -->   
 
-#### 安装 rust 工具链
+#### 安装 rust 标准库
 
-在编译之前，我们需要在我们的工作平台，即 Apple 机器中，安装目的平台的工具链，我们可以通过 `rustup target list` 命令查看 `rust` 支持哪些工具链，例如：
+在编译之前，我们需要在我们的工作平台，即 Mac 机器中，安装目的平台的标准库，我们可以通过 `rustup target list` 命令查看 `rust` 支持哪些平台架构，例如：
 
 ```
 ~/WORKDIR/rust/helloworld ⌚ 12:52:32
@@ -47,7 +47,7 @@ aarch64-unknown-linux-gnu (installed)
 aarch64-unknown-linux-musl
 ```
 
-安装工具链使用 `rustup target add` 命令即可:
+安装特定平台标准库使用 `rustup target add` 命令即可:
 
 ```
 ~/WORKDIR/rust/helloworld ⌚ 13:21:34
@@ -57,7 +57,7 @@ info: installing component 'rust-std' for 'aarch64-unknown-linux-gnu'
  34.9 MiB /  34.9 MiB (100 %)  18.1 MiB/s in  1s ETA:  0s
 ```
 
-安装成功之后，通过 `rustup show` 命令查看本地已安装工具链：
+安装成功之后，通过 `rustup show` 命令查看本地已安装的工具链和标准库：
 
 ```
 ~/WORKDIR/rust/helloworld ⌚ 13:22:11
