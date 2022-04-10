@@ -6,7 +6,7 @@ tags:
 mathjax: true
 ---
 
-下面是在《Rust》中会看到的类型的总结，展示了Rust的基本类型，标准库中一些非常常见的类型，以及一些用户定义类型的例子。
+下面是在 `Rust` 中会看到的类型的总结，展示了Rust的基本类型，标准库中一些非常常见的类型，以及一些用户定义类型的例子。
 
 |Type|Description|Values|
 |:--:|:--:|:--:|
@@ -295,6 +295,85 @@ assert_eq!(false as i32, 0);
 assert_eq!(true as i32, 1);
 ```
 
-但是，`as` 不能将数字转化为 `bool`，所以，必须写显示的比较操作，例如：`x != 0`。
+但是，`as` 不能将数字转化为 `bool`，所以，必须写显示的比较操作，例如：`x != 0`。虽然`bool`只需要1个bit来表示它，但 `Rust` 使用整个字节来表示内存中的`bool`值，因此可以创建指向它的指针。
 
-虽然`bool`只需要一个bit来表示它，但 `Rust` 使用整个字节来表示内存中的`bool`值，因此可以创建指向它的指针。
+### 字符类型
+
+Rust的字符类型 `char` 表示单个`Unicode`字符，为`32`位值。`Rust` 对单个字符使用 `char` 类型，但对字符串和文本流使用 `UTF-8` 编码。因此，字符串将其文本表示为 `UTF-8` 字节序列，而不是字符数组。字符字面量是用单引号括起来的字符，如`'8'`或`'!'`，可以任何 Unicode 字符，例如 '中'。
+
+根据个人喜好，如果喜欢，可以用16进制写出任何一个字符的 Unicode 码：
+
+- 如果字符的代码点在`U+0000`到`U+007F`的范围（也就是ASCII码），那么我们可以将字符写为`\xHH`，其中`HH`是一个两位`16进制`数字。例如，字符文字`*`和`\x2A`是等价的，因为字符`*`的代码点是`42`，或十六进制为`2A`。
+
+- 可以将任何 `Unicode` 字符写成 `\u{HHHHHH}`，其中 `HHHHHH` 是一个`16进制`数字，长度可达 `6` 位数，允许使用下划线分组。例如，字面字符`\u{CA0}`表示字符`ಠ`。
+
+`char`类型能表示的 Unicode 字符码点在 `0x0000 ~ 0xD7FF` 或者 `xE000 ~ 0x10FFFF` 之间。Rust使用类型系统和动态检查来确保字符值始终在允许范围内。
+
+`Rust` 永远不会在 `char` 和任何其他类型之间隐式转换。可以使用转换运算符将字符转换为整数类型；对于小于`32位`的类型，字符值的上位被截断：
+
+```rust
+fn main() {
+    assert_eq!('*' as i32, 42);
+    assert_eq!('ಠ' as u16, 0xca0);
+    assert_eq!('ಠ' as i8, -0x60); // U+0CA0 truncated to eight bits, signed
+}
+```
+
+另一方面，u8是as运算符转换为char的唯一类型：Rust希望as运算符只执行廉价、无误的转换，但u8以外的每个整数类型都包含不允许的Unicode代码点的值，因此这些转换需要运行时检查。相反，标准库函数std::char::from_u32接受任何u32值并返回Option<char>：如果u32不是允许的Unicode代码点，则from_u32返回None；否则，它会返回Some(c)，其中c是char结果。
+
+还有就是，`u8` 是唯一一个被 `as` 用来转换为 `char` 的类型，将其他的数值强制转换成 `char` 都会出错。因为 `u8` 表示的字符总是有效的，`u8` 以外的每个整数类型都包含不允许的`Unicode`代码点的值，因此这些转换需要运行时检查。相反，标准库函数`std::char::from_u32`接受任何`u32`值并返回`Option<char>`，如果`u32`不是允许的`Unicode`码点，则`from_u32`返回`None`；否则，它会返回`Some(c)`，其中`c`是`char`结果。
+
+标准库提供了一些关于字符的有用方法，可以[这里](https://doc.rust-lang.org/std/primitive.char.html)。例如：
+
+```rust
+fn main() {
+    assert_eq!('*'.is_alphabetic(), false);
+    assert_eq!('β'.is_alphabetic(), true);
+    assert_eq!('8'.to_digit(10), Some(8));
+    assert_eq!('ಠ'.len_utf8(), 3);
+    assert_eq!(std::char::from_digit(2, 10), Some('2'));
+}
+```
+
+### 元组类型
+
+`Tuple`是一个多元组，形式上是一个括号围起来的，逗号分割的元素序列。例如 `("Brazil", 1985)`，它的类型是 `(&str, i32)`，如果将它赋值给变量 `t`，可以通过 `t.0` 或者 `t.1` 访问元素。
+
+在某种程度上，`tuple` 很想 `array`，都表示有序的值序列。有些编程语言中将他们统一在一起，但是在 `rust` 中，这完全是隔离开的。主要有两大区别：
+
+1. `tuple` 的元素类型可以不同，但是数组所有元素的类型都是相同的；
+2. `tuple` 只能用常量作为索引，例如 `t.4`，不能用 `t.i` 或者 `t[i]` 去访问第 `i` 个元素；
+
+Rust 中，`tuple` 经常用于函数的多值返回，例如：
+
+> fn split_at(&self, mid: usize) -> (&str, &str);
+
+返回值 `(&str, &str)` 是一个包含两个字符串切片的 `tuple`，可以通过模式匹配将他们赋值给不同的变量:
+
+```rust
+fn main() {
+    let text = "I see the eigenvalue in thine eye";
+    let (head, tail) = text.split_at(21);
+    assert_eq!(head, "I see the eigenvalue ");
+    assert_eq!(tail, "in thine eye");
+}
+```
+
+这比下面的代码更具可读性：
+
+```rust
+fn main() {
+    let text = "I see the eigenvalue in thine eye";
+    let temp = text.split_at(21);
+    let head = temp.0;
+    let tail = temp.1;
+    assert_eq!(head, "I see the eigenvalue ");
+    assert_eq!(tail, "in thine eye");
+}
+```
+
+另一种常用的元组类型是零元组`()`。这一般被称为单位类型，因为它只有一个值，也写成 `()`。`Rust` 使用单位类型，虽然其中没有有意义的值可以携带，但上下文仍然需要某种类型。例如，我们可能有这样一个返回值 `Result<(), std::io::Error>`，它在成功时没有返回值，当出错时返回 `std::io::Error`。
+
+还有就是，可以在 `tuple` 的最后一个元素后面添上逗号，但是还是同一个类型，例如 `(&str, i32,)` 和 `(&str, i32)` 是完全等价的。除此之外，`Rust` 在函数参数，数组，结构体或者枚举定义中都允许使用额外的逗号。
+
+对于一元组，也就是只包含单个元素的元祖，也是允许的，例如 `("lonely hearts",) ` 它的类型是 `(&str,)`，这里的逗号就是必须的，为了和括号表达式区分。
