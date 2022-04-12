@@ -404,3 +404,264 @@ fn main() {
 
 Rust的共享引用和可变引用其实就是 `单读多写`，它可以由任何数量的 `reader` 共享，但 `writer` 始终只有一个，rust 在编译时就会执行这种检查，也是 rust 安全的核心。
 
+#### Boxes
+
+在对上申请内存的最简单方式是使用 `Box::new`：
+
+```rust
+let t = (12, "eggs");
+let b = Box::new(t); // allocate a tuple in the heap
+```
+
+`t` 的类型是 `(i32, &str)`，所以 `b` 的类型是 `Box<(i32, &str)>`。`Box::new` 会在堆上申请最够多的内存以容纳 `t`。当 `b` 离开作用域时，它的内存会被理解回收，除非它被 `moved`。
+
+#### 原生指针
+
+Rust还具有原始指针类型 `*mut T`和 `*const T`。原始指针就像 `C++` 中的指针一样。使用原始指针不安全，因为Rust没有跟踪它指向的内容。例如，原始指针可能是空的，或者可能指向已释放或现在包含不同类型值的内存，`C++` 的所有经典指针错误都可能遇到。
+
+但是，只能在不安全的块中解引用原始指针，`unsafe` 代码块是Rust对高级语言功能的选择加入机制，其安全性由开发者保证。
+
+### 数组，Vector 和 切片
+
+Rust有三种类型来表示内存中一个连续序列：
+
+- `[T; N]`：表示`N`个值数组，每个值类型为`T`。数组的大小是在编译时确定的常量，是类型的一部分，无法在运行时变更数组大小；
+
+- `Vec<T>`：称为`T` 的向量，是 `T` 型的动态分配、可增长的值序列。向量的元素分配在堆上，因此你可以随意调整向量大小：将新元素推送到它们上，将其他向量附加到它们上，删除元素等。
+
+- `&[T]` & `&mut [T]`：只读序列和可变序列，是对一系列元素的引用，这些元素是其他数组或者向量的一部分。可以将切片视为指向其第一个元素的指针，以及从该点开始可以访问的元素数量的计数。可变切片`&mut [T]`允许您读取和修改元素，但无法共享；共享切片`&[T]`允许您在多个阅读器之间共享访问权限，但不允许您修改元素。
+
+给定这三种类型的值`v`，表达式`v.len()`给出了`v`中的元素数量，`v[i]`指的是`v`的第`i`个元素。第一个元素是`v[0]`，最后一个元素是`v[v.len() - 1]`。Rust 会检查 `i` 总是在这个范围内，否则就会崩溃。`v` 的长度可能是零，在这种情况下，任何索引尝试都会`panic`。`i` 必须是一个 `usize` 值，你不能使用任何其他整数类型作为索引。
+
+#### 数组
+
+下面有几种不同的方式创建数组，最简单的是在方括号内写一系列值：
+
+```rust
+fn main() {
+    let lazy_caterer: [u32; 6] = [1, 2, 4, 7, 11, 16];
+    let taxonomy = ["Animalia", "Arthropoda", "Insecta"];
+    assert_eq!(lazy_caterer[3], 7);
+    assert_eq!(taxonomy.len(), 3);
+}
+```
+
+如果要初始化一个 `N` 个 `V` 的数组，可以写作 `[V, N]`，例如，`[true, 10000]` 表示有 10000 个 `true`：
+
+```rust
+fn main() {
+    let mut sieve = [true; 10000];
+    for i in 2..100 {
+        if sieve[i] {
+            let mut j = i * i;
+            while j < 10000 {
+                sieve[j] = false;
+                j += i;
+            }
+        }
+    }
+    assert!(sieve[211]);
+    assert!(!sieve[9876]);
+}
+```
+
+由于 `Rust` 不会自动对内存进行初始化，也不允许我们读未初始化的变量。所以如果我们想初始化一个缓冲池，可以像这样做：`[0u8, 1024]`。
+
+数组的长度是其类型的一部分，在编译时是固定的。如果 `n` 是一个变量，则无法编写 `[true;n]` 来获取 `n` 个元素的数组。当需要一个长度在运行时有所不同的数组，请使用向量。
+
+数组上看到的一些常用方法，例如，迭代、搜索、排序、填充、过滤等，其实都是作为切片上的方法提供的，而不是数组。但是，在搜索方法时，`Rust` 会隐式地将对数组的引用转换为切片，因此可以直接调用数组上的任何切片方法：
+
+```rust
+fn main() {
+    let mut chaos=[3,5,4,1,2];
+    chaos.sort();
+    assert_eq!(chaos, [1, 2, 3, 4, 5]);
+}
+```
+
+在这里，排序方法实际上是在切片上定义的，但由于它通过引用操作数，`Rust` 隐式生成一个引用整个数组的 `&mut [i32]` 切片，并传递对其进行排序以进行操作。事实上，`len`方法也是一种切片方法。
+
+
+#### Vectors
+
+`Vec<T>`是分配给堆上的`T`类型的大小可调整的数组。这里有几种创建 `vector` 的方式
+
+1. 最简单的使用 `vec!` 宏，它给了一个特像创建数组字面量的方式；
+2. `vec![0, 100]`，类似数组的初始化语法，将 `vector` 中的值都初始化相同的元素，`vec!` 宏类似于调用 `Vec::new`；
+3. 从迭代创建，
+
+```rust
+fn main() {
+    let mut primes = vec![2, 3, 5, 7];
+    assert_eq!(primes.iter().product::<i32>(), 210);
+    primes.push(11);
+    primes.push(13);
+    assert_eq!(primes.iter().product::<i32>(), 30030);
+
+    let buf = vec![0; 10 * 10];
+    println!("{:?}", buf);
+
+    let v: Vec<i32> = (0..5).collect();
+    assert_eq!(v, [0, 1, 2, 3, 4]);
+}
+```
+
+使用 `collect` 时，通常需要提供该目的类型，因为它可以构建许多不同类型的集合，而不仅仅是 `vector` 。通过指定 `v` 的类型，我们明确了我们想要哪种集合。
+
+和数组一样，可以在 `vector` 上使用切片方法，`reverse` 方法调用时会隐式转换为 `&mut [&str]` 类型：
+
+```rust
+fn main() {
+    // A palindrome!
+    let mut palindrome = vec!["a man", "a plan", "a canal", "panama"];
+    palindrome.reverse();
+    // Reasonable yet disappointing:
+    assert_eq!(palindrome, vec!["panama", "a canal", "a plan", "a man"]);
+}
+```
+
+`Vec` 是 `Rust` 的基本类型，几乎在需要动态大小列表的地方都可以使用，因此还有许多其他方法来构建新 `vector` 或扩展现有 `vector`。`Vec` 实际上由三部分组成：
+1. 指向堆内存的指针；
+2. 缓冲区的容量，最大能存储多少元素，超过就需要扩容，创建新的缓冲区，更改指针指向，复制当前所有的元素，释放旧的缓冲区；
+3. 当前实际存储的元素数量；
+
+`vector` 扩容会导致程序性能下降，如果一开始就知道 `vector` 的大小，可以使用 `Vec::with_capacity` 创建指定大小的 `vector`，许多库函数使用`Vec::with_capacity` 创建新的 `vector`。`len` 方法返回了当前元素数量，而 `capacity` 返回 `vector` 的容量:
+
+```rust
+fn main() {
+    let mut v = Vec::with_capacity(2);
+    assert_eq!(v.len(), 0);
+    assert_eq!(v.capacity(), 2);
+
+    v.push(1);
+    v.push(2);
+    assert_eq!(v.len(), 2);
+    assert_eq!(v.capacity(), 2);
+
+    v.push(3);
+    assert_eq!(v.len(), 3);
+    // Typically prints "capacity is now 4":
+    println!("capacity is now {}", v.capacity());
+}
+```
+
+最后打印的容量不能保证正好是`4`，但它至少是`3`，因为 `vector` 包含三个值。可以在 `vector` 中随心所欲地插入和删除元素，尽管这些操作将受影响位置后的所有元素向前或向后移动，因此如果 `vector` 很长，它们可能会变慢：
+
+```rust
+fn main() {
+    let mut v = vec![10, 20, 30, 40, 50];
+    // Make the element at index 3 be 35.
+    v.insert(3, 35);
+    assert_eq!(v, [10, 20, 30, 35, 40, 50]);
+    // Remove the element at index 1.
+    v.remove(1);
+    assert_eq!(v, [10, 30, 35, 40, 50]);
+}
+```
+
+您可以使用 `pop` 方法删除最后一个元素并返回它。更准确地说，从 `Vec<T>` 弹出一个值返回 `Option<T>`，因为如果 `vector` 已经为空，则返回 `None`，如果其最后一个元素是 `v`，则返回`Some(v)`：
+
+```rust
+fn main() {
+    let mut v = vec!["Snow Puff", "Glass Gem"];
+    assert_eq!(v.pop(), Some("Glass Gem"));
+    assert_eq!(v.pop(), Some("Snow Puff"));
+    assert_eq!(v.pop(), None);
+}
+```
+
+可以使用 `for` 循环迭代 `vector`：
+
+```rust
+fn main() {
+    let languages: Vec<String> = std::env::args().skip(1).collect();
+    for l in languages {
+        println!("{}, {}", l,
+                 if l.len() % 2 == 0 {
+                     "functional"
+                 } else {
+                     "imperative"
+                 }
+        )
+    }
+}
+```
+
+运行结果如下图:
+
+    ~/WORKDIR/rust/mandelbrot ⌚ 10:10:03
+    $ cargo run Lisp Scheme C C++ Fortran
+        Finished dev [unoptimized + debuginfo] target(s) in 0.00s
+        Running `target/debug/mandelbrot Lisp Scheme C C++ Fortran`
+    Lisp, functional
+    Scheme, functional
+    C, imperative
+    C++, imperative
+    Fortran, imperative
+
+#### Slices
+
+切片的类型是 `[T]`，没有指定长度，是一个数组或者 `vector` 的一部分。由于切片可以是任何长度，切片不能直接存储在变量中或作为函数参数传递。切片总是通过`引用`传递。
+
+切片的指针是一个 `胖指针`，包含了两部分信息：指向的第一个元素地址和包含的元素数量。对于下面这两行代码，`Rust` 会自动转换 `&Vec<f64>` 和 `&[f64; 4]` 到 `&[f64]`：
+
+```rust
+fn main() {
+    let v: Vec<f64> = vec![0.0, 0.707, 1.0, 0.707];
+    let a: [f64; 4] = [0.0, -0.707, -1.0, -0.707];
+    let sv: &[f64] = &v;
+    let sa: &[f64] = &a;
+}
+```
+
+内存分布图，可以展示为下面这样：
+![](slice-memory-figure.png)
+
+普通指针是指向单个值，而 `slice` 是指向内存中一系列连续值。如果你想编写一个函数，既想让他能处理数组，也能处理 `vector`，那么 `slice` 将是不错的选择:
+
+```rust
+fn main() {
+    let v: Vec<f64> = vec![0.0, 0.707, 1.0, 0.707];
+    let a: [f64; 4] = [0.0, -0.707, -1.0, -0.707];
+    let sv: &[f64] = &v;
+    let sa: &[f64] = &a;
+
+    print(&a); // works on arrays
+    print(&v); // works on vectors
+}
+
+fn print(n: &[f64]) {
+    for elt in n {
+        println!("{}", elt);
+    }
+}
+```
+
+由于此函数将切片引用作为参数，因此可以将其应用于向量或数组。事实上，许多属于向量或数组的方法都是在切片上定义的方法。例如，`sort` 和 `reverse`，就地排序和反转元素，实际上是切片类型 `[T]` 上的方法。
+
+我们可以引用数组，`vector` 或者已有 `slice` 的部分：
+
+```
+fn main() {
+    let v: Vec<f64> = vec![0.0, 0.707, 1.0, 0.707];
+    let a: [f64; 4] = [0.0, -0.707, -1.0, -0.707];
+    let sv: &[f64] = &v;
+    let _sa: &[f64] = &a;
+
+    print(&a); // works on arrays
+    print(&v); // works on vectors
+
+    print(&v[0..2]); // print the first two elements of v
+    print(&a[2..]); // print elements of a starting with a[2]
+    print(&sv[1..3]); // print v[1] and v[2]
+}
+
+fn print(n: &[f64]) {
+    for elt in n {
+        println!("{}", elt);
+    }
+}
+```
+
+与普通数组访问一样，`Rust` 检查索引是否有效。正常情况下，总是使用切片的指针，就像 `&[T]` 或者 `&str`。
+
