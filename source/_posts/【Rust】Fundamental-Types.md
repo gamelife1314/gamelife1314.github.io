@@ -421,7 +421,7 @@ Rust还具有原始指针类型 `*mut T`和 `*const T`。原始指针就像 `C++
 
 但是，只能在不安全的块中解引用原始指针，`unsafe` 代码块是Rust对高级语言功能的选择加入机制，其安全性由开发者保证。
 
-### 数组，Vector 和 切片
+### 数组、Vector、切片
 
 Rust有三种类型来表示内存中一个连续序列：
 
@@ -641,7 +641,7 @@ fn print(n: &[f64]) {
 
 我们可以引用数组，`vector` 或者已有 `slice` 的部分：
 
-```
+```rust
 fn main() {
     let v: Vec<f64> = vec![0.0, 0.707, 1.0, 0.707];
     let a: [f64; 4] = [0.0, -0.707, -1.0, -0.707];
@@ -664,4 +664,202 @@ fn print(n: &[f64]) {
 ```
 
 与普通数组访问一样，`Rust` 检查索引是否有效。正常情况下，总是使用切片的指针，就像 `&[T]` 或者 `&str`。
+
+
+### String
+
+熟悉 `C++` 的程序员会记得有两种字符串类型。字符串字面量具有指针类型 `const char *`。标准库还提供了一个类 `std::string`，用于在运行时动态创建字符串。`Rust` 也有类似的设计。本节中，将展示编写字符串文字的所有方法，然后介绍 `Rust` 的两种字符串类型。
+
+#### 字符串字面量
+
+字符串文字以双引号括起来，可以使用转义符 `\` 对特殊字符进行转义，字符串字面量中 `"` 需要转义：
+
+> let speech = "\"Ouch!\" said the well.\n";
+
+字符串可以跨多行存在，该字符串文字中的换行符包含在字符串中，因此也包含在输出中。第二行开头的空格也是如此：
+
+> println!("In the room the women come and go,
+>        Singing of Mount Abora");
+
+如果字符串的一行以反斜杠 `\` 结尾，则删除下一行的换行符和前缀空格：
+
+```rust
+fn main() {
+    println!("It was a bright, cold day in April, and \
+        there were four of us—\
+        more or less.");
+
+    println!("It was a bright, cold day in April, and
+        there were four of us—
+        more or less.");
+}
+```
+
+输出如下:
+
+    /Users/fudenglong/.cargo/bin/cargo run --color=always --package mandelbrot --bin mandelbrot
+        Finished dev [unoptimized + debuginfo] target(s) in 0.00s
+        Running `target/debug/mandelbrot`
+    It was a bright, cold day in April, and there were four of us—more or less.
+    It was a bright, cold day in April, and
+            there were four of us—
+            more or less.
+
+对于以 `r` 开头的原始字符串，其中的所有反斜杠和空格字符都逐字包含在字符串中，所以没法写转义字符：
+
+```rust
+let default_win_install_path = r"C:\Program Files\Gorillas"; 
+let pattern = Regex::new(r"\d+(\.\d+)*");
+```
+
+当然也有办法，例如，以 `r###"`开始，和以 `"###`结束。可以根据需要添加多个 `#` 符号：
+
+```rust
+fn main() {
+    println!(r###"
+        This raw string started with 'r###"'.
+        Therefore it does not end until we reach a quote mark ('"')
+        followed immediately by three pound signs ('###'):
+"###);
+}
+```
+
+#### 字节序列
+
+带有`b` 前缀的字符串文字是一个字节字符串。这样的字符串是`u8`值（即字节）的切片，而不是`Unicode`文本：
+
+```rust
+fn main() {
+    let method = b"GET";
+    assert_eq!(method, &[b'G', b'E', b'T']);
+}
+```
+
+`method` 的类型是 `&[u8; 3]`，是一个对拥有三个字节的数组的引用。他不能使用字符串的相关方法，只是看起来和字符串字面量比较像。
+
+字节字符串可以使用我们展示的所有其他字符串语法：它们可以跨多行，使用转义序列，并使用反斜杠连接行。原始字节字符串以`br`开头。字节字符串不能包含任意的Unicode字符。他们必须处理ASCII和`\xHH`转义序列。
+
+#### 字符串内存表示
+
+`Rust`字符串是`Unicode`字符的序列，但它们不会作为字符数组存储在内存中。相反，它们使用可变宽度编码`UTF-8`存储。字符串中的每个`ASCII`字符都存储在一个字节中。其他字符占用多个字节。
+
+{% note success %}
+对于下面的示例：
+
+```rust
+fn main() {
+    let noodles = "noodles".to_string();
+    let oodles = &noodles[1..];
+    let poodles = "ಠ_ಠ";
+
+    println!("{}", noodles);
+    println!("{}", oodles);
+    println!("{}", poodles);
+}
+```
+
+- `noodles`：类型是 `String`，包含 Unicode 文本，拥有大小可调整的缓冲区，能根据需要调整大小。在堆中分配内存；
+- `oodles`： 类型是 `&str`，引用 `UTF8` 文本的一部分。在这里，它引用 `noodles` 的后6个字符。和其他的切片引用一样，`&str` 是个胖指针，包含了第一个元素的地址和元素数量；
+- `poodles`：类型是 `&str`，引用到预申请的文本，存储值只读内存中，也就是二进制文件的只读分区中，`poodles`只是指向这段内存；
+
+它们的内存分布关系图如下：
+
+![](str-memory-figure.png)
+{% endnote %}
+
+要注意的是 `String` 或者 `&str` 的 `len` 方法返回的是字节的长度而不是字符的长度：
+
+```rust
+fn main() {
+    assert_eq!("ಠ_ಠ".len(), 7);
+    assert_eq!("ಠ_ಠ".chars().count(), 3);
+}
+```
+
+改变 `&str` 是不可能的：
+
+{% note warning  错误示例%}
+
+```rust
+fn main() {
+    let mut s = "hello";
+    s[0] = 'c'; // error: `&str` cannot be modified, and other reasons
+    s.push('\n'); // error: no method named `push` found for reference `&str`
+}
+```
+{% endnote %}
+
+如果要在运行时创建字符串，使用 `String`。类型 `&mut str` 确实存在，但它不是很有用，因为`UTF-8`上的几乎任何操作都可以更改其整体字节长度，并且切片无法重新分配其引用。事实上，`&mut str`上唯一可用的操作是 `make_ascii_uppercase` 和 `make_ascii_lowercase`，根据定义，它们修改了正地的文本，只影响单个字节字符。
+
+#### String
+
+`&str` 非常像 `&[T]`：指向数据的胖指针，`String` 类似于 `Vec<T>`。
+
+||`Vec<T>`|`<String>`|
+|:--|:--:|:--:|
+`Automatically frees buffers`|`Yes`|`Yes`
+`Growable` |`Yes`|`Yes`
+`::new()and::with_capacity()type-associated functions`|`Yes`|`Yes`
+`.reserve() and .capacity() methods`|`Yes`|`Yes`
+`.push() and .pop() methods`|`Yes`|`Yes`
+`Range syntaxv[start..stop]`|`Yes, returns &[T]` |`Yes, returns &str `
+`Automatic conversion`|`&Vec<T> to &[T]` |`&String to &str `
+`Inherits methods`|`From &[T]`|`From &str`
+
+与`Vec`一样，每个字符串都有自己的堆分配缓冲区，不会与任何其他字符串共享。当字符串变量超出范围时，缓冲区会自动释放，除非字符串被移动。下面是几种创建 `String` 的方式：
+
+- `.to_string()`：转换 `&str` 为 `String`，转换时会复制字符串：
+
+    > let error_message = "too many pets".to_string();
+
+- `format!()`：格式化产生字符串，返回 `String` 类型的字符串
+
+    > format!("{}°{:02}′{:02}′′N", 24, 5, 23)
+
+- 字符串数组，切片或者 `vector` 有两个方法，`.concat()` 和 `.join(sep)` 产生新的 `String`：
+
+    ```rust
+    let bits = vec!["veni", "vidi", "vici"];
+    assert_eq!(bits.concat(), "venividivici"); 
+    assert_eq!(bits.join(", "), "veni, vidi, vici");
+    ```
+
+#### 字符串使用
+
+字符串支持 `==`，`!=`，`<`，`<=`，`>` 以及 `>=` 运算符等很多非常有用的方法，可以在[这里](https://doc.rust-lang.org/std/primitive.str.html) 找到标准库中支持的方法。
+
+```rust
+fn main() {
+    assert!("ONE".to_lowercase() == "one");
+    assert!("peanut".contains("nut"));
+    assert_eq!("ಠ_ಠ".replace("ಠ", "■"), "■_■");
+    assert_eq!(" clean\n".trim(), "clean");
+    for word in "veni, vidi, vici".split(", ") {
+        assert!(word.starts_with("v"));
+    }
+}
+```
+
+请记住，鉴于Unicode的性质，简单的逐个字符比较并不总是给出预期的答案。例如，`Rust` 字符串`th\u{e9}`和`the\u{301}` 都是 `thé` 的有效`Unicode`表示，`thé`是法语单词`tea`。`Unicode`表示，它们应该以相同的方式显示和处理，但`Rust`将它们视为两个完全不同的字符串。同样，像`<`这样的`Rust`的排序运算符使用基于字符代码点的简单词典顺序，这种排序有时只类似于用户语言和文化中用于文本的排序。
+
+#### 其他String
+
+`Rust`保证字符串是有效的UTF-8。有时，程序真的需要能够处理无效的`Unicode`字符串。当`Rust`程序必须与其他不执行任何此类规则的系统互操作时，通常会发生这种情况。例如，在大多数操作系统中，很容易创建具有非Unicode文件名的文件。当Rust程序遇到这种文件名时，应该会发生什么？Rust的解决方案是为这些情况提供几种字符串类型：
+
+- 坚持使用`String`和`&str`获取`Unicode`文本；
+- 在处理文件名时，请使用`std::path::PathBuf`和`&Path`；
+- 在处理完全未编码UTF-8的二进制数据时，请使用`Vec<u8>`和`&[u8]`；
+- 在处理操作系统呈现的本机形式的环境变量名称和命令行参数时，请使用`OsString`和`&OsStr`；
+- 当与使用空终止字符串的C库互操作时，请使用`std::ffi::CString`和`&CStr`；
+
+### 类型别名
+
+`type` 关键字可以像 `C++` 中的`typedef`一样用于为现有类型声明新名称，我们在这里声明的字节类型是这种特殊`Vec` 的缩写：
+
+```rust
+type Bytes = Vec<u8>;
+fn decode(data: &Bytes) { 
+    ...
+}
+```
 
