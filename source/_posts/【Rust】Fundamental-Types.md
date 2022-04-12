@@ -2,6 +2,8 @@
 title: 【Rust】Fundamental Types
 date: 2022-04-10 14:00:03
 tags:
+  - 基础类型
+categories:
   - rust
 mathjax: true
 ---

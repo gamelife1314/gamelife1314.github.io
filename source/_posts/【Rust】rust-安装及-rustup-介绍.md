@@ -2,7 +2,9 @@
 title: 【Rust】rust 安装及 rustup 介绍
 date: 2022-04-07 14:46:32
 tags:
-  - rust
+  - rustup
+categories:
+    - rust
 ---
 
 学习 `rust` 的第一步当然是安装，在 `rust` 中，工具链的安装，升级版本切换都是由 `rustup` 来完成的。`rust` 的工具链分布在三个不同的 `channel` ：`stable`，`beta` 和 `nightly`。
