@@ -103,7 +103,7 @@ brew install aarch64-unknown-linux-gnu
 
 ![](brew-install-aarch64-linux-compile-tool.png)
 
-#### 创建项目测试
+####  交叉编译
 
 使用 `cargo` 命令快速创建一个项目进行测试:
 
@@ -123,19 +123,14 @@ $ cargo run
 Hello, world!
 ```
 
-#### 交叉编译
+##### 配置文件配置 Cargo
 
-在编译之前，我们需要设置 `cargo` 在编译特定平台时使用的链接器，例如：
+我们需要配置 `cargo` 编译时使用的链接器，在配置文件 `.cargo/config` 中添加如下配置:
 
 ```
-~/WORKDIR/rust/crosscompile on  master! ⌚ 17:15:15
-$ pwd
-/Users/fudenglong/WORKDIR/rust/crosscompile
-
 ~/WORKDIR/rust/crosscompile on  master! ⌚ 17:15:21
 $ ll .cargo/config
 -rw-r--r--  1 fudenglong  staff    94B  4  8 17:13 .cargo/config
-
 ~/WORKDIR/rust/crosscompile on  master! ⌚ 17:15:25
 $ cat .cargo/config
 [target.aarch64-unknown-linux-gnu]
@@ -146,7 +141,19 @@ linker = "/opt/homebrew/bin/aarch64-unknown-linux-gnu-gcc"
 
 ![](rust-cross-compile-success.png)
 
-在下面的目录下能找到编译hi之后的二进制文件：
+
+##### 环境变量配置 Cargo
+
+我们也可以使用环境变量配置所需要的链接器，环境变量的形式是：`CARGO_TARGET_<triple>_LINKER`，这里的 `triple` 就是我们目标 `target`，只不过要转换成大写，并且替换 `-` 为 `_`，例如:
+
+> CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=/opt/homebrew/bin/aarch64-unknown-linux-gnu-gcc  cargo build -v --target aarch64-unknown-linux-gnu
+
+![](cargo-env-config.png)
+
+
+##### 编译输出结果
+
+在下面的目录下能找到编译之后的二进制文件：
 
 ```
 ~/WORKDIR/rust/crosscompile on  master! ⌚ 17:22:58
