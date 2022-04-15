@@ -93,3 +93,100 @@ fn main() {
 - 可以借用值得引用，引用不改变值的所有者；
 
 {% endnote %}
+
+### 所有权转移
+
+在 `Rust` 中，赋值类操作，比如传递值给变量，或者从函数返回都不会f复制值，仅仅是把值得所有权从一个变量转向另一个变量。来看一个例子说明值得所有权是如何转移的，而且在不同的语言中都是如何处理，我们对比 Python，C++ 以及 Rust：
+
+{% tabs 不同的语言的赋值 %}
+
+<!-- tab Rust -->
+
+```rust
+fn main() {
+    let s = vec!["udon".to_string(), "ramen".to_string(), "soba".to_string()];
+    let t = s;
+    let u = s;
+}
+```
+
+当 `s` 初始化的时候，我们看到的是`s`拥有这个值，它的值得所有者：
+
+但是在将 `s` 赋值给 `t` 之后，我们看到值得所有权从转移了：
+
+![s初始化](rust-value-initialize.png)
+
+但是在将 `s` 赋值给 `t` 之后，值得所有权从 `s` 转移到了 `t`，成了 `vector` 新的主人：
+
+![值得所有权从s转移至t](rust-value-move.png)
+
+在将 `s` 赋值给 `t` 之后，`s` 就无效了，没法再赋值给 `u`，这段代码在运行时会报如下的错误:
+
+    error[E0382]: use of moved value: `s`
+    --> src/main.rs:5:12
+    |
+    3 |     let s = vec!["udon".to_string(), "ramen".to_string(), "soba".to_string()];
+    |         - move occurs because `s` has type `Vec<String>`, which does not implement the `Copy` trait
+    4 |     let t= s;
+    |            - value moved here
+    5 |     let u= s;
+    |            ^ value used here after move
+
+
+所以说这里将 `s` 赋值给 `t`，操作使很轻量的，没有内存的赋值，只有所有权的转移。如果我们要实现内存的赋值，我们需要对值进行 `clone`：
+
+```rust
+fn main() {
+    let s = vec!["udon".to_string(), "ramen".to_string(), "soba".to_string()];
+    let t= s.clone();
+    let u= s.clone();
+}
+```
+
+<!-- endtab -->
+
+<!-- tab Python -->
+
+```python
+s = ['udon', 'ramen', 'soba'] 
+t = s
+u = s
+```
+
+对于类似的代码，我们可以对比在`python`语言中，`s`初始化的时候，和值`s`赋值给`t`和`u`时的内存布局：
+
+{% grouppicture 2-2 %}
+
+![s初始化](py-value-initialize.png)
+![s赋值给t和u](py-value-ref.png)
+
+{% endgrouppicture %}
+
+`Python` 的实现是将指针从`s`复制到`t`和`u`，并且更新列表对象的引用计数。
+
+<!-- endtab -->
+
+<!-- tab C++ -->
+
+我们来看 C++ 中的代码：
+
+```c++
+using namespace std;
+vector<string> s = { "udon", "ramen", "soba" }; 
+vector<string> t = s;
+vector<string> u = s;
+```
+
+`s` 新创建的时候，内存布局如下图所示:
+
+![](cplusplus-assign.png)
+
+在将 `s` 赋值给 `t` 和 `u` 之后如下图所示，可见C++实现了内存的复制:
+
+![](cplus.png)
+
+
+<!-- endtab -->
+
+{% endtabs %}
+
