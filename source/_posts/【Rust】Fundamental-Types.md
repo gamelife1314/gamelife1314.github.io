@@ -3,6 +3,7 @@ title: 【Rust】Fundamental Types
 date: 2022-04-10 14:00:03
 tags:
   - 基础类型
+  - 《Rust 程序设计》
 categories:
   - rust
 mathjax: true
