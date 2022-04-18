@@ -4,7 +4,7 @@ date: 2022-04-07 14:46:32
 tags:
   - rustup
 categories:
-    - rust
+  - rust
 ---
 
 学习 `rust` 的第一步当然是安装，在 `rust` 中，工具链的安装，升级版本切换都是由 `rustup` 来完成的。`rust` 的工具链分布在三个不同的 `channel` ：`stable`，`beta` 和 `nightly`。

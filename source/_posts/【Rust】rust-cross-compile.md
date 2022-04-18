@@ -4,7 +4,7 @@ date: 2022-04-08 13:11:08
 tags:
   - cross-compile
 categories:
-    - rust
+  - rust
 ---
 
 交叉编译就是跨平台编译，例如在 `window` 下编译程序的linux版本，或者在 `x86_64` 平台下编译 `aarch64` 版本。跨平台编译在Go语言中非常方便，得益于Go语言汇编器的设计。
