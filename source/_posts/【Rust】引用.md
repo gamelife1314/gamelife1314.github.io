@@ -69,9 +69,9 @@ assert_eq!(table["Gesualdo"][0], "many madrigals");
 
 正确处理这个问题的方法是使用引用，使用引用不会改变值得所有者，引用有两种类型：
 
-- `shared reference`：可以读引用的值，但不能改变它。而且同时可以有多个`shared reference`。表达式 `&e` 会生成 `e` 的`shared reference`。如果 `e` 的类型是 `T`，那么 `&e` 的类型是 `&T`，读作 `ref T`，**`shared reference`是可以复制的**；
+- `shared reference`：可以读引用的值，但不能改变它。而且同时可以有多个`shared reference`。表达式 `&e` 会生成 `e` 的`shared reference`。如果 `e` 的类型是 `T`，那么 `&e` 的类型是 `&T`，读作 `ref T`，**`shared reference`是可以复制的**；共享引用借用的值是只读的，在共享引用的整个生命周期中，它的引用对象或从该引用对象可到达的任何东西都不能被改变，就像加了读锁，被冻结了。
 
-- `mutable reference`：可读可写所引用的值，但是不能拥有其他任何 `shared reference` 或者 `mutable reference`。表达式 `&mut e` 生成 `e` 的 `mutable reference`。如果 `e` 的类型是 `T`，那么 `&mut e` 的类型是 `&mut T`，读作 `ref mute T`。 **`mutable reference`是不可以复制的**；
+- `mutable reference`：可读可写所引用的值，但是不能拥有其他任何 `shared reference` 或者 `mutable reference`。表达式 `&mut e` 生成 `e` 的 `mutable reference`。如果 `e` 的类型是 `T`，那么 `&mut e` 的类型是 `&mut T`，读作 `ref mute T`。 **`mutable reference`是不可以复制的**；可变引用借用的值只能通过该引用访问，在可变引用的整个生命周期中，没有其他可用路径可以到达其引用对象。
 
 因此，我们可以对上面的 `show` 函数作如下修改，就可以使得代码编译通过。在 `show` 函数中，`table` 的类型是 `&Table`，那么 `artist` 和 `works` 的类型就是 `&String` 和 `&Vec<String>`，内部的 `for` 循环中 `work` 的类型也就变成了 `&String`。
 
@@ -197,7 +197,7 @@ fn main() {
 }
 ```
 
-### References to References
+### 引用的引用
 
 在C语言中我们经常听到指向指针的指针，在 `Rust` 中也是允许的，如下所示，为了清晰，我们写出了每个变量的类型，实际上我们完全可以省略，由 Rust 来推断。
 
@@ -287,7 +287,7 @@ fn factorial(n: usize) -> usize {
 
 ### 引用安全性
 
-截止到目前为止，我们看到的指针都和C中差不多，但是既然这样，我们又如何保证安全性呢，下面从几个简单的例子来说明 `Rust` 指针的安全性。
+截止到目前为止，我们看到的指针都和C中差不多，但是既然这样，我们又如何保证安全性呢？为了保证引用使用的安全性，`Rust` 为每个应用都会分配一个生命周期，更多请看[【Rust】生命周期](/2021/09/14/【Rust】生命周期/)。
 
 #### 引用局部变量
 
@@ -358,5 +358,78 @@ fn main() {
 
 {% endnote %}
 
-#### 引用作为函数参数
+#### 更新全局引用变量
+
+当我们传递一个引用给函数时，`Rust` 如何保证安全使用呢？假设我们有一个函数 `f`，接受一个引用作为参数，并且把它存储在全局变量中，例如：
+
+{% note warning %}
+```rust
+// 不能编译
+static mut STASH: &i32; 
+
+fn f(p:&i32){ 
+    STASH=p;
+}
+```
+{% endnote %}
+
+`Rust` 的全局变量时静态创建的，贯穿应用程序的整个生命周期。像任何其他声明一样，Rust的模块系统控制静态变量在什么地方可见，所以它们仅仅是在声明周期里是全局的，而不是可见性。上面的代码是有一些问题的，没有遵循两个规则：
+
+- 所有的静态变量必须被初始化；
+
+- 可变的静态变量不是线程安全的，因为任何线程任何时候都可以访问静态变量，即使单线程也会引发某些未知的异常；出于这些原因，我们需要放在 `unsafe` 块中才能访问全局可变静态变量；
+
+根据这两个规则，我们将上面的代码改成下面这个样子：
+
+{% note warning %}
+```rust
+static mut STASH: &i32 = &128;
+
+fn f(p: &i32) {
+   unsafe {
+       STASH = p;
+   }
+}
+```
+{% endnote %}
+
+为了让代码更加完善，我们需要手动函数参数的生命周期，这里 `'a` 读作 `tick A`，我们将 `<'a>` 读作 `for any lifetime 'a`。所以下面的代码定义了一个接受具有任意生命周期 `'a` 参数 `p` 的函数 `f`：
+
+```rust
+fn f<'a>(p: &'a i32) { ... }
+```
+
+由于 `STASH` 的声明周期和应用程序一样，所以我们必须赋予它一个具有相同生命周期的引用，`Rust` 将这种生命周期称之为 `'static lifetime`，静态生命周期，所以如果参数的 `p` 的声明是 `'a`，是不允许的。编译器直接拒绝编译我们的代码：
+
+    error[E0312]: lifetime of reference outlives lifetime of borrowed content...
+    --> src/main.rs:5:16
+    |
+    5 |        STASH = p;
+    |                ^
+    |
+    = note: ...the reference is valid for the static lifetime...
+    note: ...but the borrowed content is only valid for the lifetime `'a` as defined here
+
+编译器的提示很明显，`f` 需要一个具有静态生命周期的参数 `p`，所以我们现在可以将代码修改成如下的样子：
+
+{% note success %}
+```rust
+static mut STASH: &i32 = &128;
+
+static WORTH_POINTING_AT: i32 = 1000;
+
+fn f(p: &'static i32) {
+    unsafe {
+        STASH = p;
+    }
+}
+
+fn main() {
+    f(&WORTH_POINTING_AT);
+}
+```
+{% endnote %}
+
+从一开始的 `f(p: &i32)` 到结束时的 `f(p: &'static i32)`，如果不在函数的签名中反映该意图，我们就无法编写一个将引用固定在全局变量中的函数，我们必须指出引用的声明周期，满足**约束2：如果我们将引用存储在一个变量中，那么这个引用必须要覆盖这个变量的整个生命周期，从它的初始化到最后一次使用为止**。
+
 

@@ -1,5 +1,5 @@
 ---
-title: 【Rust】rust 安装及 rustup 介绍
+title: 【Rust】Rustup 介绍
 date: 2022-04-07 14:46:32
 tags:
   - rustup
