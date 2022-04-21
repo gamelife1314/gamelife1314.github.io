@@ -41,7 +41,7 @@ fn main() {
 }
 ```
 
-{% note warning %}
+{% note danger %}
 如果在 `show` 函数之后，我们再想使用 `table` 变量就会报错，例如：
 
 ```rust
@@ -293,7 +293,7 @@ fn factorial(n: usize) -> usize {
 
 如果我们引用的是一个局部变量，并且我们的引用比局部变量的作用域更大，也就是局部变量释放了之后，我们的音容会如何，来看下面的示例：
 
-{% note warning %}
+{% note danger %}
 
 ```rust
 fn main() {
@@ -362,7 +362,7 @@ fn main() {
 
 当我们传递一个引用给函数时，`Rust` 如何保证安全使用呢？假设我们有一个函数 `f`，接受一个引用作为参数，并且把它存储在全局变量中，例如：
 
-{% note warning %}
+{% note danger %}
 ```rust
 // 不能编译
 static mut STASH: &i32; 
@@ -381,7 +381,7 @@ fn f(p:&i32){
 
 根据这两个规则，我们将上面的代码改成下面这个样子：
 
-{% note warning %}
+{% note danger %}
 ```rust
 static mut STASH: &i32 = &128;
 
