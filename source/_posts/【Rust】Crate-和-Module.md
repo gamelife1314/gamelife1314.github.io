@@ -615,3 +615,347 @@ fn main() {
 }
 ```
 
+### 单元测试
+
+`Rust` 内置了一个单元测试框架，任何由 `#[test]` 标记的普通函数是测试函数：
+
+```rust
+#[test]
+fn math_works() {
+  let x: i32 = 1;
+  assert!(x.is_positive());
+  assert_eq!(x + 1, 2);
+}
+```
+
+`cargo test` 用于运行项目中的所有测试函数：
+
+    $ cargo test
+    Compiling math_test v0.1.0 (file:///.../math_test)
+    Running target/release/math_test-e31ed91ae51ebf22
+    running 1 test
+    test math_works ... ok
+    test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+
+可以通过 `cargo test TESTNAME` 指定要运行的测试函数需要包含的关键字，以运行某些测试。
+
+通常使用 `asset!` 和 `asset_eq!` 在测试中对结果进行断言，如果断言失败，程序就会 `panic`。`asset!` 和 `asset_eq!` 没有包含在 `release` 版本中，如果仅仅是构建 `debug` 版本，可以使用 `debug_assert!` 和 `debug_assert_eq!`。
+
+为了测试错误情况，可以添加 `#[should_panic]` 给测试函数，这个例子中我们也使用了 `#allow` 允许我们无条件 `panic`：
+
+```rust
+/// This test passes only if division by zero causes a panic,
+/// as we claimed in the previous chapter.
+#[test]
+#[allow(unconditional_panic, unused_must_use)]
+#[should_panic(expected="divide by zero")]
+fn test_divide_by_zero_error() {
+  1 / 0; // should panic!
+}
+```
+
+您还可以从测试中返回 `Result<(), E>`：
+
+```rust
+/// if 1024 是有效的数字，这个测试会通过
+
+#[test]
+fn main() -> Result<(), std::num::ParseIntError> {
+    i32::from_str_radix("x1024xx", 10)?;
+    Ok(())
+}
+```
+
+标有`#[test]` 的函数是会条件编译的。 普通的 `cargo build` 或 `cargo build --release` 会跳过测试代码。 但运行 `cargo test` 时，`Cargo` 会构建程序两次：一次以普通方式，一次来运行测试。 这意味着单元测试可以与他们测试的代码一起使用，如果需要，可以访问内部实现细节，而且没有运行时成本。 但是，它可能会导致一些警告。 例如：
+
+```rust
+fn roughly_equal(a: f64, b: f64) -> bool {
+  (a - b).abs() < 1e-6
+}
+
+#[test]
+fn trig_works() {
+  use std::f64::consts::PI;
+  assert!(roughly_equal(PI.sin(), 0.0));
+}
+```
+
+在省略了测试代码的构建中，`roughly_equal` 似乎没有被使用，`Rust` 会报错：
+
+    $ cargo build
+    Compiling math_test v0.1.0 (file:///.../math_test)
+    warning: function is never used: `roughly_equal`
+    --> src/crates_unused_testing_function.rs:7:1
+    |
+    7 | / fn roughly_equal(a: f64, b: f64) -> bool {
+    8 | | (a - b).abs() < 1e-6
+    9 | | }
+    | |_^
+    |
+    = note: #[warn(dead_code)] on by default
+
+按照约定，当测试代码需要一些代码支持时，需要放进 `tests` 模块，并且使用 `#[cfg(test)]` 标记整个模块：
+
+```rust
+#[cfg(test)] // include this module only when testing
+mod tests {
+  
+  fn roughly_equal(a: f64, b: f64) -> bool {
+    (a - b).abs() < 1e-6
+  }
+
+  #[test]
+  fn trig_works() {
+    use std::f64::consts::PI;
+    assert!(roughly_equal(PI.sin(), 0.0));
+  }
+
+}
+```
+
+### 集成测试
+
+我们可以在 `src` 目录同级创建一个 `tests` 目录，用于放我们的集成测试代码，集成测试将我们的库代码当做外部 `crate` 链接然后进行测试，因此集成测试也只能测试公共 `API`：
+
+```rust tests/unfurl.rs 
+use fern_sim::Terrarium;
+use std::time::Duration;
+
+#[test]
+fn test_fiddlehead_unfurling() {
+  let mut world = Terrarium::load("tests/unfurl_files/fiddlehead.tm");
+  assert!(world.fern(0).is_furled());
+  let one_hour = Duration::from_secs(60 * 60);
+  world.apply_sunlight(one_hour);
+  assert!(world.fern(0).is_fully_unfurled());
+}
+```
+
+`cargo test` 命令会同时运行集成测试和单元测试，如果只想运行 `tests/unfurl.rs` 中的集成测试代码，可以使用 `cargo test --test unfurl`。
+
+### 文档
+
+`cargo doc` 命令可以生成 `crate` 的文档，文档中会包含库中 `pub` 内容的文档，文档就是添加到它们上面的注释。例如：
+
+```rust
+/// Simulate the production of a spore by meiosis.
+pub fn produce_spore(factory: &mut Sporangium) -> Spore {
+  ...
+}
+```
+
+当 `Rust` 看到三个斜线开头的注释时，就相当于使用 `#[doc]`，上面的例子等价于：
+
+```rust
+#[doc = "Simulate the production of a spore by meiosis."]
+pub fn produce_spore(factory: &mut Sporangium) -> Spore {
+   ...
+}
+```
+
+
+除了 `///` 样式的注释之外，还有 `//!`，被当做 `#![doc]`，经常用于模块或者 `crate`，例如 `src/lib.rs` 可能像下面这样：
+
+```rust
+//! Simulate the growth of ferns, from the level of
+//! individual cells on up.
+```
+
+注释的内容会被当做 `Markdown` 格式，还可以包含 `Html` 标记。注释有个特色功能就是可以用 `Rust` 的模块组织路径去引用 `Rust` 定义的函数，结构体等。例如：
+
+```rust
+/// Create and return a [`VascularPath`] which represents the path of
+/// nutrients from the given [`Root`][r] to the given [`Leaf`](leaves::Leaf).
+///
+/// [r]: roots::Root
+pub fn trace_path(leaf: &leaves::Leaf, root: &roots::Root) -> VascularPath {
+  ...
+}
+```
+
+您还可以添加搜索别名，以便使用内置搜索功能更轻松地查找内容。 在这个 `crate` 的文档中搜索 `path` 或 `route` 都能找到 `VascularPath`：
+
+```rust
+#[doc(alias = "route")]
+pub struct VascularPath {
+  ...
+}
+```
+
+还可以使用 `backticks` 在运行文本的中间设置一些代码。 在输出中，这些片段将被格式化为固定宽度的字体。 可以通过缩进四个空格来添加更大的代码示例：
+
+```rust
+/// A block of code in a doc comment:
+///
+///     if samples::everything().works() {
+///         println!("ok");
+///     }
+```
+
+也可以使用Markdown格式的代码风格，有同样效果：
+
+```rust
+/// Another snippet, the same code, but written differently:
+///
+/// ```
+/// if samples::everything().works() {
+///   println!("ok");
+/// }
+/// ```
+```
+
+还有很多注释类型，可以参考这里 [注释](https://www.rustwiki.org.cn/zh-CN/reference/comments.html)。
+
+### 文档测试
+
+当运行测试的时候，`Rust` 会检查所有出现在文档中的代码块，编译成一个独立的 `crate`，然后和我们的库链接并执行。下面是一个用 `cargo new --lib ranges` 创建的例子，把下面的代码的放入 `ranges/src/lib.rs` 中：
+
+```rust
+use std::ops::Range;
+
+/// Return true if two ranges overlap.
+///
+///     assert_eq!(ranges::overlap(0..7, 3..10), true);
+///     assert_eq!(ranges::overlap(1..5, 101..105), false);
+///
+/// If either range is empty, they don't count as overlapping.
+///
+///     assert_eq!(ranges::overlap(0..0, 0..10), false);
+///
+pub fn overlap(r1: Range<usize>, r2: Range<usize>) -> bool {
+    r1.start < r1.end && r2.start < r2.end && r1.start < r2.end && r2.start < r1.end
+}
+
+```
+
+使用 `cargo doc --no-deps --open` 应该能看到下面的文档：
+
+![](cargo-doc.png)
+
+如果运行 `cargo test` 会看到如下的信息：
+
+    ~/WORKDIR/rust/ranges ⌚ 9:57:08
+    $  cargo test               
+        Finished test [unoptimized + debuginfo] target(s) in 0.00s
+        Running unittests src/lib.rs (target/debug/deps/ranges-13060b2daf473d43)
+
+    running 0 tests
+
+    test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+      Doc-tests ranges
+
+    running 2 tests
+    test src/lib.rs - overlap (line 5) ... ok
+    test src/lib.rs - overlap (line 10) ... ok
+
+    test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+
+如果你将 `cargo test --verbose`，你会看到它使用 `rustdoc --test` 来运行这两个文档中的测试。 `rustdoc` 将每个代码示例存储在一个单独的文件中，添加几行样板代码，以生成两个程序。 例如：
+
+```rust
+use ranges;
+fn main() {
+  assert_eq!(ranges::overlap(0..7, 3..10), true);
+  assert_eq!(ranges::overlap(1..5, 101..105), false);
+}
+```
+
+`doc test` 背后的想法不是把所有的测试都放在文档中，而是确保文档中的代码能正常编译运行。一个代码示例将包含一些诸如导入类的东西，但是如果想在代码中隐藏，可以以 `# `开头：
+
+```rust
+/// Let the sun shine in and run the simulation for a given
+/// amount of time.
+///
+///     # use fern_sim::Terrarium;
+///     # use std::time::Duration;
+///     # let mut tm = Terrarium::new();
+///     tm.apply_sunlight(Duration::from_secs(60));
+///
+```
+
+生成的文档如下图所示，省略了 `# ` 开头的导入：
+
+![](cargo-doc-comment.png)
+
+有时在文档中展示一个完整的示例程序会很有帮助，包括一个 `main` 函数。 `rustdoc` 将包含确切字符串 `fn main` 的任何代码块视为一个完整的程序，并且不会向其中添加任何内容。
+
+如果我们想要实际编译代码块，但又不行让 `rust` 运行它，可以添加 `no_run` 标记：
+
+```rust
+/// Upload all local terrariums to the online gallery.
+///
+/// ```no_run
+/// let mut session = fern_sim::connect();
+/// session.upload_all();
+/// ```
+pub fn upload_all(&mut self) {
+  ...
+}
+```
+
+但是如果也不想编译，那么使用 `ignore`，而不是 `no_run`。如果代码块根本不是 `Rust` 代码，请使用语言的名称，如 `c` 或 `sh`，或 `text` 表示纯文本，它将任何它无法识别的注释视为表明代码块不是 `Rust`，这会禁用代码高亮和文档测试。
+
+### 依赖声明
+
+关于依赖声明，详细请看 [`cargo` 依赖声明](https://www.rustwiki.org.cn/zh-CN/cargo/reference/specifying-dependencies.html)。
+
+- `image = "0.6.1"`：指定版本号，从 `crates.io` 下载依赖：
+
+- `image = { git = "https://github.com/Piston/image.git", rev = "528f19c" }`：指定版本号和原本下载路径；
+
+- `image = { path = "vendor/image" }` 指定包含依赖源代码的相对目录；
+
+### 依赖版本号
+
+当我们在 `Cargo.toml` 文件中写入类似 `image = "0.13.0"` 的内容时，`Cargo` 对此的解释相当松散，它使用被认为与 `0.13.0` 版本兼容的最新版本的 `image`。兼容性规格改编自 [语义化版本 2.0.0](https://semver.org/lang/zh-CN/)。
+
+- 以 `0.0` 开头的版本号非常原始，以至于 `Cargo` 从不认为它与任何其他版本兼容。
+
+- 以 `0.x` 开头的版本号（其中 `x` 非零）被认为与 `0.x` 系列中的其他点版本兼容。 我们指定了 `image` 版本 `0.6.1`，但如果可用，`Cargo` 将使用 `0.6.3`；
+
+- 一旦项目达到 `1.0`，由于新的主版本会破坏兼容性。 因此，如果要求版本 `2.0.1`，`Cargo` 可能会使用 `2.17.99`，而不是 `3.0`；
+
+默认情况下，版本号是灵活的，否则使用哪个版本的问题很快就会变得过分约束。 假设一个库 `libA` 使用 `num = "0.1.31"` 而另一个库 `libB` 使用 `num = "0.1.29"`。 如果版本号需要完全匹配，则没有项目能够同时使用这两个库， 允许 `Cargo` 使用任何兼容版本是一个更实用的默认设置。
+
+尽管如此，不同的项目在依赖关系和版本控制方面有不同的需求。 可以使用运算符指定确切的版本或版本范围：
+
+|`Cargo.toml`|解释|
+|:-:|:--|
+|`image = "=0.10.0"`| 完全匹配 `0.10.0` 版本|
+|`image = ">=1.0.5"`| 使用 `1.0.5` 或者更高的版本，甚至 `2.9`|
+|`image = ">1.0.5 <1.1.9"`| 使用大于 `1.0.5` 但小于 `1.1.9` 的版本|
+|`image = "<=2.7.10"`| 小于 `2.7.10` 的任何版本|
+|`*`|任何版本|
+
+### Cargo.lock
+
+`Cargo.toml` 中的版本号故意灵活，但我们不希望 `Cargo` 每次构建时都将我们升级到最新的库版本。 因此，`Cargo` 有一个内置机制来防止这种情况。 第一次构建项目时，`Cargo` 会输出一个 `Cargo.lock` 文件，该文件记录了它使用的每个 `crate` 的确切版本。 以后的构建将参考这个文件并继续使用相同的版本。 `Cargo` 仅在你告诉它时才升级到较新的版本，通过手动增加 `Cargo.toml` 文件中的版本号或运行 `cargo update`：
+
+    $ cargo update
+    Updating registry `https://github.com/rust-lang/crates.io-index`
+    Updating libc v0.2.7 -> v0.2.11
+    Updating png v0.4.2 -> v0.4.3
+  
+`cargo update` 仅升级到与在 `Cargo.toml` 中指定的内容兼容的最新版本。 如果你指定了 `image = "0.6.1"`，并且你想升级到 `0.10.0` 版本，你必须在 `Cargo.toml` 中改变它。 下次构建时，`Cargo` 会更新到新版本的镜像库，并将新版本号存储在 `Cargo.lock` 中。 前面的示例显示 `Cargo` 更新了 `crates.io` 上托管的两个 `crate`。 存储在 `Git` 中的依赖项也会发生类似的情况。 假设我们的 `Cargo.toml` 文件包含以下内容：
+
+    image = { git = "https://github.com/Piston/image.git", branch = "master" }
+
+如果 `cargo build` 发现我们有一个 `Cargo.lock` 文件，它不会从 `Git` 存储库中提取新的更改。 而是读取 `Cargo.lock` 并使用与上次相同的版本。 但是 `cargo update`将从 `master` 中提取，以便我们的下一个构建使用最新版本。
+
+`Cargo.lock` 会自动生成，通常不会手动编辑它。 如果项目是可执行文件，应该将 `Cargo.lock` 提交给版本控制。 这样，每个人构建的项目都将始终获得相同的版本。 `Cargo.lock` 文件的历史记录将记录你的依赖更新。
+
+如果你的项目是一个普通的 `Rust` 库，不要费心提交 `Cargo.lock`。 下游项目也拥有 `Cargo.lock` 文件，其中包含其整个依赖关系图的版本信息， 他们会忽略依赖的库中的 `Cargo.lock` 文件。
+
+在极少数情况下，项目如果是共享库（即输出是 `.dll`、`.dylib` 或 `.so` 文件），没有这样的下游项目，应该提交 `Cargo.lock`。
+
+`Cargo.toml` 灵活的版本说明符使我们可以轻松地解决依赖之间的兼容性。 `Cargo.lock` 保证了构建一致性。
+
+### 发布到 crates.io
+
+详情请看 [发布到 crates.io](https://www.rustwiki.org.cn/zh-CN/cargo/reference/publishing.html)。
+
+### 工作区间
+
+详情请看 [Cargo 工作空间](https://kaisery.github.io/trpl-zh-cn/ch14-03-cargo-workspaces.html)。
