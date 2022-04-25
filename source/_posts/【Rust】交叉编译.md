@@ -2,7 +2,7 @@
 title: 【Rust】交叉编译
 date: 2022-04-08 13:11:08
 tags:
-  - cross-compile
+  - 交叉编译
 categories:
   - rust
 ---
