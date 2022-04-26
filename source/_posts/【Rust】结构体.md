@@ -157,7 +157,7 @@ struct GrayscaleMap {
 
 但是，`Rust` 确实承诺将字段的值直接存储在结构的内存块中。 `JavaScript`、`Python` 和 `Java` 会将 `pixels` 和 `size` 值分别放在它们自己的堆分配块中，并让 `GrayscaleMap` 的字段指向它们，而 `Rust` 将 `pixels` 和 `size` 直接嵌入到 `GrayscaleMap` 值中， 只有 `pixels` 向量拥有的堆分配缓冲区保留在其自己的块中。
 
-您可以使用 `#[repr(C)]` 属性要求 `Rust` 以与 `C` 和 `C++` 兼容的方式布局结构体。
+您可以使用 [`#[repr(C)]`]((https://doc.rust-lang.org/stable/reference/type-layout.html#representations)) 属性要求 `Rust` 以与 `C` 和 `C++` 兼容的方式布局结构体。
 
 ### 实例方法
 

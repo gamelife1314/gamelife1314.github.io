@@ -33,12 +33,8 @@ let status = if cpu.temperature <= MAX_TEMP {
 
 下面是 `Rust` 中所有支持的表达式列表：
 
-{% grouppicture 2-1 %}
-
 ![](express_list-1.png)
 ![](express_list-2.png)
-
-{% endgrouppicture %}
 
 下面的运算符都是左联运算符。例如：`a - b - c` 被分组成 `(a-b)-c`，而不是 `a - (b - c)`：
 
