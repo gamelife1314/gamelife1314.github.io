@@ -422,7 +422,7 @@ trait Creature where Self: Visible {
 }
 ```
 
-### 类型关联的函数
+### Trait关联的函数
 
 `Rust` 的 `Trait` 是可以包含静态类型方法的：
 
@@ -608,7 +608,7 @@ pub trait Mul<Rhs = Self> {
 }
 ```
 
-这里的类型参数和在结构体或函数上的意思是一样的：`Mul` 是泛型 `trait`，它的实例 `Mul<f64>`、`Mul<String>`、`Mul<Size>` 等都是不同的 `trait`：
+这里的类型参数和在结构体或函数上的意思是一样的：`Mul` 是泛型 `trait`，它的实例 `Mul<f64>`、`Mul<String>`、`Mul<Size>` 等都是不同的 `trait`。
 
 之前说了，我们可实现 `Trait` 时，`Trait` 或者类型必须要有一个是当前 `crate` 中的。假设我们有自己的结构体 `Number`，我们完全可以为 `f64` 实现 `Mul<Number>`，以支持 `f64 * Number`，即使 `Mul` 和 `f64` 不是我们 `crate` 的，但是 `Mul<Number>` 是我们自己定义的：
 
@@ -812,4 +812,195 @@ fn print(val: impl Display) {
 有一个重要的例外，使用泛型函数允许函数调用者声明泛型参数类型，例如：`print::<i32>(42)`，但是当使用 `impl Trait` 是不允许的。
 
 每个 `impl Trait` 参数都分配有自己的匿名类型参数，因此参数是 `impl Trait` 仅限于简单的泛型函数，类型和参数之间没有关系的。
+
+### 关联常量
+
+像结构体和枚举一样，`Trait` 也可以有关联的常量，例如：
+
+```rust
+trait Greet {
+    const GREETING: &'static str = "Hello";
+    fn greet(&self) -> String;
+}
+```
+
+关联的常量可以只声明而不用给值：
+
+```rust
+trait Float {
+    const ZERO: Self;
+    const ONE: Self;
+}
+```
+
+然后在实现的时候再定义这些值：
+
+```rust
+impl Float for f32 {
+    const ZERO: f32 = 0.0;
+    const ONE: f32 = 1.0;
+}
+
+impl Float for f64 {
+    const ZERO: f64 = 0.0;
+    const ONE: f64 = 1.0;
+}
+```
+
+这允许我们定义这样的泛型函数，以使用这些常量：
+
+```rust
+fn add_one<T: Float + Add<Output=T>>(value: T) -> T {
+    value + T::ONE
+}
+```
+
+请注意，关联常量不能与 `trait` 对象一起使用，因为编译器依赖于有关实现的类型信息以便在编译时选择正确的值。即使是一个根本没有行为的简单 `trait`，比如 `Float`，也可以提供足够的关于类型的信息，结合一些运算符，来实现常见的数学函数，比如 `Fibonacci`：
+
+```rust
+fn fib<T: Float + Add<Output=T>>(n: usize) -> T {
+    match n {
+        0 => T::ZERO,
+        1 => T::ONE,
+        n => fib::<T>(n - 1) + fib::<T>(n - 2)
+    }
+} 
+```
+
+### 步步为营
+
+假设我们写了一个函数用于求和两个 `&[i64]` 的和，代码可能看起来是这个样子的，代码也可以正常运行：
+
+{% note success %}
+```rust
+fn dot(v1: &[i64], v2: &[i64]) -> i64 {
+    let mut total = 0;
+    for i in 0 .. v1.len() {
+        total = total + v1[i] * v2[i];
+    }
+    total
+}
+```
+{% endnote %}
+
+现在假设我们又想实现两个 `&[f64]` 的和，我们可以第一步想到的是改成泛型函数：
+
+{% note danger %}
+```rust
+fn dot<N>(v1: &[N], v2: &[N]) -> N {
+    let mut total: N = 0;
+    for i in 0 .. v1.len() {
+        total = total + v1[i] * v2[i];
+    }
+    total
+}
+```
+{% endnote %}
+
+单着肯定不定，类型 `N` 必须支持 `+` 和 `*` 运算。另外由于 `0` 是整数，不是浮点数，当 `N` 代表 `f64` 是依然不对，所以我们可以改成这个样子，对 `N` 进行边界限定：
+
+{% note danger %}
+```rust
+use std::ops::{Add, Mul};
+
+fn dot<N: Add<Output = N> + Mul<Output = N> + Default>(v1: &[N], v2: &[N]) -> N {
+    let mut total = N::default();
+    for i in 0..v1.len() {
+        total = total + v1[i] * v2[i];
+    }
+    total
+}
+```
+{% endnote %}
+
+由于看起来很丑陋，所以我们对它进行美化，但还是编译不过：
+
+{% note danger %}
+
+```rust
+use std::ops::{Add, Mul};
+
+fn dot<N>(v1: &[N], v2: &[N]) -> N
+where
+    N: Add<Output = N> + Mul<Output = N> + Default,
+{
+    let mut total = N::default();
+    for i in 0..v1.len() {
+        total = total + v1[i] * v2[i];
+    }
+    total
+}
+```
+
+因为 `&v1[N]` 没有实现 `Copy`，`v1[i]` 会转移所有权：
+
+        error[E0508]: cannot move out of type `[N]`, a non-copy slice
+        --> src/main.rs:11:25
+        |
+        11 |         total = total + v1[i] * v2[i];
+        |                         ^^^^^
+        |                         |
+        |                         cannot move out of here
+        |                         move occurs because `v1[_]` has type `N`, which does not implement the `Copy` trait
+
+        error[E0508]: cannot move out of type `[N]`, a non-copy slice
+        --> src/main.rs:11:33
+        |
+        11 |         total = total + v1[i] * v2[i];
+        |                                 ^^^^^
+        |                                 |
+        |                                 cannot move out of here
+        |                                 move occurs because `v2[_]` has type `N`, which does not implement the `Copy` trait
+{% endnote %}
+
+
+所以我们接着改，这次改对了：
+
+{% note success %}
+
+```rust
+#![allow(dead_code)]
+
+use std::ops::{Add, Mul};
+
+fn dot<N>(v1: &[N], v2: &[N]) -> N
+where
+    N: Add<Output = N> + Mul<Output = N> + Default + Copy,
+{
+    let mut total = N::default();
+    for i in 0..v1.len() {
+        total = total + v1[i] * v2[i];
+    }
+    total
+}
+
+fn main() {
+    assert_eq!(dot(&[1, 2, 3, 4], &[1, 1, 1, 1]), 10);
+    assert_eq!(
+        dot(
+            &[1.01f64, 2.02f64, 3f64, 4f64],
+            &[1.01f64, 2.02f64, 3f64, 4f64]
+        ),
+        30.1005f64
+    );
+}
+```
+{% endnote %}
+
+虽然结局看起来不错，但是我们是跟着编译器的一步一步的提示把 `N` 的边界给找出来。记这个问题而言，我们可以使用 `num` 这个 `crate`，就看起来很简洁：
+
+```rust
+use num::Num;
+
+fn dot<N>(v1: &[N], v2: &[N]) -> N
+where
+    N: Num + Copy,
+{
+    let mut total = N::zero();
+    for i in 0..v1.len() {
+        total = total + v1[i] * v2[i];
+    }
+    total
+}
+```
 
