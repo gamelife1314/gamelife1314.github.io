@@ -340,7 +340,9 @@ impl IsEmoji for char {
 }
 ```
 
-还可以对当前一类类型一次性扩展多个方法，通过一个 {% label @泛型impl块 %}，这里，为所有实现了 `Write` 的类型添加 `write_html` 方法：
+### 方法扩展
+
+还可以对某类已存在类型一次性扩展多个方法，通过一个 {% label @泛型impl块 %}，这里，为所有实现了 `Write` 的类型添加 `write_html` 方法：
 
 ```rust
 use std::io::{self, Write};
