@@ -103,7 +103,7 @@ buf.write_all(b"hello")?; // ok
 
 ### Trait 对象
 
-在 `Rust` 中，一个变量的大小必须在编译时就能确定，而指向 `Trait` 可以被任何类型实现，所以它们的大小无法确认，类似下面的代码会编译失败：
+在 `Rust` 中，一个变量的大小必须在编译时就能确定，而 `Trait` 可以被任何类型实现，所以它们的大小无法确认，类似下面的代码会编译失败：
 
 {% note danger %}
 ```rust
@@ -125,9 +125,9 @@ let writer: &mut dyn Write = &mut buf; // ok
 ```
 {% endnote %}
 
-对 `Trait` 类型的引用，如 `writer`，称为 {% label @Trait 对象 %}。 `Trait` 对象指向某个值，它有生命周期，它可以是 `mut` 或 `shared`。`Trait` 对象的不同之处在于，它包含了一些关于所指对象类型的额外信息，当你调用 `writer.write(data)` 时，`Rust` 需要类型信息来根据 `*writer` 的类型动态调用正确的 `write` 方法。`Rust` 不允许直接查询类型信息，也不支持从 `Trait` 对象向下转换，`&mut dyn` 不能转换为 `Vec<u8> `这样的具体类型。
+对 `Trait` 类型的引用，如 `writer`，称为 {% label @Trait 对象 %}。 `Trait` 对象指向某个值，它有生命周期，它可以是 `mut` 或 `shared`。`Trait` 对象的不同之处在于，它包含了一些关于所指对象类型的额外信息，当你调用 `writer.write(data)` 时，`Rust` 需要根据 `*writer` 的类型动态调用正确的 `write` 方法。`Rust` 不允许直接查询类型信息，也不支持从 `Trait` 对象向下转换，`&mut dyn` 不能转换为 `Vec<u8> `这样的具体类型。
 
-在内存中，特征对象是一个胖指针，由一个指向值得指针和一个指向表示该值类型表的指针组成， 因此，每个特征对象占用两个机器字，下图所示：
+在内存中，`Trait`对象是一个胖指针，由一个指向值的指针和一个指向拥有该值类型方法表的指针组成， 因此，每个`Trait`对象占用两个机器字，下图所示：
 
 ![](trait-obj-inmem.png)
 
