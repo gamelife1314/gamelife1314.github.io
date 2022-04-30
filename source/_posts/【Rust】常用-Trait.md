@@ -405,7 +405,7 @@ where
 
 ### Borrow、BorrowMut
 
-[`std::borrow::Borrow`](https://doc.rust-lang.org/stable/std/borrow/trait.Borrow.html) 类似于 `AsRef`：如果一个类型实现了 `Borrow<T>`，那么它的 `borrow` 方法有效地从它借用一个 `&T`。 但是 `Borrow` 施加了更多的限制：一个类型应该实现 `Borrow<T>` 只有当 `&T` 的 `hash` 和它借用的值的 `hash` 相同时。（`Rust` 不强制执行这一点；它只是 `trait` 的记录意图。）
+[`std::borrow::Borrow`](https://doc.rust-lang.org/stable/std/borrow/trait.Borrow.html) 类似于 `AsRef`：如果一个类型实现了 `Borrow<T>`，那么它的 `borrow` 方法有效地从它借用一个 `&T`。 但是 `Borrow` 施加了更多的限制：一个类型应该实现 `Borrow<T>` 只有当 `&T` 的 `hash` 和它借用的值的 `hash` 相同时。（`Rust` 不强制执行这一点，它只是 `trait` 的意图。）
 
 这种区别在借用字符串时很重要，例如：`String` 实现 `AsRef<str>`、`AsRef<[u8]>` 和 `AsRef<Path>`，但这三种目标类型通常具有不同的哈希值。 只有 `&str` 切片保证和 `String` 有一样 `hash` 值，所以 `String` 只实现 `Borrow<str>`。
 
@@ -459,6 +459,134 @@ impl<K, V> HashMap<K, V> where K: Eq + Hash
 
 为方便起见，每个 `&mut T` 类型也实现了 `Borrow<T>`，返回一个共享的像往常一样引用 `&T`。
 
-
 ### From 、Into
+
+标准库中提供的 [`std::convert::From`](https://doc.rust-lang.org/stable/std/convert/trait.From.html) 和 [`std::convert::Into`](https://doc.rust-lang.org/stable/std/convert/trait.Into.html) 用于不同类型值之间的转换，它们获取值得所有权并且抓换成另一个类型的值。
+
+```rust
+pub trait Into<T> {
+    fn into(self) -> T;
+}
+
+pub trait From<T> {
+    fn from(T) -> Self;
+}
+```
+
+标准库自动实现了类型转换为自身的实现，[例如](https://doc.rust-lang.org/stable/std/convert/trait.From.html#impl-From%3CT%3E-12)：
+
+```rust
+impl<T> const From<T> for T {
+    /// Returns the argument unchanged.
+    fn from(t: T) -> T {
+        t
+    }
+}
+```
+
+这两个 `Trait` 用于两个方向之间的转换，`A into B` 或者 `B from A`，例如，对于标注库的 [`std::net::Ipv4Addr`](https://doc.rust-lang.org/stable/std/net/struct.Ipv4Addr.html)：
+
+```rust
+use std::net::Ipv4Addr;
+
+fn ping<A>(address: A) -> std::io::Result<bool>
+    where A: Into<Ipv4Addr>
+{
+    let ipv4_address = address.into();
+    ...
+}
+
+//可以从 [u8; 4]，u32 转换成 Ipv4Addr
+println!("{:?}", ping(Ipv4Addr::new(23, 21, 68, 141))); // pass an Ipv4Addr
+println!("{:?}", ping([66, 146, 219, 98])); // pass a [u8; 4]
+println!("{:?}", ping(0xd076eb94_u32)); // pass a u32
+
+// 也可以调用 Ipv4Addr::from 从 u32 和 [u8; 4] 转换
+// 类型推断会自动选择相应的实现
+let addr1 = Ipv4Addr::from([66, 146, 219, 98]);
+let addr2 = Ipv4Addr::from(0xd076eb94_u32);
+```
+
+由于 `from` 和  `into` 是相对的，标准库对于任何实现了 `From` 的类型实现了 `Into`，[例如](https://doc.rust-lang.org/stable/std/convert/trait.Into.html#impl-Into%3CU%3E)：
+
+```rust
+impl<T, U> const Into<U> for T
+where
+    U: ~const From<T>,
+{
+    /// Calls `U::from(self)`.
+    ///
+    /// That is, this conversion is whatever the implementation of
+    /// <code>[From]&lt;T&gt; for U</code> chooses to do.
+    fn into(self) -> U {
+        U::from(self)
+    }
+}
+```
+
+### TryFrom、TryInto
+
+[`std::convert::TryFrom`](https://doc.rust-lang.org/stable/std/convert/trait.TryFrom.html) 和 [`std::convert::TryInto`](https://doc.rust-lang.org/stable/std/convert/trait.TryInto.html) 也用于数据类型之间的转换，只是它们可能失败：
+
+```rust
+pub trait TryFrom<T> {
+    type Error;
+    fn try_from(value: T) -> Result<Self, Self::Error>;
+}
+
+pub trait TryInto<T> {
+    type Error;
+    fn try_into(self) -> Result<T, Self::Error>;
+}
+
+impl<T, U> const TryInto<U> for T
+where
+    U: ~const TryFrom<T>,
+{
+    type Error = U::Error;
+
+    fn try_into(self) -> Result<U, U::Error> {
+        U::try_from(self)
+    }
+}
+```
+
+例如，如果我们将一个较大 `i64` 转换为 `i32` 时可能会发生溢出，我们可以使用 `try_into()` 根据结果进行判断：
+
+```rust
+fn main() {
+    let huge = 2_000_000_000_000i64;
+    // Saturate on overflow, rather than wrapping
+    let smaller: i32 = huge.try_into().unwrap_or(i32::MAX);
+    println!("{}", smaller);
+}
+```
+
+### ToOwned
+
+如果我们想要根据 `&str` 或者 `&[i32]` 生成 `String` 或者 `Vec<i32>`，由于 `Clone` 是不允许的，它只能返回相同类型的版本。所以 `Rust` 提供了 [`std::borrow::ToOwned`](https://doc.rust-lang.org/stable/std/borrow/trait.ToOwned.html)：
+
+```rust
+trait ToOwned {
+    type Owned: Borrow<Self>;
+    fn to_owned(&self) -> Self::Owned;
+}
+```
+
+`Borrow` 和 `AsRef` 的区别是它的目的类型和当前类型的 `hash` 值一样，可以认为就是同一个东西。
+
+
+### Cow
+
+如果不确定是将函数的参数确定为引用还是值，可以通过 `Rust` 提供的 [`std::borrow::Cow`](https://doc.rust-lang.org/stable/std/borrow/enum.Cow.html)：
+
+```rust
+pub enum Cow<'a, B> 
+where
+    B: 'a + ToOwned + ?Sized, 
+ {
+    Borrowed(&'a B),
+    Owned(<B as ToOwned>::Owned),
+}
+```
 
