@@ -16,8 +16,6 @@ categories:
 
 3. 剩下的主要是一些为解决常遇到的问题，例如：`Default`，`AsRef`，`AsMut`，`Borrow`，`BorrowMut`，`TryFrom` 和 `TryInto`。
 
-<!-- more -->
-
 ### Drop
 
 `Rust` 中当一个值离开作用域时就会对它的内存进行清理，但是所有权转移不会，这类似于 `C++` 中的析构函数。在 `Rust` 中我们也可以对析构的过程进行自定义，只要实现 [`std::ops::Drop`](https://doc.rust-lang.org/stable/std/ops/trait.Drop.html) 即可，在值需要清理的时候会自动调用 `drop` 函数，不能显示调用：
@@ -59,6 +57,8 @@ let v = vec![1, 2, 3];
 
 drop(v); // explicitly drop the vector
 ```
+
+<!-- more -->
 
 ### Sized
 
