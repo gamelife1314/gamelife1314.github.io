@@ -714,3 +714,462 @@ fn main() {
 }
 ```
 
+### 消费迭代器
+
+前面已经讲解了如何创建和转换迭代器，这节来说明如何消费迭代器，除了使用 `for` 和直接调用 `next` 之外的其他方法。
+
+#### `count`、`sum`、`product`
+
+`count` 用于统计迭代器中有多少个 `item`：
+
+```rust
+fn main() {
+    let numbers = [1, 2, 3, 4];
+    println!("{}", numbers.iter().count());
+}
+```
+
+`sum` 和 `product` 用于计算迭代器整数或者浮点数的和或者乘积：
+
+```rust
+fn triangle(n: u64) -> u64 {
+    (1..=n).sum()
+}
+
+fn factorial(n: u64) -> u64 {
+    (1..=n).product()
+}
+
+fn main() {
+    assert_eq!(triangle(20), 210);
+    assert_eq!(factorial(20), 2432902008176640000);
+}
+```
+
+#### `max`、`min`
+
+`min` 和 `max` 分别返回迭代器内`item`的最大或者最小值，其中这里的`item`必须实现 `std::cmp::Ord`：
+
+```rust
+fn main() {
+    assert_eq!([-2, 0, 1, 0, -2, -5].iter().max(), Some(&1));
+    assert_eq!([-2, 0, 1, 0, -2, -5].iter().min(), Some(&-5));
+}
+```
+
+这些方法返回 `Option<Self::Item>`，所以它们可以返回 `None` 如果迭代器内没有 `item`。
+
+#### `max_by`、`min_by`
+
+同 `max` 和 `min` 一样，只是它们使用自定义的比较函数，例如：
+
+{% note danger %}
+```rust
+
+fn main() {
+    use std::cmp::Ordering;
+    // Compare two f64 values. Panic if given a NaN.
+    fn cmp(lhs: &f64, rhs: &f64) -> Ordering {
+        lhs.partial_cmp(rhs).unwrap()
+    }
+    let numbers = [1.0, 4.0, 2.0];
+    assert_eq!(numbers.iter().copied().max_by(cmp), Some(4.0));
+    assert_eq!(numbers.iter().copied().min_by(cmp), Some(1.0));
+
+    let numbers = [1.0, 4.0, std::f64::NAN, 2.0];
+    assert_eq!(numbers.iter().copied().max_by(cmp), Some(4.0)); // panics
+}
+
+```
+{% endnote %}
+
+#### `max_by_key`、`min_by_key`
+
+`max_by_key` 和`min_by_key` 根据闭包选择根据 `item` 的某些内容来确定最大最小值，它们的定义如下，传入的闭包返回 `None` 表示这个 `item` 不参与比较：
+
+```rust
+fn min_by_key<B: Ord, F>(self, f: F) -> Option<Self::Item>
+ where Self: Sized, F: FnMut(&Self::Item) -> B;
+
+fn max_by_key<B: Ord, F>(self, f: F) -> Option<Self::Item>
+ where Self: Sized, F: FnMut(&Self::Item) -> B;
+```
+
+举个例子，根据 `HashMap` 的值进行比较：
+
+```rust
+fn main() {
+    use std::collections::HashMap;
+    let mut populations = HashMap::new();
+    populations.insert("Portland", 583_776);
+    populations.insert("Fossil", 449);
+    populations.insert("Greenhorn", 2);
+    populations.insert("Boring", 7_762);
+    populations.insert("The Dalles", 15_340);
+    assert_eq!(
+        populations.iter().max_by_key(|&(_name, pop)| pop),
+        Some((&"Portland", &583_776))
+    );
+    assert_eq!(
+        populations.iter().min_by_key(|&(_name, pop)| pop),
+        Some((&"Greenhorn", &2))
+    );
+}
+```
+
+#### `item` 序列比较
+
+可以使用 `<`，`==` 等比较运算符比较 `str`，`vector` 或者 `slice`，只要它们的 `item` 支持比较，除此之外还可以使用 `eq`，`lt` 等方法进行比较：
+
+```rust
+fn main() {
+    let packed = "Helen of Troy";
+    let spaced = "Helen   of    Troy";
+    let obscure = "Helen of Sandusky"; // nice person, just not famous
+    assert!(packed != spaced);
+    assert!(packed.split_whitespace().eq(spaced.split_whitespace()));
+    // This is true because ' ' < 'o'.
+    assert!(spaced < obscure);
+    // This is true because 'Troy' > 'Sandusky'.
+    assert!(spaced.split_whitespace().gt(obscure.split_whitespace()));
+}
+```
+
+`split_whitespace` 使用空格分割字符串生成字符串序列，然后比较字符串而不是按字符比较。
+
+#### `any`、`all`
+
+`any` 和 `all` 引用传入的返回 `bool` 的函数，判断迭代器的 `item` 是否存在满足条件还是都满足条件：
+
+```rust
+fn main() {
+    let id = "Iterator";
+    assert!(id.chars().any(char::is_uppercase));
+    assert!(!id.chars().all(char::is_uppercase));
+}
+```
+
+#### `position`、`rposition`、`ExactSizeIterator`
+
+`position` 和 `rposition` 都是用于从迭代器序列中查找满足条件元素的索引，只是一个从左往右，一个从右往左。如果查找到满足条件的返回 `Some(v)`，否则返回 `None`。
+
+```rust
+let text = "Xerxes";
+assert_eq!(text.chars().position(|c| c == 'e'), Some(1));
+assert_eq!(text.chars().position(|c| c == 'z'), None);
+
+let bytes = b"Xerxes";
+assert_eq!(bytes.iter().rposition(|&c| c == b'e'), Some(4));
+assert_eq!(bytes.iter().rposition(|&c| c == b'X'), Some(0));
+```
+
+`rposition` 需要满足的条件更多，他要求迭代器必须是可反转的，并且是取得其精确长度，需要实现 `std::iter::ExactSizeIterator` :
+
+```rust
+trait ExactSizeIterator: Iterator {
+    fn len(&self) -> usize { ... }
+    fn is_empty(&self) -> bool { ... }
+}
+```
+
+`len` 方法返回剩余的项目数，如果迭代完成，`is_empty` 方法返回 `true`。
+
+#### `fold`、`rfold`
+
+`fold` 方法是一个非常通用的工具，用于在迭代器产生的整个项目序列上累积某种结果。给定一个我们称为累计值的初始值和一个闭包，`fold`重复地将闭包应用于当前累计值和迭代器的下一`item`。闭包返回的值作为新的累计值，与下一`item`一起传递给闭包。
+
+`sum`，`count`，`product` 以及 `max` 都可以用 `fold` 来实现：
+
+```rust
+
+fn main() {
+    let a = [5, 6, 7, 8, 9, 10];
+    assert_eq!(a.iter().fold(0, |n, _| n + 1), 6); // count
+    assert_eq!(a.iter().fold(0, |n, i| n + i), 45); // sum
+    assert_eq!(a.iter().fold(1, |n, i| n * i), 151200); // product
+    
+    // max
+    assert_eq!(a.iter().cloned().fold(i32::min_value(), std::cmp::max), 10);
+}
+```
+
+`fold` 的签名如下：
+
+```rust
+fn fold<A, F>(self, init: A, f: F) -> A
+    where Self: Sized, F: FnMut(A, Self::Item) -> A;
+```
+
+这里，`A` 是累计值类型。 `init` 参数是一个 `A`，闭包的第一个参数和返回值以及 `fold` 本身的返回值也是如此。 请注意，累计值被移入和移出闭包，因此您可以将 `fold` 与非 `Copy` 累计值类型一起使用：
+
+```rust
+fn main() {
+    let a = [
+        "Pack", "my", "box", "with", "five", "dozen", "liquor", "jugs",
+    ];
+    // See also: the `join` method on slices, which won't
+    // give you that extra space at the end.
+    let pangram = a.iter().fold(String::new(), |s, w| s + w + " ");
+    assert_eq!(pangram, "Pack my box with five dozen liquor jugs ");
+}
+```
+
+`rfold` 作用类似，它要求迭代器是可以从右往左进行迭代：
+
+```rust
+let weird_pangram = a.iter()
+    .rfold(String::new(), |s, w| s + w + " ");
+assert_eq!(weird_pangram, "jugs liquor dozen five with box my Pack ");
+```
+
+#### `try_fold`、`try_rfold`
+
+`try_fold` 方法与 `fold` 相同，只是迭代过程可以提前退出，而不会消耗迭代器中的所有值。 传递给 `try_fold` 的闭包必须返回一个 `Result`：如果它返回 `Err(e)`，`try_fold` 会立即返回 `Err(e)` 作为它的值。 否则，它继续继续处理。 
+
+```rust
+fn main() {
+    use std::error::Error;
+    use std::io::prelude::*;
+    use std::str::FromStr;
+    fn main() -> Result<(), Box<dyn Error>> {
+        let stdin = std::io::stdin();
+        let sum = stdin
+            .lock()
+            .lines()
+            .try_fold(0, |sum, line| -> Result<u64, Box<dyn Error>> {
+                Ok(sum + u64::from_str(&line?.trim())?)
+            })?;
+        println!("{}", sum);
+        Ok(())
+    }
+}
+```
+
+因为 `try_fold` 非常灵活，它被用来实现 `Iterator` 的许多其他消费者方法。 例如，这是 [`all`](https://doc.rust-lang.org/stable/src/core/iter/traits/iterator.rs.html#2452-2455)的实现：
+
+```rust
+fn all<F>(&mut self, f: F) -> bool
+    where
+        Self: Sized,
+        F: FnMut(Self::Item) -> bool,
+    {
+        #[inline]
+        fn check<T>(mut f: impl FnMut(T) -> bool) -> impl FnMut((), T) -> ControlFlow<()> {
+            move |(), x| {
+                if f(x) { ControlFlow::CONTINUE } else { ControlFlow::BREAK }
+            }
+        }
+        self.try_fold((), check(f)) == ControlFlow::CONTINUE
+    }
+```
+
+#### `nth`、`nth_back`
+
+`nth(n)` 从迭代器中跳过 `n` 个项目返回下一个，`nth(0)` 等价于 `.next()`，而且它没有获取迭代器的所有权，所以你可以多次调用：
+
+```rust
+let mut squares = (0..10).map(|i| i*i);
+assert_eq!(squares.nth(4), Some(16));
+assert_eq!(squares.nth(0), Some(25));
+assert_eq!(squares.nth(6), None);
+```
+
+它的签名如下：
+
+```rust
+fn nth(&mut self, n: usize) -> Option<Self::Item>
+    where Self: Sized;
+```
+
+`nth_back(n)` 需要一个可以双端迭代的迭代器，从后往前找，`.nth_back(0)` 等价于 `.nth_back(0)`。
+
+#### `last`
+
+`last` 返回最后迭代器的最后一个元素，如果迭代器为空，返回 `None`，例如：
+
+```rust
+let squares = (0..10).map(|i| i*i);
+assert_eq!(squares.last(), Some(81));
+This consumes all the iterator’s items starti
+```
+
+它的签名如下：
+
+```rust
+fn last(self) -> Option<Self::Item>;
+```
+
+这个从前往后消费迭代器的所有`item`，即使它是可以 `reversible`，因此，如果你有一个 `reversible` 迭代器，而且不想消费所有 `item`，可以使用 `.next_back()`。
+
+#### `find`、`rfind`、`find_map`
+
+`find` 依次将迭代器的 `item` 传入给定的闭包，返回第一个满足条件的，如果直到结束都没有找到，返回 `None`：
+
+```rust
+fn find<P>(&mut self, predicate: P) -> Option<Self::Item>
+    where Self: Sized,
+    P: FnMut(&Self::Item) -> bool;
+```
+
+`rfind` 要求迭代器必须是可以从后往前迭代，除此之外和 `find` 相同。例如：
+
+```rust
+fn main() {
+    let numbers = [9, 10, 34, 289, 1234, 546, 19989, 878, 345];
+    println!("{:?}", numbers.iter().find(|&item| *item > 1000));
+    println!("{:?}", numbers.iter().rfind(|&item| *item > 1000));
+}
+```
+
+`find_map` 可以对返回的值进行自定义，而不是迭代器中的类型，它的签名如下：
+
+```rust
+fn find_map<B, F>(&mut self, f: F) -> Option<B> where
+    F: FnMut(Self::Item) -> Option<B>;
+```
+
+例如，对于上面的例子，我们可以在满足要求时，将返回值包装成 `Some(Number)`：
+
+```rust
+#[derive(Debug)]
+struct Number {
+    num: i32,
+}
+
+fn main() {
+    let numbers = [9, 10, 34, 289, 1234, 546, 19989, 878, 345];
+    println!(
+        "{:?}",
+        numbers.iter().find_map(|&item| {
+            if item > 1000 {
+                return Some(Number { num: item });
+            }
+            None
+        })
+    );
+}
+```
+
+#### `collect`、`FromIterator`
+
+`collect` 可以从 `Rust` 的标准库构建任何类型的集合，只要迭代器产生合适的项目类型：
+
+```rust
+use std::collections::{HashSet, BTreeSet, LinkedList, HashMap, BTreeMap};
+let args: HashSet<String> = std::env::args().collect();
+let args: BTreeSet<String> = std::env::args().collect();
+let args: LinkedList<String> = std::env::args().collect();
+
+// Collecting a map requires (key, value) pairs, so for this example,
+// zip the sequence of strings with a sequence of integers.
+let args: HashMap<String, usize> = std::env::args().zip(0..).collect();
+let args: BTreeMap<String, usize> = std::env::args().zip(0..).collect();
+```
+
+`collect` 本身并不知道如何构造所有这些类型。相反，当一些像 `Vec` 或 `HashMap` 这样的集合类型知道如何从一个迭代器构造自己时，它实现了 [`std::iter::FromIterator`](https://doc.rust-lang.org/stable/std/iter/trait.FromIterator.html#)：
+
+```rust
+pub trait FromIterator<A> {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = A>;
+}
+```
+
+#### `extend`
+
+如果一个类型实现了 [`std::iter::Extend`](https://doc.rust-lang.org/stable/std/iter/trait.Extend.html)，`extend` 方法可以从另外一个可迭代的集合添加 `item` 到自身，它的声明如下
+
+```rust
+trait Extend<A> {
+ fn extend<T>(&mut self, iter: T)
+ where T: IntoIterator<Item=A>;
+}
+```
+
+所有标准库的集合类型都实现了 `Extend`。例如：
+
+```rust
+let mut v: Vec<i32> = (0..5).map(|i| 1 << i).collect();
+v.extend(&[31, 57, 99, 163]);
+assert_eq!(v, &[1, 2, 4, 8, 16, 31, 57, 99, 163]);
+```
+
+#### `partition`
+
+`partition` 通过传入的闭包将集合分成两拨，例如，我们可以将切片数字分成奇数偶数序列：
+
+```rust
+fn main() {
+    let numbers = [9, 10, 34, 289, 1234, 546, 19989, 878, 345];
+
+    let (base, even): (Vec<i32>, Vec<i32>) = numbers.iter().partition(|n| *n & 1 == 0);
+    println!("{:?}, {:?}", base, even);
+}
+```
+
+该代码输出：
+    [10, 34, 1234, 546, 878], [9, 289, 19989, 345]
+
+和 `collect` 一样，`partition` 可以创建任何你喜欢的集合，但是两者必须是相同的类型，使用上和 `collect` 一样，需要指定返回类型。`partition` 的签名如下：
+
+```rust
+fn partition<B, F>(self, f: F) -> (B, B)
+    where
+        Self: Sized,
+        B: Default + Extend<Self::Item>,
+        F: FnMut(&Self::Item) -> bool,
+```
+
+#### `for_each`、`try_for_each`
+
+`for_each` 的用途和 `for` 相似，在其中也可使用 `break` 和 `continue` 这样的控制结构：
+
+```rust
+fn main() {
+    ["doves", "hens", "birds"]
+        .iter()
+        .zip(["turtle", "french", "calling"].iter())
+        .zip(2..5)
+        .rev()
+        .map(|((item, kind), quantity)| format!("{} {} {}", quantity, kind, item))
+        .for_each(|gift| {
+            println!("You have received: {}", gift);
+        });
+}
+```
+
+改代码输出：
+    You have received: 4 calling birds
+    You have received: 3 french hens
+    You have received: 2 turtle doves
+
+
+如果闭包可以失败，或者需要提前退出，可以使用 `try_for_each`：
+
+```rust
+...
+ .try_for_each(|gift| {
+    writeln!(&mut output_file, "You have received: {}", gift)
+})?;
+```
+
+### 实现迭代器
+
+可以为自己的类型实现 `IntoIterator` 和 `Iterator`，这样前面讲的所有方法都可以使用了，`for` 循环使用 `IntoIterator::into_iter` 将其操作数转换为迭代器。但是标准库为实现 `Iterator` 的每种类型提供了 `IntoIterator` 的全面实现，[例如](https://doc.rust-lang.org/stable/std/iter/trait.IntoIterator.html#impl-IntoIterator-25)：
+
+```rust
+#[stable(feature = "rust1", since = "1.0.0")]
+impl<I: Iterator> IntoIterator for I {
+    type Item = I::Item;
+    type IntoIter = I;
+
+    #[inline]
+    fn into_iter(self) -> I {
+        self
+    }
+}
+```
+
+这里有一个 [BinaryTree](https://github.com/ProgrammingRust/examples/blob/master/binary-tree/src/lib.rs) 的实现，
+
