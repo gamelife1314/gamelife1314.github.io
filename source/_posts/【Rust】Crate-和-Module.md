@@ -154,11 +154,15 @@ use plant_structures::roots::products::Cytokinin;
 
 #### 单文件模块
 
-之前我们是在 `spores` 模块中使用括号将模块的内容包裹起来的，现在可以在单个源码文件中使用下面这样的方式声明一个模块:
+之前我们是在 `spores` 模块中使用括号将模块的内容包裹起来的，现在可以在单个源码文件中开发模块。我们在 `main.rs` 中声明如下模块：
+
+```rust main.rs
+mod spores;
+```
+
+然后在 `spores.rs` 开发该模块的代码：
 
 ```rust spores.rs
-mod spores;
-
 /// A cell made by an adult fern...
 pub struct Spore {
    ...
@@ -180,13 +184,11 @@ fn recombine(parent: &mut Cell) {
 }
 ```
 
-公开和私有的原则和之前讲的是相同的，`Rust` 从不单独编译模块，即使它们在单独的文件中：当你构建一个 `crate` 时，会重新编译它的所有模块。
+公开和私有的原则和之前讲的是相同的，`Rust` 从不单独编译模块，即使它们在单独的文件中：当你构建一个 `crate` 时，会重新编译它的所有模块。当 `Rust` 看到一个模块时，例如上面的 `mod spores;` 时，它会检查 `spores.rs` 和 `spores/mod.rs` 是否存在，如果都存在或者都不存在，就会报错。
 
 #### 模块目录（一）
 
-当 `Rust` 看到一个模块时，例如之前的 `mod spores;` 时，它会检查 `spores.rs` 和 `spores/mod.rs` 是否存在，如果都存在或者都不存在，就会报错。但是当我们的模块中包含子模块时，就不能像 `spores.rs` 那样单独处理了，就像之前的 `plant_structures` 模块。
-
-如果，我们有下面这样的结构：
+但是当我们的模块中包含子模块时，就不能像 `spores.rs` 那样单独处理了，就像之前的 `plant_structures` 模块。如果，我们有下面这样的结构：
 
 ```
 fern_sim/
