@@ -1,6 +1,7 @@
 ---
 title: 【Rust】Trait和泛型
 date: 2022-04-26 22:08:30
+tags:
   - Trait
   - 泛型
   - 《Rust 程序设计》
