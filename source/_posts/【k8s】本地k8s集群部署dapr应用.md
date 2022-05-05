@@ -1,5 +1,5 @@
 ---
-title: 本地k8s集群部署dapr应用
+title: 【k8s】本地k8s集群部署dapr应用
 date: 2021-12-05 21:25:38
 tags:
     - dapr

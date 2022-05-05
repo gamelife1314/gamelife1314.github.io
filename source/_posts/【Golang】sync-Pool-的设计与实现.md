@@ -1,5 +1,5 @@
 ---
-title: sync.Pool 的设计与实现
+title: 【Golang】sync.Pool 的设计与实现
 date: 2021-12-04 14:23:31
 tags:
     - sync.Pool
