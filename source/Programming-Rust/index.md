@@ -5,12 +5,12 @@ date: 2022-05-05 09:54:08
 
 本文总结 `Rust` 编程中常用到的一些资料，集中做一个索引，以便查找。
 
+![](assets/programing-rust.png)
+
 
 ### 《Programming Rust, 2nd Edition》
 
 这本书是 `O'Reilly` 出版社的，个人认为还是非常透彻的，作为初学者，对本书进行了学习和记录，内容大体上没有遗漏，只是对一些描述做了精简，[出版社书籍链接](https://www.oreilly.com/library/view/programming-rust-2nd/9781492052586/)。
-
-<!-- ![](assets/programing-rust.png) -->
 
 1. [《第3章-Fundamental Types》](/2022/04/10/【Rust】基础类型/)
 2. [《第4章-Ownership and Moves》](/2022/04/12/【Rust】所有权/)
@@ -40,3 +40,7 @@ date: 2022-05-05 09:54:08
 2. [Rust 学习笔记](/2021/09/05/【Rust】实战突破/)
 3. [Rustup 介绍](/2022/04/07/【Rust】Rustup%20介绍/)
 4. [Rust 交叉编译](/2022/04/08/【Rust】交叉编译/)
+
+### 喝杯咖啡
+
+![](assets/wechat-pay.jpeg)
