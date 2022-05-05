@@ -31,7 +31,7 @@ date: 2022-05-05 09:54:08
 17. [《第19章-Concurrency》](/2022/05/03/【Rust】并发/)
 18. [《第20章-Asynchronous Programming》](/2022/05/03/【Rust】异步编程/)
 19. [《第21章-Macros》](/2022/05/04/【Rust】宏/)
-20. [《第22章-Unsafe Code》]()
+20. [《第22章-Unsafe Code》](/2022/05/05/【Rust】Unsafe-代码/)
 21. [《第23章-Foreign Functions》]()
 
 ### 其他内容
