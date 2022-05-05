@@ -87,7 +87,8 @@ menu:
   # schedule: /schedule/ || fa fa-calendar
   # sitemap: /sitemap.xml || fa fa-sitemap
   # commonweal: /404/ || fa fa-heartbeat
-  剑指offer: /剑指offer/ || fa fa-book
+  "《剑指offer》": /剑指offer/ || fa fa-book
+  "《Rust 编程》": /Programming-Rust/ || fa fa-spider
 
 # Enable / Disable menu icons / item badges.
 menu_settings:
