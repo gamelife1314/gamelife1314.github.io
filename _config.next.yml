@@ -730,7 +730,7 @@ local_search:
   # Unescape html strings to the readable one.
   unescape: false
   # Preload the search data when the page loads.
-  preload: true
+  preload: false
 
 # ---------------------------------------------------------------
 # Chat Services
