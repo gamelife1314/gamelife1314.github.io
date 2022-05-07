@@ -114,9 +114,9 @@ symbols_count_time:
 
 search:
   path: search.xml
-  field: post
+  field: all
   content: true
-  format: html
+  format: striptags
 
 js_concator:
   enable: true
@@ -131,3 +131,19 @@ sitemap:
   rel: true
   tags: true
   categories: true
+
+algolia:
+  appId: "0EK9PPHA8Q"
+  apiKey: "4571e27f4976530675e885c0d91a304f"
+  adminApiKey: "caf4fb62c3a89bfb85a94c50e5a92b86"
+  indexName: "blog.fudenglong.site"
+  chunkSize: 5000
+  fields:
+    - content:strip:truncate,0,50000000
+    - excerpt:strip
+    - gallery
+    - permalink
+    - photos
+    - slug
+    - tags
+    - title
