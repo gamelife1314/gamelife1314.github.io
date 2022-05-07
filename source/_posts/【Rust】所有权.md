@@ -113,7 +113,7 @@ fn main() {
 
 ![s初始化](rust-value-initialize.png)
 
-但是在将 `s` 赋值给 `t` 之后，我们看到值的所有权从转移了：
+但是在将 `s` 赋值给 `t` 之后，我们看到值的所有权转移了：
 
 ![值得所有权从s转移至t](rust-value-move.png)
 
