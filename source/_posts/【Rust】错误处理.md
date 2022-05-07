@@ -8,17 +8,13 @@ categories:
   - rust
 ---
 
-Rust 的错误处理方法非常不同寻常，本节介绍了 Rust 中两种不同类型的错误处理：`panic` 和 `result`。
+`Rust` 的错误处理方法非常不同寻常，本节介绍了 Rust 中两种不同类型的错误处理：`panic` 和 `Result`。
 
-### Panic
+### `Panic`
 
-当程序遇到一些很严重的bug，就会奔溃，例如：数组越界，除0，在 `Result` 上调用 `.expect()` 遇到错误以及断言失败等。
+当程序遇到,数组越界，除`0`，这样很严重的`bug`时就会`panic`，在 `Result` 上调用 `.expect()` 遇到错误以及断言失败都会发生`panic`。还有宏 `panic!()`，用于在代码发现它出错是，想要直接退出。`panic!()` 接受可选的 `println!()` 样式参数，用于构建错误消息。
 
-还有宏 `panic!()`，用于在代码发现它出错是，想要直接退出。 `panic!()` 接受可选的 `println!()` 样式参数，用于构建错误消息。
-
-这些都是程序员的错，但我们都会犯错，当这些不应该发生的错误发生时，`Rust` 可以终止进程。
-
-来看一个除的示例：
+这些都是程序员的错，但我们都会犯错，当这些不该发生的错误发生时，`Rust` 可以终止进程。来看一个除`0`的示例：
 
 {% note danger %}
 
@@ -58,23 +54,23 @@ fn pirate_share(total: u64, crew_size: usize) -> u64 {
 
 {% endnote %}
 
-线程之间的 `panic` 是相互独立的，也可以调用 `std::panic::catch_unwind()` 捕获异常，并且让程序执行。默认发生 `panic` 时会展开堆栈。此外有两种情况 Rust 不会尝试展开堆栈。 
+线程之间的 `panic` 是相互独立的，也可以调用 [`std::panic::catch_unwind()`](https://doc.rust-lang.org/std/panic/fn.catch_unwind.html) 捕获异常，并且让程序执行。默认发生 `panic` 时会展开调用栈，此外有两种情况 `Rust` 不会尝试展开调用栈： 
 
-- 如果 `.drop()` 方法触发了第二次恐慌，而 `Rust` 在第一次之后仍在尝试清理，这被认为是致命的。 `Rust` 停止展开并中止整个过程。 
+- 如果 `.drop()` 方法触发了第二次恐慌，而 `Rust` 在第一次之后仍在尝试清理，这被认为是致命的，`Rust` 停止展开并中止整个进程； 
 
-- `Rust` 的恐慌行为是可定制的。 如果使用 `-C panic=abort` 编译，程序中的第一个 `panic` 会立即中止进程。（使用这个选项，`Rust` 不需要知道如何展开堆栈，因此这可以减少编译代码的大小。）
+- `Rust` 的恐慌行为是可定制的。如果使用 `-C panic=abort` 编译，程序中的第一个 `panic` 会立即中止进程。（使用这个选项，`Rust` 不需要知道如何展开调用栈，因此这可以减少编译代码的大小。）
 
 <!-- more -->
 
-### Result
+### `Result`
 
-`Rust` 中没有异常，而是再回出现错误的函数中会返回一个 `Result` 类型，它预示着函数会预期执行成功，也可能因异常执失败。当我们调用函数 `get_weather` 的时候，要么成功返回 `Ok(weather)`，`weather` 是 `WeatherReport` 的一个实例。或者出现错误时返回 `t Err(error_value)`，其中 `error_value` 是 `io:Error` 类型。
+`Rust` 中没有异常，而是再回出现错误的函数中会返回一个 `Result` 类型，它预示着函数会预期执行成功，也可能因异常执失败。当我们调用函数 `get_weather` 的时候，要么成功返回 `Ok(weather)`，`weather` 是 `WeatherReport` 的一个实例。或者出现错误时返回 `Err(error_value)`，其中 `error_value` 是 `io:Error` 类型。
 
 ```rust
 fn get_weather(location: LatLng) -> Result<WeatherReport, io::Error>
 ```
 
-每当我们调用这个函数时，`Rust` 要求我们编写错误处理程序。 如果不对 `Result` 做一些处理，我们就无法获取 `WeatherReport`，如果未使用 `Result` 值，编译器就会警告。
+每当我们调用这个函数时，`Rust` 要求我们编写错误处理程序。如果不对 `Result` 做一些处理，我们就无法获取 `WeatherReport`，如果未使用 `Result` 值，编译器就会警告。
 
 ### 捕获错误
 
@@ -125,7 +121,7 @@ match get_weather(hometown) {
 
 - `result.unwrap()`：如果 `result` 是成功的，则返回成功值，否则将会 `panic`；
 
-- `result.expect(message)`：类似于 `unwrap()`，但是允许一共一个信息在 `panic` 时打印；
+- `result.expect(message)`：类似于 `unwrap()`，但是允许提供一个信息在 `panic` 时打印；
 
 - `result.as_ref()`：将 `Result<T, E>` 转换为 `Result<&T, &E>`；
 
@@ -133,7 +129,7 @@ match get_weather(hometown) {
 
 最后这两个方法和除 `.is_ok()` 和 `.is_err()` 之外的方法不同，其他的都会消耗 `result` 的值，也就是它们会获取 `result` 的所有权，它们都是接受 `self` 作为参数。但是有时候我们想在不破坏数据的情况下访问数据，例如，我们想调用 `result.ok()`，又想保持 `result` 在我们调用之后任然可用，所以我们可以编写 `result.as_ref().ok()`，他只是借用 `result` 而不获取它的所有权，当然返回的也就是 `Option<&T>` 不再是 `Option<T>`。
 
-### Result 别名
+### `Result` 别名
 
 我们可以给 `Result<T, E>` 起个别名，让写起来更加简单，就像 [`std::fs::remove_file`](https://doc.rust-lang.org/std/fs/fn.remove_file.html) 函数：
 
@@ -141,13 +137,13 @@ match get_weather(hometown) {
 pub fn remove_file<P: AsRef<Path>>(path: P) -> Result<()>
 ```
 
-模块通常定义一个 Result 类型别名，以避免必须重复模块中几乎每个函数都一致使用的错误类型。 例如，标准库的 `std::io` 模块包括这行代码：
+模块通常定义一个 `Result` 类型别名，以避免必须重复模块中几乎每个函数都一致使用的错误类型。例如，标准库的 `std::io` 模块包括这行代码：
 
 ```rust
 pub type Result<T> = result::Result<T, Error>;
 ```
 
-这定义了一个公共类型 `std::io::Result<T>`。 它是 `Result<T, E>` 的别名，但将 `std::io::Error` 硬编码为错误类型。 实际上，这意味着如果您编写 `use std::io`;，那么 `Rust` 会将 `io::Result<String>` 理解为 `Result<String, io::Error>` 的简写。
+这定义了一个公共类型 `std::io::Result<T>`，它是 `Result<T, E>` 的别名，但将 `std::io::Error` 硬编码为错误类型。实际上，这意味着`Rust` 会将 `std::io::Result<String>` 理解为 `std::io::Result<String, std::io::Error>` 的简写。
 
 ### 错误打印
 
@@ -157,7 +153,7 @@ pub type Result<T> = result::Result<T, Error>;
 println!("error querying the weather: {}", err);
 ```
 
-标注库里面提供了很多错误类型，例如 `std::io::Error`，`std::fmt::Error` 和 `std::str::Utf8Error` 等等，但是它们都实现了 `std::error::Error` 这个 `trait`，这意味着所有的错误都有下面的接口：
+标注库里面提供了很多错误类型，例如 `std::io::Error`，`std::fmt::Error` 和 `std::str::Utf8Error` 等等，但是它们都实现了 `std::error::Error`，这意味着所有的错误都有下面的接口：
 
 - `println!()`：所有错误类型都可以使用它打印。 使用 `{}` 格式说明符打印错误通常只显示简短的错误消息。 或者可以使用 `{:?}` ，以获取错误的调试视图， 这对用户不太友好，但包含额外的技术信息；
 
@@ -176,7 +172,7 @@ println!("error querying the weather: {}", err);
 
 - `err.source()`：返回底层的 `err`。例如，网络原因导致银行交易失败，然后又导致你的转账被取消，那么 `err.souce()` 可以返回下层的错误。
 
-打印错误值不会同时打印出其来源。 如果想确保打印所有可用信息，使用下面的代码示例：
+打印错误值不会同时打印出其来源。如果想确保打印所有可用信息，使用下面的代码示例：
 
 ```rust
 use std::error::Error;
@@ -194,7 +190,7 @@ fn print_error(mut err: &dyn Error) {
 }
 ```
 
-`writeln!` 宏的工作方式与 `println!` 类似，不同之处在于它将数据写入你选择的流。 在这里，我们将错误消息写入标准错误流 `std::io::stderr`。 我们可以使用 `eprintln!` 宏做同样的事情，但 `eprintln!` 如果发生错误会 `panic`。
+`writeln!` 宏的工作方式与 `println!` 类似，不同之处在于它将数据写入你选择的流。在这里，我们将错误消息写入标准错误流 `std::io::stderr`。我们可以使用 `eprintln!` 宏做同样的事情，但 `eprintln!` 如果发生错误会 `panic`。
 
 ### 错误传播
 
@@ -208,7 +204,7 @@ let weather = get_weather(hometown)?;
 
 - 成功时，它会获取里面成功的值，也就是获取 `WeatherReport`，而不是 `Result<WeatherReport, io::Error>`；
 
-- 出错时，它会立即返回，为了确保有效，`?` 只能用于具有 `Result` 返回类型函数中的 `Result`；
+- 出错时，它会立即返回，为了确保有效，`?` 只能用于具有 `Result` 返回类型的函数；
 
 `?` 可以看做是 `match` 的一种简化方式：
 
@@ -222,7 +218,7 @@ let weather = match get_weather(hometown) {
 在 `Rust` 较老的代码中，这个干工作是用 `try!` 宏处理的，直到 `1.13` 引入 `?`。
 
 ```rust
-let weather = try!(get_weather(hometown)
+let weather = try!(get_weather(hometown))
 ```
 
 错误在程序中是非常普遍，尤其是在与操作系统接口的代码中， 因此 `?` 运算符可能会出现在函数的每一行：
@@ -331,7 +327,6 @@ loop {
 ```
 {% endnote %}
 
-
 还有一种处理方式是使用 [`thiserror`](https://docs.rs/thiserror/latest/thiserror/) 帮我自动实现 [`std::error::Error`](https://doc.rust-lang.org/std/error/trait.Error.html)。
 
 
@@ -349,7 +344,7 @@ writeln!(stderr(), "error: {}", err); // warning: unused result
 let _ = writeln!(stderr(), "error: {}", err); // ok, ignore result
 ```
 
-### 处理 main 函数中的错误
+### 处理 `main` 函数中的错误
 
 使用 `?` 向上传递错误大多时候是比较正确的行为，可是当错误传播到 `main` 函数的时候我们就需要处理。大多时候，我们看到的 `main` 函数签名都是下面这个样子，它的返回值类型是 `()`：
 

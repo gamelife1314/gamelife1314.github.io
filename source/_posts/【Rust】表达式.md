@@ -8,17 +8,16 @@ categories:
   - rust
 ---
 
-`Rust` 被称作表达式语言，在`C`中，`if`和`switch`是语句，它们不会产生值，也不能在表达式中间使用。在`Rust`中，`if` 和 `match`可以产生值。例如：
+`Rust` 被称作表达式语言，在`C`中，`if` 和`switch` 是语句，它们不会产生值，也不能在表达式中间使用。在`Rust`中，`if` 和 `match`可以产生值。例如：
 
 ```rust
 let status = if cpu.temperature <= MAX_TEMP {
-        HttpStatus::Ok
-    } else {
-        HttpStatus::ServerError
-    };
-}
+    HttpStatus::Ok
+} else {
+    HttpStatus::ServerError
+};
 
- println!(
+println!(
     "Inside the vat, you see {}.",
     match vat.contents {
         Some(brain) => brain.desc(),
@@ -76,7 +75,7 @@ fn main() {
 }
 ```
 
-代码块内可以做一些声明，并且在最后返回一个值，能够使代码看起来比较整洁，用多了会觉得很爽。缺点是当忘记加分号时，可能会引发错误。但幸运的是编译器会提示我们。
+代码块内可以做一些声明，并且在最后返回一个值，能够使代码看起来比较整洁，用多了会觉得很爽。缺点是当忘记加分号时，可能会引发错误。但一般情况下是编译器都会提示我们。
 
 ### 声明
 
@@ -96,7 +95,7 @@ if user.has_nickname() {
 }
 ```
 
-这里局部变量有两种不同的方式初始化，但无论哪种方式，`name` 仅被初始化依次，所以无需声明为 `mut` 类型，在没有初始化之前使用变量是不允许的。
+这里局部变量有两种不同的方式初始化，但无论哪种方式，`name` 仅被初始化一次，所以无需声明为 `mut` 类型，在没有初始化之前使用变量是不允许的。
 
 `Rust` 代码中允许重新二次定义同名变量，它会在这个二次定义的变量存在期间，将之前的变量屏蔽。在这里，`line` 开始的类型是 `Result<String, io::Error>`，后面又是 `String`，这在代码中是非常常见的，具有同一个语义的变量具有不同的类型。
 
@@ -106,11 +105,12 @@ for line in file.lines() {
 }
 ```
 
-我们甚至可以在代码块中声明一个 `fn` 或者 `struct`，但是它们的作用域仅限于这个代码块。当我们在代码块中定义函数时，它是不能访问代码块中的局部变量的。例如，下面的 `cmp_by_timestamp_then_name` 不能访问变量 `v`：
+我们甚至可以在代码块中声明一个 `fn` 或者结构体，但是它们的作用域仅限于这个代码块。当我们在代码块中定义函数时，它是不能访问代码块中的局部变量的。例如，下面的 `cmp_by_timestamp_then_name` 不能访问变量 `v`：
 
 ```rust
 use std::io;
 use std::cmp::Ordering;
+
 fn show_files() -> io::Result<()> {
     let mut v = vec![];
     ...
@@ -124,7 +124,7 @@ fn show_files() -> io::Result<()> {
 }
 ```
 
-### if 和 match
+### `if` 和 `match`
 
 `if` 表达式比较简单，形式如下：
 
@@ -140,7 +140,7 @@ if condition1 {
 
 每个 `condition` 必须是一个 `bool` 类型的表达式，`Rust` 不会对数字或者指针进行隐式转换。`condition` 两边的括号不是必须的，如果添加了，`rustc` 会给一个告警。
 
-`match` 语句很像 C  语言中的 `switch`，但是更加灵活，下面是一个简单的例子。这很像 `switch` 语句根据 `code` 的值具体执行某个分支的表达式，通配符 `_` 就像 `switch` 中的 `default`，能匹配任何东西，只是它必须放在最后面。将 `_` 放在之前，意味着它的优先级更高，在它的之后匹配都不可达。
+`match` 语句很像 `C`  语言中的 `switch`，但是更加灵活，下面是一个简单的例子。这很像 `switch` 语句根据 `code` 的值具体执行某个分支的表达式，通配符 `_` 就像 `switch` 中的 `default`，能匹配任何东西，只是它必须放在最后面。将 `_` 放在之前，意味着它的优先级更高，在它的之后匹配都不可达。
 
 ```rust
  match code {
@@ -208,13 +208,13 @@ let suggested_pet =
     if with_wings { Pet::Buzzard } else { Pet::Hyena }; // ok 
 
 let favorite_number =
-    if user.is_hobbit() { "eleventy-one" } else { 9 }; // error 
+    if user.is_hobbit() { "eleventy-one" } else { 9 }; // 错误
 
 let best_sports_team =
     if is_hockey_season() { "Predators" }; // 错误，因为会返回数字或者 ()
 ```
 
-相思地，`match` 表达式也是，所有的分支必须返回相同类型的值：
+同理，`match` 表达式也是，所有的分支必须返回相同类型的值：
 
 ```rust
 let suggested_pet =
@@ -226,9 +226,9 @@ let suggested_pet =
     };
 ```
 
-更多关于 `match` 的用法可以看 [【Rust】实战突破](/2021/09/05/【Rust】实战突破/#match)。
+更多关于 `match` 的用法可以看 [【Rust】实战突破](/2021/09/05/【Rust】实战突破/#match)或者 [模式匹配](/2022/04/25/【Rust】枚举和模式匹配/#模式匹配)。
 
-### if let
+### `if let`
 
 这里还有一个 `if` 的形式，`if let` 表达式：
 
@@ -255,7 +255,7 @@ if let Err(err) = show_cheesy_anti_robot_task() {
 }
 ```
 
-`if let` 可以做的事情 `match` 都可以做，`if let` 只是 `match` 的一种简写方式：
+`if let` 可以做的事情 `match` 都可以做，所以说 `if let` 只是 `match` 的一种简写方式：
 
 ```
 match expr {
@@ -288,7 +288,7 @@ for pattern in itertable {
 
 `Rust` 中的循环语句都是表达式，但是 `while` 和 `for` 的值永远是 `()`，所以它们不是很有用，`loop` 倒是可以返回一个值，当然只有在你声明的时候。
 
-`while` 循环和C语言很像，但是 `Rust` 中的 `condition` 必须是精确的 `bool` 类型。
+`while` 循环和`C`语言很像，但是 `Rust` 中的 `condition` 必须是精确的 `bool` 类型。
 
 `while let` 类似于 `if let`。在每次循环迭代开始的时候，`expr` 的值如果匹配 `pattern`，那么 `block` 就会运行，负责循环就会退出。
 
@@ -299,7 +299,7 @@ for pattern in itertable {
 标准的`C`循环：
 
 ```c
-for(int i = 0;i < 20; i++){ 
+for(int i = 0;i < 20; i++) { 
     printf("%d\n", i);
 }
 ```
@@ -307,7 +307,7 @@ for(int i = 0;i < 20; i++){
 在 `rust` 中写作如下的形式：
 
 ```rust
-for i in 0..20{ 
+for i in 0..20 { 
     println!("{}", i);
 }
 ```
@@ -354,7 +354,7 @@ for rs in &strings {
 }
 ```
 
-如果我们在便利过程中需要对他进行更改，可以获取 `strings` 的 `muteable reference`：
+如果我们在迭代过程中需要对它进行更改，可以获取 `strings` 的 `muteable reference`：
 
 {% note success %}
 
@@ -384,7 +384,7 @@ fn main() {
 
 {% endnote %}
 
-### break 和 continue
+### `break` 和 `continue`
 
 可以使用 `break` 退出 `loop` 循环，在 `loop` 的循环体中，可以给 `break` 一个表达式，它的值变成 `loop` 的值，`loop` 中所有 `break` 的表达式都必须要有相同的类型：
 
@@ -454,7 +454,7 @@ let sqrt = 'outer: loop {
 
 `label` 也可以配合 `continue` 使用。
 
-### return
+### `return`
 
 `return` 语句用于退出当前的函数，返回值给调用者，特殊情况，`return;` 其实就是 `return ();` 的简写。 函数一般可能没有显示的 `return` 语句，函数体很像一个 `block`，如果最后一个表达式没有以 `;` 结尾，那么它就是函数的返回值，一般情况下，这是 `Rust` 函数中用于返回值得首选方式。
 
@@ -467,7 +467,7 @@ let output = match File::create(filename) {
 };
 ```
 
-### 特殊类型 !
+### 特殊类型 `!`
 
 在 `Rust` 中，有些函数，可能包含死循环，`panic!()` 或者类似 `std::process::exit()` ，这些函数都无法正常完成，它们的返回值难以确定是什么类型，例如，标准库中的 [`std::process::exit()`](https://doc.rust-lang.org/std/process/fn.exit.html)，它的源码是这样的：
 
@@ -499,7 +499,7 @@ let x = gcd(1302, 462); // function call
 let room = player.location(); // method call
 ```
 
-`Rust` 在引用和值之间有明显的区分，所以在传递参数时精确的类型，如果函数需要 `i32` 类型，你传入的是 `&i32` 类型就会报错。但是 `.` 运算符放宽了这些规则，在 `player.location()` 的方法调用中，`player` 可能是 `Player`，`&Player`，`Box<Player>` 或者 `Rc<Player>`。`.location()` 方法可以通过值或引用来获取 `player`，因为 `Rust` 的 `.` 运算符能够自动解引用或根据需要借用对它的引用。
+`Rust` 在引用和值之间有明显的区分，所以在传递参数时精确的类型，如果函数需要 `i32` 类型，你传入的是 `&i32` 类型就会报错。但是 `.` 运算符放宽了这些规则，在 `player.location()` 的方法调用中，`player` 可能是 `Player`，`&Player`，`Box<Player>` 或者 `Rc<Player>`。`.location()` 方法可以通过值或引用来获取 `player`，因为 `Rust` 的 `.` 运算符能够自动解引用或根据需要创建引用。
 
 另外一种语法是和类型关联的函数，例如 `Vec::new()`，类似于面向对象语言中的静态方法
 
@@ -535,7 +535,7 @@ let ramp = (0 .. n).collect::<Vec<i32>>(); // ok, using ::<
 ```
 {% endnote %}
 
-`Rust` 社区将 ` ::<...> ` 叫做 `turbofish`，但是我们也可以省略它们，改由rust进行推断：
+`Rust` 社区将 ` ::<...> ` 叫做 `turbofish`，但是我们也可以省略它们，改由`Rust`进行推断：
 
 {% note success %}
 ```rust
@@ -547,7 +547,7 @@ let ramp: Vec<i32> = (0 .. n).collect(); // ok, variable's type is given
 
 ### 字段和索引
 
-结构体字段的访问和其他语言比较类似，`Tuple` 采用相同的语法，只是它只能使用数字作为索引。如果 `.` 左边是个引用或者智能指针，会自动进行解引用：
+结构体字段的访问和其他语言比较类似，`tuple` 采用相同的语法，只是它只能使用数字作为索引。如果 `.` 左边是个引用或者智能指针，会自动进行解引用：
 
 ```rust
 game.black_pawns // struct field 
@@ -560,7 +560,7 @@ coords.1 // tuple element
 pieces[i]
 ```
 
-这些变量被称当做左值表达式，如果它们被声明为 `muteable`，例如：
+这些变量可以被当做左值表达式，如果它们被声明为 `muteable`，例如：
 
 ```rust
 game.black_pawns = 0x00ff0000_00000000_u64; 
@@ -624,7 +624,7 @@ for elem in &padovan {
 
 ### 算数，位运算，比较和逻辑运算符
 
-大多数适合是和C语言比较相似的，我们来看一些特别的例子。`-` 可以用于表示负数，但是没有对应的 `+`。
+大多数适合是和`C`语言比较相似的，我们来看一些特别的例子。`-` 可以用于表示负数，但是没有对应的 `+`。
 
 ```rust
 println!("{}", -100);      // -100
@@ -633,25 +633,25 @@ println!("{}", +100);     // error: expected expression, found `+`
 ```
 
 
-与 `C` 中一样， `a % b` 计算除法向零舍入的有符号余数或模数。结果与左操作数的符号相同。请注意， `%` 可用于浮点数和整数：
+与 `C` 中一样， `a % b` 计算除法向零舍入的有符号余数或模数。结果与左操作数的符号相同。请注意，`%` 可用于浮点数和整数：
 
 ```rust
 let x = 1234.567 % 10.0; // approximately 4.567
 ```
 
-`Rust` 也继承了C 的位运算符，`&, |, ^, <<, >>`，只是 `Rust` 中使用 `!` 表示 `NOT` 而不是 `~`：
+`Rust` 也继承了 `C` 的位运算符，`&, |, ^, <<, >>`，只是 `Rust` 中使用 `!` 表示 `NOT` 而不是 `~`：
 
 ```rust
 let hi: u8 = 0xe0; let lo = !hi; // 0x1f
 ```
 
-移位运算符在处理有符号数时进行符号扩展，在处理无符号整数时进行0扩展。
+移位运算符在处理有符号数时进行符号扩展，在处理无符号整数时进行`0`扩展。
 
 位运算符比比较运算符有更高的优先级，这点和 `C` 语言不太一样。`x & BIT != 0` 表示 `(x & BIT) != 0`。
 
 比较运算符 ` ==, !=, <, <=, >, >=` 中的两个操作数必须要有相同的类型。
 
-逻辑运算符 `||` 和 `&&` 两个操作数必须都是 bool 类型。
+逻辑运算符 `||` 和 `&&` 两个操作数必须都是` bool` 类型。
 
 ### 赋值
 
@@ -664,7 +664,7 @@ let hi: u8 = 0xe0; let lo = !hi; // 0x1f
 ```rust
 total += item.price;
 ```
-要注意的是，`Rust` 不支持C中的链式赋值，所以 ` a = b = 3` 是不允许的，也不支持自增自减运算符 `++` 和 `--`。
+要注意的是，`Rust` 不支持`C`中的链式赋值，所以 `a = b = 3` 是不允许的，也不支持自增自减运算符 `++` 和 `--`。
 
 ### 类型转换
 
@@ -679,7 +679,7 @@ let index = x as usize; // convert to usize
 
 - 内建的数字类型可以相互转换；将整数转换为另一种整数类型始终是明确定义的。转换为更窄的类型会导致截断。转换为更宽的有符号整数是符号扩展的，无符号整数是零扩展的，依此类推。从浮点类型转换为整数类型会向零舍入：`-1.99 as i32` 将会得到 `-1`。如果该值太大而无法放入整数类型，则强制转换会生成整数类型可以表示的最接近的值：`1e6 as u8` 将是 `255`；
 
-- `bool` 或 `char` 类型或类似 `C` 的枚举类型的值可以转换为任何整数类型，但是反过来转换是不允许的，例如，禁止将 `u16` 强制转换为 `char` 类型，因为某些 `u16` 值（如 `0xd800`）对应于无效的 Unicode 码点，不是有效的 `char` 值。有一个标准方法，`std::char::from_u32()`，它执行运行时检查并返回一个 `Option<char>`; 但更重要的是，这种转换的需求已经变得越来越少。**作为一个例外，`u8` 是唯一可以转换成 `char` 的类型，因为它的范围 `0-255` 都是有效的 ASCII 字符**；
+- `bool` 或 `char` 类型或类似 `C` 的枚举类型的值可以转换为任何整数类型，但是反过来转换是不允许的，例如，禁止将 `u16` 强制转换为 `char` 类型，因为某些 `u16` 值（如 `0xd800`）对应于无效的 `Unicode` 码点，它不是有效的 `char` 值。有一个标准方法，`std::char::from_u32()`，它执行运行时检查并返回一个 `Option<char>`，但这种转换的需求很少。**作为一个例外，`u8` 是唯一可以转换成 `char` 的类型，因为它的范围 `0-255` 都是有效的 `ASCII` 字符**；
 
 我们说过转换通常需要强制转换。 一些涉及引用类型的转换非常简单，即使没有强制转换，语言也会执行它们。 下面是一些自动转换的场景：
 
@@ -687,17 +687,17 @@ let index = x as usize; // convert to usize
 - `&Vec<i32>` 类型的值自动转换为 `&[i32]` 类型，无需强制转换；
 - `&Box<Chessboard>` 类型的值自动转换为 `&Chessboard` 类型，无需强制转换；
 
-这是因为它们实现了 `Deref` trait，这个 trait 的目的是使智能指针类型的行为尽可能地像基础值，因此使用 `Box<Chessboard>` 就像使用 `Chessboard` 一样。
+这是因为它们实现了 `Deref`，它的目的是使智能指针类型的行为尽可能地像基础值，因此使用 `Box<Chessboard>` 就像使用 `Chessboard` 一样。
 
 ### 闭包
 
-Rust 有闭包，轻量级的类似函数的值。 闭包通常由一个参数列表，在竖线之间给出，后跟一个表达式：
+`Rust` 有闭包，轻量级的类似函数的值。闭包通常由一个参数列表，在竖线之间给出，后跟一个表达式：
 
 ```rust
 let is_even = |x| x % 2 == 0
 ```
 
-Rust 可以推断参数类型和返回类型， 当然也可以向函数那样明确写出来。但是如果指定了返回类型，则为了语法上的完整性，闭包体必须是一个块：
+`Rust` 可以推断参数类型和返回类型，当然也可以向函数那样明确写出来。但是如果指定了返回类型，则为了语法上的完整性，闭包体必须是一个块：
 
 ```rust
 let is_even = |x: u64| -> bool x % 2 == 0; // error
@@ -710,4 +710,5 @@ let is_even = |x: u64| -> bool { x % 2 == 0 }; // ok
 ```rust
 assert_eq!(is_even(14), true);
 ```
+
 
