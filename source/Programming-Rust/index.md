@@ -12,6 +12,8 @@ date: 2022-05-05 09:54:08
 
 这本书是 `O'Reilly` 出版社的，个人认为还是非常透彻的，作为初学者，对本书进行了学习和记录，内容大体上没有遗漏，只是对一些描述做了精简，[出版社书籍链接](https://www.oreilly.com/library/view/programming-rust-2nd/9781492052586/)。
 
+![](assets/programing-rust-cover.png)
+
 1. [《第3章-Fundamental Types》](/2022/04/10/【Rust】基础类型/)
 2. [《第4章-Ownership and Moves》](/2022/04/12/【Rust】所有权/)
 3. [《第5章-References》](/2022/04/17/【Rust】引用/)
