@@ -7,7 +7,7 @@ categories:
   - rust
 ---
 
-`Rust` 中也有结构体，类似 `C/C++` 中的结构体，`python` 中的 `class` 以及 `javascript` 中的对象。`Rust` 中除了常规的结构体之外，还有`tuple 结构体`，`uint`结构体。
+`Rust` 中也有结构体，类似 `C/C++` 中的结构体，`python` 中的 `class` 以及 `javascript` 中的对象。`Rust` 中除了常规的结构体之外，还有 `tuple` 结构体，单元结构体。
 
 ### 结构体
 
@@ -91,28 +91,28 @@ fn main() {
 <!-- more -->
 
 
-### tuple结构体
+### `tuple` 结构体
 
-之所以叫元组结构体是因为它长得像，例如：
+之所以叫`tuple`结构体是因为它长得像，例如：
 
 ```rust
 struct Bounds(usize, usize);
 ```
 
-构造`tuple 结构体`就像构造 `tuple`，只是需要写一个类型：
+构造`tuple`结构体就像构造 `tuple`，只是需要写一个类型：
 
 ```rust
 let image_bounds = Bounds(1024, 768);
 
 ```
 
-就连元素访问方式也是一样的：
+就连字段访问方式也是一样的：
 
 ```rust
 assert_eq!(image_bounds.0 * image_bounds.1, 786432);
 ```
 
-内部元素也可以设置访问权限，即是否导出：
+内部字段也可以设置访问权限，即是否导出：
 
 ```rust
 pub struct Bounds(pub usize, pub usize);
@@ -124,9 +124,9 @@ pub struct Bounds(pub usize, pub usize);
 fn Bounds(elem0: usize, elem1: usize) -> Bounds { ... }
 ```
 
-`tuple 结构体` 和常规的结构体基本上是类似的，使用哪个取决于易读性，模糊性和简洁性。
+`tuple` 结构体和常规的结构体基本上是类似的，使用哪个取决于易读性和简洁性。
 
-### Unit 结构体
+### `Unit` 结构体
 
 `Unit 结构体` 没有字段：
 
@@ -142,7 +142,7 @@ let o = Onesuch;
 
 ### 内存布局
 
-常规结构体和 `tuple 结构体`在内存中的是一样的，它们都包含一系列的值，可能同类型也可能混合类型，例如我们上面定义的结构体：
+常规结构体和 `tuple` 结构体在内存中的是一样的，它们都包含一系列的值，可能同类型也可能混合类型，例如我们上面定义的结构体：
 
 ```rust
 struct GrayscaleMap {
@@ -161,7 +161,7 @@ struct GrayscaleMap {
 
 ### 实例方法
 
-`Rust` 方法不像在 `C`，`Go` 或者 `Java` 中那样出现在结构体定义中，而是出现在单独的 `impl` 块中。一个 `impl` 块只是 `fn` 定义的集合，每个定义都成为块顶部命名的结构类型上的一个方法。 在这里，例如，我们定义一个 `public struct Queue`，然后给它两个 `public` 方法，`push` 和 `pop`：
+`Rust` 方法不像在 `C`，`Go` 或者 `Java` 中那样出现在结构体定义中，而是出现在单独的 `impl` 块中。一个 `impl` 块只是 `fn` 定义的集合，每个定义都成为块顶部命名的结构类型上的一个方法。在这里，例如，我们定义一个 `public struct Queue`，然后给它两个 `public` 方法，`push` 和 `pop`：
 
 ```rust
 
@@ -204,7 +204,7 @@ impl Queue {
 
 定义在 `impl` 块中的称之为关联函数，因为和特定的类型有关，相反，没有定义在 `impl` 中称之为自由函数。
 
-`Rust` 将调用它的值作为第一个参数传递给方法，该参数必须具有特殊名称 `self`，`self` 的类型可以省略，所以 `self`，`&self` 或者 `&mut self` 实际上是 ` self: Queue`， `self: &Queue`， 或者 `self: &mut Queue` 的简写。
+`Rust` 将调用它的值作为第一个参数传递给方法，该参数必须具有特殊名称 `self`，`self` 的类型可以省略，所以 `self`，`&self` 或者 `&mut self` 实际上是 `self: Queue`， `self: &Queue`， 或者 `self: &mut Queue` 的简写。
 
 在我们的示例中，`push` 和 `pop` 在内部使用 `self` 访问内部成员，这与 `C++` 和 `Java` 不同，`this` 对象的成员在方法中直接可见，而 `Rust` 必须要使用 `self` 来访问。
 
@@ -293,7 +293,7 @@ fn main() {
 
 - 我们可以转移 `Rc<Self>` 的所有权，例如，上面的例子我们可以直接调用：`shared_node.append_to(&mut parent);`，只是这样，父函数中 `shared_node` 就不可用了；
 
-- 如果它需要保留 `Rc` 的所有权，它只会增加引用计数，如果需要保留 `Rc` 的所有权，可以像上面通过增加引用计数的方式实现；
+- 如果它需要保留 `Rc` 的所有权，可以像上面这样通过增加引用计数的方式实现；
 
 [这里有更多的例子](https://stackoverflow.com/questions/25462935/what-types-are-valid-for-the-self-parameter-of-a-method)。
 
@@ -309,13 +309,13 @@ impl Queue {
 }
 ```
 
-在 `Rust` 中，将构造函数命名为`new` 是惯例； 我们已经看到了 `Vec::new`、`Box::new`、`HashMap::new` 等， 但是`new`这个名字并没有什么特别之处， 它不是关键字，并且类型通常具有其他关联的函数作为构造函数，例如 `Vec::with_capacity`。
+在 `Rust` 中，将构造函数命名为 `new` 是惯例，我们已经看到了 `Vec::new`、`Box::new`、`HashMap::new` 等，但是`new`这个名字并没有什么特别之处，它不是关键字，并且类型通常具有其他关联的函数作为构造函数，例如 `Vec::with_capacity`。
 
-**尽管您可以为单个类型拥有许多单独的 `impl` 块，但它们必须都位于定义该类型的同一个 `crate` 中。**
+**尽管可以为单个类型拥有许多单独的 `impl` 块，但它们必须都位于定义该类型的同一个 `crate` 中。**
 
 ### 关联常量
 
-顾名思义，关联的 `const` 是常量值。 它们通常用于指定类型的常用值。 例如，您可以定义一个用于线性代数的二维向量以及相关的单位向量：
+顾名思义，关联的 `const` 是常量值，它们通常用于指定类型的常用值。例如，可以定义一个用于线性代数的二维向量以及相关的单位向量：
 
 ```rust
 pub struct Vector2 {
@@ -354,9 +354,9 @@ pub struct Queue<T> {
 }
 ```
 
-可以将 `Queue<T>` 中的 `<T>` 解读为`对于任何元素类型 T...`，所以这个定义写成：`对于任何类型 T，一个 Queue<T> 是两个 Vec<T> 类型的字段`。 例如，在 `Queue<String>` 中，`T` 是 `String`，因此 `older` 和 `younger` 的类型为 `Vec<String>`。 在 `Queue<char>` 中，`T` 是 `char`。 事实上，`Vec` 本身就是一个泛型结构体。
+可以将 `Queue<T>` 中的 `<T>` 解读为 `对于任何元素类型 T...`，所以这个定义解读为：`对于任何类型 T，一个 Queue<T> 是两个 Vec<T> 类型的字段`。例如，在 `Queue<String>` 中，`T` 是 `String`，因此 `older` 和 `younger` 的类型为 `Vec<String>`。在 `Queue<char>` 中，`T` 是 `char`，事实上，`Vec` 本身就是一个泛型结构体。
 
-在泛型结构定义中，`<>` 中使用的类型名称称为`类型参数`。 泛型结构的 `impl` 块如下所示：
+在泛型结构定义中，`<>` 中使用的类型名称称为`类型参数`。泛型结构的 `impl` 块如下所示：
 
 ```rust
 impl<T> Queue<T> {
@@ -376,7 +376,7 @@ impl<T> Queue<T> {
 }
 ```
 
-可以将 `impl<T> Queue<T>` 行解读为`对于任何类型的 T，以下是 Queue<T> 上可用的一些关联函数`。 然后，您可以使用类型参数 `T` 作为关联函数定义中的类型。
+可以将 `impl<T> Queue<T>` 解读为 `对于任何类型的 T，以下是 Queue<T> 上可用的一些关联函数`。然后，可以使用类型参数 `T` 作为关联函数定义中的类型。
 
 语法可能看起来有点多余，但 `impl<T>` 清楚地表明 `impl` 块涵盖任何类型 `T`，这将它与为一种特定类型的 `Queue` 编写的 `impl` 块区分开来，例如：
 
@@ -390,7 +390,7 @@ impl Queue<f64> {
 
 这里的意思是，这有一些专门为 `Queue<f64>` 实现的关联函数，其他类型不可用。
 
-我们在前面的代码中使用了 `Rust` 的 `self` 参数简写； 到处写出 `Queue<T>` 会变得很啰嗦。 作为另一种简写，每个 `impl` 块，无论是否通用，都将特殊类型参数 `Self`定义为我们要添加方法的任何类型。 在前面的代码中，`Self` 是 `Queue<T>`，所以我们可以进一步简化 `Queue::new` 的定义：
+我们在前面的代码中使用了 `Rust` 的 `self` 参数简写，因为到处写出 `Queue<T>` 也很啰嗦，所以有了另一种简写，每个 `impl` 块，无论是否通用，都将特殊类型参数 `Self` 定义为我们要添加方法的任何类型。在前面的代码中，`Self` 是 `Queue<T>`，所以我们可以进一步简化 `Queue::new` 的定义：
 
 ```rust
 pub fn new() -> Self {
@@ -418,7 +418,7 @@ r.push(0.74); // apparently a Queue<f64>
 
 ### 结构体生命周期参数
 
-如果结构体类型包含引用，则必须声明这些引用的生命周期。 例如：
+如果结构体类型包含引用，则必须声明这些引用的生命周期。例如：
 
 ```rust
 struct Extrema<'elt> {
@@ -427,7 +427,7 @@ struct Extrema<'elt> {
 }
 ```
 
-`struct Extrema<'elt>` 意味着，给定任何特定的生命周期 `'elt`，你可以创建一个 `Extrema<'elt>` 来保存具有该生命周期的引用。 这是一个扫描切片并返回最大最小值的函数：
+`struct Extrema<'elt>` 意味着，给定任何特定的生命周期 `'elt`，你可以创建一个 `Extrema<'elt>` 来保存具有该生命周期的引用。这是一个扫描切片并返回最大最小值的函数：
 
 ```rust
 fn find_extrema<'s>(slice: &'s [i32]) -> Extrema<'s> {
@@ -441,7 +441,7 @@ fn find_extrema<'s>(slice: &'s [i32]) -> Extrema<'s> {
 }
 ```
 
-在这里，由于 `find_extrema` 借用了 `slice` 的元素，它具有生命周期 `'s`，所以我们返回的 `Extrema` 结构体也使用 `'s` 作为其引用的生命周期。 `Rust` 总是会推断函数调用的生命周期参数，因此对 `find_extrema` 的调用不需要提及它们：
+在这里，由于 `find_extrema` 借用了 `slice` 的元素，它具有生命周期 `'s`，所以我们返回的 `Extrema` 结构体也使用 `'s` 作为其引用的生命周期。`Rust` 总是会推断函数调用的生命周期参数，因此对 `find_extrema` 的调用不需要提及它们：
 
 ```rust
 let a = [0, -3, 0, 15, 48];
@@ -450,7 +450,7 @@ assert_eq!(*e.least, -3);
 assert_eq!(*e.greatest, 48);
 ```
 
-因为返回类型与参数使用相同的生命周期是很常见的，所以当有一个明显的候选者时，`Rust` 允许我们省略生命周期。 我们也可以这样写 `find_extrema` 的签名，但含义不变：
+因为返回类型与参数使用相同的生命周期是很常见的，所以当有一个明显的候选者时，`Rust` 允许我们省略生命周期。我们也可以这样写 `find_extrema` 的签名，但含义不变：
 
 ```rust
 fn find_extrema(slice: &[i32]) -> Extrema {
@@ -458,9 +458,9 @@ fn find_extrema(slice: &[i32]) -> Extrema {
 }
 ```
 
-### 通用 Trait 派生
+### 常用 `Trait` 派生
 
-通常我们自己的定义的结构体是不支持 `{:?}` 打印，比较，深拷贝的，如果我们像这样做，就得实现 `Copy`，`Debug`，以及 `PartialEq` 这些 `trait`，但如果每一次都手动实现，就显得有点痛苦了，好在 `Rust` 提供了 `#[derive]` 属性来自动帮我们实现：
+通常我们自己的定义的结构体是不支持 `{:?}` 打印，比较，深拷贝的，如果我们像这样做，就得实现 `Copy`，`Debug`，以及 `PartialEq`，但如果每一次都手动实现，就显得有点痛苦了，好在 `Rust` 提供了 `#[derive]` 属性来自动帮我们实现：
 
 ```rust
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -470,7 +470,7 @@ struct Point {
 }
 ```
 
-如果结构体的每个字段都实现了该 `trait` ，则这些 `trait` 中的每一个都可以为结构体自动实现。 我们可以要求 `Rust` 为 `Point` 派生 `PartialEq`，因为它的两个字段都是 `f64` 类型，它已经实现了 `PartialEq`。
+如果结构体的每个字段都实现了该 `trait`，则这些 `trait` 中的每一个都可以为结构体自动实现。我们可以要求 `Rust` 为 `Point` 派生 `PartialEq`，因为它的两个字段都是 `f64` 类型，它已经实现了 `PartialEq`。
 
 ### 内部可变性
 
@@ -521,7 +521,7 @@ pub struct SpiderSenses {
     }
     ```
 
-    当然，这对于名为 `set` 的方法来说是不寻常的。 到目前为止，`Rust` 已经训练我们期望如果我们想要对数据进行更改，我们需要 `mut` 访问。 但出于同样的原因，这一不寻常的细节是 `Cell` 的全部意义所在，具体背景可参考 `Cell` 的源代码实现。
+    当然，这对于名为 `set` 的方法来说是不寻常的。因为从之前的学习来说，如果我们想要对数据进行更改，我们需要 `mut` 访问。但出于同样的原因，这一不寻常的细节是 `Cell` 的全部意义所在，具体背景可参考 `Cell` 的源代码实现。
 
 
 通过，`Cell` 我们可以在 `SpiderRobot` 中统计错误数量：
@@ -555,20 +555,19 @@ impl SpiderRobot {
 
 但是 `Cell` 不能让我们调用值得 `mut` 方法，因为 `get` 返回的是一个副本，所以它仅仅只能用于实现了 `Copy` 的类型。
 
-
 #### `RefCell<T>`
 
 `RefCell<T>` 和 `Cell<T>` 不同的是，他可以返回内部值得引用：
 
 - `RefCell::new(value)`：创建新的 `RefCell`；
 
-- `ref_cell.borrow()`：返回一个 [`Ref<T>`](https://doc.rust-lang.org/std/cell/struct.Ref.html)，这本质上只是对存储在 ref_cell 中的值的共享引用。
+- `ref_cell.borrow()`：返回一个 [`Ref<T>`](https://doc.rust-lang.org/std/cell/struct.Ref.html)，这本质上只是对存储在 ref_cell 中的值的共享引用；
 
 - `ref_cell.borrow_mut()`：返回 [`RefMut<T>`](https://doc.rust-lang.org/std/cell/struct.RefMut.html)，本质上是对 `ref_cell` 中值的可变引用。 如果该值已被借用，则此方法会`panic`； 
 
 - `ref_cell.try_borrow(), ref_cell.try_borrow_mut()`：很像 `borrow` 和 `borrow_mut`，但是返回 `Result`。所以当值已经被借用之后，不会 `panic`，而是返回 `Err`。
 
-只有当你试图打破 `mut` 引用是独占引用的 `Rust` 规则时，这两个借用方法才会恐慌。 例如，这会 `panic`：
+只有当你试图打破 `mut` 引用是独占引用的 `Rust` 规则时，这两个借用方法才会 `panic`。例如，这会 `panic`：
 
 {% note danger %}
 ```rust
@@ -610,6 +609,4 @@ impl SpiderRobot {
 
 变量 `file` 的类型为 `RefMut<File>`，它可以像对 `File` 的可变引用一样使用。
 
-`Cell` 易于使用， 必须调用 `.get()` 和 `.set()` 或 `.borrow()` 和 `.borrow_mut()` 有点尴尬，但这只是我们为违反规则而付出的代价。 另一个缺点不太明显但更严重：`Cell`——以及包含它们的任何类型——都不是线程安全的， 因此，`Rust` 不允许多个线程同时访问它们。这种情况应该使用 [`Mutex`](https://doc.rust-lang.org/std/sync/struct.Mutex.html)。
-
-
+`Cell` 易于使用， 必须调用 `.get()` 和 `.set()` 或 `.borrow()` 和 `.borrow_mut()` 有点尴尬，但这只是我们为违反规则而付出的代价。 另一个缺点不太明显但更严重：`Cell` 以及包含它们的任何类型都不是线程安全的，因此，`Rust` 不允许多个线程同时访问它们。这种情况应该使用 [`Mutex`](https://doc.rust-lang.org/std/sync/struct.Mutex.html)。
