@@ -14,7 +14,9 @@ date: 2022-05-05 09:54:08
 
 ![](assets/programing-rust-cover.png)
 
-1. [《第3章-Fundamental Types》](/2022/04/10/【Rust】基础类型/)
+由于翻译能力较差，所以现在正在重新校对中，表述有误的地方请评论或者提 `pr`，`✔️` 表示已校对。
+
+1. [《第3章-Fundamental Types》（✔️）](/2022/04/10/【Rust】基础类型/)
 2. [《第4章-Ownership and Moves》](/2022/04/12/【Rust】所有权/)
 3. [《第5章-References》](/2022/04/17/【Rust】引用/)
 4. [《第6章-Expressions》](/2022/04/20/【Rust】表达式/)
