@@ -943,6 +943,32 @@ lazy_static! {
     static ref HOSTNAME: Mutex<String> = Mutex::new(String::new());
 }
 ```
+
+或者示例：
+
+```rust
+use lazy_static::lazy_static;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+lazy_static! {
+    static ref HASHMAP: Arc<Mutex<HashMap<u32, &'static str>>> = {
+        let mut m = HashMap::new();
+        m.insert(0, "foo");
+        m.insert(1, "bar");
+        m.insert(2, "baz");
+        Arc::new(Mutex::new(m))
+    };
+}
+
+fn main() {
+    let mut map = HASHMAP.lock().unwrap();
+    map.insert(3, "waz");
+
+    println!("map: {:?}", map);
+}
+```
+
 {% endnote %}
 
 同样的技术适用于其他复杂的数据结构，如 `HashMaps` 和 `Deques`。 使用 `lazy_static！` 对静态数据的每次访问都会产生很小的性能成本。 该实现使用 [`std::sync::Once`](https://doc.rust-lang.org/std/sync/struct.Once.html)，这是一种为一次性初始化而设计的低级同步原语。在幕后，每次访问惰性静态时，程序都会执行原子加载指令来检查初始化是否已经发生。

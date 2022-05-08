@@ -8,7 +8,7 @@ categories:
   - rust
 ---
 
-`Unicode` 和 `ASCII` 匹配所有 `ASCII 码点`，从 `0` 到 `0x7f`：例如，都将字符 `*` 分配给码点 `42`。类似地，`Unicode` 将 `0` 到 `0xff` 分配给与 `ISO/IEC 8859-1` 字符集相同的字符，用于西欧语言的 `8` 位 `ASCII` 超集。 `Unicode` 将此码点范围称为 `Latin-1` 代码块。
+`Unicode` 和 `ASCII` 匹配所有 `ASCII` 字符，从 `0` 到 `0x7f`。例如，都将字符 `*` 分配给码点 `42`。类似地，`Unicode` 将 `0` 到 `0xff` 分配给与 `ISO/IEC 8859-1` 字符集相同的字符，用于西欧语言的 `8` 位 `ASCII` 超集。`Unicode` 将此码点范围称为 `Latin-1` 代码块。
 
 因为 `Unicode` 是 `Latin-1` 的超集，所以从 `Latin-1` 转换到 `Unicode` 是完全允许的：
 
@@ -18,7 +18,7 @@ fn latin1_to_char(latin1: u8) -> char {
 }
 ```
 
-假设代码点在 `Latin-1` 范围内，反向转换也很简单：
+假设码点在 `Latin-1` 范围内，反向转换也很简单：
 
 ```rust
 fn char_to_latin1(c: char) -> Option<u8> {
@@ -30,7 +30,7 @@ fn char_to_latin1(c: char) -> Option<u8> {
 }
 ```
 
-`Rust` 中 `String` 和 `str` 类型都是使用 `UTF-8` 编码格式，它是一中变长编码，使用`1`到`4`个字节对字符进行编码。格式正确的 `UTF-8` 序列有两个限制。 首先，对于任何给定的码点，只有最短的编码被认为是格式良好的，也就是不能花费`4`个字节来编码一个适合`3`个字节的码点。 此规则确保给定代码点只有一个 `UTF-8` 编码。 其次，格式正确的 `UTF-8` 不得编码为 `0xd800` 到 `0xdfff` 或超过 `0x10ffff` 的数字：这些数字要么保留用于非字符目的，要么完全超出 `Unicode` 的范围。
+`Rust` 中 `String` 和 `str` 类型都是使用 `UTF-8` 编码格式，它是一种变长编码，使用`1`到`4`个字节对字符进行编码。有效的 `UTF-8` 序列有两个限制。首先，对于任何给定码点，只有最短的编码被认为是有效的，也就是不能花费`4`个字节来编码一个适合`3`个字节的码点。 此规则确保给定代码点只有一个 `UTF-8` 编码。其次，有效的 `UTF-8` 不得编码为 `0xd800` 到 `0xdfff` 或超过 `0x10ffff` 的数字：这些数字要么保留用于非字符目的，要么完全超出 `Unicode` 的范围。
 
 {% asset_img utf8-example.png %}
 
@@ -38,7 +38,7 @@ fn char_to_latin1(c: char) -> Option<u8> {
 
 ### 字符
 
-`Rust` 中使用一个 `32` 位值存储 `Unicode` 码点，`char` 保证落在 `0` 到 `0xd7ff` 或 `0xe000` 到 `0x10ffff` 的范围内；所有用于创建和操作 `char` 值的方法都确保这个规则。`char` 类型实现了 `Copy` 和 `Clone`，以及用于比较、散列和格式化的所有常用 `Trait`。
+`Rust` 中使用一个 `32` 位值存储 `Unicode` 码点，`char` 保证落在 `0` 到 `0xd7ff` 或 `0xe000` 到 `0x10ffff` 的范围内，所有用于创建和操作 `char` 值的方法都确保这个规则。`char` 类型实现了 `Copy` 和 `Clone`，以及用于比较、`hash` 和格式化的所有常用 `Trait`。
 
 例如，通过 `&str` 获得字符序列：
 
@@ -146,11 +146,11 @@ assert_eq!(std::char::from_u32(0xd800), None); // reserved for UTF-16
 
 ### `String`、`str`
 
-`Rust` 的 `String` 和 `str` 类型保证只保存格式良好的 `UTF-8`。该库通过限制您可以创建 `String` 和 `str` 值的方式以及您可以对它们执行的操作来确保这一点，这样这些值在引入时格式正确并在您使用它们时保持不变。他们所有的方法都保护了这一保证：对它们的任何安全操作都不会引入格式错误的 `UTF-8`，这简化了处理文本的代码。
+`Rust` 的 `String` 和 `str` 类型保证只保存有效的 `UTF-8`。通过限制可以创建 `String` 和 `str` 值的方式以及可以对它们执行的操作来确保这一点，这样这些值在引入时有效并在使用它们时保持不变。他们所有的方法都保护了这一保证：对它们的任何安全操作都不会引入无效的 `UTF-8`，这简化了处理文本的代码。
 
 `Rust` 将文本处理方法放置在 `str` 或 `String` 上，具体取决于该方法是否需要可调整大小的缓冲区或内容只是为了使用适当的文本。由于 `String` 解引用就是 `&str`，因此在 `str` 上定义的每个方法也可以直接在 `String` 上使用。
 
-`String` 被实现为 `Vec<u8>` 的包装器，以确保`vector`的内容总是格式良好的 `UTF-8`。
+`String` 被实现为 `Vec<u8>` 的包装器，以确保 `vector` 的内容总是有效的 `UTF-8`。
 
 下表包含后续的解释中用到的词汇：
 
@@ -209,7 +209,7 @@ assert_eq!(std::char::from_u32(0xd800), None); // reserved for UTF-16
 
 - `slice.is_char_boundary(i)`：返回 `true` 如果 `i` 是一个字符的边界，这样他就可以作为 `slice` 的边界；
 
-自然地，可以比较切片的相等性、排序和散列。 有序比较只是将字符串视为 Unicode 代码点序列，并按字典顺序比较它们。
+自然地，可以比较切片的相等性、排序和散列。有序比较只是将字符串视为 `Unicode` 代码点序列，并按字典顺序比较它们。
 
 #### 追加、插入
 
@@ -308,7 +308,7 @@ let parenthetical = "(".to_string() + &string + ")";
         }
         ```
         
-- `string.replace_range(range, replacement)`：用给定的替换字符串切片替换字符串中的给定范围。 切片的长度不必与被替换的范围相同，但除非被替换的范围到达字符串的末尾，否则将需要移动范围末尾之后的所有字节：
+- `string.replace_range(range, replacement)`：用给定的替换字符串切片替换字符串中的给定范围。切片的长度不必与被替换的范围相同，但除非被替换的范围到达字符串的末尾，否则将需要移动范围末尾之后的所有字节：
 
         ```rust
         fn main() {
@@ -346,7 +346,7 @@ assert_eq!(haystack.find(char::is_whitespace), Some(3));
 
 3. `FnMut(char) -> bool` 使用闭包匹配单个的字符；
 
-4. ` &[char]` 匹配任何出现在 `char` 列表中的字符，如果使用数组字面量，需要使用 `as_ref` 进行类型转换：
+4. `&[char]` 匹配任何出现在 `char` 列表中的字符，如果使用数组字面量，需要使用 `as_ref` 进行类型转换：
 
         ```rust
         fn main() {
@@ -359,7 +359,7 @@ assert_eq!(haystack.find(char::is_whitespace), Some(3));
         }
         ```
 
-而在库代码中， `pattern` 是任何实现了 [`std::str::pattern::Pattern`](https://doc.rust-lang.org/stable/std/str/pattern/trait.Pattern.html) 的类型，该类型目前还是实验性质，所以为避免引起兼容性问题，不要为自己的类型实现。
+而在库代码中，`pattern` 是任何实现了 [`std::str::pattern::Pattern`](https://doc.rust-lang.org/stable/std/str/pattern/trait.Pattern.html) 的类型，该类型目前还是实验性质，所以为避免引起兼容性问题，不要为自己的类型实现。
 
 #### 搜索、替换
 
@@ -396,7 +396,7 @@ assert_eq!(haystack.find(char::is_whitespace), Some(3));
         }
         ```
 
-    `.replace()` 在重叠匹配上的行为可能令人惊讶。 在这里，模式`"aba"`有四个实例，但在替换第一个和第三个后，第二个和第四个不再匹配：
+    `.replace()` 在重叠匹配上的行为可能有点怪，在这里，模式`"aba"`有四个实例，但在替换第一个和第三个后，第二个和第四个不再匹配：
 
         ```rust
         assert_eq!("cabababababbage".replace("aba", "***"), "c***b***babbage")
@@ -488,7 +488,7 @@ assert_eq!(haystack.find(char::is_whitespace), Some(3));
 
 - `slice.match_indices(pattern), slice.rmatch_indices(pattern)`：返回 `(offset, match)` 对，`offset` 是匹配到的 `match` 开始字节偏移量；
 
-#### `Trimming`
+#### `Trim`
 
 修剪字符串是从字符串的开头或结尾删除文本，通常是空格。 
 
@@ -510,7 +510,7 @@ assert_eq!(haystack.find(char::is_whitespace), Some(3));
 
 #### 转换成其他类型
 
-如果一个类型实现了 ` std::str::FromStr`，那么它就提供了一个标准的方式可以从字符串生成它的值：
+如果一个类型实现了 `std::str::FromStr`，那么它就提供了一个标准的方式可以从字符串生成它的值：
 
 ```rust
 pub trait FromStr: Sized {
@@ -583,15 +583,15 @@ let address = "fe80::0000:3ea9:f4ff:fe34:7a50".parse::<IpAddr>()?;
     }
     ```
 
-    所有 `Rust` 的数字类型，字符以及字符串都实现了 `Display`，智能指针 ` Box<T>, Rc<T>, Arc<T>` 在 `T` 实现 `Display` 时也会实现 `Display`，`Vec` 和 `HashMap` 没有实现 `Display`。
+    所有 `Rust` 的数字类型，字符以及字符串都实现了 `Display`，智能指针 `Box<T>, Rc<T>, Arc<T>` 在 `T` 实现 `Display` 时也会实现 `Display`，`Vec` 和 `HashMap` 没有实现 `Display`。
 
-- 如果一个类型是下了 `Display`，那么他就会自动实现 `std::str::ToString`，可以通过调用 `.to_string()` 达到目的：
+- 如果一个类型实现了 `Display`，那么他就会自动实现 `std::str::ToString`，可以通过调用 `.to_string()` 达到目的：
 
     ```rust
     assert_eq!(address.to_string(), "fe80::3ea9:f4ff:fe34:7a50");
     ```
 
-- 标准库里面的导出类型都实现了 `std::fmt::Debug`，可以通过 `{:?}` 格式声明生成字符串：：
+- 标准库里面的导出类型都实现了 `std::fmt::Debug`，可以通过 `{:?}` 格式声明生成字符串：
 
     ```rust
     fn main() -> Result<(), AddrParseError> {
@@ -615,14 +615,13 @@ let address = "fe80::0000:3ea9:f4ff:fe34:7a50".parse::<IpAddr>()?;
 
 #### 借用为其他类型
 
-- 切片和字符串实现 `AsRef<str>`、`AsRef<[u8]>`、`AsRef<Path>` 和 `AsRef<OsStr>`。 许多标准库函数使用这些`Trait`作为其参数类型的界限，因此您可以直接将切片和字符串传递给它们，即使它们真正想要的是其他类型，详细请查看 [AsRef、AsMut](/2022/04/29/【Rust】常用-Trait/#asref-asmut)；
+- 切片和字符串实现 `AsRef<str>`、`AsRef<[u8]>`、`AsRef<Path>` 和 `AsRef<OsStr>`。许多标准库函数使用这些`Trait`作为其参数类型的界限，因此可以直接将切片和字符串传递给它们，即使它们真正想要的是其他类型，详细请查看 [AsRef、AsMut](/2022/04/29/【Rust】常用-Trait/#asref-asmut)；
 
 - `slice` 和字符串也实现了 `std::borrow::Borrow<str>`，`HashMap` 和 `BTreeMap` 使用 `Borrow` 使 `String` 可以很好地作为表中的键工作，详细请查看 [Borrow、BorrowMut](/2022/04/29/【Rust】常用-Trait/#borrow-borrowmut)。
 
-
 #### 转化为字节序列
 
-- `slice.as_bytes()`：将 `slice` 转换为 `&[u8]`，由于这不是一个可变引用，所以 `slice` 可以假设它的字节将保持格式良好的 `UTF-8`。
+- `slice.as_bytes()`：将 `slice` 转换为 `&[u8]`，由于这不是一个可变引用，所以 `slice` 可以假设它的字节将保持有效的 `UTF-8`。
 
 - `string.into_bytes()`：获取 `String` 的所有权，并且转换为 `Vec<u8>`，这是一种廉价的转换，因为它只是将字符串一直用作其缓冲区的 `Vec<u8>` 交出。由于字符串不再存在，因此无法再确保是正确的 `UTF-8` 编码，调用者可以随意修改 `Vec<u8>`。
 
@@ -651,11 +650,11 @@ let address = "fe80::0000:3ea9:f4ff:fe34:7a50".parse::<IpAddr>()?;
     }
     ```
 
-- `String::from_utf8_lossy(byte_slice)`：尝试从 `&[u8]` 共享字节片构造字符串或 `&str`。此转换始终成功，将任何格式错误的 `UTF-8` 替换为 `Unicode` 替换字符。返回值是一个 [`Cow<str>`](https://doc.rust-lang.org/stable/std/borrow/enum.Cow.html)，如果它包含格式良好的 `UTF-8`，则直接从 `byte_slice` 借用 `&str`，或者拥有一个新分配的字符串，其中替换字符替换了格式错误的字节。 因此，当 `byte_slice` 格式正确时，不会发生堆分配或复制。
+- `String::from_utf8_lossy(byte_slice)`：尝试从 `&[u8]` 共享字节片构造字符串或 `&str`。此转换始终成功，将任何无效的 `UTF-8` 替换为 `Unicode` 替换字符。返回值是一个 [`Cow<str>`](https://doc.rust-lang.org/stable/std/borrow/enum.Cow.html)，如果它包含有效的 `UTF-8`，则直接从 `byte_slice` 借用 `&str`，或者拥有一个新分配的字符串，其中替换字符替换了无效的字节。 因此，当 `byte_slice` 有效时，不会发生堆分配或复制。
 
-- [`String::from_utf8_unchecked`](https://doc.rust-lang.org/stable/std/string/struct.String.html#method.from_utf8_unchecked)：如果您知道 `Vec<u8>` 包含格式正确的 `UTF-8`，那么您可以调用 `unsafe` 函数。 这只是将 `Vec<u8>` 包装为一个字符串并返回它，根本不检查字节。你有责任确保你没有将格式错误的 `UTF-8` 引入系统，这就是为什么这个函数被标记为不安全的原因。
+- [`String::from_utf8_unchecked`](https://doc.rust-lang.org/stable/std/string/struct.String.html#method.from_utf8_unchecked)：如果知道 `Vec<u8>` 包含有效的 `UTF-8`，那么可以调用 `unsafe` 函数。这只是将 `Vec<u8>` 包装为一个字符串并返回它，根本不检查字节，开发者有责任确保你没有将无效的 `UTF-8` 引入系统，这就是为什么这个函数被标记为不安全的原因。
 
-- [`str::from_utf8_unchecked`](https://doc.rust-lang.org/stable/std/str/fn.from_utf8_unchecked.html)：类似地，这需要一个 `&[u8]` 并将其作为 `&str` 返回，而不检查它是否包含格式正确的 `UTF-8`。 
+- [`str::from_utf8_unchecked`](https://doc.rust-lang.org/stable/std/str/fn.from_utf8_unchecked.html)：类似地，这需要一个 `&[u8]` 并将其作为 `&str` 返回，而不检查它是否包含有效的 `UTF-8`。 
 
 #### 延迟分配
 
@@ -670,7 +669,7 @@ fn get_name() -> String {
 ```
 {% endnote %}
 
-这个函数要求返回一个 `String`，但是实际上它应该返回一个 `String` 或一个静态文本，我们没必要为静态文本 `&'static str` 再次分配内存把它转换成 `String` 返回。这个时候应该使用 [`std::borrow::Cow`](https://doc.rust-lang.org/stable/std/borrow/enum.Cow.html)，`Cow<'a, T>` 是一个有两种变体的枚举：`Owned` 和 `Borrowed`。 `Borrowed` 持有引用 `&'a T`，`Owned` 能将持有的 [`&str` 转换为 `String`](https://doc.rust-lang.org/stable/std/primitive.str.html#impl-ToOwned)，`&[i32]` 转换为 `Vec<i32>`，依此类推。 无论是 `Owned` 还是 `Borrowed`，`Cow<'a, T>` 总能产生一个 `&T` 供你使用。事实上，`Cow<'a, T>` 解引用 `&T` 很像智能指针。
+这个函数要求返回一个 `String`，但是实际上它应该返回一个 `String` 或一个静态文本，我们没必要为静态文本 `&'static str` 再次分配内存把它转换成 `String` 返回。这个时候应该使用 [`std::borrow::Cow`](https://doc.rust-lang.org/stable/std/borrow/enum.Cow.html)，`Cow<'a, T>` 是一个有两种变体的枚举：`Owned` 和 `Borrowed`。 `Borrowed` 持有引用 `&'a T`，`Owned` 能将持有的 [`&str` 转换为 `String`](https://doc.rust-lang.org/stable/std/primitive.str.html#impl-ToOwned)，`&[i32]` 转换为 `Vec<i32>`，依此类推。无论是 `Owned` 还是 `Borrowed`，`Cow<'a, T>` 总能产生一个 `&T` 供你使用。事实上，`Cow<'a, T>` 解引用 `&T` 很像智能指针。
 
 {% note success %}
 ```rust
@@ -684,7 +683,7 @@ fn get_name() -> Cow<'static, str> {
 ```
 {% endnote %}
 
-由于 `Cow` 经常用于字符串，标准库对 `Cow<'a, str>` 有一些特殊的支持。 它提供了来自 `String` 和 `&str` 的 `From` 和 `Into` 转换，因此您可以更简洁地编写 `get_name`：
+由于 `Cow` 经常用于字符串，标准库对 `Cow<'a, str>` 有一些特殊的支持。它提供了来自 `String` 和 `&str` 的 `From` 和 `Into` 转换，因此可以更简洁地编写 `get_name`：
 
 ```rust
 fn get_name() -> Cow<'static, str> {
@@ -711,7 +710,7 @@ if let Some(title) = get_title() {
 
 ### 格式化
 
-`Rust` 的格式化工具被设计为开放式的。 您可以通过实现 `std::fmt` 模块的格式化特征来扩展这些宏以支持您自己的类型。可以使用 `format_args！` 宏和 `std::fmt::Arguments` 类型以使您自己的函数和宏支持格式化语言。
+`Rust` 的格式化工具被设计为开放式的。 可以通过实现 `std::fmt` 模块的格式化特征来扩展这些宏以支持自己的类型。可以使用 `format_args！` 宏和 `std::fmt::Arguments` 类型以使自己的函数和宏支持格式化语言。
 
 格式化宏总是借用对其参数的共享引用，他们从不获取所有权或改变它们。
 
@@ -748,11 +747,11 @@ assert_eq!(format!("{:4}", "th\u{e9}"), "th\u{e9} ");
 assert_eq!(format!("{:4}", "the\u{301}"), "the\u{301}");
 ```
 
-尽管 `Unicode` 说这些字符串都等价于 `thé`，但 `Rust` 的格式化程序并不知道像 `\u{301} 这样的字符` 结合了重音符号需要特殊处理。 它正确地填充了第一个字符串，但假定第二个字符串是四列宽并且不添加任何填充。尽管很容易看出 `Rust` 在这种特定情况下如何改进，但所有 `Unicode` 脚本的真正多语言文本格式化是一项艰巨的任务，最好依靠平台的用户界面工具包来处理。有一个流行的包 [unicode-width](https://crates.io/crates/unicode-width)，可以处理这方面的某些方面。
+尽管 `Unicode` 说这些字符串都等价于 `thé`，但 `Rust` 的格式化程序并不知道像 `\u{301}` 这样的字符，结合了重音符号需要特殊处理。 它正确地填充了第一个字符串，但假定第二个字符串是四列宽并且不添加任何填充。尽管很容易看出 `Rust` 在这种特定情况下如何改进，但所有 `Unicode` 脚本的真正多语言文本格式化是一项艰巨的任务，最好依靠平台的用户界面工具包来处理。有一个流行的包 [unicode-width](https://crates.io/crates/unicode-width)，可以处理这方面的某些方面。
 
 就像 `&str` 和 `String`，还可以传递带有文本引用的格式化宏智能指针类型，例如 `Rc<String>` 或 `Cow<'a, str>`。
 
-由于文件名路径不一定是格式良好的 `UTF-8`，`std::path::Path` 不是一个文本类型；您不能将 `std::path::Path` 直接传递给格式化宏。但是，`Path` 的 `display` 方法返回一个值，可以以适合平台的方式格式化它：
+由于文件名路径不一定是有效的 `UTF-8`，`std::path::Path` 不是一个文本类型；不能将 `std::path::Path` 直接传递给格式化宏。但是，`Path` 的 `display` 方法返回一个值，可以以适合平台的方式格式化它：
 
 ```rust
 println!("processing file: {}", path.display());
@@ -824,7 +823,7 @@ fn main() {
         ),
     }
 
-调试格式通常以十进制打印数字，但您可以在问号前放置一个 `x` 或 `X` 来请求十六进制。前导`0`和字段宽度语法也可以接受。例如，您可以编写：
+调试格式通常以十进制打印数字，但可以在问号前放置一个 `x` 或 `X` 来请求十六进制。前导`0`和字段宽度语法也可以接受。例如，可以编写：
 
 ```rust
 fn main() {
@@ -859,7 +858,7 @@ println!("{:?}", third);
 
 #### 格式化指针
 
-通常，如果将任何类型的指针传递给格式化宏——`引用`、`Box`、`Rc`——宏只会格式化引用的对象；指针本身并不重要。但是在调试时，有时查看指针会很有帮助：地址可以作为单个值的粗略“名称”，这在检查具有循环或共享的结构时会很有启发性。
+通常，如果将任何类型的指针传递给格式化宏——`引用`、`Box`、`Rc`——宏只会格式化引用的对象，指针本身并不重要。但是在调试时，有时查看指针会很有帮助：地址可以作为单个值的粗略“名称”，这在检查具有循环或共享的结构时会很有启发性。
 
 `{:p}` 将引用和智能指针格式化为地址：
 
@@ -987,7 +986,7 @@ fn main() {
 
 #### 格式化自定义类型
 
-格式化宏实际上是 `std::fmt` 中定义的一系列宏，可以通过自己实现这些特征中的一个或多个来使 `Rust` 的格式化宏格式化您自己的类型。
+格式化宏实际上是 `std::fmt` 中定义的一系列宏，可以通过自己实现这些特征中的一个或多个来使 `Rust` 的格式化宏格式化自己的类型。
 
 ![](format-custom-type.png)
 
@@ -1000,7 +999,7 @@ trait Display {
 }
 ```
 
-`fmt` 方法的工作是生成格式正确的 `self` 表示并将其字符写入 `dest`。 除了作为输出流之外，`dest` 参数还携带从格式参数解析的详细信息，例如对齐方式和最小字段宽度。
+`fmt` 方法的工作是生成有效的 `self` 表示并将其字符写入 `dest`。 除了作为输出流之外，`dest` 参数还携带从格式参数解析的详细信息，例如对齐方式和最小字段宽度。
 
 下面是一个完整的实现用于 `Complex` 格式化输出：
 
@@ -1037,7 +1036,7 @@ fn main() {
 
 #### `format_args!`
 
-可以使用 `Rust` 的 `format_args` 编写自己的函数和宏来接受类型为 [`std::fmt::Arguments`](https://doc.rust-lang.org/std/fmt/struct.Arguments.html) 的参数。例如，假设程序需要在运行时记录状态消息，并且您想使用 `Rust` 的文本格式化语言来生成它们，例如：
+可以使用 `Rust` 的 `format_args` 编写自己的函数和宏来接受类型为 [`std::fmt::Arguments`](https://doc.rust-lang.org/std/fmt/struct.Arguments.html) 的参数。例如，假设程序需要在运行时记录状态消息，并且想使用 `Rust` 的文本格式化语言来生成它们，例如：
 
 ```rust
 #![allow(dead_code, unused_imports)]
@@ -1094,7 +1093,7 @@ fn main() {
 
 ### 正则表达式
 
-[`regex`](https://crates.io/crates/regex) 是 `Rust` 的官方正则表达式库，它提供通常的搜索和匹配功能。它对 `Unicode` 有很好的支持，但它也可以搜索字节字符串，尽管它不支持您在其他正则表达式包中经常发现的某些功能，例如反向引用和环视模式，但这些简化允许正则表达式确保搜索时间与表达式的大小和正在搜索的文本长度呈线性关系。除其他外，这些保证使正则表达式可以安全使用，即使是在搜索不可信文本的不可信表达式中也是如此。
+[`regex`](https://crates.io/crates/regex) 是 `Rust` 的官方正则表达式库，它提供通常的搜索和匹配功能。它对 `Unicode` 有很好的支持，但它也可以搜索字节字符串，尽管它不支持在其他正则表达式包中经常发现的某些功能，例如反向引用和环视模式，但这些简化允许正则表达式确保搜索时间与表达式的大小和正在搜索的文本长度呈线性关系。除其他外，这些保证使正则表达式可以安全使用，即使是在搜索不可信文本的不可信表达式中也是如此。
 
 尽管 `regex` 不在 `std` 中，但它由 `Rust` 库团队维护。要使用正则表达式，请将以下行放在`Cargo.toml` 文件的 `[dependencies]` 部分中：
 
@@ -1217,7 +1216,7 @@ fn main() -> Result<(), Box<dyn StdError + Send + Sync + 'static>> {
 
 - 在`decomposed`形式中，`thé` 包含四个字符 `t`、`h`、`e` 和 `\u{301}`，其中 `e` 是纯 `ASCII` 字符，没有重音符号，代码点 `0x301` 是“组合重音符号”字符，它为它后面的任何字符添加一个尖锐的重音。
 
-`Unicode` 不认为 `é` 的组合形式或分解形式是“正确的”形式；相反，它认为它们都是相同抽象字符的等效表示。`Unicode` 表示两种表单都应该以相同的方式显示，并且允许使用文本输入法生成任何一种，因此用户通常不会知道他们正在查看或输入哪种表单。（`Rust` 允许您直接在字符串文字中使用 `Unicode` 字符，因此如果您不在乎获得哪种编码，您可以简单地编写 `thé`。为了清楚起见，我们将使用 `\u` 转义。）
+`Unicode` 不认为 `é` 的组合形式或分解形式是“正确的”形式；相反，它认为它们都是相同抽象字符的等效表示。`Unicode` 表示两种表单都应该以相同的方式显示，并且允许使用文本输入法生成任何一种，因此用户通常不会知道他们正在查看或输入哪种表单。（`Rust` 允许直接在字符串文字中使用 `Unicode` 字符，因此如果不在乎获得哪种编码，可以简单地编写 `thé`。为了清楚起见，我们将使用 `\u` 转义。）
 
 然而，考虑到 `Rust` 中 `&str` 或 `String` 值，`“th\u{e9}”`和`“the\u{301}”`是完全不同的。它们有不同的长度，比较不相等，有不同的哈希值，并且相对于其他字符串有不同的顺序：
 
@@ -1242,15 +1241,15 @@ fn main() {
 
 显然，如果打算比较用户提供的文本或将其用作哈希表或 `Btree` 中的键，则需要首先将每个字符串放在某种规范形式中。
 
-幸运的是，`Unicode` 指定了字符串的规范化形式。每当根据 `Unicode` 规则将两个字符串视为等效时，它们的规范化形式是逐字符相同的。当使用 `UTF-8` 编码时，它们是逐字节相同的。这意味着您可以将规范化的字符串与 `==` 进行比较，将它们用作 `HashMap` 或 `HashSet` 中的键等。
+幸运的是，`Unicode` 指定了字符串的规范化形式。每当根据 `Unicode` 规则将两个字符串视为等效时，它们的规范化形式是逐字符相同的。当使用 `UTF-8` 编码时，它们是逐字节相同的。这意味着可以将规范化的字符串与 `==` 进行比较，将它们用作 `HashMap` 或 `HashSet` 中的键等。
 
-未能规范化甚至会产生安全后果，例如，如果网站在某些情况下对用户名进行了规范化，但在其他情况下没有规范化用户名，最终可能会得到两个不同的用户，名为 `bananasflambé`，您的代码的某些部分将其视为同一个用户，但其他部分将其区别开来，从而导致一个人的权限被错误地扩展到另一个。当然，有很多方法可以避免此类问题，但历史表明也有很多方法可以避免。
+未能规范化甚至会产生安全后果，例如，如果网站在某些情况下对用户名进行了规范化，但在其他情况下没有规范化用户名，最终可能会得到两个不同的用户，名为 `bananasflambé`，代码的某些部分将其视为同一个用户，但其他部分将其区别开来，从而导致一个人的权限被错误地扩展到另一个。当然，有很多方法可以避免此类问题，但历史表明也有很多方法可以避免。
 
 #### `Normalization Forms`
 
 `Unicode` 定义了四种规范化形式，每一种都适用于不同的用途。 有两个问题需要回答：
 
-- 首先，您更喜欢字符是尽可能组合还是尽可能分开？例如，越南语单词 `Phở` 的 `composed` 形式是三个字符串`"Ph\u{1edf}"`，其中声调符号̉和元音符号̛都应用于单个字符的基本字符`"o"`，`Unicode` 负责将拉丁小写字母 `o` 命名为上面带有角和钩的字符。
+- 首先，更喜欢字符是尽可能组合还是尽可能分开？例如，越南语单词 `Phở` 的 `composed` 形式是三个字符串`"Ph\u{1edf}"`，其中声调符号̉和元音符号̛都应用于单个字符的基本字符`"o"`，`Unicode` 负责将拉丁小写字母 `o` 命名为上面带有角和钩的字符。
 
     `decomposed` 形式将基本字母及其两个标记拆分为三个单独的 `Unicode` 字符：`o`、`\u{31b}`和 `\u{309}`，从而产生 `Pho\u{31b}\u{309}`。组合形式通常兼容性问题较少，因为它与大多数语言在 `Unicode` 建立之前用于其文本的表示形式更加匹配。它还可以很好地与 `Rust` 的 `format!` 工作。另一方面，`decomposed` 形式可能更适合显示文本或搜索，因为它使文本的详细结构更加明确。
 

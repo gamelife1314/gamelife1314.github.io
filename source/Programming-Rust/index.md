@@ -32,8 +32,8 @@ date: 2022-05-05 09:54:08
 12. [《第14章-Closures》（✔️）](/2022/04/30/【Rust】闭包/)
 13. [《第15章-Iterators》（✔️）](/2022/04/30/【Rust】迭代器/)
 14. [《第16章-Collections》（✔️）](/2022/05/01/【Rust】集合类型/)
-15. [《第17章-Strings and Text》](/2022/05/01/【Rust】字符串和文本/)
-16. [《第18章-Input and Output》](/2022/05/02/【Rust】输入输出/)
+15. [《第17章-Strings and Text》（✔️）](/2022/05/01/【Rust】字符串和文本/)
+16. [《第18章-Input and Output》（✔️）](/2022/05/02/【Rust】输入输出/)
 17. [《第19章-Concurrency》](/2022/05/03/【Rust】并发/)
 18. [《第20章-Asynchronous Programming》](/2022/05/03/【Rust】异步编程/)
 19. [《第21章-Macros》](/2022/05/04/【Rust】宏/)
@@ -46,3 +46,23 @@ date: 2022-05-05 09:54:08
 2. [Rust 学习笔记](/2021/09/05/【Rust】实战突破/)
 3. [Rustup 介绍](/2022/04/07/【Rust】Rustup%20介绍/)
 4. [Rust 交叉编译](/2022/04/08/【Rust】交叉编译/)
+5. [Rust 二进制文件体积减小](https://github.com/johnthagen/min-sized-rust)
+6. [Rust 格式化](/2022/05/01/【Rust】字符串和文本/#格式化)
+7. [Rust 正则表达式](/2022/05/01/【Rust】字符串和文本/#正则表达式)
+8. [文件和目录](/2022/05/02/【Rust】输入输出/#文件和目录)
+
+### 常用的 `crate`
+
+1. [`thiserror`](https://crates.io/crates/thiserror)：自动派生标准库中的 `std::error::Error`；
+2. [`anyhow`](https://crates.io/crates/anyhow)：提供了 `anyhow::Result<T>` 用于任何可能失败返回错误的函数；
+3. [`crossbeam`](https://crates.io/crates/crossbeam)：提供很多用于并发编程的工具；
+4. [`waker_fn`](https://crates.io/crates/waker-fn)：转换闭包为 `waker`；
+5. [`lazy_static`](https://crates.io/crates/lazy_static)：可以用于初始化全局可变静态变量；
+6. [`unicode-width`](https://crates.io/crates/unicode-width)：获取 `Unicode` 字符宽度；
+7. [`enum_primitive`](https://crates.io/crates/enum_primitive)：提供宏能自动从数字转换成枚举；
+8. [`serde_json`](https://crates.io/crates/serde_json)：`json` 序列化；
+9. [`fnv`](https://crates.io/crates/fnv)：基于 `Fowler–Noll–Vo` 算法实现的 `HashMap`；
+10. [reqwest](https://crates.io/crates/reqwest)：高级 `HTTP` 客户端；
+11. [actix-web](https://crates.io/crates/actix-web)：`Web` 框架；
+
+

@@ -8,7 +8,7 @@ categories:
   - rust
 ---
 
-Rust 用于输入和输出的标准库功能围绕三个`Trait`组织：[`Read`](https://doc.rust-lang.org/std/io/trait.Read.html)、[`BufRead`](https://doc.rust-lang.org/std/io/trait.BufRead.html) 和 [`Write`](https://doc.rust-lang.org/std/io/trait.Write.html)：
+`Rust` 用于输入和输出的标准库功能围绕三个`Trait`组织：[`Read`](https://doc.rust-lang.org/std/io/trait.Read.html)、[`BufRead`](https://doc.rust-lang.org/std/io/trait.BufRead.html) 和 [`Write`](https://doc.rust-lang.org/std/io/trait.Write.html)：
 
 - 实现 `Read` 的值具有面向字节的输入的方法，他们被称为 `Reader`；
 
@@ -16,13 +16,13 @@ Rust 用于输入和输出的标准库功能围绕三个`Trait`组织：[`Read`]
 
 - 实现 `Write` 的值支持面向字节和`UTF-8` 文本输出，它们被称为 `Writer`；
 
-在本节中，我们将解释如何使用这些`Trait`及其方法，涵盖图中所示的读取器和写入器类型，并展示与文件、终端和网络交互的其他方式。
+在本节中，将解释如何使用这些`Trait`及其方法，涵盖图中所示的读取器和写入器类型，并展示与文件、终端和网络交互的其他方式。
 
 ![](read-write.png)
 
 ### `Readers`、`Writers`
 
-`Readers` 是内容输入源，你可以从哪里读取字节。例如：
+`Readers` 是内容输入源，可以从哪里读取字节。例如：
 
 - 使用 [`std::fs::File::open`](https://doc.rust-lang.org/std/fs/struct.File.html#method.open) 打开的文件；
 
@@ -77,19 +77,19 @@ where
 
 #### `Readers`
 
-`std::io::Read` 有几个读取数据逇方法，它们所有都以它的 `mut` 引用作为 `self` 参数。
+`std::io::Read` 有几个读取数据逇方法，它们所有都以 `&mut self` 作为参数。
 
-- `reader.read(&mut buffer)`：从数据源读取一些字节并将它们存储在给定的缓冲区中，缓冲区参数的类型是 `&mut [u8]`，这最多读取 `buffer.len()` 个字节。返回类型是 `io::Result<u64>`，它是 `Result<u64,io::Error>` 的类型别名。成功时，`u64` 值是读取的字节数——它可能等于或小于 `buffer.len()`，即使有更多数据要来，也可能随数据源的意愿而变化。`Ok(0)` 表示没有更多输入要读取。
+- `reader.read(&mut buffer)`：从数据源读取一些字节并将它们存储在给定的缓冲区中，缓冲区参数的类型是 `&mut [u8]`，这最多读取 `buffer.len()` 个字节。返回类型是 `io::Result<u64>`，它是 `Result<u64,io::Error>` 的类型别名。成功时，`u64` 值是读取的字节数，它可能等于或小于 `buffer.len()`，`Ok(0)` 表示没有数据要读取。
 
-  出错时，`.read()` 返回 `Err(err)`，其中 `err` 是 `io::Error` 值。`io::Error` 是可打印的，以造福人类；对于程序，它有一个 `.kind()` 方法，该方法返回 i`o::ErrorKind` 类型的错误代码。 这个枚举的成员具有 `PermissionDenied` 和 `ConnectionReset` 之类的名称。大多数不可忽视的明显错误，但应特别处理一种错误。`io::ErrorKind::Interrupted` 对应 `Unix` 错误代码 `EINTR`，表示读取恰好被信号中断。除非程序被设计成巧妙地处理信号，否则它应该只是重读。
+  出错时，`.read()` 返回 `Err(err)`，其中 `err` 是 `io::Error` 值。`io::Error` 是可打印的。对于程序，它有一个 `.kind()` 方法，该方法返回 `io::ErrorKind` 类型的错误代码。这个枚举的成员具有 `PermissionDenied` 和 `ConnectionReset` 之类的名称，大多数不可忽视的明显错误，但应特别处理一种错误，`io::ErrorKind::Interrupted` 对应 `Unix` 错误代码 `EINTR`，表示读取恰好被信号中断，除非程序被设计成巧妙地处理信号，否则它应该只是重新读去。
 
-  如所见，`.read()` 方法的级别非常低，甚至继承了底层操作系统的怪癖。如果你正在为一种新型数据源实现 [`Read`](https://doc.rust-lang.org/std/io/trait.Read.html)，这会给你很大的余地，如果你试图读取一些数据，那会很痛苦。因此，`Rust` 提供了几种更高级的便利方法。它们都具有 `.read()` 方面的默认实现，它们都处理 `ErrorKind::Interrupted`，所以你不必这样做。
+  `.read()` 方法非常低级，甚至继承了底层操作系统的怪癖。如果你正在为一种新型数据源实现 [`Read`](https://doc.rust-lang.org/std/io/trait.Read.html)，这会给你很大的余地，如果你试图读取一些数据，那会很痛苦。因此，`Rust` 提供了几种更高级的便利方法。它们都具有 `.read()` 方面的默认实现，它们都处理 `ErrorKind::Interrupted`，所以你不必这样做。
 
 - `reader.read_to_end(&mut byte_vec)`：从 `Reader` 中读取剩余的输入追加到 `byte_vec`，它是 `Vec<u8>` 类型，返回 `io::Result<usize>` 表示读取的数量；
 
-- `reader.read_to_string(&mut string)`：同上，但是追加数据到 `String` 中，如果遇到无效的 `UTF-8`，将返回 [`ErrorKind::InvalidData`](https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.InvalidData)。在某些编程语言中，字节输入和字符输入由不同的类型处理。 如今，`UTF-8` 如此占主导地位，以至于 `Rust` 承认这一事实标准并在任何地方都支持 `UTF-8`；
+- `reader.read_to_string(&mut string)`：同上，但是追加数据到 `String` 中，如果遇到无效的 `UTF-8`，将返回 [`ErrorKind::InvalidData`](https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.InvalidData)。在某些编程语言中，字节输入和字符输入由不同的类型处理。如今，`UTF-8` 如此占主导地位，以至于 `Rust` 承认这一事实标准并在任何地方都支持 `UTF-8`；
 
-- `reader.read_exact(&mut buf)`：读取足够的数据以填充给定的缓冲区。参数类型是 `&[u8]`。如果读取器在读取 `buf.len()` 字节之前用完数据，则返回 `ErrorKind::UnexpectedEof` 错误；
+- `reader.read_exact(&mut buf)`：读取足够的数据以填充给定的缓冲区，参数类型是 `&[u8]`。如果读取器在读取 `buf.len()` 字节之前用完数据，则返回 `ErrorKind::UnexpectedEof` 错误；
 
 - `reader.bytes()`：返回输入流的按字节迭代器，类型是 [`std::io::Bytes`](https://doc.rust-lang.org/std/io/struct.Bytes.html)。
 
@@ -99,7 +99,7 @@ where
 
 #### `Buffered Readers`
 
-为了提高效率，可以缓冲读取器和写入器，这仅仅意味着它们有一块内存（缓冲区），用于在内存中保存一些输入或输出数据。这减少了系统调用，如下图所示， 应用程序从 `BufReader` 读取数据，在此示例中通过调用其 `.read_line()` 方法。`BufReader` 反过来从操作系统获取更大块的输入。
+为了提高效率，可以缓冲读取器和写入器，这仅仅意味着它们有一块内存（缓冲区），用于在内存中保存一些输入或输出数据。这减少了系统调用，如下图所示，应用程序应该从 `BufReader` 读取数据，在此示例中通过调用其 `.read_line()` 方法。`BufReader` 反过来从操作系统获取更大块的输入。
 
 ![](buffer-reader.png)
 
@@ -132,9 +132,9 @@ fn grep(target: &str) -> io::Result<()> {
 }
 ```
 
-由于我们要调用 `.lines()`，我们需要一个实现 `BufRead` 的输入源。在这种情况下，我们调用 `io::stdin()` 来获取通过管道传输给我们的数据。 但是，`Rust` 标准库使用互斥锁保护标准输入。我们调用 `.lock()` 来锁定 `stdin` 以供当前线程独占使用；它返回一个实现 `BufRead` 的 `StdinLock` 值，在循环结束时，`StdinLock` 被丢弃，释放互斥锁。
+由于要调用 `.lines()`，需要一个实现 `BufRead` 的输入源。在这种情况下，我们调用 `io::stdin()` 来获取通过管道传输给我们的数据。但是，`Rust` 标准库使用互斥锁保护标准输入。我们调用 `.lock()` 来锁定 `stdin` 以供当前线程独占使用，它返回一个实现 `BufRead` 的 `StdinLock` 值，在循环结束时，`StdinLock` 被丢弃，释放互斥锁。
 
-该函数的其余部分很简单：它调用 `.lines()` 并遍历生成的迭代器。因为这个迭代器产生 `Result` 值，所以我们使用 `?` 操作员检查错误。假设我们想让我们的 `grep` 程序更进一步，并添加对在磁盘上搜索文件的支持。我们可以使这个函数通用：
+该函数的其余部分很简单，它调用 `.lines()` 并遍历生成的迭代器。因为这个迭代器产生 `Result` 值，所以我们使用 `?` 操作员检查错误。假设我们想让我们的 `grep` 程序更进一步，并添加对在磁盘上搜索文件的支持。我们可以使这个函数通用：
 
 ```rust
 fn grep<R>(target: &str, reader: R) -> io::Result<()>
@@ -161,7 +161,7 @@ let f = File::open(file)?;
 grep(&target, BufReader::new(f))?; // also ok
 ```
 
-请注意，文件不会自动缓冲。`File` 实现 `Read` 但没有实现 `BufRead`。但是，为文件或任何其他非缓冲读取器创建缓冲读取器很容易，就像 `BufReader::new(reader)`。（要设置缓冲区的大小，请使用 `BufReader::with_capacity(size, reader)`）
+请注意，文件不会自动缓冲，`File` 实现 `Read` 但没有实现 `BufRead`。但是，为文件或任何其他非缓冲读取器创建缓冲读取器很容易，就像 `BufReader::new(reader)`。（要设置缓冲区的大小，请使用 `BufReader::with_capacity(size, reader)`）
 
 在大多数语言中，默认情况下文件带有缓冲功能，如果你想要无缓冲的输入或输出，你必须弄清楚如何关闭缓冲。在 `Rust` 中，`File` 和 `BufReader` 是两个独立的库功能，因为有时希望文件没有缓冲，有时希望缓冲来自网络的输入。
 
@@ -232,13 +232,13 @@ fn main() {
 
 [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html) 有以下方法：
 
-- `writer.write(&buf)`：将切片 `buf` 中的一些字节写入底层流。它返回一个 `io::Result<usize>`。 成功时，返回写入的字节数，可能小于 `buf.len()`，与 `Reader::read()` 一样，这是一种低级方法，应避免直接使用。
+- `writer.write(&buf)`：将切片 `buf` 中的一些字节写入底层流。它返回一个 `io::Result<usize>`。成功时，返回写入的字节数，可能小于 `buf.len()`，与 `Reader::read()` 一样，这是一种低级方法，应避免直接使用；
 
 - `writer.write_all(&buf)`：写入 `buf` 所有字节，返回 `io::Result<()>`；
 
-- `writer.flush()`：将缓存的所有数据都写入底层的流中，返回 `Result<()>`。
+- `writer.flush()`：将缓存的所有数据都写入底层的流中，返回 `Result<()>`；
 
-`writer` 会被自动关闭，当它们被丢弃的时候。可以使用 [`BufWriter::new(writer)`](https://doc.rust-lang.org/std/io/struct.BufWriter.html#method.new) 基于任何 `writer` 生成一个带缓冲的 `Writer`。
+`writer` 会被自动关闭，当它们被丢弃的时候，可以使用 [`BufWriter::new(writer)`](https://doc.rust-lang.org/std/io/struct.BufWriter.html#method.new) 基于任何 `writer` 生成一个带缓冲的 `Writer`。
 
 ```rust
 let file = File::create("tmp.txt")?;
@@ -286,7 +286,7 @@ let file = OpenOptions::new()
 
 #### `Seeking`
 
-`File` 也实现了 [`std::io::Seek`](https://doc.rust-lang.org/std/io/trait.Seek.html)，这意味着您可以在 `File` 内跳转，而不是从头到尾一次读取或写入，Seek 是这样定义的：
+`File` 也实现了 [`std::io::Seek`](https://doc.rust-lang.org/std/io/trait.Seek.html)，这意味着可以在 `File` 内跳转，而不是从头到尾一次读取或写入，`Seek` 是这样定义的：
 
 ```rust
 pub trait Seek {
@@ -299,7 +299,7 @@ pub enum SeekFrom {
 }
 ```
 
-在文件内跳来跳去效率很低，无论是机械硬盘还是固态硬盘，一次寻道所需的时间都与读取几兆字节的数据一样长。
+在文件内跳来跳去效率很低，无论是机械硬盘还是固态硬盘，一次寻址所需的时间都与读取几兆字节的数据一样长。
 
 #### 其他读写类型
 
@@ -320,11 +320,11 @@ pub enum SeekFrom {
 
 - `Vec<u8>`：实现了 `std::io::Write`，写入数据到 `u8` 序列；
 
-- [`std::io::Cursor::new(buf)`](https://doc.rust-lang.org/std/io/struct.Cursor.html)：创建一个 `Cursor`，一个从 `buf` 读取的缓冲读取器。这就是您创建读取字符串的阅读器的方式。参数 `buf` 可以是任何实现 `AsRef<[u8]>` 的类型，因此您也可以传递 `&[u8]`、`&str` 或 `Vec<u8>`。
+- [`std::io::Cursor::new(buf)`](https://doc.rust-lang.org/std/io/struct.Cursor.html)：创建一个 `Cursor`，一个从 `buf` 读取的缓冲读取器，这就是创建读取字符串的阅读器的方式。参数 `buf` 可以是任何实现 `AsRef<[u8]>` 的类型，因此也可以传递 `&[u8]`、`&str` 或 `Vec<u8>`。
 
-    `Cursor` 在内部是微不足道的，它们只有两个字段：`buf` 本身和一个整数，即 `buf` 中下一次读取将开始的偏移量，该位置最初为 `0`。
+    `Cursor` 在内部是很简单的，它们只有两个字段：`buf` 本身和一个整数，即 `buf` 中下一次读取将开始的偏移量，该位置最初为 `0`。
 
-    `Cursor` 实现 `Read`、`BufRead` 和 `Seek`，如果 `buf` 的类型是 `&mut [u8]` 或 `Vec<u8>`，那么 `Cursor` 也会实现 `Write`。写入`Curosr`会覆盖 `buf` 中从当前位置开始的字节。如果你试图写超出 `&mut [u8]` 的末尾，你会得到一个部分写或一个 `io::Error`。 不过，使用`Curosr`写入 `Vec<u8>` 的末尾是可以的：它会增大向量。因此，`Cursor<&mut [u8]>` 和 `Cursor<Vec<u8>>` 实现了所有四个 `std::io::prelude` 中的 `Trait`。
+    `Cursor` 实现 `Read`、`BufRead` 和 `Seek`，如果 `buf` 的类型是 `&mut [u8]` 或 `Vec<u8>`，那么 `Cursor` 也会实现 `Write`。写入 `Curosr` 会覆盖 `buf` 中从当前位置开始的字节。如果试图写超出 `&mut [u8]` 的末尾，会得到一个部分写或一个 `io::Error`。不过，使用 `Curosr` 写入 `Vec<u8>` 的末尾是可以的，它会增大 `vector`。因此，`Cursor<&mut [u8]>` 和 `Cursor<Vec<u8>>` 实现了所有 `4` 个 `std::io::prelude` 中的 `Trait`。
 
 - [`std::net::TcpStream`](https://doc.rust-lang.org/std/net/struct.TcpStream.html)：代表底层的 TCP 连接，可读可写；`TcpStream::connect(("hostname", PORT))` 尝试去连接到一个 `server` 并且返回 `io::Result<TcpStream>`。
 
@@ -354,7 +354,7 @@ pub enum SeekFrom {
     }
     ```
 
-    `child.stdin` 的类型是 `Option<std::process::ChildStdin>`，我们在这里在设置子进程时使用 `.stdin(Stdio::piped())` ，所以 当 `.spawn()` 成功时，`child.stdin` 肯定会被填充。如果我们没有，`child.stdin` 将是 `None`。`Command` 也有类似的方法 `.stdout()` 和 `.stderr()`，可以用来请求 `child.stdout` 和 `child.stderr` 中的读取器。
+    `child.stdin` 的类型是 `Option<std::process::ChildStdin>`，在这里在设置子进程时使用 `.stdin(Stdio::piped())`，所以 当 `.spawn()` 成功时，`child.stdin` 肯定会被填充。如果没有，`child.stdin` 将是 `None`。`Command` 也有类似的方法 `.stdout()` 和 `.stderr()`，可以用来请求 `child.stdout` 和 `child.stderr` 中的读取器。
 
 `std::io` 模块还提供了一些返回实验性的的读取器和写入器的函数：
 
@@ -434,14 +434,13 @@ $ echo "hello world" > ô.txt
 $ echo "O brave new world, that has such filenames in't" > $'\xf4'.txt
 ```
 
-对于内核，任何字节串（不包括空字节和斜杠）都是可接受的文件名。在 `Windows` 上也有类似的情况：几乎任何 `16`位“宽字符”字符串都是可接受的文件名，即使是无效的 `UTF-16` 字符串也是如此。操作系统处理的其他字符串也是如此，例如命令行参数和环境变量。
+对于内核，任何字节串（不包括空字节和斜杠）都是可接受的文件名。在 `Windows` 上也有类似的情况，几乎任何 `16`位“宽字符”字符串都是可接受的文件名，即使是无效的 `UTF-16` 字符串也是如此。操作系统处理的其他字符串也是如此，例如命令行参数和环境变量。
 
-`Rust` 字符串始终是有效的 `Unicode`。文件名在实践中几乎总是 `Unicode`，但 `Rust` 必须以某种方式应对它们不是的罕见情况，这就是 `Rust` 有 [`std::ffi::OsStr`](https://doc.rust-lang.org/std/ffi/struct.OsStr.html) 和 [`OsString`](https://doc.rust-lang.org/std/ffi/struct.OsString.html) 的原因。
+`Rust` 字符串始终是有效的 `Unicode`，文件名在实践中几乎总是 `Unicode`，但 `Rust` 必须以某种方式应对它们不是的情况，这就是 `Rust` 有 [`std::ffi::OsStr`](https://doc.rust-lang.org/std/ffi/struct.OsStr.html) 和 [`OsString`](https://doc.rust-lang.org/std/ffi/struct.OsString.html) 的原因。
 
+`OsStr` 是一个字符串类型，它是 `UTF-8` 的超集。它的工作是能够表示当前系统上的所有文件名、命令行参数和环境变量，无论它们是否是有效的 `Unicode`。在 `Unix` 上，一个 `OsStr` 可以保存任何字节序列。在 `Windows` 上，`OsStr` 使用 `UTF-8` 的扩展存储，该扩展可以编码任何 `16` 位值序列，包括不匹配的。
 
-`OsStr` 是一个字符串类型，它是 `UTF-8` 的超集。它的工作是能够表示当前系统上的所有文件名、命令行参数和环境变量，无论它们是否是有效的 `Unicode`。 在 `Unix` 上，一个 `OsStr` 可以保存任何字节序列。在 `Windows` 上，`OsStr` 使用 `UTF-8` 的扩展存储，该扩展可以编码任何 16 位值序列，包括不匹配的。
-
-所以我们有两种字符串类型：`str` 用于实际的 `Unicode` 字符串；`OsStr` 用于您的操作系统可以发出的任何东西。我们将再介绍一个：`std::path::Path`，用于文件名。 `Path` 与 `OsStr` 完全相同，但它添加了许多方便的文件名相关方法。
+所以我们有两种字符串类型：`str` 用于实际的 `Unicode` 字符串；`OsStr` 用于操作系统可以发出的任何东西。我们将再介绍一个：`std::path::Path`，用于文件名。`Path` 与 `OsStr` 完全相同，但它添加了许多方便的文件名相关方法。
 
 最后，对于每个字符串类型，都有一个对应的 `owning` 类型：一个 `String` 拥有一个堆分配的 `str`，一个 `std::ffi::OsString` 拥有一个堆分配的 `OsStr`，一个 `std::path::PathBuf` 拥有一个堆分配的 `Path`。
 
@@ -529,11 +528,11 @@ where
     );
     ```
 
-这些方法适用于内存中的字符串，`Path`也有一些查询文件系统的方法：`.exists()`、`.is_file()`、`.is_dir()`、`.read_dir()`、.`canonicalize()` 等等。 将`Path`转换为字符串有三种方法。 每一个都允许`Path`中出现无效 `UTF-8` 的可能性：
+这些方法适用于内存中的字符串，`Path` 也有一些查询文件系统的方法：`.exists()`、`.is_file()`、`.is_dir()`、`.read_dir()`、.`canonicalize()` 等等。 将 `Path `转换为字符串有三种方法，每一个都允许 `Path` 中出现无效 `UTF-8` 的可能性：
 
 - `path.to_str()`：返回 `Option<&str>`，如果包含无效的 `UTF-8`，返回 `None`；
 
-- `path.to_string_lossy()`：这基本上是同一件事，但它设法在所有情况下返回某种字符串。 如果路径不是有效的 UTF-8，这些方法会创建一个副本，用 `Unicode` 替换字符 `U+FFFD ('�')` 替换每个无效的字节序列；
+- `path.to_string_lossy()`：这基本上是同一件事，但它设法在所有情况下返回某种字符串。如果路径不是有效的 `UTF-8`，这些方法会创建一个副本，用 `Unicode` 替换字符 `U+FFFD ('�')` 替换每个无效的字节序列；
 
 - `path.display()`：用于路径打印，它返回的值不是字符串，但它实现了 `std::fmt::Display`，因此它可以与 `format!()`、`println!()` 等一起使用。 如果路径不是有效的 `UTF-8`，则输出可能包含 `�` 字符。
 
@@ -547,9 +546,9 @@ where
 
 ![](filesystem-access.png)
 
-如您所见，Rust 提供了可在 Windows 以及 macOS、Linux 和其他 Unix 系统上行为一致的可移植函数。
+`Rust` 提供了可在 `Windows` 以及 `macOS`、`Linux` 和其他 `Unix` 系统上行为一致的可移植函数。
 
-所有这些功能都是通过调用操作系统来实现的。 例如，`std::fs::canonicalize(path)` 不仅仅使用字符串处理来消除 `.` 和`..`从给定的路径。 它使用当前工作目录解析相对路径，并追踪符号链接，如果路径不存在，则为错误。
+所有这些功能都是通过调用操作系统来实现的，例如，`std::fs::canonicalize(path)` 不仅仅使用字符串处理来消除 `.` 和`..`从给定的路径。它使用当前工作目录解析相对路径，并追踪符号链接，如果路径不存在，则为错误。
 
 由 [`std::fs::metadata(path)`](https://doc.rust-lang.org/std/fs/fn.metadata.html) 和 `std::fs::symlink_metadata(path)` 包含文件类型和大小、权限和时间戳等信息。为方便起见，`Path` 类型有一些内置方法：例如，`path.metadata()` 与 `std::fs::metadata(path)` 相同。
 
@@ -564,7 +563,7 @@ for entry_result in path.read_dir()? {
 }
 ```
 
-注意 `?` 的两种用法 在这段代码中，第一行检查打开目录的错误，第二行检查读取下一个条目的错误。[`std::fs::DirEntry`](https://doc.rust-lang.org/std/fs/struct.DirEntry.html) 一些方法：
+注意 `?` 的两种用法，在这段代码中，第一行检查打开目录的错误，第二行检查读取下一个条目的错误。[`std::fs::DirEntry`](https://doc.rust-lang.org/std/fs/struct.DirEntry.html) 一些方法：
 
 - `entry.file_name()`：目录或者文件的名称，类型是 `OsString`；
 
@@ -662,7 +661,7 @@ fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(src: P, _dst: Q) -> std::io::Result<(
 }
 ```
 
-使用 `#[cfg(unix)]` 和 `#[cfg(not(unix))]` 我们区分了 `Unix` 和 非 `Unix` 平台。大多数 Unix 特定的特性不是独立的函数，而是向标准库类型添加新方法的扩展特性，有一个 [`preclude`](https://doc.rust-lang.org/std/os/unix/prelude/index.html) 模块可用于一次启用所有这些扩展：
+使用 `#[cfg(unix)]` 和 `#[cfg(not(unix))]` 我们区分了 `Unix` 和 非 `Unix` 平台。大多数 `Unix` 特定的特性不是独立的函数，而是向标准库类型添加新方法的扩展特性，有一个 [`preclude`](https://doc.rust-lang.org/std/os/unix/prelude/index.html) 模块可用于一次启用所有这些扩展：
 
 ```rust
 use std::os::unix::prelude::*;
@@ -670,11 +669,11 @@ use std::os::unix::prelude::*;
 
 例如，在 `Unix` 上，这会为 `std::fs::Permissions` 添加一个 `.mode()` 方法，提供对表示 `Unix` 权限的底层 `u32` 值的访问。还有 `std::fs::Metadata` 在 `unix` 系统上扩展了 `std::os::unix::fs::MetadataExt`，能够获取`UID`，`UID` 等信息。
 
-### Networking
+### `Networking`
 
 对于底层网络代码，从 `std::net` 模块开始，它为 `TCP` 和 `UDP` 网络提供跨平台支持，使用 `native_tls crate` 来支持 `SSL/TLS`。
 
-这些模块为网络上直接的、阻塞的输入和输出提供了构建块，您可以用几行代码编写一个简单的服务器，使用 `std::net` 并为每个连接生成一个线程。 例如，这是一个`"echo"`服务器：
+这些模块为网络上直接的、阻塞的输入和输出提供了构建块，可以用几行代码编写一个简单的服务器，使用 `std::net` 并为每个连接生成一个线程。 例如，这是一个`"echo"`服务器：
 
 ```rust
 use std::io;
@@ -702,7 +701,7 @@ fn main() {
 }
 ```
 
-回显服务器只是简单地重复您发送给它的所有内容。 这种代码与你用 `Java` 或 `Python` 编写的代码没有太大区别。但是，对于高性能服务器，您需要使用异步输入和输出。后面将介绍 `Rust` 对异步编程的支持，并展示了网络客户端和服务器的完整代码。
+回显服务器只是简单地重复您发送给它的所有内容，这种代码与用 `Java` 或 `Python` 编写的代码没有太大区别。但是，对于高性能服务器，需要使用异步输入和输出，后面将介绍 `Rust` 对异步编程的支持，并展示了网络客户端和服务器的完整代码。
 
-第三方 `crate` 支持更高级别的协议。例如，[`reqwest`](https://crates.io/crates/reqwest) 为 `HTTP` 客户端提供了一个漂亮的 `API`。`actix-web` 提供了高级功能，例如服务和转换特征，它们可以帮助从可插入的部分组成应用程序。 `websocket` 实现了 `WebSocket` 协议。 
+第三方 `crate` 支持更高级别的协议。例如，[`reqwest`](https://crates.io/crates/reqwest) 为 `HTTP` 客户端提供了一个漂亮的 `API`。`actix-web` 提供了高级功能，例如服务和转换特征，它们可以帮助从可插入的部分组成应用程序。`websocket` 实现了 `WebSocket` 协议。 
 
