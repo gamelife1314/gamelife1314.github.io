@@ -8,7 +8,7 @@ categories:
   - rust
 ---
 
-迭代器是产生一系列值的值，通常用于循环操作。`Rust` 的标准库提供了遍历向量、字符串、哈希表和其他集合的迭代器，还提供了从输入流生成文本行、到达网络服务器的连接、通过通信通道从其他线程接收值的迭代器，`Rust` 的迭代器灵活、富有表现力且高效。
+迭代器是产生一系列值的值，通常用于循环操作。`Rust` 的标准库提供了遍历`vector`、字符串、哈希表和其他集合的迭代器，还提供了从输入流生成文本行、网络连接、用于多线程之间值传递的迭代器，`Rust` 的迭代器灵活、富有表现力且高效。
 
 在 `Rust` 中，[`std::iter::Iterator`](https://doc.rust-lang.org/stable/std/iter/trait.Iterator.html) 和 [`std::iter::IntoIterator`](https://doc.rust-lang.org/stable/std/iter/trait.IntoIterator.html) 是实现迭代器的基础。
 
@@ -39,11 +39,11 @@ pub trait IntoIterator {
 
 ### 创建迭代器
 
-Rust 标准库文档详细解释了每种类型提供的迭代器类型，但该库遵循一些通用约定来帮助定位并找到您需要的东西。
+`Rust` 标准库文档详细解释了每种类型提供的迭代器类型，但该库遵循一些通用约定来帮助定位并找到需要的东西。
 
 #### `iter` 和 `iter_mut`
 
-大多数集合类型都提供了 `iter` 和 `iter_mut` 方法，它们返回类型的自然迭代器，生成对每个项目的共享或可变引用。 像 `&[T]` 和 `&mut [T]` 这样的数组切片也有 `iter` 和 `iter_mut` 方法。这些方法是获取迭代器的最常用方法，如果您不打算让 `for` 循环为您处理它，可以这样做：
+大多数集合类型都提供了 `iter` 和 `iter_mut` 方法，它们返回类型的迭代器，生成对每个`item`的共享或可变引用。像 `&[T]` 和 `&mut [T]` 这样的数组切片也有 `iter` 和 `iter_mut` 方法。这些方法是获取迭代器的最常用方法，如果不打算让 `for` 循环为您处理它，可以这样做：
 
 ```rust
 let v = vec![4, 20, 12, 8, 6];
@@ -56,7 +56,7 @@ assert_eq!(iterator.next(), Some(&6));
 assert_eq!(iterator.next(), None);
 ```
 
-这个迭代器的项类型是 `&i32`：每次调用 `next` 都会产生对下一个元素的引用，直到我们到达向量的末尾。 每种类型都可以自由地以最适合其目的的方式实现 `iter` 和 `iter_mut`。 `std::path::Path` 上的 `iter` 方法返回一个迭代器，该迭代器一次生成一个路径信息：
+这个迭代器的 `item` 类型是 `&i32`：每次调用 `next` 都会产生对下一个元素的引用，直到我们到达`vector`的末尾。每种类型都可以自由地以最适合其目的的方式实现 `iter` 和 `iter_mut`。`std::path::Path` 上的 `iter` 方法返回一个迭代器，该迭代器一次生成一个路径信息：
 
 ```rust
 use std::ffi::OsStr;
@@ -89,7 +89,7 @@ assert_eq!(it.next(), None);
 
 - `&mut T` 类型的迭代器产生的每个值都对值的可变引用。例如 `Vec<String>`，调用 `(&mut vector).into_iter()` 返回了一个迭代器，它的 `Item` 类型是 `&mut String`；
 
-- 调用 `T` 类型的 `into_iter()` 方法首先会获取集合值的是所有权，在迭代过程中，每个 `item` 的所有权从集合移动至消费者。
+- 调用 `T` 类型的 `into_iter()` 方法首先会获取集合值的是所有权，在迭代过程中，每个 `item` 的所有权从集合移动至消费的人；
 
 `for` 循环将 `IntoIterator::into_iter` 应用于其操作数，因此这三个实现创建了以下习惯用法，用于迭代对集合的共享或可变引用，或使用集合并获取其元素的所有权：
 
@@ -101,7 +101,7 @@ for element in collection { ... }
 
 并非每种类型都提供所有三种实现。例如，`HashSet`、`BTreeSet` 和 `BinaryHeap` 不会在可变引用上实现 `IntoIterator`，因为修改它们的元素可能会违反类型的不变性。
 
-切片实现了三个 `IntoIterator` 变体中的两个； 因为他们不拥有自己的元素，所以不存在`[T]`这种情况。 相反，`&[T]` 和 `&mut [T]` 的 `into_iter` 返回一个迭代器，该迭代器生成对元素的共享和可变引用。
+切片实现了三个 `IntoIterator` 变体中的两个，因为它们不拥有自己的元素，所以不存在`[T]`这种情况。相反，`&[T]` 和 `&mut [T]` 的 `into_iter` 返回一个迭代器，该迭代器生成对元素的共享和可变引用。
 
 #### `from_fn` 和 `successors`
 
@@ -138,7 +138,7 @@ fn escape_time(c: Complex<f64>, limit: usize) -> Option<usize> {
 
 从零开始，`successors` 通过重复对最后一个点求平方并与参数 `c`求和。
 
-`from_fn` 和 `successors` 都接受 `FnMut` 闭包，因此您的闭包可以捕获和修改来自周围范围的变量。例如，这个斐波那契函数使用移动闭包来捕获变量并将其用作其运行状态：
+`from_fn` 和 `successors` 都接受 `FnMut` 闭包，因此闭包可以捕获和修改来自周围范围的变量。例如，这个斐波那契函数使用`move`闭包来捕获变量并将其用作其运行状态：
 
 ```rust
 fn fibonacci() -> impl Iterator<Item = usize> {
@@ -174,7 +174,7 @@ fn main() {
 
 ### 迭代适配器
 
-一旦有了一个迭代器，`Iterator` 提供了广泛的适配器方法选择，它们使用一个迭代器并构建一个新迭代器。要了解适配器的工作原理，我们将从两个最流行的适配器开始，`map` 和 `filter`。
+一旦有了一个迭代器，`Iterator` 提供了广泛的适配器方法选择，它们使用一个迭代器并构建一个新迭代器。要了解适配器的工作原理，我们将从两个最流行的 `map` 和 `filter` 开始。
 
 #### `map`、`filter`
 
@@ -214,17 +214,17 @@ fn filter<P>(self, predicate: P) -> impl Iterator<Item=Self::Item>
     where Self: Sized, P: FnMut(&Self::Item) -> bool;
 ```
 
-在标准库中，`map` 和 `filter` 实际上返回名为 `std::iter::Map` 和 `std::iter::Filter` 的特定不透明结构类型。 然而，仅仅看到它们的名字并不能提供太多信息，所以这里，我们只打算写 `-> impl Iterator<Item=...>` ，因为它告诉我们真正想知道的：方法返回一个生成给定 `item` 类型的迭代器。
+在标准库中，`map` 和 `filter` 实际上返回名为 `std::iter::Map` 和 `std::iter::Filter` 的特定不透明结构类型。然而，仅仅看到它们的名字并不能提供太多信息，所以这里，我们只打算写 `-> impl Iterator<Item=...>` ，因为它告诉我们真正想知道的：方法返回一个生成给定 `item` 类型的迭代器。
 
 由于大多数适配器需要获取所有权，因此它们需要 `Self ` 是 `Sized`。
 
-`map` 通过值将每个`item`传递给它的闭包，然后将闭包结果的所有权传递给它的消费者。`filter` 通过共享引用将每个项目传递给它的闭包，在`item`被选择传递给其消费者的情况下保留所有权。这就是示例必须解引用 `s` 来和 `"iguanas"` 比较的原因：`filter` 闭包的参数 `s` 的类型是 `&&str`。
+`map` 通过值将每个 `item` 传递给它的闭包，然后将闭包结果的所有权传递给它的消费者。`filter` 通过共享引用将每个项目传递给它的闭包，在`item`被选择传递给其消费者的情况下保留所有权。这就是示例必须解引用 `s` 来和 `"iguanas"` 比较的原因：`filter` 闭包的参数 `s` 的类型是 `&&str`。
 
 关于迭代器适配器，有两点需要注意。
 
-- 迭代器是惰性的，你不调用 `next` 方法就不会实际运行，也就是不会消费任何 `item`。前面的例子中，在 `collect` 调用 `filter` 返回的迭代器的 `next` 方法之前，`text.lines()` 和 `map()` 不会做任何工作，这点很像 `python` 中的生成器；
+- 迭代器是惰性的，不调用 `next` 方法就不会实际运行，也就是不会消费任何 `item`。前面的例子中，在 `collect` 调用 `filter` 返回的迭代器的 `next` 方法之前，`text.lines()` 和 `map()` 不会做任何工作，这点很像 `python` 中的生成器；
 
-- 迭代适配器是零成本抽象，这意味着 `Rust` 有足够的信息将每个迭代器的 `next` 方法内联到其消费者中，然后将整个安排转换为机器代码作为一个单元；也就是我们不用关心适配器的性能开销，`Rust` 帮我们解决，对于上面的例子，和我们手写下面的代码有同样的性能：
+- 迭代适配器是零成本抽象，这意味着 `Rust` 有足够的信息将每个迭代器的 `next` 方法内联到其消费者中，然后将整个流程转换为机器代码作为一个单元，也就是我们不用关心适配器的性能开销，`Rust` 帮我们解决，对于上面的例子，和我们手写下面的代码有同样的性能：
 
     ```rust
     for line in text.lines() {
@@ -287,7 +287,7 @@ fn main() {
 ```
 {% endnote %}
 
-而 `flat_map` 和 `map` 一样，只是他的闭包可以返回多个 `item`，而不是一个，它的签名如下：
+而 `flat_map` 和 `map` 一样，只是它的闭包可以返回多个 `item`，而不是一个，它的签名如下：
 
 ```rust
 fn flat_map<U, F>(self, f: F) -> impl Iterator<Item=U::Item>
@@ -324,7 +324,7 @@ fn main() {
 
 #### `flatten`
 
-如果我们要将一个二维数组转换成一个一维数组，就可以使用 `flatten`，在这里二维数组的每个元素都是可迭代的，它的定义如下，要求迭代器中的每个元素也都是可迭代的：
+如果我们要将一个二维数组转换成一维数组，就可以使用 `flatten`，在这里二维数组的每个元素都是可迭代的，它的定义如下，要求迭代器中的每个元素也都是可迭代的：
 
 ```rust
 fn flatten(self) -> impl Iterator<Item=Self::Item::Item>
@@ -374,7 +374,7 @@ fn main() {
 
 #### `take`、`take_while`
 
-`take` 和 `take_while` 用于决定迭代什么时候结束，前者迭代的次数，后者通过一个闭包。它们都会获取原迭代器的所有权，它们的定义如下：
+`take` 和 `take_while` 用于决定迭代什么时候结束，前者通过迭代次数，后者通过一个闭包。它们都会获取原迭代器的所有权，它们的定义如下：
 
 ```rust
 fn take(self, n: usize) -> impl Iterator<Item=Self::Item>
@@ -401,7 +401,7 @@ fn main() {
 
 #### `skip`、`skip_while`
 
-`skip` 和 `skip_while` 方法是 `take` 和 `take_while` 的补充：它们从迭代的开始丢弃一定数量的`item`，或者丢弃`item`直到闭包找到一个可接受的项目，剩余的保持不变。 它们的签名如下：
+`skip` 和 `skip_while` 方法是 `take` 和 `take_while` 的补充：它们从迭代的开始丢弃一定数量的`item`，或者丢弃`item`直到闭包找到一个可接受的项目，剩余的保持不变。它们的签名如下：
 
 ```rust
 fn skip(self, n: usize) -> impl Iterator<Item=Self::Item>
@@ -445,7 +445,7 @@ fn peekable(self) -> std::iter::Peekable<Self>
 
 [`std::iter::Peekable`](https://doc.rust-lang.org/stable/std/iter/struct.Peekable.html) 是实现了 `Iterator<Item=Self::Item>` 的迭代器，这里的 `Self` 指的是底层的迭代器。
 
-例如，如果您要从字符流中解析数字，则在看到其后的第一个非数字字符之前，您无法确定数字的结束位置：
+例如，如果要从字符流中解析数字，则在看到其后的第一个非数字字符之前，无法确定数字的结束位置：
 
 ```rust
 use std::iter::Peekable;
@@ -510,7 +510,7 @@ fn main() {
 
 #### `next_back`、`rev`
 
-如果你的迭代器实现了 [`std::iter::DoubleEndedIterator`](https://doc.rust-lang.org/stable/std/iter/trait.DoubleEndedIterator.html)，就可以从两端开始迭代，直到它们相遇迭代结束。该 `trait` 的定义如下：
+如果迭代器实现了 [`std::iter::DoubleEndedIterator`](https://doc.rust-lang.org/stable/std/iter/trait.DoubleEndedIterator.html)，就可以从两端开始迭代，直到它们相遇迭代结束。该 `trait` 的定义如下：
 
 ```rust
 trait DoubleEndedIterator: Iterator {
@@ -554,7 +554,7 @@ fn main() {
 
 #### `inspect`
 
-`inspect` 对于调试很方便，但在生产代码中使用不多。 它只是将闭包应用于每个`item`的共享引用，然后传递该`item`。闭包不会影响`item`，但它可以做一些事情，比如打印它们或对它们进行断言。
+`inspect` 对于调试很方便，但在生产代码中使用不多。它只是将闭包应用于每个`item`的共享引用，然后传递该`item`。闭包不会影响`item`，但它可以做一些事情，比如打印它们或对它们进行断言。
 
 例如：
 
@@ -687,7 +687,7 @@ fn main() {
 }
 ```
 
-调用 `lines.by_ref()` 借用了一个对迭代器的可变引用，而 `take_while` 迭代器正是这个引用的所有者。 该迭代器在第一个 `for` 循环结束时退出时被丢掉，因此您可以在第二个 `for` 循环中再次使用行。该代码输出：
+调用 `lines.by_ref()` 借用了一个对迭代器的可变引用，而 `take_while` 迭代器正是这个引用的所有者。该迭代器在第一个 `for` 循环结束时退出时被丢掉，因此可以在第二个 `for` 循环中再次使用行。该代码输出：
 
     Headers:
     To: jimb
@@ -785,7 +785,7 @@ fn main() {
 
 #### `max_by_key`、`min_by_key`
 
-`max_by_key` 和`min_by_key` 根据闭包选择根据 `item` 的某些内容来确定最大最小值，它们的定义如下，传入的闭包返回 `None` 表示这个 `item` 不参与比较：
+`max_by_key` 和`min_by_key` 通过传入的闭包选择根据 `item` 的某些内容来确定最大最小值，它们的定义如下，传入的闭包返回 `None` 表示这个 `item` 不参与比较：
 
 ```rust
 fn min_by_key<B: Ord, F>(self, f: F) -> Option<Self::Item>
@@ -900,7 +900,7 @@ fn fold<A, F>(self, init: A, f: F) -> A
     where Self: Sized, F: FnMut(A, Self::Item) -> A;
 ```
 
-这里，`A` 是累计值类型。 `init` 参数是一个 `A`，闭包的第一个参数和返回值以及 `fold` 本身的返回值也是如此。 请注意，累计值被移入和移出闭包，因此您可以将 `fold` 与非 `Copy` 累计值类型一起使用：
+这里，`A` 是累计值类型。`init` 参数是一个 `A`，闭包的第一个参数和返回值以及 `fold` 本身的返回值也是如此。请注意，累计值被移入和移出闭包，因此可以将 `fold` 与非 `Copy` 累计值类型一起使用：
 
 ```rust
 fn main() {
@@ -924,7 +924,7 @@ assert_eq!(weird_pangram, "jugs liquor dozen five with box my Pack ");
 
 #### `try_fold`、`try_rfold`
 
-`try_fold` 方法与 `fold` 相同，只是迭代过程可以提前退出，而不会消耗迭代器中的所有值。 传递给 `try_fold` 的闭包必须返回一个 `Result`：如果它返回 `Err(e)`，`try_fold` 会立即返回 `Err(e)` 作为它的值。 否则，它继续继续处理。 
+`try_fold` 方法与 `fold` 相同，只是迭代过程可以提前退出，而不会消耗迭代器中的所有值。传递给 `try_fold` 的闭包必须返回一个 `Result`：如果它返回 `Err(e)`，`try_fold` 会立即返回 `Err(e)` 作为它的值，否则它继续继续处理。 
 
 ```rust
 fn main() {
@@ -945,7 +945,7 @@ fn main() {
 }
 ```
 
-因为 `try_fold` 非常灵活，它被用来实现 `Iterator` 的许多其他消费者方法。 例如，这是 [`all`](https://doc.rust-lang.org/stable/src/core/iter/traits/iterator.rs.html#2452-2455)的实现：
+因为 `try_fold` 非常灵活，它被用来实现 `Iterator` 的许多其他消费者方法。 例如这是 [`all`](https://doc.rust-lang.org/stable/src/core/iter/traits/iterator.rs.html#2452-2455)的实现：
 
 ```rust
 fn all<F>(&mut self, f: F) -> bool
@@ -965,7 +965,7 @@ fn all<F>(&mut self, f: F) -> bool
 
 #### `nth`、`nth_back`
 
-`nth(n)` 从迭代器中跳过 `n` 个项目返回下一个，`nth(0)` 等价于 `.next()`，而且它没有获取迭代器的所有权，所以你可以多次调用：
+`nth(n)` 从迭代器中跳过 `n` 个 `item` 返回下一个，`nth(0)` 等价于 `.next()`，而且它没有获取迭代器的所有权，所以可以多次调用：
 
 ```rust
 let mut squares = (0..10).map(|i| i*i);
@@ -1066,7 +1066,7 @@ let args: HashMap<String, usize> = std::env::args().zip(0..).collect();
 let args: BTreeMap<String, usize> = std::env::args().zip(0..).collect();
 ```
 
-`collect` 本身并不知道如何构造所有这些类型。相反，当一些像 `Vec` 或 `HashMap` 这样的集合类型知道如何从一个迭代器构造自己时，它实现了 [`std::iter::FromIterator`](https://doc.rust-lang.org/stable/std/iter/trait.FromIterator.html#)：
+`collect` 本身并不知道如何构造所有这些类型。相反当一些像 `Vec` 或 `HashMap` 这样的集合类型知道如何从一个迭代器构造自己时，它实现了 [`std::iter::FromIterator`](https://doc.rust-lang.org/stable/std/iter/trait.FromIterator.html#)：
 
 ```rust
 pub trait FromIterator<A> {
@@ -1097,7 +1097,7 @@ assert_eq!(v, &[1, 2, 4, 8, 16, 31, 57, 99, 163]);
 
 #### `partition`
 
-`partition` 通过传入的闭包将集合分成两拨，例如，我们可以将切片数字分成奇数偶数序列：
+`partition` 通过传入的闭包将集合分成两拨，例如我们可以将切片数字分成奇数偶数序列：
 
 ```rust
 fn main() {
@@ -1140,6 +1140,7 @@ fn main() {
 ```
 
 改代码输出：
+
     You have received: 4 calling birds
     You have received: 3 french hens
     You have received: 2 turtle doves
@@ -1172,4 +1173,3 @@ impl<I: Iterator> IntoIterator for I {
 ```
 
 这里有一个 [BinaryTree](https://github.com/ProgrammingRust/examples/blob/master/binary-tree/src/lib.rs) 的实现，
-

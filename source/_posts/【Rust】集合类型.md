@@ -8,17 +8,17 @@ categories:
   - rust
 ---
 
-Rust 标准库包含几个集合，用于在内存中存储数据的泛型类型。我们已经在前面使用了集合，例如 `Vec` 和 `HashMap`。在本章中，我们将详细介绍这两种类型的方法，以及其他六个标准集合。
+Rust 标准库包含几个集合，用于在内存中存储数据的泛型类型。我们已经在前面使用了集合，例如 `Vec` 和 `HashMap`。在本章中，我们将详细介绍这两种类型的方法，以及其他`6`个标准集合。
 
-`Rust` 一共有8个标准集合类型，它们都是泛型：
+`Rust` 一共有`8`个标准集合类型，它们都是泛型：
 
 {% asset_img std-collections.png %}
 
-- `Vec<T>`：一个可增长的、堆分配的 T 类型值数组；
+- `Vec<T>`：一个可增长的、堆分配的 `T` 类型值数组；
 
-- `VecDeque<T>`：与 `Vec<T>` 类似，但更适合用作先进先出队列。 它支持在列表的前面和后面有效地添加和删除值；
+- `VecDeque<T>`：与 `Vec<T>` 类似，但更适合用作先进先出队列，它支持在列表的前面和后面有效地添加和删除值；
 
-- `BinaryHeap<T>`：一个优先队列。 `BinaryHeap` 中的值是有组织的，所以它总是有效地找到并删除最大值；
+- `BinaryHeap<T>`：一个优先队列，`BinaryHeap` 中的值是有组织的，所以它总是有效地找到并删除最大值；
 
 - `HashMap<K, V>`：键值对表，通过键查找值很快，`item` 以任意顺序存储；
 
@@ -32,7 +32,7 @@ Rust 标准库包含几个集合，用于在内存中存储数据的泛型类型
 
 ### `Vec<T>`
 
-`vector`具有三个字段：长度、容量和指向存储元素的堆分配的指针。 空`vector`，容量为 `0`，在添加第一个元素之前，不会为其分配堆内存。和所有其他集合类型一样，`Vec<T>` 实现了 `std::iter::FromIterator`，所以我们可以通过 `.collect()` 方法创建，例如：
+`vector`具有 `3` 个字段：长度、容量和指向存储元素的堆分配的指针。空 `vector`，容量为 `0`，在添加第一个元素之前，不会为其分配堆内存。和所有其他集合类型一样，`Vec<T>` 实现了 `std::iter::FromIterator`，所以我们可以通过 `.collect()` 方法创建，例如：
 
 ```rust
 let my_vec = my_set.into_iter().collect::<Vec<String>>();
@@ -54,7 +54,7 @@ let mut buffer = vec![0u8; 1024]; // 1024 zeroed-out bytes
 
 #### 元素访问
 
-最直接的访问是通过索引，如果索引越界会 `panic`。`vector` 长度和索引是 `usize` 类型。尝试使用 `u32`、`u64` 或 i`size` 作为`vector`索引是错误的，可以根据需要使用 `n as usize` 进行转换：
+最直接的访问是通过索引，如果索引越界会 `panic`，`vector` 长度和索引是 `usize` 类型，尝试使用 `u32`、`u64` 或 i`size` 作为`vector`索引是错误的，可以根据需要使用 `n as usize` 进行转换：
 
 ```rust
 // Get a reference to an element
@@ -68,7 +68,7 @@ let my_ref = &buffer[4..12];
 let my_copy = buffer[4..12].to_vec(); // requires Clone
 ```
 
-有几种方法可以轻松访问`vector`或切片的特定元素（请注意，所有切片方法也可用于数组和`vector`）：
+有几种方法可以轻松访问 `vector` 或`slice`的特定元素（请注意，所有`slice`方法也可用于数组和`vector`）：
 
 - `slice.first()`：返回第一个元素的引用以 `Option<&T>` 的形式，如果没有就返回 `None`：
 
@@ -100,7 +100,7 @@ let my_copy = buffer[4..12].to_vec(); // requires Clone
     assert_eq!(slice, [0, 1, 2, 100]);
     ```
 
-    因为按值返回 `T` 意味着移动它，所以访问`item`的方法通常通过引用返回这些`item`。
+    因为按值返回 `T` 意味着转移所有权，所以访问 `item` 的方法通常通过引用返回这些 `item`。
 
 - `slice.to_vec()`：克隆整个 `slice`，返回新的，仅仅用于可以 `Clone` 的 `item`：
 
@@ -139,13 +139,13 @@ let my_copy = buffer[4..12].to_vec(); // requires Clone
 
 - `vec.capacity()`：返回 `vector` 的容量，`vec.capacity() >= vec.len()`；
 
-- `vec.reserve(n)`：确认这里有足够的的空间再容纳再增加 `n` 个元素，即 `vec.capacity() >= vec.len() + n`，如果已经满足，则什么也不做，如果不够就会申请足够的空间并且将当前的内容移进去；
+- `vec.reserve(n)`：确认这里有足够的的空间再容纳 `n` 个元素，即 `vec.capacity() >= vec.len() + n`，如果已经满足，则什么也不做，如果不够就会申请足够的空间并且将当前的内容移进去；
 
 - `vec.reserve_exact(n)`：和 `vec.reserve(n)` 类似，但是不会申请额外的空间为未来的增长，也就是扩容之后 `vec.capacity() = exactly vec.len() + n`；
 
 - `vec.shrink_to_fit()`：尝试释放额外的空闲空间；
 
-`Vec<T>` 有许多方法可以添加或删除元素，从而改变`vector`的长度。 这些中的每一个都通过 `mut` 引用获取其自身参数。这两种方法在`vector`末尾添加或删除单个值：
+`Vec<T>` 有许多方法可以添加或删除元素，从而改变`vector`的长度。这些中的每一个都通过 `mut` 引用获取其自身参数。这两种方法在`vector`末尾添加或删除单个值：
 
 - `vec.push(value)`：将 `value` 添加到末尾；
 
@@ -205,7 +205,7 @@ let my_copy = buffer[4..12].to_vec(); // requires Clone
 
 #### `Joining`
 
-下面的量方法用于元素本身是数组、切片或`vector`的数组、切片或`vector`：
+下面的量方法用于元素本身是数组、`slice`或`vector`的数组、`slice`或`vector`：
 
 - `slices.concat()`：连接所有的`item`并且返回新的 `vector`：
 
@@ -237,12 +237,11 @@ let b = &mut v[j]; // error: cannot borrow `v` as mutable
 ```
 {% endnote %}
 
-如果 `i == j`，就会出先可变借用了同一个 `item`。`Rust` 有几种方法可以同时借用对数组、切片或向量的两个或多个部分的 `mut` 引用。 与前面的代码不同，这些方法是安全的，因为根据设计，它们总是将数据拆分为不重叠的区域。 其中许多方法对于使用非 `mut` 切片也很方便，因此每种方法都有 `mut` 和 `non-mut` 版本。
+如果 `i == j`，就会出先可变借用了同一个 `item`。`Rust` 有几种方法可以同时借用对数组、`slice`或向量的两个或多个部分的 `mut` 引用。 与前面的代码不同，这些方法是安全的，因为根据设计，它们总是将数据拆分为不重叠的区域。 其中许多方法对于使用非 `mut` `slice`也很方便，因此每种方法都有 `mut` 和 `non-mut` 版本。
 
 ![](vec-multiple-mut-ref.png)
 
-这些方法都没有直接修改数组、切片或向量。 它们只是返回对内部部分数据的新引用：
-
+这些方法都没有直接修改数组、`slice`或向量。 它们只是返回对内部部分数据的新引用：
 
 ##### `slice.iter()`、`slice.iter_mut()`
 
@@ -357,7 +356,7 @@ fn main() {
 
 - `slice.contains(&value)`：返回 `true` 如果 `slice` 有 `item` 等于 `value`。
 
-#### Slice 比较
+#### `Slice` 比较
 
 如果类型 `T` 支持 `==` 和 `!=` 运算符，那么 `[T; N]`，`[T]` 以及 `Vec<T>` 也支持，两个 `slice` 是相等的，如果他们的值和长度都相等；
 
@@ -418,7 +417,7 @@ fn main() {
 
 与`vector`一样，双端队列可以按值、共享引用或 `mut` 引用进行迭代。 它们具有三个迭代器方法 `.into_iter(`)、`.iter()` 和 `.iter_mut()`，它们可以以通常的方式被索引：`deque[index]`。
 
-因为双端队列不会将它们的元素连续存储在内存中，所以它们不能继承切片的所有方法。 但是，如果您愿意支付转移内容的成本，`VecDeque` 提供了一种可以解决此问题的方法：
+因为双端队列不会将它们的元素连续存储在内存中，所以它们不能继承`slice`的所有方法。 但是，如果您愿意支付转移内容的成本，`VecDeque` 提供了一种可以解决此问题的方法：
 
 - `deque.make_contiguous()`：将队列整理成连续内存的形式，返回 ` &mut [T]`；
 
@@ -629,7 +628,6 @@ pub enum Entry<'a, K, V> {
 
 - 通过可变引用迭代，`for (k, v) in &mut map` 产生 `(&K, &mutV)` 对；
 
-
 而 `.iter()` 和 `.iter_mut()` 就像按 `&map` 和 `&mut map` 迭代。除此之外，还有：
 
 - `map.keys()`：返回一个所有 `key` 引用的迭代器；
@@ -756,9 +754,9 @@ fn compute_hash<B, T>(builder: &B, value: &T) -> u64
 
 `HashMap` 每次在需要计算 `hash` 值的时候会调用这三个方法，所有方法都是可以内联的，所以非常快。
 
-`Rust` 的默认哈希算法是一种众所周知的算法，称为 `SipHash-1-3`。 `SipHash` 速度很快，并且非常擅长最小化哈希冲突。 事实上，它是一种密码算法：没有已知的有效方法来生成 `SipHash-1-3` 冲突。 只要为每个哈希表使用不同的、不可预测的密钥，`Rust` 就可以抵御一种称为 `HashDoS` 的拒绝服务攻击，在这种攻击中，攻击者故意使用哈希冲突来触发服务器中最坏情况的性能。
+`Rust` 的默认哈希算法是 `SipHash-1-3`，`SipHash` 速度很快，并且非常擅长最小化哈希冲突。事实上，它是一种密码算法：没有已知的有效方法来生成 `SipHash-1-3` 冲突。 只要为每个哈希表使用不同的、不可预测的密钥，`Rust` 就可以抵御一种称为 `HashDoS` 的拒绝服务攻击，在这种攻击中，攻击者故意使用哈希冲突来触发服务器中最坏情况的性能。
 
-但也许您的应用程序不需要它，如果您要存储许多小密钥，例如整数或非常短的字符串，则可以实现更快的哈希函数，但会牺牲 `HashDoS` 安全性。 [`fnv`](https://doc.servo.org/fnv/) 实现了一种这样的算法，即 `FNV` 哈希，要尝试它，请将此行添加到您的 `Cargo.toml`：
+但也许您的应用程序不需要它，如果要存储许多小密钥，例如整数或非常短的字符串，则可以实现更快的哈希函数，但会牺牲 `HashDoS` 安全性。 [`fnv`](https://doc.servo.org/fnv/) 实现了一种这样的算法，即 `FNV` 哈希，要尝试它，请将此行添加到您的 `Cargo.toml`：
 
 ```toml
 [dependencies]
