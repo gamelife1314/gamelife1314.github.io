@@ -34,7 +34,7 @@ date: 2022-05-05 09:54:08
 14. [《第16章-Collections》（✔️）](/2022/05/01/【Rust】集合类型/)
 15. [《第17章-Strings and Text》（✔️）](/2022/05/01/【Rust】字符串和文本/)
 16. [《第18章-Input and Output》（✔️）](/2022/05/02/【Rust】输入输出/)
-17. [《第19章-Concurrency》](/2022/05/03/【Rust】并发/)
+17. [《第19章-Concurrency》（✔️）](/2022/05/03/【Rust】并发/)
 18. [《第20章-Asynchronous Programming》](/2022/05/03/【Rust】异步编程/)
 19. [《第21章-Macros》](/2022/05/04/【Rust】宏/)
 20. [《第22章-Unsafe Code》](/2022/05/05/【Rust】Unsafe-代码/)
@@ -62,7 +62,8 @@ date: 2022-05-05 09:54:08
 7. [`enum_primitive`](https://crates.io/crates/enum_primitive)：提供宏能自动从数字转换成枚举；
 8. [`serde_json`](https://crates.io/crates/serde_json)：`json` 序列化；
 9. [`fnv`](https://crates.io/crates/fnv)：基于 `Fowler–Noll–Vo` 算法实现的 `HashMap`；
-10. [reqwest](https://crates.io/crates/reqwest)：高级 `HTTP` 客户端；
-11. [actix-web](https://crates.io/crates/actix-web)：`Web` 框架；
+10. [`reqwest`](https://crates.io/crates/reqwest)：高级 `HTTP` 客户端；
+11. [`actix-web`](https://crates.io/crates/actix-web)：`Web` 框架；
+12. [`rayon`](https://crates.io/crates/rayon)：提供了两种并发机制；
 
 
