@@ -9,9 +9,9 @@ categories:
   - rust
 ---
 
-编程中的一大发现是可以编写操作不同类型值得代码，甚至是尚未发明的类型。这种能力对于 `Rust` 来说并不新鲜，它被称为多态性，它是 `1970` 年代热门的新编程语言技术。 到现在为止有效普遍的，`Rust` 支持具有两个相关特性的多态性：`Trait` 和 泛型。
+编程中可能经常遇到要用相同的逻辑处理不同的类型，即使这个类型是还没出世的自定义类型。这种能力对于 `Rust` 来说并不新鲜，它被称为多态性，诞生于 `1970` 年代的编程语言技术，到现在为止仍然普遍。`Rust` 支持具有两个相关特性的多态性：`Trait` 和 泛型。
 
-`Trait` 是 `Rust` 对接口或抽象基类的对照实现， 它们看起来就像 `Java` 或 `C#` 中的接口：
+`Trait` 是 `Rust` 对接口或抽象基类的对照实现，它们看起来就像 `Java` 或 `C#` 中的接口：
 
 ```rust
 trait Write {
@@ -24,7 +24,7 @@ trait Write {
 }
 ```
 
-`File`，`TcpStream` 以及 [`Vec<u8>`](https://doc.rust-lang.org/std/vec/struct.Vec.html#impl-Write) 都实现了 [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html)，这三个类型提供了三个方法 `.method()`，`.flush()` 等等，我们可以使用 `write` 方法而不用关心它的实际类型：
+`File`，`TcpStream` 以及 [`Vec<u8>`](https://doc.rust-lang.org/std/vec/struct.Vec.html#impl-Write) 都实现了 [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html)，这`3`个类型都提供了 `.write()`，`.flush()` 等等方法，我们可以使用 `write` 方法而不用关心它的实际类型：
 
 ```rust
 use std::io::Write;
@@ -47,7 +47,7 @@ say_hello(&mut bytes)?; // also works
 assert_eq!(bytes, b"hello world\n");
 ```
 
-泛型就像 `C++` 中模板函数，一个泛型函数或者类型可以用于许多不同类型的值：
+泛型函数就像 `C++` 中模板函数，一个泛型函数或者类型可以用于许多不同类型的值：
 
 ```rust
 /// Given two values, pick whichever one is less.
@@ -61,26 +61,26 @@ fn min<T: Ord>(value1: T, value2: T) -> T {
 }
 ```
 
-`<T: Ord>` 意思是 `T` 类型必须实现 `Ord`，这称为边界，因为它设置了 `T` 可能是哪些类型，编译器为您实际使用的每种类型 `T` 生成自定义机器代码。
+`<T: Ord>` 意思是 `T` 类型必须实现 `Ord`，这称为边界，因为它设置了 `T` 可能是哪些类型，编译器为实际使用的每种类型 `T` 生成自定义机器代码。
 
 <!-- more -->
 
 
-### 使用 Trait
+### 使用 `Trait`
 
 `Trait` 代表了一种能力，这个类型能做哪些事情，例如：
 
-- 实现 [` std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html) 意味着可以调用 `.write()` 方法写入字节等；
+- 实现 [`std::io::Write`](https://doc.rust-lang.org/std/io/trait.Write.html) 意味着可以调用 `.write()` 方法写入字节等；
 
-- 实现 [`std::iter::Iterator`](https://doc.rust-lang.org/std/iter/trait.Iterator.html) 意味着可以产生一个序列值；
+- 实现 [`std::iter::Iterator`](https://doc.rust-lang.org/std/iter/trait.Iterator.html) 可以产生一个序列值；
 
-- 实现 [`std::clone::Clone`](https://doc.rust-lang.org/std/clone/trait.Clone.html) 意味着可以在内存中 `clone` 自身；
+- 实现 [`std::clone::Clone`](https://doc.rust-lang.org/std/clone/trait.Clone.html) 可以在内存中 `clone` 自身；
 
-- 实现 [`std::fmt::Debug`](https://doc.rust-lang.org/std/fmt/trait.Debug.html) 意味着可以使用 `{:?}` 打印；
+- 实现 [`std::fmt::Debug`](https://doc.rust-lang.org/std/fmt/trait.Debug.html) 可以使用 `{:?}` 打印；
 
-这四个 `Trait` 只是标准库中的一部分，许多标准类型都实现了他们，例如：`std::fs::File` 实现 `Write`，`Range<i32>(0..10)` 实现了 `Iterator`，有很多类型都实现了 `Clone` 和 `Debug`。
+这 `4` 个 `Trait` 只是标准库中的一部分，许多标准类型都实现了他们，例如：`std::fs::File` 实现 `Write`，`Range<i32>(0..10)` 实现了 `Iterator`，有很多类型都实现了 `Clone` 和 `Debug`。
 
-关于 `trait` 方法有一个不寻常的规则：`trait` 本身必须在范围内。 否则，它的所有方法都会被隐藏：
+关于 `Trait` 方法有一个不寻常的规则：`Trait` 本身必须在范围内。否则，它的所有方法都会被隐藏：
 
 {% note danger %}
 ```rust
@@ -100,9 +100,9 @@ buf.write_all(b"hello")?; // ok
 ```
 {% endnote %}
 
-之所以要这样做，是因为了避免命名冲突，需要导入计划使用的 `Trait`，因为我们可能为类型实现了多种 `Trait`，它们都相同的方法名。但如果我们需要导入这两个名称冲突的方法，就需要使用完全限定方法调用，而 `Clone` 和 `Iterator` 能正常使用的原因是它们是预导入的。
+之所以要这样做，是因为了避免命名冲突，需要导入计划使用的 `Trait`，因为我们可能为类型实现了多种 `Trait`，它们都相同的方法名。但如果我们需要导入这两个名称冲突的方法，就需要使用[完全限定方法调用](#完全限定调用)，而 `Clone` 和 `Iterator` 能正常使用的原因是它们是预导入的。
 
-### Trait 对象
+### `Trait` 对象
 
 在 `Rust` 中，一个变量的大小必须在编译时就能确定，而 `Trait` 可以被任何类型实现，所以它们的大小无法确认，类似下面的代码会编译失败：
 
@@ -126,13 +126,13 @@ let writer: &mut dyn Write = &mut buf; // ok
 ```
 {% endnote %}
 
-对 `Trait` 类型的引用，如 `writer`，称为 {% label @Trait 对象 %}。 `Trait` 对象指向某个值，它有生命周期，它可以是 `mut` 或 `shared`。`Trait` 对象的不同之处在于，它包含了一些关于所指对象类型的额外信息，当你调用 `writer.write(data)` 时，`Rust` 需要根据 `*writer` 的类型动态调用正确的 `write` 方法。`Rust` 不允许直接查询类型信息，也不支持从 `Trait` 对象向下转换，`&mut dyn` 不能转换为 `Vec<u8> `这样的具体类型。
+对 `Trait` 类型的引用，如 `writer`，称为 {% label @Trait 对象 %}。 `Trait` 对象指向某个值，它有生命周期，可以是可变引用或共享引用。`Trait` 对象的不同之处在于，它包含了一些关于所指对象类型的额外信息，当你调用 `writer.write(data)` 时，`Rust` 需要根据 `*writer` 的类型动态调用正确的 `write` 方法。`Rust` 不允许直接查询类型信息，也不支持从 `Trait` 对象向下转换，`&mut dyn` 不能转换为 `Vec<u8> `这样的具体类型。
 
-在内存中，`Trait`对象是一个胖指针，由一个指向值的指针和一个指向拥有该值类型方法表的指针组成， 因此，每个`Trait`对象占用两个机器字，下图所示：
+在内存中，`Trait` 对象是一个胖指针，由一个指向值的指针和一个指向拥有该值类型方法表的指针组成，因此，每个`Trait`对象占用两个机器字，下图所示：
 
 ![](trait-obj-inmem.png)
 
-`C++` 也有这种运行时类型信息，它被称为虚拟表，`vtable` 是 `Rust` 的私有实现细节，这些是不可以直接访问的字段和数据结构。 当调用 {% label @Trait 对象 %} 的方法时语言自动使用 `vtable` 去决定使用哪个类型。
+`C++` 也有这种运行时类型信息，它被称为虚拟表，`vtable` 是 `Rust` 的私有实现细节，这些是不可以直接访问的字段和数据结构。当调用`Trait`对象的方法时语言自动使用 `vtable` 去决定使用哪个类型。
 
 `Rust` 在需要时会自动将普通引用转换为 `Trait` 对象， 这就是为什么我们能够在这个例子中将 `&mut local_file` 传递给 `say_hello`：
 
@@ -147,7 +147,7 @@ say_hello(&mut local_file)?;
 let w: Box<dyn Write> = Box::new(local_file);
 ```
 
-`Box<dyn Write>` 和 `&mut dyn Write` 一样，是一个胖指针：它包含 `writer` 本身和 `vtable` 的地址。 其他指针类型也是如此，例如 `Rc<dyn Write>`。
+`Box<dyn Write>` 和 `&mut dyn Write` 一样，是一个胖指针：它包含 `writer` 本身和 `vtable` 的地址。其他指针类型也是如此，例如 `Rc<dyn Write>`。
 
 ### 泛型函数
 
@@ -158,7 +158,7 @@ fn say_hello(out: &mut dyn Write) // plain function
 fn say_hello<W: Write>(out: &mut W) // generic function
 ```
 
-`<W: Write>` 预示着这个函数是泛型的，`W` 是一个类型参数，意味着在整个函数体中，类型 `W` 是具有 `Write` 特征的类型。约定上，类型参数使用单个大写字母表示，而 `W` 实际代表哪种类型取决于泛型函数的使用方式：
+`<W: Write>` 预示着这个函数是泛型的，`W` 是一个类型参数，意味着在整个函数体中，类型 `W` 是实现了 `Write` 的类型。约定上，类型参数使用单个大写字母表示，而 `W` 实际代表哪种类型取决于泛型函数的使用方式：
 
 ```rust
 say_hello(&mut local_file)?; // calls say_hello::<File>
@@ -201,34 +201,41 @@ fn top_ten<T: Debug + Hash + Eq>(values: &Vec<T>) { ... }
 /// Run a query on a large, partitioned data set.
 /// See <http://research.google.com/archive/mapreduce.html>.
 fn run_query<M: Mapper + Serialize, R: Reducer + Serialize>(
- data: &DataSet, map: M, reduce: R) -> Results
-{ ... }
+    data: &DataSet,
+    map: M,
+    reduce: R,
+) -> Results {
+}
 ```
 
 但是这样写会让函数的签名变得很长，看起来不是很顺眼，所以可以使用 `where` 关键字达到同样的效果，只是将 `M` 和 `R` 的边界移动到了后边，让函数签名看起来更加清晰而已：
 
 ```rust
 fn run_query<M, R>(data: &DataSet, map: M, reduce: R) -> Results
- where M: Mapper + Serialize,
- R: Reducer + Serialize
-{ ... }
+where
+    M: Mapper + Serialize,
+    R: Reducer + Serialize,
+{
+    ...
+}
 ```
 
-泛型函数的参数有引用时，可能需要显示使用生命周期参数，这种情况需要把生命周期卸载最前面：
+泛型函数的参数有引用时，可能需要显示使用生命周期参数，这种情况需要把生命周期写在最前面：
 
 ```rust
 /// Return a reference to the point in `candidates` that's
 /// closest to the `target` point.
 fn nearest<'t, 'c, P>(target: &'t P, candidates: &'c [P]) -> &'c P
- where P: MeasureDistance
+where
+    P: MeasureDistance,
 {
- ...
+    ...
 }
 ```
 
 生命周期参数不会影响函数的机器代码生成，只有不同的类型 `P` 才会导致编译器生成不同的 `nearest` 版本。
 
-一个单独的方法可以是泛型的，即使它的类型不是泛型的：
+即使结构=体不是泛型，它的类型也可以是泛型的：
 
 ```rust
 impl PancakeStack {
@@ -245,13 +252,13 @@ impl PancakeStack {
 type PancakeResult<T> = Result<T, PancakeError>;
 ```
 
-### 泛型 or Trait
+### 泛型 or `Trait`
 
 `Trait` 解决的问题是像什么，它能代表一类对象，这一类对象都有相同的行为；而泛型解决的问题是解决重复编码，更像是一个代码模板，泛型类型可以使用 `Trait` 作为边界。
 
-对于代码体积来说，由于泛型更像是代码模板，所以在编译时更具会对不同类型生成真正的代码，所以代码体积会增大，但是运行速度会更快，而 `Trait` 对象只有在实际运行时才能确定其真正的类型。
+对于代码体积来说，由于泛型更像是代码模板，所以在编译时更具会对不同类型生成真正的代码，代码体积会增大，但是运行速度会更快，而 `Trait` 对象只有在实际运行时才能确定其真正的类型。
 
-### 定义实现 Trait
+### 定义实现 `Trait`
 
 定义 `Trait` 相对比较简单，有两个必须的信息，名称和方法签名列表：
 
@@ -260,12 +267,12 @@ type PancakeResult<T> = Result<T, PancakeError>;
 /// anything in the game world that's visible on screen.
 trait Visible {
 
-/// Render this object on the given canvas.
-fn draw(&self, canvas: &mut Canvas);
+    /// Render this object on the given canvas.
+    fn draw(&self, canvas: &mut Canvas);
 
-/// Return true if clicking at (x, y) should
-/// select this object.
-fn hit_test(&self, x: i32, y: i32) -> bool;
+    /// Return true if clicking at (x, y) should
+    /// select this object.
+    fn hit_test(&self, x: i32, y: i32) -> bool;
 }
 ```
 
@@ -273,58 +280,50 @@ fn hit_test(&self, x: i32, y: i32) -> bool;
 
 ```rust
 impl Visible for Broom {
-
     fn draw(&self, canvas: &mut Canvas) {
-        
-        for y in self.y - self.height - 1 .. self.y {
+        for y in self.y - self.height - 1..self.y {
             canvas.write_at(self.x, y, '|');
         }
-        
+
         canvas.write_at(self.x, self.y, 'M');
     }
 
     fn hit_test(&self, x: i32, y: i32) -> bool {
-        
-        self.x == x
-            && self.y - self.height - 1 <= y
-            && y <= self.y
+        self.x == x && self.y - self.height - 1 <= y && y <= self.y
     }
 }
 ```
 
-### Trait 默认方法
+### `Trait` 默认方法
 
-`Trait` 中可以不止包含方法签名列表，也可以包含方法的实现，如果类型没有重新实现方法， 在调用的时候，会选择 `Trait` 的默认实现：
+`Trait` 中可以不止包含方法签名列表，也可以包含方法的实现，如果类型没有重新实现方法，在调用的时候，会选择 `Trait` 的默认实现：
 
 ```rust
 trait Write {
-
     fn write(&mut self, buf: &[u8]) -> Result<usize>;
-    
+
     fn flush(&mut self) -> Result<()>;
-    
+
     fn write_all(&mut self, buf: &[u8]) -> Result<()> {
-    
         let mut bytes_written = 0;
         while bytes_written < buf.len() {
             bytes_written += self.write(&buf[bytes_written..])?;
         }
         Ok(())
     }
-    ...
 }
+
 ```
 
 `Write` 默认实现了 `write_all` 方法，在为自定义类型实现时，如果没有重新实现，就会选择这个 `write_all` 。
 
-### Trait 实现限制
+### `Trait` 实现限制
 
-只要类型或者 `Trait` 是当前 `crate` 引入的，你就可以：
+只要类型或者 `Trait` 是当前 `crate` 引入的，就可以：
 
 1. 为其他任何类型实现当前 `crate` 中的 `Trait`；
 
 2. 或者为当前 `crate` 中的类型实现任何 `Trait`；
-
 
 例如，我们可以为标准库 `char` 类型实现我们自定义的 `IsEmoji`，只要 `IsEmoji` 在作用域之内就可以使用：
 
@@ -336,8 +335,8 @@ trait IsEmoji {
 /// Implement IsEmoji for the built-in character type.
 impl IsEmoji for char {
     fn is_emoji(&self) -> bool {
-    ...
-}
+        ...
+    }
 }
 ```
 
@@ -361,9 +360,29 @@ impl<W: Write> WriteHtml for W {
 }
 ```
 
-当你实现一个 `Trait` 的时候，`Trait` 或者类型必须要有是当前 `crate` 中，这称之为**孤儿原则**，它确保 `trait` 实现是唯一的，所以你不能为 `u8` 实现 `Write`，因为他两都是保准库中的。
+例如，标准库中为所有实现了 [`From`](https://doc.rust-lang.org/stable/std/convert/trait.From.html) 的类型自动实现了 [`Into`](https://doc.rust-lang.org/stable/std/convert/trait.Into.html)：
 
-### Trait 中的 Self
+```rust
+#[stable(feature = "rust1", since = "1.0.0")]
+#[rustc_const_unstable(feature = "const_convert", issue = "88674")]
+impl<T, U> const Into<U> for T
+where
+    U: ~const From<T>,
+{
+    /// Calls `U::from(self)`.
+    ///
+    /// That is, this conversion is whatever the implementation of
+    /// <code>[From]&lt;T&gt; for U</code> chooses to do.
+    fn into(self) -> U {
+        U::from(self)
+    }
+}
+```
+
+要注意的是，当实现一个 `Trait` 的时候，`Trait` 或者类型必须要有是当前 `crate` 中，这称之为**孤儿原则**，它确保 `Trait` 实现是唯一的，所以不能为 `u8` 实现 `Write`，因为它两都是标准库中的。
+
+
+### `Trait` 中的 `Self`
 
 在 `Trait` 的方法定义中可以使用 `Self` 关键字，例如：
 
@@ -377,6 +396,7 @@ impl Spliceable for CherryTree {
         ...
     }
 }
+
 impl Spliceable for Mammoth {
     fn splice(&self, other: &Self) -> Self {
         ...
@@ -384,7 +404,7 @@ impl Spliceable for Mammoth {
 }
 ```
 
-在第一个 `impl` 中，`Seelf` 表示 `CherryTree`，在第二个 `impl` 中，`Self` 表示 `Mammoth`，而且 `self` 和 `other` 的类型必须匹配。但是如果 `Trait` 中包含了 `Self`，就和 `Trait` 对象不兼容，因为在编译时，`Rust` 不能确定 `Trait` 对象背后的实际类型，所以下面的代码会编译失败，因为 `Rust` 不知道 `left` 和 `right` 是否是相同类型：
+在第一个 `impl` 中，`Self` 表示 `CherryTree`，在第二个 `impl` 中，`Self` 表示 `Mammoth`，而且 `self` 和 `other` 的类型必须匹配。但是如果 `Trait` 中包含了 `Self`，就和 `Trait` 对象不兼容，因为在编译时，`Rust` 不能确定 `Trait` 对象背后的实际类型，所以下面的代码会编译失败，因为 `Rust` 不知道 `left` 和 `right` 是否是相同类型：
 
 ```rust
 // error: the trait `Spliceable` cannot be made into an object
@@ -402,7 +422,7 @@ pub trait MegaSpliceable {
 }
 ```
 
-### 子Trait
+### 子`Trait`
 
 `Trait` 之间可以扩展，例如：
 
@@ -414,8 +434,7 @@ trait Creature: Visible {
 }
 ```
 
-这样每个想实现 `Creature` 的类型就必须实现 `Visible`，我们将 `Creature` 称作 `Visible` 的 **子 `Trait`**，或者将 `Visible` 称作 `Creature` 的 **父`Trait`**，但是**子 `Trait`** 不能继承 **父`Trait`** 的关联项，如果想调用 `Trait` 的方法，依然需要每个 `Trait` 都在作用域内。
-
+这样每个想实现 `Creature` 的类型就必须实现 `Visible`，我们将 `Creature` 称作 `Visible` 的 **子 `Trait`**，或者将 `Visible` 称作 `Creature` 的 **父`Trait`**，但是**子 `Trait`** 不能继承 **父`Trait`** 的关联项。另外如果想调用 `Trait` 的方法，依然需要每个 `Trait` 都在作用域内。
 
 其实 `trait Creature: Visible` 只是下面的简写：
 
@@ -425,7 +444,7 @@ trait Creature where Self: Visible {
 }
 ```
 
-### Trait关联的函数
+### `Trait` 的关联函数
 
 `Rust` 的 `Trait` 是可以包含静态类型方法的：
 
@@ -433,10 +452,13 @@ trait Creature where Self: Visible {
 trait StringSet {
     /// 返回空的set
     fn new() -> Self;
+
     /// Return a set that contains all the strings in `strings`.
     fn from_slice(strings: &[&str]) -> Self;
+    
     /// Find out if this set contains a particular `value`.
     fn contains(&self, string: &str) -> bool;
+    
     /// Add a string to this set.
     fn add(&mut self, string: &str);
 }
@@ -444,24 +466,30 @@ trait StringSet {
 
 `new` 和 `from_slice` 没有将 `self` 作为第一个参数，每个实现 `StringSet` 的类型必须实现关联的静态方法。
 
-`Trait` 对象不支持类型关联函数，如果你想使用 `&dyn StringSet` `Trait` 对象，你必须改变特征：
+`Trait` 对象不支持类型关联的函数，如果你想使用 `&dyn StringSet`，即 `Trait` 对象，你必须改变 `Trait`，给每个接受 `self` 参数的关联函数添加边界 `where Self: Sized`：
+
 
 ```rust
 trait StringSet {
     fn new() -> Self
-        where Self: Sized;
+    where
+        Self: Sized;
+    
     fn from_slice(strings: &[&str]) -> Self
-        where Self: Sized;
+    where
+        Self: Sized;
+    
     fn contains(&self, string: &str) -> bool;
+    
     fn add(&mut self, string: &str);
 }
 ```
 
-这个 `where Self: Sized` 边界告诉 `Rust` `Trait`对象可以免除支持这个特定的相关功能。 通过这些添加，允许使用 `StringSet` `Trait`对象； 他们仍然不支持 `new `或 `from_slice`，但可以创建它们并使用 `.contains()` 和 `.add()` 方法。
+这个边界告诉`Rust`，`Trait` 对象可以不支持这个特定的关联函数。有了这些补充，虽然 `StringSet` 的 `Trait`对象仍然不支持`new`或`from_slice`，但可以创建它们并使用它们来调用`.contains()`和`.add()`。
 
 ### 完全限定调用
 
-当我们调用 `"hello".to_string()` 的时候，Rust 会根据方法查找算法进行方法查找，这里的 `to_string()` 实际上引用到了 [`ToString`](https://doc.rust-lang.org/std/string/trait.ToString.html) `Trait` 的方法。下面的四种方法是等价的：
+当调用 `"hello".to_string()` 的时候，`Rust` 会根据方法查找算法进行方法查找，这里的 `to_string()` 实际上引用到了 [`ToString`](https://doc.rust-lang.org/std/string/trait.ToString.html) `Trait` 的方法。下面的四种方法是等价的：
 
 ```rust
 "hello".to_string();
@@ -470,7 +498,7 @@ ToString::to_string("hello");           // 限定Trait
 <str as ToString>::to_string("hello");  // 限定类型和Trait，完全限定
 ```
 
-其中最后一种称之为**完全限定语法**，通过这个语法，可以明确知道调用哪个语法，这在下面这些场景中非常有用：
+其中最后一种称之为**完全限定语法**，通过这个语法，可以明确知道调用哪个方法，这在下面这些场景中非常有用：
 
 - 当两个方法有相同的名称时，调用就会有歧义，可以通过限定类型或者指定 `Trait` 来具体说明：
 
@@ -499,9 +527,9 @@ ToString::to_string("hello");           // 限定Trait
             .collect();
     ```
 
-- 在宏中调用 `trait` 方法时；
+- 在宏中调用 `Trait` 方法时；
 
-### Trait 关联类型
+### `Trait` 关联类型
 
 `Trait` 内部也可以定义类型，用于类型之间相互交互，例如 [std::iter::Iterator](https://doc.rust-lang.org/std/iter/trait.Iterator.html) 和 [std::ops::Mul](https://doc.rust-lang.org/std/ops/trait.Mul.html)
 
@@ -524,10 +552,13 @@ pub trait Mul {
 
 ```rust
 impl Iterator for Args {
+    
     type Item = String;
+
     fn next(&mut self) -> Option<String> {
         self.inner.next().map(|s| s.into_string().unwrap())
     }
+    
     ...
 }
 ```
@@ -590,7 +621,7 @@ fn dump<I>(iter: I)
 ```
 {% endnote %}
 
-后面这个语法可用于任何 `Trait` 名称可以使用的地方被使用，包括特征对象类型：
+后面这个语法可用于任何 `Trait` 名称可以使用的地方被使用，包括 `Trait` 对象类型：
 
 ```rust
 fn dump(iter: &mut dyn Iterator<Item=String>) {
@@ -600,9 +631,9 @@ fn dump(iter: &mut dyn Iterator<Item=String>) {
 }
 ```
 
-### 泛型 Trait
+### 泛型 `Trait`
 
-`Trait` 也可以是泛型的，例如 [`std::ops::Mul`](https://doc.rust-lang.org/std/ops/trait.Mul.html)：
+`Trait` 也可以是泛型的，例如[`std::ops::Mul`](https://doc.rust-lang.org/std/ops/trait.Mul.html)：
 
 ```rust
 pub trait Mul<Rhs = Self> {
@@ -611,9 +642,9 @@ pub trait Mul<Rhs = Self> {
 }
 ```
 
-这里的类型参数和在结构体或函数上的意思是一样的：`Mul` 是泛型 `trait`，它的实例 `Mul<f64>`、`Mul<String>`、`Mul<Size>` 等都是不同的 `trait`。
+这里的类型参数和在结构体或函数上的意思是一样的：`Mul` 是泛型 `Trait`，它的实例 `Mul<f64>`、`Mul<String>`、`Mul<Size>` 等都是不同的 `Trait`。
 
-之前说了，我们可实现 `Trait` 时，`Trait` 或者类型必须要有一个是当前 `crate` 中的。假设我们有自己的结构体 `Number`，我们完全可以为 `f64` 实现 `Mul<Number>`，以支持 `f64 * Number`，即使 `Mul` 和 `f64` 不是我们 `crate` 的，但是 `Mul<Number>` 是我们自己定义的：
+之前说我们实现 `Trait` 时，`Trait` 或者类型必须要有一个是当前 `crate` 中的。假设我们有自己的结构体 `Number`，我们完全可以为 `f64` 实现 `Mul<Number>`，以支持 `f64 * Number`，即使 `Mul` 和 `f64` 不是我们 `crate` 的，但是 `Mul<Number>` 是我们自己定义的：
 
 ```rust
 #![allow(dead_code)]
@@ -638,7 +669,7 @@ fn main() {
 }
 ```
 
-### impl Trait
+### `impl Trait`
 
 许多泛型类型的组合可能会使代码变得混乱，例如，使用标准库几个迭代器会使代码的返回类型变得异常复杂：
 
@@ -659,7 +690,7 @@ fn cyclical_zip(v: Vec<u8>, u: Vec<u8>) -> Box<dyn Iterator<Item=u8>> {
 }
 ```
 
-但是这个返回值每次都要在堆中重新申请内存，也是有代价的。因此，`Rust` 专门为这种情况提供了 `impl Trait` 这种语法，只指定它实现的一个或多个特征，而无需动态调度或堆分配：
+但是这个返回值每次都要在堆中重新申请内存，也是有代价的。因此，`Rust` 专门为这种情况提供了 `impl Trait` 这种语法，只指定它实现的一个或多个`Trait`，而无需动态调度或堆分配：
 
 ```rust
 fn cyclical_zip(v: Vec<u8>, u: Vec<u8>) -> impl Iterator<Item = u8> {
@@ -800,7 +831,7 @@ fn main() {}
 
 {% endnote %}
 
-需要注意的是，`Rust` 不允许 `trait` 方法使用 `impl Trait` 返回值，只有自由函数和与类型关联的函数才能使用 `impl Trait` 返回。`impl Trait` 也可以用在接受泛型参数的函数中。 例如，下面两个函数的实现等价：
+需要注意的是，`Rust` 不允许 `Trait` 方法使用 `impl Trait` 返回值，只有自由函数和与类型关联的函数才能使用 `impl Trait` 返回。`impl Trait` 也可以用在接受泛型参数的函数中。例如，下面两个函数的实现等价：
 
 ```rust
 fn print<T: Display>(val: T) {
@@ -858,7 +889,7 @@ fn add_one<T: Float + Add<Output=T>>(value: T) -> T {
 }
 ```
 
-请注意，关联常量不能与 `trait` 对象一起使用，因为编译器依赖于有关实现的类型信息以便在编译时选择正确的值。即使是一个根本没有行为的简单 `trait`，比如 `Float`，也可以提供足够的关于类型的信息，结合一些运算符，来实现常见的数学函数，比如 `Fibonacci`：
+请注意，关联常量不能与 `Trait` 对象一起使用，因为编译器依赖于有关实现的类型信息以便在编译时选择正确的值。即使是一个根本没有行为的简单 `Trait`，比如 `Float`，也可以提供足够的关于类型的信息，结合一些运算符，来实现常见的数学函数，比如 `Fibonacci`：
 
 ```rust
 fn fib<T: Float + Add<Output=T>>(n: usize) -> T {
@@ -900,7 +931,7 @@ fn dot<N>(v1: &[N], v2: &[N]) -> N {
 ```
 {% endnote %}
 
-单着肯定不定，类型 `N` 必须支持 `+` 和 `*` 运算。另外由于 `0` 是整数，不是浮点数，当 `N` 代表 `f64` 是依然不对，所以我们可以改成这个样子，对 `N` 进行边界限定：
+但这肯定不定，类型 `N` 必须支持 `+` 和 `*` 运算。另外由于 `0` 是整数，不是浮点数，当 `N` 代表 `f64` 是依然不对，所以我们可以改成这个样子，对 `N` 进行边界限定：
 
 {% note danger %}
 ```rust
@@ -990,7 +1021,7 @@ fn main() {
 ```
 {% endnote %}
 
-虽然结局看起来不错，但是我们是跟着编译器的一步一步的提示把 `N` 的边界给找出来。记这个问题而言，我们可以使用 `num` 这个 `crate`，就看起来很简洁：
+虽然结局看起来不错，但是我们是跟着编译器提示把 `N` 的边界给找出来。就这个问题而言，我们可以使用 `num` 这个 `crate`，就看起来很简洁：
 
 ```rust
 use num::Num;

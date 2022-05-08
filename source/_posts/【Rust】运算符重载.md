@@ -8,7 +8,7 @@ categories:
   - rust
 ---
 
-我们可以为自定义的类型实现加减乘除操作，只要实现内部的的一些自定义 `Trait`，这称之为**运算符重载**。下图是可以重载的运算符列表和需要对应实现的 `Trait`：
+我们可以为自定义的类型实现加减乘除操作，只要实现标准库的一些 `Trait`，这称之为**运算符重载**。下图是可以重载的运算符和需要对应实现的 `Trait` 列表：
 
 {% asset_img operattor-overloading.png %}
 
@@ -58,7 +58,7 @@ where
 }
 ```
 
-虽然 `Rust` 不赞成支持混合类型的操作，虽然不赞成，但我们可以实现，这里要求 `L` 必须能和 `R` 实现假发操作：
+虽然 `Rust` 不赞成支持混合类型的操作，但我们可以实现，这里要求 `L` 必须能和 `R` 实现加法操作：
 
 ```rust
 impl<L, R> Add<Complex<R>> for Complex<L>
@@ -77,7 +77,7 @@ where
 
 ### 一元操作符
 
-`Rust` 有两个一元操作符 `-` 和 `!`，`Rust` 的所有带符号数字类型都实现了 `std::ops::Neg`，用于一元负数运算符 `-`; 整数类型和 `bool` 实现 `std::ops::Not`，用于一元补码运算符 `!`。 `!` 可以用于 `bool` 值也可以用于整数的按位取反。
+`Rust` 有两个一元操作符 `-` 和 `!`，`Rust` 的所有带符号数字类型都实现了 `std::ops::Neg`，用于一元负数运算符 `-`。整数类型和 `bool` 实现 `std::ops::Not`，用于一元补码运算符 `!`。 `!` 可以用于 `bool` 值也可以用于整数的按位取反。
 
 [`std::ops::Neg`](https://doc.rust-lang.org/stable/std/ops/trait.Neg.html) 和 [`std::ops::Not`](https://doc.rust-lang.org/stable/std/ops/trait.Not.html) 的定义如下：
 
@@ -124,9 +124,9 @@ pub trait BitXor<Rhs = Self> {
 
 ### 复合赋值运算符
 
-复合赋值表达式类似于 `x += y` 或 `x &= y`：它接受两个操作数，对它们执行一些操作，如加法或按位与，并将结果存储回左操作数。 在 `Rust` 中，复合赋值表达式的值始终是 `()`，而不是存储的值。
+复合赋值表达式类似于 `x += y` 或 `x &= y`：它接受两个操作数，对它们执行一些操作，如加法或按位与，并将结果存储回左操作数。在 `Rust` 中，复合赋值表达式的值始终是 `()`，而不是存储的值。
 
-许多语言都有这样的运算符，通常将它们定义为 `x = x + y` 或 `x = x & y` 等表达式的简写。 但是，`Rust` 没有采用这种方法。 相反，`x += y` 是方法调用 `x.add_assign(y)` 的简写，其中 `add_assign` 是 [`std::ops::AddAssign`](https://doc.rust-lang.org/stable/std/ops/trait.AddAssign.html) 的唯一方法：
+许多语言都有这样的运算符，通常将它们定义为 `x = x + y` 或 `x = x & y` 等表达式的简写，但是 `Rust` 没有采用这种方法。相反，`x += y` 是方法调用 `x.add_assign(y)` 的简写，其中 `add_assign` 是 [`std::ops::AddAssign`](https://doc.rust-lang.org/stable/std/ops/trait.AddAssign.html) 的唯一方法：
 
 ```rust
 pub trait AddAssign<Rhs = Self> {
@@ -134,7 +134,7 @@ pub trait AddAssign<Rhs = Self> {
 }
 ```
 
-`Rust` 的所有数字类型都实现了算术复合赋值运算符。 `Rust` 的整数类型和 `bool` 实现了按位复合赋值运算符。我们来看一个对 `Complex<T>` 的假发复合赋值运算符：
+`Rust` 的所有数字类型都实现了算术复合赋值运算符，`Rust` 的整数类型和 `bool` 实现了按位复合赋值运算符。我们来看一个对 `Complex<T>` 的假发复合赋值运算符：
 
 ```rust
 use std::ops::AddAssign;
@@ -149,7 +149,7 @@ where
 }
 ```
 
-复合赋值运算符的内置`Trait`完全不同于相应二元运算符的内置`Trait`。 实现 `std::ops::Add` 不会自动实现 `std::ops::AddAssign`； 如果你想让 `Rust` 允许你的类型作为 `+=` 运算符的左操作数，你必须自己实现 `AddAssign`。
+复合赋值运算符的内置`Trait`完全不同于相应二元运算符的内置`Trait`。实现 `std::ops::Add` 不会自动实现 `std::ops::AddAssign`。如果你想让 `Rust` 允许你的类型作为 `+=` 运算符的左操作数，你必须自己实现 `AddAssign`。
 
 ### 相等比较
 
@@ -186,7 +186,7 @@ struct Complex<T> {
 }
 ```
 
-`Rust` 自动生成的实现本质上与我们的手写代码相同，依次比较类型的每个字段或元素， `Rust` 也可以为枚举类型派生 `PartialEq` 实现。 自然地，该类型持有的每个值（或者在枚举的情况下可能持有）必须自己实现 `PartialEq`。
+`Rust` 自动生成的实现本质上与我们的手写代码相同，依次比较类型的每个字段或元素，`Rust` 也可以为枚举类型派生 `PartialEq` 实现。自然地，该类型持有的每个值（或者在枚举的情况下可能持有）必须自己实现 `PartialEq`。
 
 这里我们需要着重注意的是，这与算数运算符不同，`eq` 获取的是值的引用，这意味着比较 `String`，`Vec` 或者 `HashMap` 不会转移所有权：
 
@@ -199,7 +199,7 @@ assert!(s == t); // s and t are only borrowed...
 assert_eq!(format!("{} {}", s, t), "dovetail dovetail");
 ```
 
-我们再来看看 `Rhs: ?Sized` 的约定，之前从未见过。这放宽了 `Rust` 通常要求类型参数必须是 `Sized` 类型的要求，让我们可以编写像 `PartialEq<str>` 或 `PartialEq<[T]>` 这样的 `Trait`。 `eq` 和 `ne` 方法采用 `&Rhs` 类型的参数，将某些东西与 `&str` 或 `&[T]` 进行比较是完全合理的。 由于 `str` 实现了 `PartialEq<str>`，以下断言是等价的：
+我们再来看看 `Rhs: ?Sized` 的约定，之前从未见过。这放宽了 `Rust` 通常要求类型参数必须是 `Sized` 类型的要求，让我们可以编写像 `PartialEq<str>` 或 `PartialEq<[T]>` 这样的 `Trait`。`eq` 和 `ne` 方法采用 `&Rhs` 类型的参数，将某些东西与 `&str` 或 `&[T]` 进行比较是完全合理的。由于 `str` 实现了 `PartialEq<str>`，以下断言是等价的：
 
 ```rust
 assert!("ungula" != "ungulate");
@@ -214,7 +214,7 @@ assert!("ungula".ne("ungulate"));
 
 - `x == x` 永远成立；
 
-虽然最后一个足够简单，但最后一个正是出问题的地方。`Rust` 的 `f32` 和 `f64` 是 `IEEE` 标准浮点值，像 `0.0 / 0.0` 以及其他没有适当值的表达式必须产生 `NaN`，而且 `Nan` 不等于任何值包括自身：
+虽然最后一个足够简单，但最后一个正是出问题的地方。`Rust` 的 `f32` 和 `f64` 是 `IEEE` 标准浮点值，像 `0.0 / 0.0` 以及其他没有适当值的表达式必须产生 `NaN`，而且 `NaN` 不等于任何值包括自身：
 
 ```rust
 assert!(f64::is_nan(0.0 / 0.0));
@@ -229,7 +229,7 @@ assert_eq!(0.0 / 0.0 >= 0.0 / 0.0, false);
 
 因此，虽然 `Rust` 的 `==` 运算符满足等价关系的前两个要求，但在 `IEEE` 浮点值上使用时显然不满足第三个要求，这称为部分等价关系。
 
-如果你希望通用代码需要**完全等价关系**，则可以改为使用 `std::cmp::Eq` 特征作为边界，它表示**完全等价关系**：如果类型实现 `Eq`，则 `x == x` 对于该类型的每个值 `x` 都必须为真。在实践中，几乎所有实现 `PartialEq` 的类型也应该实现 `Eq`； `f32` 和 `f64` 是标准库中唯一属于 `PartialEq` 但不是 `Eq` 的类型。
+如果你希望通用代码需要**完全等价关系**，则可以改为使用 `std::cmp::Eq` 作为边界，它表示**完全等价关系**：如果类型实现 `Eq`，则 `x == x` 对于该类型的每个值 `x` 都必须为真。在实践中，几乎所有实现 `PartialEq` 的类型也应该实现 `Eq`； `f32` 和 `f64` 是标准库中唯一属于 `PartialEq` 但不是 `Eq` 的类型。
 
 标准库定义 [`Eq`](https://doc.rust-lang.org/stable/std/cmp/trait.Eq.html) 是 `PartialEq` 的扩展，但是没有添加方法：
 
@@ -252,7 +252,7 @@ struct Complex<T> {
 }
 ```
 
-泛型类型的派生实现可能取决于类型参数。使用派生属性，`Complex<i32>` 将实现 `Eq`，因为 `i32` 可以，但是`Complex<f32>` 只会实现 `PartialEq`，因为 `f32` 没有实现 `Eq`。当自己实现 `std::cmp::PartialEq` 时，`Rust` 无法检查你的 `eq` 和 `ne` 是完全相等还是部分相等。
+泛型类型的派生实现可能取决于类型参数，使用派生属性，`Complex<i32>` 将实现 `Eq`，因为 `i32` 可以，但是`Complex<f32>` 只会实现 `PartialEq`，因为 `f32` 没有实现 `Eq`。当自己实现 `std::cmp::PartialEq` 时，`Rust` 无法检查你的 `eq` 和 `ne` 是完全相等还是部分相等。
 
 ### 有序比较
 
@@ -302,9 +302,9 @@ pub trait Ord: Eq + PartialOrd<Self> {
 
 这里的 `cmp` 方法总是返回 `Odering`，说明两个值总是有顺序的，几乎所有实现 `PartialOrd` 的类型也实现了 `Ord`，除了 `f32` 和 `f64`。
 
-### Index 和 IndexMut
+### `Index` 和 `IndexMut`
 
-索引运算符 `[]` 也是可以重载的，例如，`a[i]` 实际上是 `*a.index(i)`，如果这个表达式赋值给可变引用那家么实际上调用的是 `*a.index_mut(i)`，这俩方法分别代表的是 [`std::ops::Index`](https://doc.rust-lang.org/stable/std/ops/trait.Index.html) 和 [`std::ops::IndexMut`](https://doc.rust-lang.org/stable/std/ops/trait.IndexMut.html)，它们的实际定义如下：
+索引运算符 `[]` 也是可以重载的，例如，`a[i]` 实际上是 `*a.index(i)`，如果这个表达式赋值给可变引用那家么实际上调用的是 `*a.index_mut(i)`，这俩方法分别代表的是[`std::ops::Index`](https://doc.rust-lang.org/stable/std/ops/trait.Index.html) 和 [`std::ops::IndexMut`](https://doc.rust-lang.org/stable/std/ops/trait.IndexMut.html)，它们的实际定义如下：
 
 ```rust
 pub trait Index<Idx> 
@@ -323,9 +323,11 @@ where
 }
 ```
 
-可以使用单个 `usize` 来索引切片，引用单个元素，因为切片实现 `Index<usize>`。 但是您可以使用像 `a[i..j]` 这样的表达式来引用子切片，因为它们也实现了 `Index<Range<usize>>`，这个表达式是简写为了：
+可以使用单个 `usize` 来索引切片，引用单个元素，因为切片实现 `Index<usize>`。但也可以可以使用像 `a[i..j]` 这样的表达式来引用子切片，因为它们也实现了 `Index<Range<usize>>`，这个表达式是简写为了：
 
-> *a.index(std::ops::Range { start: i, end: j })
+```rust
+*a.index(std::ops::Range { start: i, end: j })
+```
 
 [`std::collections::HashMap`](https://doc.rust-lang.org/stable/std/collections/struct.HashMap.html) 和 [`std::collections::BTreeMap`](https://doc.rust-lang.org/stable/std/collections/struct.BTreeMap.html) 都实现了 `Index<&str>`。
 
@@ -351,7 +353,7 @@ fn main() {
 }
 ```
 
-从定义可以看出 `IndexMut` 扩展了 `Index` 并且增加了 `index_mut` 方法。当索引表达式出现在必要的上下文中时，`Rust` 会自动选择 `index_mut`。 例如，假设我们编写以下代码：
+从定义可以看出 `IndexMut` 扩展了 `Index` 并且增加了 `index_mut` 方法。当索引表达式出现在必要的上下文中时，`Rust` 会自动选择 `index_mut`。例如，假设我们编写以下代码：
 
 ```rust
 let mut desserts =
@@ -366,7 +368,7 @@ use std::ops::IndexMut;
 (*desserts.index_mut(1)).push_str(" (real)");
 ```
 
-`IndexMut` 的一个限制是，根据设计，它必须返回对某个值的可变引用。 这就是为什么你不能使用像 `m["十"] = 10;` 这样的表达式的原因。 向 `HashMap` `m` 中插入一个值：该表需要首先为`“十”`创建一个条目，并使用一些默认值，然后返回一个可变引用，但并非所有类型都具有简单的默认值，因为它会创建一个默认值并且立马丢掉。
+`IndexMut` 的一个限制是，根据设计，它必须返回对某个值的可变引用。这就是为什么你不能使用像 `m["十"] = 10;` 这样的表达式的原因。因为向 `HashMap` 中插入一个值：该表需要首先为`“十”`创建一个 `entry`，并使用一些默认值，然后返回一个可变引用，但并非所有类型都具有简单的默认值，而且这里创建一个默认值并且立马丢掉，然后使用新值覆盖。
 
 实现一个二维数组示例，存储图片的像素：
 
