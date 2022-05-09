@@ -10,11 +10,9 @@ date: 2022-05-05 09:54:08
 
 ### 《Programming Rust, 2nd Edition》
 
-这本书是 `O'Reilly` 出版社的，个人认为还是非常透彻的，作为初学者，对本书进行了学习和记录，内容大体上没有遗漏，只是对一些描述做了精简，[出版社书籍链接](https://www.oreilly.com/library/view/programming-rust-2nd/9781492052586/)。
+这本书是 `O'Reilly` 出版社的，对本书进行了学习和记录，内容大体上没有遗漏，只是对一些描述做了精简，[出版社书籍链接](https://www.oreilly.com/library/view/programming-rust-2nd/9781492052586/)。文档源码 [gamelife1314/gamelife1314.github.io](https://github.com/gamelife1314/gamelife1314.github.io)。
 
 ![](assets/programing-rust-cover.png)
-
-这里是文档源码 [gamelife1314/gamelife1314.github.io](https://github.com/gamelife1314/gamelife1314.github.io)。
 
 正在重新校对中，表述有误的地方请评论或者提 `pr`，`✔️` 表示已校对。
 
@@ -65,5 +63,7 @@ date: 2022-05-05 09:54:08
 10. [`reqwest`](https://crates.io/crates/reqwest)：高级 `HTTP` 客户端；
 11. [`actix-web`](https://crates.io/crates/actix-web)：`Web` 框架；
 12. [`rayon`](https://crates.io/crates/rayon)：提供了两种并发机制；
+13. [`dashmap`](https://crates.io/crates/dashmap)：Rust 中超快的并发map；
+14. [`tracing`](https://crates.io/crates/tracing)：日志处理；
 
 
