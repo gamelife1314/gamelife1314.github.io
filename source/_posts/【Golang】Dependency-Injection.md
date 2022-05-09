@@ -1,8 +1,8 @@
 ---
 title: 【Golang】Dependency Injection
 date: 2022-03-28 19:38:05
-tags:
-  - golang
+categories:
+    - golang
 ---
 
 [依赖注入](https://en.wikipedia.org/wiki/Dependency_injection)是一种通用技术，通过显式地为组件提供它们工作所需的所有依赖关系，生成灵活且松耦合的代码。在Go语言中，我们经常采用下面这样的方式为构造器传递依赖：

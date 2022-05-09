@@ -89,6 +89,7 @@ menu:
   # commonweal: /404/ || fa fa-heartbeat
   "《剑指offer》": /剑指offer/ || fa fa-book
   "《Rust 编程》": /Programming-Rust/ || fa fa-cat
+  "《Go 编程》": /Programming-Go/ || fa fa-hippo
   "《小淑华》": https://wshuhua.github.io/ || fa fa-sun
 
 # Enable / Disable menu icons / item badges.

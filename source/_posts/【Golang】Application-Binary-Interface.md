@@ -1,8 +1,8 @@
 ---
 title: 【Golang】Application Binary Interface
 date: 2022-03-24 17:03:17
-tags:
-  - golang
+categories:
+    - golang
 ---
 
 `ABI（Application Binary Interface）`，即应用程序二进制接口，定义了函数调用时参数和返回值如何传递。就像C语言 `x86-64` 系统中，返回值保存在寄存器 `%rax` 中，前6个参数分别通过寄存器 `%rdi`，`%rsi`，`%rdx`，`%rcx`，`%r8` 以及 `%r9` 中。
