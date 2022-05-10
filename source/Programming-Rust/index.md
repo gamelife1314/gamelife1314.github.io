@@ -33,7 +33,7 @@ date: 2022-05-05 09:54:08
 15. [《第17章-Strings and Text》（✔️）](/2022/05/01/【Rust】字符串和文本/)
 16. [《第18章-Input and Output》（✔️）](/2022/05/02/【Rust】输入输出/)
 17. [《第19章-Concurrency》（✔️）](/2022/05/03/【Rust】并发/)
-18. [《第20章-Asynchronous Programming》](/2022/05/03/【Rust】异步编程/)
+18. [《第20章-Asynchronous Programming》（✔️）](/2022/05/03/【Rust】异步编程/)
 19. [《第21章-Macros》](/2022/05/04/【Rust】宏/)
 20. [《第22章-Unsafe Code》](/2022/05/05/【Rust】Unsafe-代码/)
 21. [《第23章-Foreign Functions》（✔️）](/2022/05/06/Rust/Rust-ffi/)
