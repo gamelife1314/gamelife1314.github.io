@@ -16,6 +16,7 @@
     "hexo-algoliasearch": "^1.0.0",
     "hexo-deployer-git": "^3.0.0",
     "hexo-generator-archive": "^1.0.0",
+    "hexo-generator-calendar": "github:theme-next/theme-next-calendar",
     "hexo-generator-category": "^1.0.0",
     "hexo-generator-index": "^2.0.0",
     "hexo-generator-searchdb": "^1.4.0",

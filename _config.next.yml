@@ -87,10 +87,10 @@ menu:
   # schedule: /schedule/ || fa fa-calendar
   # sitemap: /sitemap.xml || fa fa-sitemap
   # commonweal: /404/ || fa fa-heartbeat
-  "《剑指offer》": /剑指offer/ || fa fa-book
-  "《Rust 编程》": /Programming-Rust/ || fa fa-cat
-  "《Go 编程》": /Programming-Go/ || fa fa-hippo
-  "《小淑华》": https://wshuhua.github.io/ || fa fa-sun
+  "剑指offer": /剑指offer/ || fa fa-book
+  "Rust 编程": /Programming-Rust/ || fa fa-cat
+  "Go &nbsp;&nbsp;&nbsp;编程": /Programming-Go/ || fa fa-hippo
+  "小淑华": https://wshuhua.github.io/ || fa fa-sun
 
 # Enable / Disable menu icons / item badges.
 menu_settings:
@@ -396,7 +396,7 @@ bookmark:
 
 # `Follow me on GitHub` banner in the top-right corner.
 github_banner:
-  enable: false
+  enable: true
   permalink: https://github.com/gamelife1314
   title: Follow me on GitHub
 

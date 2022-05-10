@@ -53,7 +53,7 @@ date: 2022-05-05 09:54:08
 
 1. [`thiserror`](https://crates.io/crates/thiserror)：自动派生标准库中的 `std::error::Error`；
 2. [`anyhow`](https://crates.io/crates/anyhow)：提供了 `anyhow::Result<T>` 用于任何可能失败返回错误的函数；
-3. [`crossbeam`](https://crates.io/crates/crossbeam)：提供很多用于并发编程的工具；
+3. [`crossbeam`](https://crates.io/crates/crossbeam)：提供很多用于并发编程的工具，例如线程阻塞；
 4. [`waker_fn`](https://crates.io/crates/waker-fn)：转换闭包为 `waker`；
 5. [`lazy_static`](https://crates.io/crates/lazy_static)：可以用于初始化全局可变静态变量；
 6. [`unicode-width`](https://crates.io/crates/unicode-width)：获取 `Unicode` 字符宽度；
@@ -63,7 +63,10 @@ date: 2022-05-05 09:54:08
 10. [`reqwest`](https://crates.io/crates/reqwest)：高级 `HTTP` 客户端；
 11. [`actix-web`](https://crates.io/crates/actix-web)：`Web` 框架；
 12. [`rayon`](https://crates.io/crates/rayon)：提供了两种并发机制；
-13. [`dashmap`](https://crates.io/crates/dashmap)：Rust 中超快的并发map；
+13. [`dashmap`](https://crates.io/crates/dashmap)：`Rust` 中超快的并发 `map`；
 14. [`tracing`](https://crates.io/crates/tracing)：日志处理；
+15. [`argonautica`](https://crates.io/crates/argonautica)：使用 [`Argon2 hashing algorithm`](https://en.wikipedia.org/wiki/Argon2) 进行密码hash；
+16. [`Surf`](https://crates.io/crates/surf)：跨平台 `HTTP` 客户端，简单易用；
+17. [`futures-lite`](https://crates.io/crates/futures-lite)：完全兼容 [futures](https://docs.rs/futures)，提供了 `pin!`；
 
 
