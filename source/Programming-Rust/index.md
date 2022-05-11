@@ -23,7 +23,7 @@ date: 2022-05-05 09:54:08
 7. [《第9章-Structs》（✔️）](/2022/04/24/【Rust】结构体/)
 8. [《第10章-Enums and Patterns》（✔️）](/2022/04/25/【Rust】枚举和模式匹配/)
 9. [《第11章-Traits and Generics》（✔️）](/2022/04/26/【Rust】Trait和泛型/)
-10. [《第12章-Operator Overloading》（✔️）](/2022/05/08/Rust/Rust-operator-overloading/)
+10. [《第12章-Operator Overloading》（✔️）](/2022/04/28/Rust/Rust-operator-overloading/)
 11. [《第13章-Utility Traits》（✔️）](/2022/04/29/【Rust】常用-Trait/)
 12. [《第14章-Closures》（✔️）](/2022/04/30/【Rust】闭包/)
 13. [《第15章-Iterators》（✔️）](/2022/04/30/【Rust】迭代器/)
