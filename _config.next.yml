@@ -168,6 +168,7 @@ links:
   Rust: https://www.rust-lang.org/zh-CN/
   Golang: https://go.dev/
   Python: https://www.python.org/
+  Cargo: https://doc.rust-lang.org/cargo/index.html
 
 # Table of Contents in the Sidebar
 # Front-matter variable (unsupport wrap expand_all).

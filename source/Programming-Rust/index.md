@@ -3,8 +3,6 @@ title: Programming Rust
 date: 2022-05-05 09:54:08
 ---
 
-本文总结 `Rust` 编程中常用到的一些资料，集中做一个索引，以便查找。
-
 <!-- ![](assets/programing-rust.png) -->
 
 
