@@ -32,6 +32,8 @@ pub trait Error: Debug + Display {
 
 而借助于 `anyhow::Error`，和与之对应的 `Result<T, anyhow::Error>`，等价于 `anyhow::Result<T>`，我们可以使用 `?` 在可能失败的函数中传播任何实现了 `std::error::Error` 的错误。
 
+<!-- more -->
+
 ### `thiserror`
 
 可以使用命令 `cargo add thiserror` 将它添加到自己的项目中，或者在 `Cargo.toml` 中添加如下的配置：
