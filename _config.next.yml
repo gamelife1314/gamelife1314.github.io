@@ -142,7 +142,7 @@ site_state: true
 # Value before `||` delimiter is the target permalink, value after `||` delimiter is the name of Font Awesome icon.
 social:
   GitHub: https://github.com/gamelife1314 || fab fa-github
-  E-Mail: michael.fudenglong@qq.com || fa fa-envelope
+  E-Mail: mailto:michael.fudenglong@qq.com || fa fa-envelope
   #Weibo: https://weibo.com/yourname || fab fa-weibo
   #Google: https://plus.google.com/yourname || fab fa-google
   #Twitter: https://twitter.com/yourname || fab fa-twitter
@@ -169,6 +169,7 @@ links:
   Golang: https://go.dev/
   Python: https://www.python.org/
   Cargo: https://doc.rust-lang.org/cargo/index.html
+  Emoji: https://gist.github.com/rxaviers/7360908
 
 # Table of Contents in the Sidebar
 # Front-matter variable (unsupport wrap expand_all).

@@ -116,7 +116,7 @@ search:
   path: search.xml
   field: all
   content: true
-  format: striptags
+  format: striptagscode
 
 js_concator:
   enable: true

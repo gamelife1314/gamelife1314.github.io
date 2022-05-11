@@ -17,7 +17,7 @@
     "hexo-generator-archive": "^1.0.0",
     "hexo-generator-category": "^1.0.0",
     "hexo-generator-index": "^2.0.0",
-    "hexo-generator-searchdb": "^1.4.0",
+    "hexo-generator-searchdb": "github:gamelife1314/hexo-generator-searchdb",
     "hexo-generator-sitemap": "^3.0.1",
     "hexo-generator-tag": "^1.0.0",
     "hexo-next-fireworks": "github:next-theme/hexo-next-fireworks",
