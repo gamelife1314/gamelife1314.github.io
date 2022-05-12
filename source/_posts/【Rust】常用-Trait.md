@@ -194,7 +194,7 @@ pub trait Copy: Clone { }
 
 ### `Deref`、`DerefMut`
 
-我们可以通过实现 [`std::ops::Deref`](https://doc.rust-lang.org/stable/std/ops/trait.Deref.html) 和 [`std::ops::DerefMut`](https://doc.rust-lang.org/stable/std/ops/trait.DerefMut.html) 来自定 `*` 和 `.` 的逻辑。这两个 `trait` 的定义如下：
+我们可以通过实现 [`std::ops::Deref`](https://doc.rust-lang.org/stable/std/ops/trait.Deref.html) 和 [`std::ops::DerefMut`](https://doc.rust-lang.org/stable/std/ops/trait.DerefMut.html) 来自定义 `*` 操作符的逻辑。这两个 `trait` 的定义如下：
 
 ```rust
 pub trait Deref {
@@ -359,7 +359,7 @@ impl Default for String {
 
 ### `AsRef`、`AsMut`
 
-当一个类型实现 [`AsRef<T>`](https://doc.rust-lang.org/stable/std/convert/trait.AsRef.html) 时，这意味着可以从中借用 `&T`，[`AsMut`](https://doc.rust-lang.org/stable/std/convert/trait.AsMut.html) 是可变引用，它们的定义如下：
+当一个类型实现 [`AsRef<T>`](https://doc.rust-lang.org/stable/std/convert/trait.AsRef.html) 时，这意味着可以从中借用 `&T`，s实现[`AsMut<T>`](https://doc.rust-lang.org/stable/std/convert/trait.AsMut.html) 可以借用 `&mut T`，它们可以实现引用到引用之间的转换，不像 [`From` 和 `Into`](#from-into) 用于值到值之间的转移，它们的定义如下：
 
 ```rust
 pub trait AsRef<T> 
@@ -460,7 +460,7 @@ impl<K, V> HashMap<K, V> where K: Eq + Hash
 
 ### `From`、`Into`
 
-标准库中提供的 [`std::convert::From`](https://doc.rust-lang.org/stable/std/convert/trait.From.html) 和 [`std::convert::Into`](https://doc.rust-lang.org/stable/std/convert/trait.Into.html) 用于不同类型值之间的转换，它们获取值得所有权并且抓换成另一个类型的值。
+标准库中提供的 [`std::convert::From`](https://doc.rust-lang.org/stable/std/convert/trait.From.html) 和 [`std::convert::Into`](https://doc.rust-lang.org/stable/std/convert/trait.Into.html) 用于不同类型值之间的转换，它们获取值的所有权并且转换成另一个类型的值，而 `AsRef` 用于引用到引用之间的转换。
 
 ```rust
 pub trait Into<T> {
@@ -576,8 +576,7 @@ trait ToOwned {
 
 
 ### `Cow`
-
-如果不确定是将函数的参数确定为引用还是值，可以通过 `Rust` 提供的 [`std::borrow::Cow`](https://doc.rust-lang.org/stable/std/borrow/enum.Cow.html)：
+[Cow（Clone-on-Write）](https://doc.rust-lang.org/stable/std/borrow/enum.Cow.html)是 `Rust` 中一个很有意思且很重要的数据结构。它就像 `Option` 一样，在返回数据的时候，提供了一种可能：要么返回一个借用的数据（只读），要么返回一个拥有所有权的数据（可写）。
 
 ```rust
 pub enum Cow<'a, B> 
@@ -588,4 +587,3 @@ where
     Owned(<B as ToOwned>::Owned),
 }
 ```
-

@@ -208,7 +208,7 @@ impl Queue {
 
 在我们的示例中，`push` 和 `pop` 在内部使用 `self` 访问内部成员，这与 `C++` 和 `Java` 不同，`this` 对象的成员在方法中直接可见，而 `Rust` 必须要使用 `self` 来访问。
 
-这里由于 `push` 和 `pop` 都需要修改 `Queue`，所以它们的取值都是 `&mut self`，但是我们调用时没必要显示借用可变引用，普通调用会隐式处理。例如，`q.push` 等价于 `(&mut q).push()`：
+这里由于 `push` 和 `pop` 都需要修改 `Queue`，所以它们的取值都是 `&mut self`，但是我们调用时没必要显示借用可变引用，`Rust` 会为我们隐式进行转换，例如，`q.push` 等价于 `(&mut q).push()`：
 
 ```rust
 let mut q = Queue { older: Vec::new(), younger: Vec::new() };
@@ -610,3 +610,8 @@ impl SpiderRobot {
 变量 `file` 的类型为 `RefMut<File>`，它可以像对 `File` 的可变引用一样使用。
 
 `Cell` 易于使用， 必须调用 `.get()` 和 `.set()` 或 `.borrow()` 和 `.borrow_mut()` 有点尴尬，但这只是我们为违反规则而付出的代价。 另一个缺点不太明显但更严重：`Cell` 以及包含它们的任何类型都不是线程安全的，因此，`Rust` 不允许多个线程同时访问它们。这种情况应该使用 [`Mutex`](https://doc.rust-lang.org/std/sync/struct.Mutex.html)。
+
+
+### 参考文章
+
+1. [Models of Generics and Metaprogramming: Go, Rust, Swift, D and More](https://thume.ca/2019/07/14/a-tour-of-metaprogramming-models-for-generics/)
