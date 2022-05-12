@@ -61,11 +61,11 @@ date: 2022-05-05 09:54:08
 9. [`fnv`](https://crates.io/crates/fnv)：基于 `Fowler–Noll–Vo` 算法实现的 `HashMap`；
 10. [`reqwest`](https://crates.io/crates/reqwest)：高级 `HTTP` 客户端；
 11. [`actix-web`](https://crates.io/crates/actix-web)：`Web` 框架；
-12. [`rayon`](https://crates.io/crates/rayon)：提供了两种并发机制；
+12. [`rayon`](https://crates.io/crates/rayon)：计算密集型任务的任务分解；
 13. [`dashmap`](https://crates.io/crates/dashmap)：`Rust` 中超快的并发 `map`；
 14. [`tracing`](https://crates.io/crates/tracing)：日志处理；
 15. [`argonautica`](https://crates.io/crates/argonautica)：使用 [`Argon2 hashing algorithm`](https://en.wikipedia.org/wiki/Argon2) 进行密码hash；
-16. [`Surf`](https://crates.io/crates/surf)：跨平台 `HTTP` 客户端，简单易用；
+16. [`surf`](https://crates.io/crates/surf)：跨平台 `HTTP` 客户端，简单易用；
 17. [`futures-lite`](https://crates.io/crates/futures-lite)：完全兼容 [futures](https://docs.rs/futures)，提供了 `pin!`；
 
 

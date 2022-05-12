@@ -467,9 +467,9 @@ let output = match File::create(filename) {
 };
 ```
 
-### 特殊类型 `!`
+### `never` 类型 `!`
 
-在 `Rust` 中，有些函数，可能包含死循环，`panic!()` 或者类似 `std::process::exit()` ，这些函数都无法正常完成，它们的返回值难以确定是什么类型，例如，标准库中的 [`std::process::exit()`](https://doc.rust-lang.org/std/process/fn.exit.html)，它的源码是这样的：
+[`!`](https://doc.rust-lang.org/stable/std/primitive.never.html) 表示 `never` 类型。在 `Rust` 中，有些函数，可能包含死循环，`panic!()` 或者类似 `std::process::exit()` ，这些函数都无法正常完成，它们的返回值难以确定是什么类型，例如，标准库中的 [`std::process::exit()`](https://doc.rust-lang.org/std/process/fn.exit.html)，它的源码是这样的：
 
 ```rust
 pub fn exit(code: i32) -> ! {
@@ -710,5 +710,3 @@ let is_even = |x: u64| -> bool { x % 2 == 0 }; // ok
 ```rust
 assert_eq!(is_even(14), true);
 ```
-
-
