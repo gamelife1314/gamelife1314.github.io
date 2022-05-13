@@ -248,7 +248,7 @@ let s: &'static str = "I have a static lifetime.";
 
 ### 结合泛型参数、Trait Bound
 
-如下是一个在同一函数中指定泛型类型参数、trait bounds 和生命周期的语法！
+如下是一个在同一函数中指定泛型类型参数、trait bounds 和生命周期的语法：
 
 ```rust
 use std::fmt::Display;
@@ -261,6 +261,249 @@ fn longest_with_an_announcement<'a, T>(x: &'a str, y: &'a str, ann: T) -> &'a st
         x
     } else {
         y
+    }
+}
+```
+
+### `HRTB (higher ranked trait bounds)`
+
+`HRTB`，中文名为高阶生命周期参数，可以用来实现动态生命周期，举几个例子说明情况。
+
+#### 示例一
+
+假如我们有下面这样的示例：
+
+{% tabs HRBT-示例一 %}
+
+<!-- tab 错误示例 -->
+
+第一次调用 `f(&x)` 时生命周期 `'a` 等于变量 `x` 的生命周期；而在第二次调用 `f(&y)` 时，生命周期 `'a `又等于了变量 `y` 的生命周期；而变量 `x` 和变量 `y` 的生命周期显然是不同的。因此无法用一个静态的生命周期来描述 `'a` ，我们希望的是，闭包 `f` 在具体调用时绑定具体的生命周期，比如调用 `f(&x)` 时绑定的是 `x` 的生命周期，而调用 `f(&y)` 时绑定的是 `y` 的生命周期。
+
+```rust
+fn foo<'a>(f: Box<dyn Fn(&'a i32)>) {
+    let x = 1;
+    f(&x);
+    {
+        let y = 2;
+        f(&y);
+    }
+}
+
+fn main() {
+    let f = Box::new(|x: &i32| println!("{}", x));
+    foo(f);
+}
+```
+
+<!-- endtab -->
+
+<!-- tab 正确示例 -->
+
+这里我们使用 `for<'b> Fn(&'b i32)` 表示 `f` 参数的声明周期应该在具体调用的时候和它的入参绑定：
+
+```rust
+fn foo(f: Box<dyn for<'b> Fn(&'b i32)>) {
+    let x = 1;
+    f(&x);
+    {
+        let y = 2;
+        f(&y);
+    }
+}
+
+fn main() {
+    let f = Box::new(|x: &i32| println!("{}", x));
+    foo(f);
+}
+```
+
+<!-- endtab -->
+
+{% endtabs %}
+
+#### 示例二
+
+{% tabs HRBT-示例二 %}
+
+<!-- tab 错误示例 -->
+
+这里不能运行的原因是，我们传入 `b.do_sth` 的生命周期太短了，`'a` 的生命周期要求是和 `main` 函数中 `&2usize` 生命周期一样长：
+
+```rust
+use std::fmt::Debug;
+
+trait DoSomething<T> {
+    fn do_sth(&self, value: T);
+}
+
+impl<'a, T: Debug> DoSomething<T> for &'a usize {
+    fn do_sth(&self, value: T) {
+        println!("{:?}", value);
+    }
+}
+
+fn foo<'a>(b: Box<dyn DoSomething<&'a usize>>) {
+    let s: usize = 10;
+    b.do_sth(&s)
+}
+
+fn main() {
+    let x = Box::new(&2usize);
+    foo(x);
+}
+```
+
+<!-- endtab -->
+
+<!-- tab 正确示例 -->
+
+
+```rust
+use std::fmt::Debug;
+trait DoSomething<T> {
+    fn do_sth(&self, value: T);
+}
+impl<'a, T: Debug> DoSomething<T> for &'a usize {
+    fn do_sth(&self, value: T) {
+        println!("{:?}", value);
+    }
+}
+fn foo(b: Box<dyn for<'a> DoSomething<&'a usize>>) {
+    let s: usize = 10;
+    b.do_sth(&s) // error[E0597]: `s` does not live long enough
+}
+fn main() {
+    let x = Box::new(&2usize);
+    foo(x);
+}
+```
+<!-- endtab -->
+
+{% endtabs %}
+
+#### 示例三
+
+对于下面的闭包 `f`，编译器不能直接推断出它的生命周期如何，因为没有声明周期参数，返回的 `x` 引用可能是局部变量的：
+
+{% note danger %}
+```rust
+fn main() {
+    let f = |x: &i32| x; // error
+                         // 假如支持下面的语法就方便多了，目前还未支持
+                         // let f: for<'a> Fn(&'a i32) -> &'a i32 = |x| x;
+    let i = &3;
+    let j = f(i);
+}
+```
+{% endnote %}}
+
+由于我们无法直接对 `f` 的参数使用生命周期参数，所以退而求其次，我们限定 `f` 的生命周期在其调用的时候和它的参数绑定就可以了：
+
+{% note success %}
+```rust
+fn generate<F>(f: F) -> F
+where
+    for<'a> F: Fn(&'a i32) -> &'a i32,
+{
+    f
+}
+
+fn main() {
+    let f = generate(|x: &i32| x);
+    let i = &3;
+    let j = f(i);
+}
+```
+{% endnote %}
+
+或者我们使用下面的方式定义 `generate` 函数也是可以的，限定传入 `F` 的参数和返回值都具有相同的生命周期 `'a`：
+
+```rust
+fn generate<'a, T: 'a, F>(f: F) -> F
+where
+    F: Fn(&'a T) -> &'a T,
+{
+    f
+}
+```
+
+#### 示例四
+
+```rust
+use rand;
+use std::io::Read;
+
+trait Checksum<R: Read> {
+    fn calc(&mut self, r: R) -> Vec<u8>;
+}
+
+struct Xor;
+
+impl<R: Read> Checksum<R> for Xor {
+    fn calc(&mut self, mut r: R) -> Vec<u8> {
+        let mut res: u8 = 0;
+        let mut buf = [0u8; 8];
+        loop {
+            let read = r.read(&mut buf).unwrap();
+            if read == 0 {
+                break;
+            }
+            for b in &buf[..read] {
+                res ^= b;
+            }
+        }
+
+        vec![res]
+    }
+}
+
+struct Add;
+
+impl<R: Read> Checksum<R> for Add {
+    fn calc(&mut self, mut r: R) -> Vec<u8> {
+        let mut res: u8 = 0;
+        let mut buf = [0u8; 8];
+        loop {
+            let read = r.read(&mut buf).unwrap();
+            if read == 0 {
+                break;
+            }
+            for b in &buf[..read] {
+                let tmp = res as u16 + *b as u16;
+                res = tmp as u8;
+            }
+        }
+
+        vec![res]
+    }
+}
+
+fn main() {
+    
+    let mut buf = [0u8; 8];
+    
+    // ================================================================
+    // 尝试去掉 Box<dyn for<'t> Checksum<&'t [u8]>> 中的 for<'t> 试试
+    // ================================================================
+    let mut checker: Box<dyn for<'t> Checksum<&'t [u8]>> = if rand::random() {
+        println!("Initializing Xor Checksum");
+        Box::new(Xor)
+    } else {
+        println!("Initializing Add Checksum");
+        Box::new(Add)
+    };
+
+    let mut data = "Sedm lumpu slohlo pumpu za uplnku".as_bytes();
+    let mut i = 0;
+
+    loop {
+        let chunk_size = data.read(&mut buf).unwrap();
+        if chunk_size == 0 {
+            break;
+        }
+        let cs = checker.calc(&buf[..chunk_size]);
+        println!("Checksum {} is {:?}", i, cs);
+        i += 1;
     }
 }
 ```

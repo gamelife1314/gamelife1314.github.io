@@ -47,6 +47,7 @@ date: 2022-05-05 09:54:08
 7. [Rust 正则表达式](/2022/05/01/【Rust】字符串和文本/#正则表达式)
 8. [文件和目录](/2022/05/02/【Rust】输入输出/#文件和目录)
 9. [`anyhow & thiserror`](/2022/05/11/Rust/anyhow-and-thiserror/)
+10. [`Rust` 在线题目测试](https://dtolnay.github.io/rust-quiz/18)
 
 ### 常用的 `crate`
 
