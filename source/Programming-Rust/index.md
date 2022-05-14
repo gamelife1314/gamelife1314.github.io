@@ -68,5 +68,7 @@ date: 2022-05-05 09:54:08
 15. [`argonautica`](https://crates.io/crates/argonautica)：使用 [`Argon2 hashing algorithm`](https://en.wikipedia.org/wiki/Argon2) 进行密码hash；
 16. [`surf`](https://crates.io/crates/surf)：跨平台 `HTTP` 客户端，简单易用；
 17. [`futures-lite`](https://crates.io/crates/futures-lite)：完全兼容 [futures](https://docs.rs/futures)，提供了 `pin!`；
+18. [`parking_lot`](https://crates.io/crates/parking_lot)：提供了比标准库更快的 `Mutex` 等；
+
 
 
