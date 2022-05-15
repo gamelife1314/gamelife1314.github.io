@@ -587,3 +587,31 @@ where
     Owned(<B as ToOwned>::Owned),
 }
 ```
+
+`Cow` 的合理使用能减少不必要的堆内存分配，例如，我们写一个替换 `:` 的程序，如果原文字符串中没有包含 `:`，就返回原来的字符串；如果包含，就替换为空格，返回一个 `String`：
+
+```rust
+use std::borrow::Cow;
+
+fn show_cow(cow: Cow<str>) -> String {
+    match cow {
+        Cow::Borrowed(v) => format!("Borrowed {}", v),
+        Cow::Owned(v) => format!("Owned {}", v),
+    }
+}
+
+fn replace_colon(input: &str) -> Cow<str> {
+    match input.find(':') {
+        None => Cow::Borrowed(input),
+        Some(_) => {
+            let mut input = input.to_string();
+            input = input.replace(':', " ");
+            Cow::Owned(input)
+        }
+    }
+}
+fn main() {
+    println!("{}", show_cow(replace_colon("hello world")));
+    println!("{}", show_cow(replace_colon("hello:world")));
+}
+```
