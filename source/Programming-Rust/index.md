@@ -48,6 +48,8 @@ date: 2022-05-05 09:54:08
 8. [文件和目录](/2022/05/02/【Rust】输入输出/#文件和目录)
 9. [`anyhow & thiserror`](/2022/05/11/Rust/anyhow-and-thiserror/)
 10. [`Rust` 在线题目测试](https://dtolnay.github.io/rust-quiz/18)
+11. [`gdb` 速查手册](https://darkdust.net/files/GDB%20Cheat%20Sheet.pdf)
+12. [`lldb` 使用帮助](https://lldb.llvm.org/use/map.html)
 
 ### 常用的 `crate`
 
@@ -69,6 +71,7 @@ date: 2022-05-05 09:54:08
 16. [`surf`](https://crates.io/crates/surf)：跨平台 `HTTP` 客户端，简单易用；
 17. [`futures-lite`](https://crates.io/crates/futures-lite)：完全兼容 [futures](https://docs.rs/futures)，提供了 `pin!`；
 18. [`parking_lot`](https://crates.io/crates/parking_lot)：提供了比标准库更快的 `Mutex` 等；
-
+19: [`itertools`](https://docs.rs/itertools/0.10.1/itertools/index.html)：扩展了内置的 `Iterator`，提供了更多的迭代适配器方法；
+20. [`tonic`](https://github.com/hyperium/tonic)：A native gRPC client & server implementation with async/await support；
 
 
