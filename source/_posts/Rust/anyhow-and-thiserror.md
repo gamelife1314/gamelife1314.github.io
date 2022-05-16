@@ -287,7 +287,7 @@ fn main() {
 
 ### `anyhow`
 
-[`anyhow::Error`](https://docs.rs/anyhow/1.0.57/anyhow/struct.Error.html) 是这个 `crate` 中最重要的结构体，它是动态错误类型的包装器，能包装所有实现了 `std::error::Error` 的错误，很像 `Box<dyn std::error::Error>`，但有些不同：
+[`anyhow::Error`](https://docs.rs/anyhow/1.0.57/anyhow/struct.Error.html) 是这个 `crate` 中最重要的结构体，它是动态错误类型的包装器，能从所有实现了 [`std::error::Error + Send + Sync + 'static`](https://docs.rs/anyhow/1.0.57/anyhow/struct.Error.html#impl-From%3CE%3E) 的错误转换而来，也能转换成 [`Box<dyn std::error::Error + Send + Sync + 'static>`](https://docs.rs/anyhow/1.0.57/anyhow/struct.Error.html#impl-From%3CError%3E)，它有以下特点：
 
 1. `anyhow::Error` 要求包裹的错误必须是 `Send + Sync + 'static`；
 2. `anyhow::Error` 保证 `backtrace` 是可用的，就是底层的错误类型没有提供；
@@ -327,6 +327,7 @@ pub enum DataStoreError {
 }
 
 fn foo() -> anyhow::Result<()> {
+    // 使用 ？运算符能将任何实现了 std::error::Error + Send + Sync + 'static 的错误转换为 anyhow::Error
     std::fs::read_to_string("config.json")?;
     Ok(())
 }
@@ -362,18 +363,38 @@ fn lookup(key: &str) -> Result<V> {
 }
 ```
 
-或者结合 `thiserror` ：
+或者从实现了 `std::error::Error` 的错误转换而来：
 
 ```rust
+use anyhow::anyhow;
+use thiserror::Error;
+
 #[derive(Error, Debug)]
 pub enum DataStoreError {
     #[error("the data for key `{0}` is not available")]
     Redaction(String),
 }
 
-fn foo() -> anyhow::Result<()> {
-    Err(anyhow!(DataStoreError::Redaction("".to_string())))
+fn bar() -> std::result::Result<(), DataStoreError> {
+    Err(DataStoreError::Redaction("".to_owned()))
 }
+
+fn foo1() -> anyhow::Result<()> {
+    let a = bar()?;
+    Ok(())
+}
+
+fn foo2() -> anyhow::Result<()> {
+    Err(anyhow::Error::from(DataStoreError::Redaction(
+        "".to_string(),
+    )))
+}
+
+fn foo3() -> anyhow::Result<()> {
+    Err(anyhow!(DataStoreError::Redaction("".to_owned())))
+}
+
+fn main() {}
 ```
 
 又或者：

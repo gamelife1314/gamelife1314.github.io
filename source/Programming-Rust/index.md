@@ -71,7 +71,9 @@ date: 2022-05-05 09:54:08
 16. [`surf`](https://crates.io/crates/surf)：跨平台 `HTTP` 客户端，简单易用；
 17. [`futures-lite`](https://crates.io/crates/futures-lite)：完全兼容 [futures](https://docs.rs/futures)，提供了 `pin!`；
 18. [`parking_lot`](https://crates.io/crates/parking_lot)：提供了比标准库更快的 `Mutex` 等；
-19: [`itertools`](https://docs.rs/itertools/0.10.1/itertools/index.html)：扩展了内置的 `Iterator`，提供了更多的迭代适配器方法；
+19. [`itertools`](https://docs.rs/itertools/0.10.1/itertools/index.html)：扩展了内置的 `Iterator`，提供了更多的迭代适配器方法；
 20. [`tonic`](https://github.com/hyperium/tonic)：A native gRPC client & server implementation with async/await support；
-
-
+21. [`hyper`](https://github.com/hyperium/hyper)：A fast and correct HTTP implementation for Rust；
+22. [`bytes`](https://github.com/tokio-rs/bytes)：A utility library for working with bytes；
+23. [`structopt`](https://github.com/TeXitoi/structopt)：解析命令行参数通过定义的结构体；
+24. [`colored`](https://crates.io/crates/colored)：在终端中添加颜色的最简单方法；
