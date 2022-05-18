@@ -3,7 +3,7 @@ title: 【Rust】代码片段
 date: 2022-05-12 20:34:14
 tags:
 categories:
-    - Rust
+    - rust
 ---
 
 ### 构造 `Double Free`

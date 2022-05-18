@@ -1021,7 +1021,7 @@ fn main() {
 ```
 {% endnote %}
 
-虽然结局看起来不错，但是我们是跟着编译器提示把 `N` 的边界给找出来。就这个问题而言，我们可以使用 `num` 这个 `crate`，就看起来很简洁：
+虽然结局看起来不错，但是我们是跟着编译器提示把 `N` 的边界给找出来。就这个问题而言，我们可以使用 `num` 这个 `crate`，看起来很简洁：
 
 ```rust
 use num::Num;
@@ -1037,3 +1037,23 @@ where
     total
 }
 ```
+
+### 注意事项
+
+`Rust` 目前还不支持在 `trait` 里使用 `impl trait` 做返回值：
+
+{% note danger %}
+```rust
+pub trait ImplTrait {
+    // 允许
+    fn impl_in_args(s: impl Into<String>) -> String {
+        s.into()
+    }
+
+    // 不允许
+    fn impl_as_return(s: String) -> impl Into<String> {
+        s
+    }
+}
+```
+{% endnote %}
