@@ -1,5 +1,5 @@
 ---
-title: 【Golang】幽灵数据（PhantomData）
+title: 【Rust】幽灵数据（PhantomData）
 date: 2022-05-17 23:22:16
 tags:
     - phantom-data
