@@ -79,3 +79,4 @@ date: 2022-05-05 09:54:08
 24. [`colored`](https://crates.io/crates/colored)：在终端中添加颜色的最简单方法；
 25. [`tabled`](https://github.com/zhiburt/tabled)：以表格的形式输出结构体和枚举；
 26. [`chrono`](https://github.com/chronotope/chrono)：`Rust` 的日期和时间处理库；
+27. [`async_trait`](https://docs.rs/async-trait/latest/async_trait/)：提供了一个宏，可以在 `trait` 中包含异步的方法；
