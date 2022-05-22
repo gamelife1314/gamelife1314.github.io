@@ -835,7 +835,7 @@ pace:
   enable: true
   # All available colors:
   # black | blue | green | orange | pink | purple | red | silver | white | yellow
-  color: green
+  color: yellow
   # All available themes:
   # big-counter | bounce | barber-shop | center-atom | center-circle | center-radar | center-simple
   # corner-indicator | fill-left | flat-top | flash | loading-bar | mac-osx | material | minimal
