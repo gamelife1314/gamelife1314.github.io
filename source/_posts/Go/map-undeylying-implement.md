@@ -5,6 +5,7 @@ tags:
   - map
 categories:
   - golang
+mathjax: true
 ---
 
 
@@ -23,7 +24,7 @@ categories:
 
 <!-- more -->
 
-### 底层数据结构
+### 底层结构
 
 底层的数据结构在 [`src/runtime/map.go`](https://github.com/golang/go/blob/4aa1efed4853ea067d665a952eee77c52faac774/src/runtime/map.go#L116) 中，其中 `hmap` 是 `hashmap` 的缩写：
 
@@ -99,3 +100,79 @@ type mapextra struct {
 可以看到的 `key` 和 `elem` 不是存放在一起的，这样做的好处是在某些情况下可以省略调 `pad` 字段节省空间。例如，对于 `map[int64]int8` 这样的 `map`，如果按照 `key/elem/key/elem` 这样的形式组织，那么在每个 `key/elem` 之后都需要 `padding` `7` 个字节（为了防止[伪共享](https://en.wikipedia.org/wiki/False_sharing)），而使用 `key/elem/key/elem` 只需要在最后添加 `padding`。
 
 每个 `bucket` 设计成最多只能存放 `8` 个 `kv` 对，如果超过，那就需要构建一个 `bucket`，并且通过 `overflow` 指针连接起来，这就是所谓的链表法。
+
+### 创建过程
+
+创建 `map` 有以下几种方式：
+
+```go
+func main() {
+	// 1. 使用 make 创建但是不指定容量
+	var numbers = make(map[string]int)
+	numbers["hello"] = 1
+
+	// 2. 使用 make 创建指定容量
+	var numbers1 = make(map[string]int, 16)
+	numbers1["hello"] = 1
+	var numbers2 = make(map[string]int, 1024)
+	numbers2["hello"] = 1
+
+	// 3. 使用字面量创建
+	var numbers3 = map[string]int{"hello": 1}
+	_ = numbers3
+
+	// 4. 创建 nil map
+	var numbers4 map[string]int
+	_ = numbers4 // 为 nil ，不能插入值，否则会panic
+}
+```
+
+通过查看汇编代码，我们可以看到创建 `map` 实际调用的函数是 [`runtime.makemap`](https://github.com/golang/go/blob/4aa1efed4853ea067d665a952eee77c52faac774/src/runtime/map.go#L304)。
+
+```go
+// makemap implements Go map creation for make(map[k]v, hint).
+// If the compiler has determined that the map or the first bucket
+// can be created on the stack, h and/or bucket may be non-nil.
+// If h != nil, the map can be created directly in h.
+// If h.buckets != nil, bucket pointed to can be used as the first bucket.
+func makemap(t *maptype, hint int, h *hmap) *hmap {
+
+	// 计算 map 占用的内存是否溢出或者超出能分配的最大值
+	mem, overflow := math.MulUintptr(uintptr(hint), t.bucket.size)
+	if overflow || mem > maxAlloc {
+		hint = 0
+	}
+
+	// 初始化 map 以及随机数种子
+	if h == nil {
+		h = new(hmap)
+	}
+	h.hash0 = fastrand()
+
+	// 根据传入的 hint 计算出最少需要的桶的数量
+	B := uint8(0)
+	for overLoadFactor(hint, B) {
+		B++
+	}
+	h.B = B
+
+	// 如果 h.B == 0，在赋值的时候初始化
+	// 否则调用 makeBucketArray 创建用于保存桶的数组
+	if h.B != 0 {
+		var nextOverflow *bmap
+		h.buckets, nextOverflow = makeBucketArray(t, h.B, nil)
+		if nextOverflow != nil {
+			h.extra = new(mapextra)
+			h.extra.nextOverflow = nextOverflow
+		}
+	}
+
+	return h
+}
+```
+
+而在 [`runtime.makeBucketArray`](https://github.com/golang/go/blob/4aa1efed4853ea067d665a952eee77c52faac774/src/runtime/map.go#L345) 中：
+
+- 当桶的数量小于 $2^4$ 时，由于数据较少，创建溢出桶的可能性较低，会省略部分创建过程，以减少开销；
+- 当桶的数量大于 $2^4$ 时，会额外创建一些溢出桶；
+
