@@ -3,9 +3,6 @@ title: Programming Rust
 date: 2022-05-05 09:54:08
 ---
 
-<!-- ![](assets/programing-rust.png) -->
-
-
 ### `Programming Rust`
 
 这本书是 `O'Reilly` 出版社的，对本书进行了学习和记录，内容大体上没有遗漏，只是对一些描述做了精简，[出版社书籍链接](https://www.oreilly.com/library/view/programming-rust-2nd/9781492052586/)。文档源码 [gamelife1314/gamelife1314.github.io](https://github.com/gamelife1314/gamelife1314.github.io)。
@@ -36,109 +33,144 @@ date: 2022-05-05 09:54:08
 20. [《第22章-Unsafe Code》](/2022/05/05/【Rust】Unsafe-代码/)
 21. [《第23章-Foreign Functions》](/2022/05/06/Rust/Rust-ffi/)
 
-### 其他内容
+#### 其他文章
 
-1. [Rust 生命周期](/2021/09/14/【Rust】生命周期/)
-2. [Rust 学习笔记](/2021/09/05/【Rust】实战突破/)
-3. [Rustup 介绍](/2022/04/07/【Rust】Rustup%20介绍/)
-4. [Rust 交叉编译](/2022/04/08/【Rust】交叉编译/)
-5. [Rust 二进制文件体积减小](https://github.com/johnthagen/min-sized-rust)
-6. [Rust 格式化](/2022/05/01/【Rust】字符串和文本/#格式化)
-7. [Rust 正则表达式](/2022/05/01/【Rust】字符串和文本/#正则表达式)
-8. [文件和目录](/2022/05/02/【Rust】输入输出/#文件和目录)
-9. [`anyhow & thiserror`](/2022/05/11/Rust/anyhow-and-thiserror/)
-10. [`Rust` 在线题目测试](https://dtolnay.github.io/rust-quiz/18)
-11. [`gdb` 速查手册](https://darkdust.net/files/GDB%20Cheat%20Sheet.pdf)
-12. [`lldb` 使用帮助](https://lldb.llvm.org/use/map.html)
-13. [《Rust Macros小书》](https://danielkeep.github.io/tlborm/book/)
+- [Rust 生命周期](/2021/09/14/【Rust】生命周期/)
+- [Rust 学习笔记](/2021/09/05/【Rust】实战突破/)
+- [Rustup 介绍](/2022/04/07/【Rust】Rustup%20介绍/)
+- [Rust 交叉编译](/2022/04/08/【Rust】交叉编译/)
+- [Rust 二进制文件体积减小](https://github.com/johnthagen/min-sized-rust)
+- [Rust 格式化](/2022/05/01/【Rust】字符串和文本/#格式化)
+- [Rust 正则表达式](/2022/05/01/【Rust】字符串和文本/#正则表达式)
+- [文件和目录](/2022/05/02/【Rust】输入输出/#文件和目录)
+- [`anyhow & thiserror`](/2022/05/11/Rust/anyhow-and-thiserror/)
+- [`Rust` 在线题目测试](https://dtolnay.github.io/rust-quiz/18)
+- [`gdb` 速查手册](https://darkdust.net/files/GDB%20Cheat%20Sheet.pdf)
+- [`lldb` 使用帮助](https://lldb.llvm.org/use/map.html)
+- [《`Rust Macros`小书》](https://danielkeep.github.io/tlborm/book/)
 
-### 常用库
+### `WEB`
 
- 1. [`thiserror`](https://crates.io/crates/thiserror)：自动派生标准库中的 `std::error::Error`；
- 2. [`anyhow`](https://crates.io/crates/anyhow)：提供了 `anyhow::Result<T>` 用于任何可能失败返回错误的函数；
- 3. [`crossbeam`](https://crates.io/crates/crossbeam)：提供很多用于并发编程的工具，例如线程阻塞；
- 4. [`waker_fn`](https://crates.io/crates/waker-fn)：转换闭包为 `waker`；
- 5. [`lazy_static`](https://crates.io/crates/lazy_static)：可以用于初始化全局可变静态变量；
- 6. [`unicode-width`](https://crates.io/crates/unicode-width)：获取 `Unicode` 字符宽度；
- 7. [`enum_primitive`](https://crates.io/crates/enum_primitive)：提供宏能自动从数字转换成枚举；
- 8. [`serde_json`](https://crates.io/crates/serde_json)：`json` 序列化；
- 9. [`fnv`](https://crates.io/crates/fnv)：基于 `Fowler–Noll–Vo` 算法实现的 `HashMap`；
-10. [`reqwest`](https://crates.io/crates/reqwest)：高级 `HTTP` 客户端；
-11. [`actix-web`](https://crates.io/crates/actix-web)：`Web` 框架；
-12. [`rayon`](https://crates.io/crates/rayon)：计算密集型任务的任务分解；
-13. [`dashmap`](https://crates.io/crates/dashmap)：`Rust` 中超快的并发 `map`；
-14. [`tracing`](https://crates.io/crates/tracing)：日志处理；
-15. [`argonautica`](https://crates.io/crates/argonautica)：使用 [`Argon2 hashing algorithm`](https://en.wikipedia.org/wiki/Argon2) 进行密码hash；
-16. [`surf`](https://crates.io/crates/surf)：跨平台 `HTTP` 客户端，简单易用；
-17. [`futures-lite`](https://crates.io/crates/futures-lite)：完全兼容 [futures](https://docs.rs/futures)，提供了 `pin!`；
-18. [`parking_lot`](https://crates.io/crates/parking_lot)：提供了比标准库更快的 `Mutex` 等；
-19. [`itertools`](https://docs.rs/itertools/0.10.1/itertools/index.html)：扩展了内置的 `Iterator`，提供了更多的迭代适配器方法；
-20. [`tonic`](https://github.com/hyperium/tonic)：原生的 `grpc` 客户段和服务端，支持 `async/await`；
-21. [`hyper`](https://github.com/hyperium/hyper)：快速的 `HTTP` 实现；
-22. [`bytes`](https://github.com/tokio-rs/bytes)：处理二进制内容的库；
-23. [`structopt`](https://github.com/TeXitoi/structopt)：解析命令行参数通过定义的结构体；
-24. [`colored`](https://crates.io/crates/colored)：在终端中添加颜色的最简单方法；
-25. [`tabled`](https://github.com/zhiburt/tabled)：以表格的形式输出结构体和枚举；
-26. [`chrono`](https://github.com/chronotope/chrono)：`Rust` 的日期和时间处理库；
-27. [`async_trait`](https://docs.rs/async-trait/latest/async_trait/)：提供了一个宏，可以在 `trait` 中包含异步的方法；
-28. [`dialoguer`](https://docs.rs/dialoguer/latest/dialoguer/)：可以用于构建交互式命令行：
-29. [`indicatif`](https://docs.rs/indicatif/latest/indicatif/)：用于提供友好的进度条；
-30. [`nom`](https://github.com/Geal/nom#example)：解析器组合库；
-31. [`prost`](https://github.com/tokio-rs/prost)：`Rust` 的 `protocol buffer` 实现；
-32. [`tungstenite`](https://docs.rs/tungstenite/latest/tungstenite/)：`websocket` 协议实现；
-33. [`rocket`](https://rocket.rs/)：`web` 框架；
-34. [`axum`](https://github.com/tokio-rs/axum)：使用 `Tokio`、`Tower` 和 `Hyper` 构建的符合人体工程学的模块化 `Web` 框架；
-35. [`diesel`](https://diesel.rs/)：`Rust` 的 `ORM` 框架；
-36. [`SeaORM`](https://www.sea-ql.org/SeaORM/)：`Rust` 的 `ORM` 框架；
-37. [`sqlx`](https://github.com/launchbadge/sqlx)：异步的纯 `Rust` 实现的 `Sql` 工具箱；
-38. [`comrak`](https://docs.rs/comrak/latest/comrak/)：`markdown` 解析；
-39. [`yew`](https://yew.rs/zh-CN/)：`Yew` 是一个设计先进的 `Rust` 框架，目的是使用 `WebAssembly` 来创建多线程的前端 `web` 应用。
-40. [`seed`](https://github.com/seed-rs/seed)：创建 `Web` 前端应用的 `Rust` 框架；
-41. [`MoonZoon`](https://github.com/MoonZoon/MoonZoon)：`Rust` 全栈框架；
-42. [`headless_chrome`](https://docs.rs/headless_chrome/latest/headless_chrome/)：一个高级的控制无头浏览器或者 `Chromium` 的框架；
-43. [`thirtyfour`](https://docs.rs/thirtyfour/latest/thirtyfour/)：类似 `Selenium` 的自动化测试框架；
-44. [`fantoccini`](https://docs.rs/fantoccini/latest/fantoccini/)：通过 `WebDriver` 以编程方式与网页交互的高级 API；
-45. [rusoto_core](https://docs.rs/rusoto_core/latest/rusoto_core/)：`Rust` 实现的 `AWS` `SDK`；
+- [`reqwest`](https://crates.io/crates/reqwest)：高级 `HTTP` 客户端；
+- [`actix-web`](https://crates.io/crates/actix-web)：`Web` 框架；
+- [`surf`](https://crates.io/crates/surf)：跨平台 `HTTP` 客户端，简单易用；
+- [`rocket`](https://rocket.rs/)：`web` 框架；
+- [`axum`](https://github.com/tokio-rs/axum)：使用 `Tokio`、`Tower` 和 `Hyper` 构建的符合人体工程学的模块化 `Web` 框架；
+- [`diesel`](https://diesel.rs/)：`Rust` 的 `ORM` 框架；
+- [`SeaORM`](https://www.sea-ql.org/SeaORM/)：`Rust` 的 `ORM` 框架；
+- [`sqlx`](https://github.com/launchbadge/sqlx)：异步的纯 `Rust` 实现的 `Sql` 工具箱；
+- [`yew`](https://yew.rs/zh-CN/)：`Yew` 是一个设计先进的 `Rust` 框架，目的是使用 `WebAssembly` 来创建多线程的前端 `web` 应用。
+- [`seed`](https://github.com/seed-rs/seed)：创建 `Web` 前端应用的 `Rust` 框架；
+- [`MoonZoon`](https://github.com/MoonZoon/MoonZoon)：`Rust` 全栈框架；
+- [`comrak`](https://docs.rs/comrak/latest/comrak/)：`markdown` 解析；
 
+### `FFI`
 
-### 静态网站
+- [`pyo3`](https://github.com/PyO3/pyo3)
+- [`neon`](https://github.com/neon-bindings/neon)
 
-1. [`getzola`](https://www.getzola.org/)：静态网站生成器；
-2. [`mdBook`](https://github.com/rust-lang/mdBook)：类似 `gitbook` 的 `Rust` 实现；
+### 编译
 
-### `wasmtime`
+- [`min-sized-rust`](https://github.com/johnthagen/min-sized-rust)：减小 `Rust` 二进制文件体积；
 
-1. [`wasmtime`](https://github.com/bytecodealliance/wasmtime)：单独的 `wasm` 运行时；
-2. [`rustwasm`](https://github.com/rustwasm)：`rustwasm` 生态系统；
-3. [`wasm-pack`](https://github.com/rustwasm/wasm-pack)：`wasm` 工作流工具；
-4. [`wasm-bindgen`](https://github.com/rustwasm/wasm-bindgen)：提供`Wasm` 模块和 `JavaScript` 之间级交互的高级 `API`。
-5. [`bytecodealliance`](https://bytecodealliance.org/)
-6. [`wasmer`](https://github.com/wasmerio/wasmer)：`Wasmer` 提供基于 `WebAssembly` 的超轻量级容器，其可以在任何地方运行：从桌面到云、以及 `IoT` 设备，并且也能嵌入到 任何编程语言中；
+### 协议
 
-### 云原生
+- [`hyper`](https://github.com/hyperium/hyper)：快速的 `HTTP` 实现；
+- [`tonic`](https://github.com/hyperium/tonic)：原生的 `grpc` 客户段和服务端，支持 `async/await`；
+- [`prost`](https://github.com/tokio-rs/prost)：`Rust` 的 `protocol buffer` 实现；
+- [`tungstenite`](https://docs.rs/tungstenite/latest/tungstenite/)：`websocket` 协议实现；
 
-1. [`kube-rs`](https://github.com/kube-rs/kube-rs)
-2. [`krator`](https://github.com/krator-rs/krator)
-3. [`krustlet`](https://github.com/krustlet/krustlet)
+### 测试
+
+- [`headless_chrome`](https://docs.rs/headless_chrome/latest/headless_chrome/)：一个高级的控制无头浏览器或者 `Chromium` 的框架；
+- [`thirtyfour`](https://docs.rs/thirtyfour/latest/thirtyfour/)：类似 `Selenium` 的自动化测试框架；
+- [`fantoccini`](https://docs.rs/fantoccini/latest/fantoccini/)：通过 `WebDriver` 以编程方式与网页交互的高级 API；
 
 ### `GUI`
 
-1. [`iced`](https://github.com/iced-rs/iced)
-2. [`sixtyfps`](https://github.com/sixtyfpsui/sixtyfps)
-3. [`druid`](https://linebender.org/druid/)
-4. [`tauri`](https://tauri.studio/)
-5. [`areweguiyet`](http://www.areweguiyet.com/#ecosystem)
-6. [`rust-skia`](https://github.com/rust-skia/rust-skia)
-7. [`tiny-skia`](https://github.com/RazrFalcon/tiny-skia)
+- [`iced`](https://github.com/iced-rs/iced)
+- [`sixtyfps`](https://github.com/sixtyfpsui/sixtyfps)
+- [`druid`](https://linebender.org/druid/)
+- [`tauri`](https://tauri.studio/)
+- [`areweguiyet`](http://www.areweguiyet.com/#ecosystem)
+- [`rust-skia`](https://github.com/rust-skia/rust-skia)
+- [`tiny-skia`](https://github.com/RazrFalcon/tiny-skia)
+
+### 命令行
+
+- [`dialoguer`](https://docs.rs/dialoguer/latest/dialoguer/)：可以用于构建交互式命令行；
+- [`indicatif`](https://docs.rs/indicatif/latest/indicatif/)：用于提供友好的进度条；
+- [`clap`](https://github.com/clap-rs/clap)
+
+### 云原生
+
+- [`kube-rs`](https://github.com/kube-rs/kube-rs)
+- [`krator`](https://github.com/krator-rs/krator)
+- [`krustlet`](https://github.com/krustlet/krustlet)
 
 ### 嵌入式
 
-1. [`wg`](https://github.com/rust-embedded/wg/)：嵌入式设备工作组的协调存储库；
-2. [`awesome-embedded-rust`](https://github.com/rust-embedded/awesome-embedded-rust)
-3. [`akri`](https://github.com/project-akri/akri)：一个管理嵌入式设备的云原生项目；
+- [`wg`](https://github.com/rust-embedded/wg/)：嵌入式设备工作组的协调存储库；
+- [`awesome-embedded-rust`](https://github.com/rust-embedded/awesome-embedded-rust)
+- [`akri`](https://github.com/project-akri/akri)：一个管理嵌入式设备的云原生项目；
+
+### 数据类型
+
+- [`fnv`](https://crates.io/crates/fnv)：基于 `Fowler–Noll–Vo` 算法实现的 `HashMap`；
+- [`dashmap`](https://crates.io/crates/dashmap)：`Rust` 中超快的并发 `map`；
+
+### 静态网站
+
+- [`getzola`](https://www.getzola.org/)：静态网站生成器；
+- [`mdBook`](https://github.com/rust-lang/mdBook)：类似 `gitbook` 的 `Rust` 实现；
+
+### `wasmtime`
+
+- [`wasmtime`](https://github.com/bytecodealliance/wasmtime)：单独的 `wasm` 运行时；
+- [`rustwasm`](https://github.com/rustwasm)：`rustwasm` 生态系统；
+- [`wasm-pack`](https://github.com/rustwasm/wasm-pack)：`wasm` 工作流工具；
+- [`wasm-bindgen`](https://github.com/rustwasm/wasm-bindgen)：提供`Wasm` 模块和 `JavaScript` 之间级交互的高级 `API`。
+- [`bytecodealliance`](https://bytecodealliance.org/)
+- [`wasmer`](https://github.com/wasmerio/wasmer)：`Wasmer` 提供基于 `WebAssembly` 的超轻量级容器，其可以在任何地方运行：从桌面到云、以及 `IoT` 设备，并且也能嵌入到 任何编程语言中；
 
 ### 机器学习
 
-1. [`tensorflow`](https://github.com/tensorflow/rust)
-2. [`PyTorch`](https://github.com/LaurentMazare/tch-rs)
-3. [`scikit-learn`](https://github.com/rust-ml/linfa)
+- [`tensorflow`](https://github.com/tensorflow/rust)
+- [`PyTorch`](https://github.com/LaurentMazare/tch-rs)
+- [`scikit-learn`](https://github.com/rust-ml/linfa)
+
+### 日志监控
+
+- [`rust-prometheus`](https://github.com/tikv/rust-prometheus)
+- [`opentelemetry-rust`](https://github.com/open-telemetry/opentelemetry-rust)
+- [`tracing`](https://crates.io/crates/tracing)：日志处理；
+
+### 并发异步
+
+- [`actix`](https://github.com/actix/actix)：`Rust` 的 `actor` 框架；
+- [`bastion`](https://github.com/bastion-rs/bastion)：高可用分布式容错运行时；
+- [`smol`](https://github.com/smol-rs/smol)：一个小而快的异步运行时；
+- [`crossbeam`](https://crates.io/crates/crossbeam)：提供很多用于并发编程的工具，例如线程阻塞；
+- [`waker_fn`](https://crates.io/crates/waker-fn)：转换闭包为 `waker`；
+- [`rayon`](https://crates.io/crates/rayon)：计算密集型任务的任务分解；
+- [`futures-lite`](https://crates.io/crates/futures-lite)：完全兼容 [futures](https://docs.rs/futures)，提供了 `pin!`；
+- [`tokio`](https://docs.rs/tokio/latest/tokio/)：`Tokio` 是一个事件驱动的非阻塞 `I/O` 平台，用于使用 `Rust` 编程语言编写异步应用程序。
+- [`async_trait`](https://docs.rs/async-trait/latest/async_trait/)：提供了一个宏，可以在 `trait` 中包含异步的方法；
+
+### 其他内容
+
+- [`thiserror`](https://crates.io/crates/thiserror)：自动派生标准库中的 `std::error::Error`；
+- [`anyhow`](https://crates.io/crates/anyhow)：提供了 `anyhow::Result<T>` 用于任何可能失败返回错误的函数；
+- [`lazy_static`](https://crates.io/crates/lazy_static)：可以用于初始化全局可变静态变量；
+- [`unicode-width`](https://crates.io/crates/unicode-width)：获取 `Unicode` 字符宽度；
+- [`enum_primitive`](https://crates.io/crates/enum_primitive)：提供宏能自动从数字转换成枚举；
+- [`serde_json`](https://crates.io/crates/serde_json)：`json` 序列化；
+- [`argonautica`](https://crates.io/crates/argonautica)：使用 [`Argon2 hashing algorithm`](https://en.wikipedia.org/wiki/Argon2) 进行密码 `hash`；
+- [`parking_lot`](https://crates.io/crates/parking_lot)：提供了比标准库更快的 `Mutex` 等；
+- [`itertools`](https://docs.rs/itertools/0.10.1/itertools/index.html)：扩展了内置的 `Iterator`，提供了更多的迭代适配器方法；
+- [`bytes`](https://github.com/tokio-rs/bytes)：处理二进制内容的库；
+- [`colored`](https://crates.io/crates/colored)：在终端中添加颜色的最简单方法；
+- [`tabled`](https://github.com/zhiburt/tabled)：以表格的形式输出结构体和枚举；
+- [`chrono`](https://github.com/chronotope/chrono)：`Rust` 的日期和时间处理库；
+- [`nom`](https://github.com/Geal/nom#example)：解析器组合库；
+- [`rusoto_core`](https://docs.rs/rusoto_core/latest/rusoto_core/)：`Rust` 实现的 `AWS` `SDK`；
