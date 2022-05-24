@@ -101,6 +101,7 @@ date: 2022-05-05 09:54:08
 - [`dialoguer`](https://docs.rs/dialoguer/latest/dialoguer/)：可以用于构建交互式命令行；
 - [`indicatif`](https://docs.rs/indicatif/latest/indicatif/)：用于提供友好的进度条；
 - [`clap`](https://github.com/clap-rs/clap)
+- [`tui`](https://github.com/fdehau/tui-rs)：`Rust` 终端 `UI`；
 
 ### 云原生
 
@@ -113,6 +114,14 @@ date: 2022-05-05 09:54:08
 - [`wg`](https://github.com/rust-embedded/wg/)：嵌入式设备工作组的协调存储库；
 - [`awesome-embedded-rust`](https://github.com/rust-embedded/awesome-embedded-rust)
 - [`akri`](https://github.com/project-akri/akri)：一个管理嵌入式设备的云原生项目；
+
+### 区块链
+
+- [`solana`](https://github.com/solana-labs/solana)
+
+### 数据库
+
+- [`bonsaidb`](https://bonsaidb.io/)：`Rust` 写的本地数据库；
 
 ### 数据类型
 
@@ -132,6 +141,8 @@ date: 2022-05-05 09:54:08
 - [`wasm-bindgen`](https://github.com/rustwasm/wasm-bindgen)：提供`Wasm` 模块和 `JavaScript` 之间级交互的高级 `API`。
 - [`bytecodealliance`](https://bytecodealliance.org/)
 - [`wasmer`](https://github.com/wasmerio/wasmer)：`Wasmer` 提供基于 `WebAssembly` 的超轻量级容器，其可以在任何地方运行：从桌面到云、以及 `IoT` 设备，并且也能嵌入到 任何编程语言中；
+- [`trunk`](https://github.com/thedodd/trunk)：构建、打包以及发布 `wasm` 应用；
+- [`spin`](https://github.com/fermyon/spin)：`Spin` 用于使用 `WebAssembly` 构建和运行快速、安全和可组合的云微服务；
 
 ### 机器学习
 
