@@ -308,3 +308,210 @@ func strhashFallback(a unsafe.Pointer, h uintptr) uintptr {
 	return memhashFallback(x.str, h, uintptr(x.len))
 }
 ```
+
+### 查找过程
+
+对于 `map` 访问，`Go` 中有两种方式，一种是返回一个值，另一种是除了返回值之外还会返回一个 `bool` 值表示这个值是否存在，因为访问 `map` 时，如果不存在就会返回零值：
+```go
+package main
+
+import "fmt"
+
+func main() {
+	var numbers2 = make(map[string]int, 16)
+	numbers2["hello"] = 1
+	fmt.Println(numbers2["hello"])
+
+	value, ok := numbers2["hello"]
+	fmt.Println(value, ok)
+}
+```
+
+`Go` 中为这两种方式提供了两种不同的函数，例如我们这里的 [`runtime.mapaccess1_faststr`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/map_faststr.go#L13) 和 [`runtime.mapaccess2_faststr`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/map_faststr.go#L108)，我们来看下 `mapaccess2_faststr` 的实现：
+
+```go
+func mapaccess2_faststr(t *maptype, h *hmap, ky string) (unsafe.Pointer, bool) {
+	if raceenabled && h != nil {
+		callerpc := getcallerpc()
+		racereadpc(unsafe.Pointer(h), callerpc, abi.FuncPCABIInternal(mapaccess2_faststr))
+	}
+	if h == nil || h.count == 0 {
+		return unsafe.Pointer(&zeroVal[0]), false
+	}
+	// 不支持并发读写
+	if h.flags&hashWriting != 0 {
+		throw("concurrent map read and map write")
+	}
+	key := stringStructOf(&ky)
+	if h.B == 0 {
+		// B = 0 的时候，2^0 = 1，也就是只有 1 个 bucket 了
+		b := (*bmap)(h.buckets)
+		if key.len < 32 {
+			// 如果 key 比较短，直接比较就 OK 了，每次迭代的时候，kptr += 2*goarch.PtrSize
+			// 这里是因为 string 在字符串表示为 reflect.StringHeader，它占据2个机器字
+			for i, kptr := uintptr(0), b.keys(); i < bucketCnt; i, kptr = i+1, add(kptr, 2*goarch.PtrSize) {
+				k := (*stringStruct)(kptr)
+
+				// 如果当前 key 长度不相等，并且当前cell是空的，且后面的cell都为空，就直接退出了
+				// 如果当前 key 长度不相等，并且当前cell是空的，但是后面的cell还可能有，就接着找
+				if k.len != key.len || isEmpty(b.tophash[i]) {
+					if b.tophash[i] == emptyRest {
+						break
+					}
+					continue
+				}
+				
+				// 如果长度相等，并且内容相等，就返回值的地址
+				// dataOffset 就是 bmap 的大小，unsafe.Pointer(b) + dataOffset+bucketCnt*2*goarch.PtrSize 就是跳过了
+				// 所有 8 个 key，然后再加上 i*uintptr(t.elemsize)，就找到了对应值的地址
+				if k.str == key.str || memequal(k.str, key.str, uintptr(key.len)) {
+					return add(unsafe.Pointer(b), dataOffset+bucketCnt*2*goarch.PtrSize+i*uintptr(t.elemsize)), true
+				}
+			}
+			return unsafe.Pointer(&zeroVal[0]), false
+		}
+		// 对于较长的 key，尽可能少做比较，key 和 elem 位置的计算没有区别
+		keymaybe := uintptr(bucketCnt)
+		for i, kptr := uintptr(0), b.keys(); i < bucketCnt; i, kptr = i+1, add(kptr, 2*goarch.PtrSize) {
+			k := (*stringStruct)(kptr)
+			if k.len != key.len || isEmpty(b.tophash[i]) {
+				if b.tophash[i] == emptyRest {
+					break
+				}
+				continue
+			}
+			if k.str == key.str {
+				return add(unsafe.Pointer(b), dataOffset+bucketCnt*2*goarch.PtrSize+i*uintptr(t.elemsize)), true
+			}
+			// check first 4 bytes
+			if *((*[4]byte)(key.str)) != *((*[4]byte)(k.str)) {
+				continue
+			}
+			// check last 4 bytes
+			if *((*[4]byte)(add(key.str, uintptr(key.len)-4))) != *((*[4]byte)(add(k.str, uintptr(key.len)-4))) {
+				continue
+			}
+			if keymaybe != bucketCnt {
+				// Two keys are potential matches. Use hash to distinguish them.
+				goto dohash
+			}
+			keymaybe = i
+		}
+		if keymaybe != bucketCnt {
+			k := (*stringStruct)(add(unsafe.Pointer(b), dataOffset+keymaybe*2*goarch.PtrSize))
+			if memequal(k.str, key.str, uintptr(key.len)) {
+				return add(unsafe.Pointer(b), dataOffset+bucketCnt*2*goarch.PtrSize+keymaybe*uintptr(t.elemsize)), true
+			}
+		}
+		return unsafe.Pointer(&zeroVal[0]), false
+	}
+dohash:
+	// 根据对应类型的 hash 函数计算哈希值
+	hash := t.hasher(noescape(unsafe.Pointer(&ky)), uintptr(h.hash0))
+	// m = (1 << h.B) - 1，如果 h.B = 2，那么 m = 3
+	m := bucketMask(h.B)
+	// 找到对应的 bucket，add(h.buckets, (hash&m)*uintptr(t.bucketsize)) 
+	// hash & m，确定桶的编号，然后 h.buckets + (hash&m)*uintptr(t.bucketsize) 得到
+	// 桶的地址
+	b := (*bmap)(add(h.buckets, (hash&m)*uintptr(t.bucketsize)))
+	// oldbuckets 不为空，说明发生了扩容，当前 map 是从旧的 map 扩展而来，一些数据可能还存在旧的 bucket 中
+	if c := h.oldbuckets; c != nil {
+		// 如果同大小扩容
+		if !h.sameSizeGrow() {
+			// 新 bucket 的数量是老的两倍，所以 m >> 1
+			m >>= 1
+		}
+		// 计算这个key在老的bucket中的位置
+		oldb := (*bmap)(add(c, (hash&m)*uintptr(t.bucketsize)))
+		// 如果这个 bucket 还没有迁移到新的 bucket 中，那么就从老的bucket中找
+		if !evacuated(oldb) {
+			b = oldb
+		}
+	}
+	// 计算出高8位hash值，其实就是 uint8(hash >> 56)
+	// 由于 bucket 的状态也是放在它的 tophash 数组中的，用到的状态值是 0-5
+	// 所以根据 key 计算出的 tophash 如果小于 minTopHash，要加上 minTopHash，要加上
+	top := tophash(hash)
+	for ; b != nil; b = b.overflow(t) {
+		for i, kptr := uintptr(0), b.keys(); i < bucketCnt; i, kptr = i+1, add(kptr, 2*goarch.PtrSize) {
+			k := (*stringStruct)(kptr)
+			if k.len != key.len || b.tophash[i] != top {
+				continue
+			}
+			if k.str == key.str || memequal(k.str, key.str, uintptr(key.len)) {
+				return add(unsafe.Pointer(b), dataOffset+bucketCnt*2*goarch.PtrSize+i*uintptr(t.elemsize)), true
+			}
+		}
+	}
+	return unsafe.Pointer(&zeroVal[0]), false
+}
+
+// tophash calculates the tophash value for hash.
+func tophash(hash uintptr) uint8 {
+	top := uint8(hash >> (goarch.PtrSize*8 - 8))
+	if top < minTopHash {
+		top += minTopHash
+	}
+	return top
+}
+```
+
+代码整体上比较简单，一共分了两种情况，只有 `1` 个桶时直接比较便利当前桶，通过比 较`key` 是否相等寻找，否则计算 `key` 的哈希值，找到对应的桶，然后遍历，这个通过计算`key`的哈希值再定位 `key` 的过程可以用如下的图所示：
+
+![](Go-map-key-locate.png)
+
+里面有几个重要的过程，我们再分析下，首先是 `key` 和 `value` 的定位公式：
+
+```go
+// 对于 string 类型做key，每个key占两个机器字，一个是8字节
+keyPtr := b.keys() + 2*i+goarch.PtrSize
+
+// 就是从 跳过所有的 key，然后根据值的大小，定位到它的内存位置
+valuePtr := b.keys()+bucketCnt*2*goarch.PtrSize+i*uintptr(t.elemsize)
+
+// b.keys 实际上获取的就是第一个 key 开始的内存地址
+func (b *bmap) keys() unsafe.Pointer {
+	return add(unsafe.Pointer(b), dataOffset)
+}
+
+// dataOffset 就是 bmap 这个结构体的大小，是 keys 开始的偏移量
+const dataOffset = unsafe.Offsetof(struct {
+	b bmap
+	v int64
+}{}.v)
+```
+
+既然是拉链法实现，那么就肯定得遍历 `bucket` 链，外层循环就是遍历所有链上的 `bucket`，内层循环就是遍历每个 `bucket` 的 `8` 个 `key`，调用 `b.overflow(t)` 可以获取到下一个 `bucket`。根据 `bmap` 运行时实际的内存表示，它的最后一个字节存储的下一个 `bucket` 的地址：
+
+```go
+func (b *bmap) overflow(t *maptype) *bmap {
+	return *(**bmap)(add(unsafe.Pointer(b), uintptr(t.bucketsize)-goarch.PtrSize))
+}
+```
+
+访问过程中，`map` 可能正在扩容，那么就首先得去查看旧的 `bucekt` 是否已经搬迁，如果没有，那就得从旧的 `bucket` 中查找，使用 `evacuated` 判断是否搬迁，如果第一个 `tophash` 的值大于 `emptyOne` 小于 `minTopHash`，说明已经搬到新 `map` 中了：
+
+```golang
+func evacuated(b *bmap) bool {
+	h := b.tophash[0]
+	return h > emptyOne && h < minTopHash
+}
+```
+
+一个 `bucket` 的状态也是存储在它的 `tophash` 中的，当它取值以下的值时，表示特殊的意义：
+
+```golang
+// Possible tophash values. We reserve a few possibilities for special marks.
+// Each bucket (including its overflow buckets, if any) will have either all or none of its
+// entries in the evacuated* states (except during the evacuate() method, which only happens
+// during map writes and thus no one else can observe the map during that time).
+emptyRest      = 0 // 空的 Cell，也是 bucket 的初始状态，并且此 bucket 的后续 cell 以及 overflow bucket 都是空的
+emptyOne       = 1 // 当前 Cell 是空的
+evacuatedX     = 2 // k/v 已经搬迁到新 bucket 的前半部分
+evacuatedY     = 3 // k/v 已经搬迁到新 bucket 的后半部分
+evacuatedEmpty = 4 // 空的 cell，bucket 已经搬迁了
+minTopHash     = 5 // tophash 的最小正常值
+```
+
+所以说，只要 `b.tophash[0]` 是 `evacuatedX`，`evacuatedY` 或者 `evacuatedEmpty`，都说明此 `bucket` 已经搬迁了。
+
