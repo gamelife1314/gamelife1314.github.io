@@ -5,17 +5,17 @@ categories:
     - golang
 ---
 
-`ABI（Application Binary Interface）`，即应用程序二进制接口，定义了函数调用时参数和返回值如何传递。就像C语言 `x86-64` 系统中，返回值保存在寄存器 `%rax` 中，前6个参数分别通过寄存器 `%rdi`，`%rsi`，`%rdx`，`%rcx`，`%r8` 以及 `%r9` 中。
+`ABI（Application Binary Interface）`，即应用程序二进制接口，定义了函数调用时参数和返回值如何传递。就像C语言 `x86-64` 系统中，返回值保存在寄存器 `%rax` 中，前6个参数分别通过寄存器 `%rdi`，`%rsi`，`%rdx`，`%rcx`，`%r8` 以及 `%r9` 传递。
 
-但是Go语言使用了一套跨架构通用 `ABI` 设计，它定义了数据在内存上的布局和函数之间的调用规约，这个调用规约是不稳定的，是会随着Go的版本进行变换的，称之为 `ABIInternal`。如果我们想开发汇编代码，应该使用稳定[稳定的 `ABI0`](https://go.dev/doc/asm)。所有的Go函数都遵循 `ABIInternal`，两种调用规约下的函数可以通过透明的 wrapper 相互调用。
+但是 `Go` 语言使用了一套跨架构通用 `ABI` 设计，它定义了数据在内存上的布局和函数之间的调用规约，这个调用规约是不稳定的，是会随着 `Go` 的版本进行变换的，称之为 `ABIInternal`。如果我们想开发汇编代码，应该使用[稳定的 `ABI0`](https://go.dev/doc/asm)。所有原代码中定义的 `Go` 函数都遵循 `ABIInternal`，两种调用规约下的函数可以通过透明的 `wrapper` 相互调用。
 
-之所以有两套调用规约，并且一个是稳定的（`ABI0`，承诺向后兼容），一个是不稳定的（`ABIInternal`，不承诺向后兼容）是因为一开始Go的调用规约约定所有的参数和返回值都通过栈传递，并且很多Go内部的包中有很多基于这个机制编写的汇编代码，例如 `math/big`，如果现在想升级调用规约，那么这么多汇编代码都得重写，显然不是很现实。所以，比较好的办法是引入一种新的私有约定，不承诺向后兼容，但可以在多个调用规约之间透明互调。私有的调用规约用于Go代码最终汇编的生成，稳定的调用规约用于汇编代码开发，由编译器完成两者之间的自动互调用。更多的内容可以查看 [Proposal: Create an undefined internal calling convention](https://go.googlesource.com/proposal/+/master/design/27539-internal-abi.md)。
+之所以有两套调用规约，并且一个是稳定的（`ABI0`，承诺向后兼容），一个是不稳定的（`ABIInternal`，不承诺向后兼容）是因为一开始`Go`的调用规约约定所有的参数和返回值都通过栈传递，并且很多`Go`内部的包中有很多基于这个机制编写的汇编代码，例如 `math/big`，如果现在想升级调用规约，那么这么多汇编代码都得重写，显然不是很现实。所以，比较好的办法是引入一种新的私有约定，不承诺向后兼容，但可以在多个调用规约之间透明互调。私有的调用规约用于`Go`代码最终汇编的生成，稳定的调用规约用于汇编代码开发，由编译器完成两者之间的自动互调用。更多的内容可以查看 [`Proposal: Create an undefined internal calling convention`](https://go.googlesource.com/proposal/+/master/design/27539-internal-abi.md)。
 
-[Go1.17 Release Notes Compiler](https://go.dev/doc/go1.17#compiler) 就对原有的调用规约做了更新，从基于栈的参数传递更新成基于寄存器，基准测试发现，性能有 `5%` 的提升，二进制大小减少 `2%`，但是 `Go1.17` 只在 `Amd64` 平台上实现了。
+[`Go1.17 Release Notes Compiler`](https://go.dev/doc/go1.17#compiler) 就对原有的调用规约做了更新，从基于栈的参数传递更新成基于寄存器，基准测试发现，性能有 `5%` 的提升，二进制大小减少 `2%`，但是 `Go1.17` 只在 `Amd64` 平台上实现了。
 
-[Go1.18 Release Notes Compiler](https://go.dev/doc/go1.18#compiler) 开始支持 `GOARCH=arm64`，`OARCH=ppc64, ppc64le`。在 `64` 位 `ARM` 和 `64` 位 `PowerPC` 系统上，基准测试显示性能提升 `10%` 或更多。
+[`Go1.18 Release Notes Compiler`](https://go.dev/doc/go1.18#compiler) 开始支持 `GOARCH=arm64`，`OARCH=ppc64, ppc64le`。在 `64` 位 `ARM` 和 `64` 位 `PowerPC` 系统上，基准测试显示性能提升 `10%` 或更多。
 
-也就是说，在Go的调用规约中，我们需要遵循以下这些点：
+也就是说，在`Go`的调用规约中，我们需要遵循以下这些点：
 
 - 如果想写汇编代码，那么可以基于 `ABI0`，通过栈传递参数，汇编中使用 `FP` 等伪寄存器传递和访问参数以及返回值；
 - `ABI0` 是当前的调用约定，它在堆栈上传递参数和结果，在调用时破坏所有寄存器，并且有一些平台相关的固定寄存器；
@@ -177,9 +177,9 @@ func callAdd() {
 
 ![](go1.16-abi.png)
 
-### ABIInternal 调用 ABI0 函数
+### `ABIInternal` 调用 `ABI0` 函数
 
-假设我们有下面的Go程序，并且使用汇编实现函数`p`和函数`q`，并且采用栈传参的调用规约 `ABI0`，但是我们使用 `Go 1.17`版本编译改代码，发现编译器会自动生成Wrapper函数。
+假设我们有下面的`Go`程序，并且使用汇编实现函数`p`和函数`q`，并且采用栈传参的调用规约 `ABI0`，但是我们使用 `Go 1.17` 版本编译改代码，发现编译器会自动生成`Wrapper`函数。
 
 编译方法，把 `main.go` 和 `asm.s` 保存在 `msa` 目录中，放在 `GOPATH` 目录下，使用下面的指令编译：
 > go version go1.17.8 linux/amd64
