@@ -1,7 +1,7 @@
 ---
 title: 【Golang】多版本管理安装
 date: 2022-04-09 15:35:43
-tags:
+category:
   - golang
 ---
 

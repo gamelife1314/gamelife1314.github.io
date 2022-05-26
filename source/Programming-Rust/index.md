@@ -47,7 +47,8 @@ date: 2022-05-05 09:54:08
 - [`Rust` 在线题目测试](https://dtolnay.github.io/rust-quiz/18)
 - [`gdb` 速查手册](https://darkdust.net/files/GDB%20Cheat%20Sheet.pdf)
 - [`lldb` 使用帮助](https://lldb.llvm.org/use/map.html)
-- [《`Rust Macros`小书》](https://danielkeep.github.io/tlborm/book/)
+- [用 `GitHub Actions` 进行持续集成](https://course.rs/test/ci.html)
+- [`Rust Docker Tutorial`](https://tutorialedge.net/rust/rust-docker-tutorial/)
 
 ### `WEB`
 
@@ -168,7 +169,7 @@ date: 2022-05-05 09:54:08
 - [`tokio`](https://docs.rs/tokio/latest/tokio/)：`Tokio` 是一个事件驱动的非阻塞 `I/O` 平台，用于使用 `Rust` 编程语言编写异步应用程序。
 - [`async_trait`](https://docs.rs/async-trait/latest/async_trait/)：提供了一个宏，可以在 `trait` 中包含异步的方法；
 
-### 其他内容
+### 其他 `crate`
 
 - [`thiserror`](https://crates.io/crates/thiserror)：自动派生标准库中的 `std::error::Error`；
 - [`anyhow`](https://crates.io/crates/anyhow)：提供了 `anyhow::Result<T>` 用于任何可能失败返回错误的函数；
@@ -185,3 +186,21 @@ date: 2022-05-05 09:54:08
 - [`chrono`](https://github.com/chronotope/chrono)：`Rust` 的日期和时间处理库；
 - [`nom`](https://github.com/Geal/nom#example)：解析器组合库；
 - [`rusoto_core`](https://docs.rs/rusoto_core/latest/rusoto_core/)：`Rust` 实现的 `AWS` `SDK`；
+- [`polars`](https://github.com/pola-rs/polars)：用于 `Rust` 和 `Python` 快速的 `DataFrame` 库；
+
+### 学习资料
+
+- [`Rust` 程序设计语言](https://kaisery.github.io/trpl-zh-cn/)
+- [`Rust` 语言圣经](https://course.rs/about-book.html)
+- [`Rust` 秘典](https://doc.rust-lang.org/nomicon/index.html)
+- [`Rust` 秘典（中文）](https://nomicon.purewhite.io/)
+- [`Rust` 版本指南](https://doc.rust-lang.org/edition-guide/index.html)
+- [通过例子学 `Rust`](https://rustwiki.org/zh-CN/rust-by-example/)
+- [《`Rust Macros`小书》](https://danielkeep.github.io/tlborm/book/)
+- [`Cargo` 手册](https://doc.rust-lang.org/cargo/index.html)
+- [`Rustdoc` 手册](https://doc.rust-lang.org/rustdoc/index.html)
+- [`Rustc` 手册](https://doc.rust-lang.org/rustc/index.html)
+- [命令行手册](https://rust-cli.github.io/book/index.html)
+- [嵌入式手册](https://doc.rust-lang.org/embedded-book)
+- [`WEBASSEMBLY` 手册](https://rustwasm.github.io/docs/book/)
+- [`Rust` 参数手册](https://doc.rust-lang.org/reference/index.html)
