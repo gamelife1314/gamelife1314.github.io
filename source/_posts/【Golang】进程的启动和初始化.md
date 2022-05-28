@@ -5,7 +5,7 @@ categories:
     - golang
 ---
 
-本篇文章记录Go进程的启动和初始化过程，从程序入口开始调试，探索Go的各个组件初始化，以最简单的 `hello world` 为示例。
+本篇文章记录 `Go` 进程的启动和初始化过程，从程序入口开始调试，探索 `Go` 的各个组件初始化，以最简单的 `hello world` 为示例。
 
 {% asset_img image.png %}
 
@@ -13,7 +13,7 @@ categories:
 
 ### 程序入口
 
-以 linux 操作系统为例，程序编译之后生成可执行文件，可执行文件的格式在linux上是 `ELF`，Windows 上是`PE`，linux 通过 `readelf` 工具查看程序的入口地址，操作系统执行可执行文件的时候，首先解析 `ELF Header`，然后从 `entry point` 开始执行代码，通过 [delve](https://github.com/go-delve/delve) 执行程序，在入口处打断点：
+以 `linux` 操作系统为例，程序编译之后生成可执行文件，可执行文件的格式在 `linux` 上是 `ELF`，`Windows` 上是 `PE`，`linux` 通过 `readelf` 工具查看程序的入口地址，操作系统执行可执行文件的时候，首先解析 `ELF Header`，然后从 `entry point` 开始执行代码，通过 [`delve`](https://github.com/go-delve/delve) 执行程序，在入口处打断点：
 
 ```
 root@b89af2baca14:/WORKDIR/gostudy/hello# readelf -h main
@@ -45,7 +45,7 @@ Breakpoint 1 set at 0x701d0 for _rt0_arm64_linux() /usr/local/go/src/runtime/rt0
 (dlv)
 ```
 
-关于 ELF 可执行文件的描述可以参考下面的[pdf文件](https://github.com/corkami/pics/blob/28cb0226093ed57b348723bc473cea0162dad366/binary/elf101/elf101.pdf)。当然还可以通过 [`GDB`](https://visualgdb.com/gdbreference/commands/info_files) 获得程序的入口地址：
+关于 `ELF` 可执行文件的描述可以参考下面的[`pdf`文件](https://github.com/corkami/pics/blob/28cb0226093ed57b348723bc473cea0162dad366/binary/elf101/elf101.pdf)。当然还可以通过 [`GDB`](https://visualgdb.com/gdbreference/commands/info_files) 获得程序的入口地址：
 
 ```
 (gdb) info files
@@ -80,7 +80,7 @@ Local exec file:
 
 ![](go进程启动流程.png)
 
-#### g0 和 m0
+#### `g0` 和 `m0`
 
 在进程启动的开始就完成了 `g0` 和 `m0` 的初始化，这两个是运行时的全局变量，定义在 `proc.go` 中：
 
@@ -127,13 +127,13 @@ MOVD	R0, g_m(g)
 
 相比其他语言复杂的并发系统设计，Go语言中在面向用户时，仅提供一个 `go` 关键字即可实现异步任务和并发调度，但是因其简单，所以在一般系统中，百万级别的 `g` 也是常有的，为了保证这些 `goroutine` 的公平调度，不饿死也不撑死，所以得有一套公平的调度系统，在经历了初期几代的发展之后，现在逐渐形成了当前的 `GPM` 模型。
 
-#### GPM
+#### `GPM`
 
 理解调度器首先要理解三个主要概念：
 
 - `G`: `Goroutine`，即我们在 `Go` 程序中使用 `go` 关键字创建的执行体；
 - `M`: `Machine`，或 worker thread，即传统意义上进程的线程；
-- `P`: `Processor`，即一种人为抽象的、用于执行 `Go` 代码被要求的局部资源。只有当 `M` 与一个 `P` 关联后才能执行 `Go` 代码。`M` 发生阻塞或在进行系统调用时间过长时，是没有与之关联的 `P`。
+- `P`: `Processor`，即一种人为抽象的、用于执行 `Go` 代码被要求的局部资源。只有当 `M` 与一个 `P` 关联后才能执行 `Go` 代码。`M` 发生阻塞或在进行系统调用时间过长时，是没有与之关联的 `P`；
 
 在这种GPM模型中，数量相对固定的是 `P`，大多数情况下都是和 `CPU` 数量相等，多了也没有意义。而 `M` 和 `G` 的数量是动态的，在调度初始化中，只设置了 `M` 的上限是 `10000`；对于`G`而言浮动范围就相对较大，少则数百，多则可能达到百万级别。
 
@@ -146,7 +146,7 @@ func schedinit() {
 }
 ```
 
-##### M
+##### `M`
 
 `M` 是 `OS` 线程的实体，它的结构体字段有60多个，定义在 `runtime2.go` 文件中，但是它有一些比较重要的字段：
 
@@ -223,7 +223,7 @@ func mcommoninit(mp *m, id int64) {
 }
 ```
 
-##### P
+##### `P`
 
 `P` 只是处理器的一种抽象，而并非真正的处理器，它是可以通过 `runtime` 提供的方法动态调整的，用来实现 work stealing，每个 `P` 都持有一个`G`的本地队列。如果没有`P`的存在，所有的`G`只能放在全局的队列中，当`M`执行完一个`G`，必须锁住全局队列然后取下一个`G`拿来运行，这会严重降低运行效率。当有了 `P` 之后，每个`P`都有一个存储 `G` 的本地队列，当和 `P` 关联的 `M` 运行完一个 `G` 之后，它会按照：当前P的本地队列、全局、网络、偷取的方式获取一个可运行的 `G`。
 
@@ -680,7 +680,7 @@ procresize 这个函数相对较长，我们来总结一下它主要干了什么
 - 最后挨个检查 `P`，将没有任务的 `P` 放入 `idle` 队列；
 - 除去当前 `P` 之外，将有任务的 `P` 彼此串联成链表，将没有任务的 `P` 放回到 `idle` 链表中；
 
-###### GOMAXPROCS
+###### `GOMAXPROCS`
 
 一般情况下没有人会动态调整P的数量，都是跟CPU的数量保持相同的；为了达到某些测试目的或者其他情况下，可能会对P的数量进行调整，运行时系统向用户层提供了 `runtime.GOMAXPROCS` 来处理：
 
@@ -732,7 +732,7 @@ func startTheWorldWithSema(emitTraceEvent bool) int64 {
 }
 ```
 
-##### G
+##### `G`
 
 ```go
 // src/runtime/runtime2.go
@@ -1140,7 +1140,7 @@ func newproc1(fn *funcval, argp unsafe.Pointer, narg int32, callergp *g, callerp
 }
 ```
 
-为了证明创建新的goroutine是在系统栈运行，可以debug程序，在 `newproc1` 函数中断点，查看此时的goroutine是哪个：
+为了证明创建新的goroutine是在系统栈运行，可以`debug`程序，在 `newproc1` 函数中断点，查看此时的`goroutine`是哪个：
 
     (dlv) c
     > runtime.newproc1() /usr/local/go/src/runtime/proc.go:4286 (hits total:1) (PC: 0x4de9c)
@@ -1194,9 +1194,9 @@ func systemstack(fn func())
 4. 根据 `SP`、参数，在 `g.sched` 中保存 `SP` 和 `PC` 指针来初始化 `g` 的运行现场
 5. 将调用方、要执行的函数的入口 `PC` 进行保存，并将 `g` 的状态更改为 `_Grunnable`
 6. 给 `Goroutine` 分配 `id`，并将其放入 `P` 本地队列的队头或全局队列（初始化阶段队列肯定不是满的，因此不可能放入全局队列）
-7. 检查空闲的 `P`，将其唤醒，准备执行 `G`，但我们目前处于初始化阶段，主 Goroutine 尚未开始执行，因此这里不会唤醒 P。
+7. 检查空闲的 `P`，将其唤醒，准备执行 `G`，但我们目前处于初始化阶段，主 `Goroutine` 尚未开始执行，因此这里不会唤醒 `P`。
 
-##### sched
+##### `sched`
 
 `runtime2.go` 文件中结束位置定义了很多全局变量，其中有一个 `sched`，它包含了很多全局资源，访问这些全局资源一般需要锁：
 
@@ -1364,7 +1364,7 @@ M/P/G 彼此的初始化顺序遵循：`mcommoninit`、`procresize`、`newproc`�
 
 #### 调度循环
 
-当所有准备工作都就绪之后，也就是调度器初始化，主Goroutine也创建好之后，就是启动调度器调度我们的主Goroutine开始运行了，在我们的Go程序引导启动的最后一步有如下的过程，其中 `mstart` 就是启动调度的入口：
+当所有准备工作都就绪之后，也就是调度器初始化，主`Goroutine`也创建好之后，就是启动调度器调度我们的主`Goroutine`开始运行了，在我们的`Go`程序引导启动的最后一步有如下的过程，其中 `mstart` 就是启动调度的入口：
 
 ```
 // src/runtime/asm_arm64.s
@@ -1515,7 +1515,7 @@ func mstart1() {
 }
 ```
 
-##### M 和 P 的绑定
+##### `M` 和 `P` 的绑定
 
 `M` 与 `P` 的绑定过程只是简单的将 `P` 链表中的 `P` ，保存到 `M` 中的 `P` 指针上。 绑定前，`P` 的状态一定是 `_Pidle`，绑定后 `P` 的状态一定为 `_Prunning`，具体实现是在 `acquirep` 中处理：
 
@@ -1574,7 +1574,7 @@ func wirep(_p_ *p) {
 }
 ```
 
-##### M 的暂止和复始
+##### `M` 的暂止和复始
 
 `M` 是系统线程的抽象，它只有两种状态：`park` 和 `unpark`。无论出于什么原因，当 `M` 需要被暂止时，会调用 `stopm` 将 `M` 进行暂止，并阻塞到它被复始时，这一过程就是工作线程的暂止和复始。它的流程也非常简单，将 `M` 放回至空闲列表中，而后使用 `note` 注册一个暂止通知， 阻塞到它重新被复始。
 
@@ -1957,7 +1957,7 @@ func goexit0(gp *g) {
 }
 ```
 
-##### 偷取 Goroutine
+##### 偷取 `Goroutine`
 
 全局 `g` 链式队列中取 max 个 `g`，其中第一个用于执行，max-1 个放入本地队列。 如果放不下，则只在本地队列中放下能放的。过程比较简单：
 
@@ -2040,7 +2040,7 @@ func runqget(_p_ *p) (gp *g, inheritTime bool) {
 }
 ```
 
-偷取（steal）的实现是一个非常复杂的过程。这个过程来源于我们 需要仔细的思考什么时候对调度器进行加锁、什么时候对 `m` 进行暂止、 什么时候将 `m` 从自旋向非自旋切换等等。
+偷取（`steal`）的实现是一个非常复杂的过程。这个过程来源于我们 需要仔细的思考什么时候对调度器进行加锁、什么时候对 `m` 进行暂止、 什么时候将 `m` 从自旋向非自旋切换等等。
 
 ```go
 // 寻找一个可运行的 Goroutine 来执行。
@@ -2326,7 +2326,7 @@ top:
 }
 ```
 
-##### 唤醒M
+##### 唤醒`M`
 
 ```go
 func resetspinning() {
@@ -2466,7 +2466,7 @@ func mget() *m {
 }
 ```
 
-##### 新建M 
+##### 新建`M` 
 
 `M` 是通过 `newm` 来创生的，一般情况下，能够非常简单的创建， 某些特殊情况（线程状态被污染），`M` 的创建需要一个叫做模板线程的功能加以配合：
 
@@ -2635,7 +2635,7 @@ func newosproc(mp *m) {
 }
 ```
 
-##### M/G 解绑
+##### `M/G` 解绑
 
 实际上就是指将当前 `g` 的 `m` 置空、将当前 `m` 的 `g` 置空，从而完成解绑，通过 `dropg` 完成：
 
@@ -2861,9 +2861,9 @@ func sysmon() {
 
 #### 线程管理
 
-Go语言编程中，用户基本上不会涉及到线程的管理，都是由调度系统完成的，但仍然有一些与线程管理相关的接口。
+`Go`语言编程中，用户基本上不会涉及到线程的管理，都是由调度系统完成的，但仍然有一些与线程管理相关的接口。
 
-##### LockOSThread
+##### `LockOSThread`
 
 该方法在 runtime 包中分别提供了私有和公开方法，私有的方法整个运行时只有在 `runtime.main` 调用 `main.init` 、和 `cgo` 的 `C` 调用 `Go` 时候才会使用， 其中 `main.init` 其实也是为了 `cgo` 里 `Go` 调用某些 `C` 图形库时需要主线程支持才使用的。而用户态的公开方法则不同，还额外增加了一个模板线程的处理。
 
@@ -2932,7 +2932,7 @@ func dolockOSThread() {
 
 {% endtabs %}
 
-##### UnlockOSThread
+##### `UnlockOSThread`
 
 Unlock 的部分非常简单，减少计数，再实际 dounlock：
 

@@ -144,6 +144,7 @@ date: 2022-05-05 09:54:08
 - [`wasmer`](https://github.com/wasmerio/wasmer)：`Wasmer` 提供基于 `WebAssembly` 的超轻量级容器，其可以在任何地方运行：从桌面到云、以及 `IoT` 设备，并且也能嵌入到 任何编程语言中；
 - [`trunk`](https://github.com/thedodd/trunk)：构建、打包以及发布 `wasm` 应用；
 - [`spin`](https://github.com/fermyon/spin)：`Spin` 用于使用 `WebAssembly` 构建和运行快速、安全和可组合的云微服务；
+- [`WasmEdge`](https://github.com/WasmEdge/WasmEdge)：WasmEdge 是一个轻量级、高性能和可扩展的 WebAssembly 运行时，适用于云原生、边缘和去中心化应用程序。它为无服务器应用程序、嵌入式功能、微服务、智能合约和物联网设备提供支持。
 
 ### 机器学习
 

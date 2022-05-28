@@ -515,3 +515,333 @@ minTopHash     = 5 // tophash 的最小正常值
 
 所以说，只要 `b.tophash[0]` 是 `evacuatedX`，`evacuatedY` 或者 `evacuatedEmpty`，都说明此 `bucket` 已经搬迁了。
 
+### 赋值过程
+
+通过获取汇编代码我们可以知道，`map` 赋值过程是通过一系列的 `mapassign` 函数完成，根据 `key` 类型的不同的，在编译的时候会生成不同函数调用：
+
+|`key`类型|函数|
+|:--:|:--:|
+|`uint64`|[`func mapassign_fast64(t *maptype, h *hmap, key uint64) unsafe.Pointer`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/map_fast64.go#L93)|
+|`uin32`|[`func mapassign_fast32(t *maptype, h *hmap, key uint32) unsafe.Pointer`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/map_fast32.go#L93)|
+|`string`|[`func mapassign_faststr(t *maptype, h *hmap, s string) unsafe.Pointer`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/map_faststr.go#L203)|
+|通用|[`func mapassign(t *maptype, h *hmap, key unsafe.Pointer) unsafe.Pointer`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/map.go#L578)|
+
+我们来看个示例：
+
+{% note 示例代码 %}
+```go
+package main
+
+import (
+	"fmt"
+	"unsafe"
+)
+
+type Number struct {
+	age  uint64
+	name string
+}
+
+func main() {
+	var numbers = make(map[Number]int64, 16)
+	numbers[Number{age: 1, name: "hello"}] = 255
+	numbers[Number{age: 1, name: "hello"}] = 255
+	fmt.Println(numbers)
+
+	count := **(**int)(unsafe.Pointer(&numbers))
+	fmt.Println(count)
+}
+```
+{% endnote %}
+
+使用通用的 [`runtime.mapassign`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/map.go#L578) 函数进行赋值：
+
+```golang
+// Like mapaccess, but allocates a slot for the key if it is not present in the map.
+func mapassign(t *maptype, h *hmap, key unsafe.Pointer) unsafe.Pointer {
+	
+	// map 为 nil 时，会 panic
+	if h == nil {
+		panic(plainError("assignment to entry in nil map"))
+	}
+
+	if raceenabled {
+		callerpc := getcallerpc()
+		pc := abi.FuncPCABIInternal(mapassign)
+		racewritepc(unsafe.Pointer(h), callerpc, pc)
+		raceReadObjectPC(t.key, key, callerpc, pc)
+	}
+	if msanenabled {
+		msanread(key, t.key.size)
+	}
+	if asanenabled {
+		asanread(key, t.key.size)
+	}
+
+	// 不支持并发读写
+	if h.flags&hashWriting != 0 {
+		throw("concurrent map writes")
+	}
+
+	// 计算哈希值
+	hash := t.hasher(key, uintptr(h.hash0))
+
+	// 因为计算哈希值可能会 panic，这种情况下实际上没有写任何东西，所以要在
+	// 计算出哈希之后才能设置标记位
+	h.flags ^= hashWriting
+
+    // 如果没有分配任何桶，则创建一个桶
+	if h.buckets == nil {
+		h.buckets = newobject(t.bucket) // newarray(t.bucket, 1)
+	}
+
+again:
+	// 计算出桶的编号
+	bucket := hash & bucketMask(h.B)
+
+	// 下节详解，map 是渐进式扩容，扩容过程中涉及到数据的迁移，将其平摊到每次对map的赋值或者删除操作
+	if h.growing() {
+		growWork(t, h, bucket)
+	}
+
+	// 计算出桶的地址，强制转换成 bmap 对象
+	b := (*bmap)(add(h.buckets, bucket*uintptr(t.bucketsize)))
+	// 计算 tophash，右移56位，转换成 uint8 类型，如果小于 minTopHash，则加上它
+	top := tophash(hash)
+
+	var inserti *uint8         // 指向第一个空闲的 tophash 的地址
+	var insertk unsafe.Pointer // 指向第一个空闲的 key   的地址
+	var elem unsafe.Pointer    // 指向第一个空闲的 value 的地址
+bucketloop:
+	for {
+		for i := uintptr(0); i < bucketCnt; i++ {
+			// 找到空闲的槽
+			if b.tophash[i] != top {
+				if isEmpty(b.tophash[i]) && inserti == nil {
+					inserti = &b.tophash[i]
+					insertk = add(unsafe.Pointer(b), dataOffset+i*uintptr(t.keysize))
+					elem = add(unsafe.Pointer(b), dataOffset+bucketCnt*uintptr(t.keysize)+i*uintptr(t.elemsize))
+				}
+				// 如果这个空闲的槽后面没有任何内容，就直接跳出 bucketloop 循环
+				if b.tophash[i] == emptyRest {
+					break bucketloop
+				}
+				continue
+			}
+
+			// 赋值的时候发现值已经存在，那就跟心
+			k := add(unsafe.Pointer(b), dataOffset+i*uintptr(t.keysize))
+			if t.indirectkey() { // 间接key说明，k这里存的是key的指针，而不是key的值，即指向指针的指针
+				k = *((*unsafe.Pointer)(k))
+			}
+
+			// 判断key是否相等，传入两个key的地址，使用汇编语言实现的 memequal 函数，详细看下面的代码
+			// https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/internal/bytealg/equal_arm64.s#L9
+			if !t.key.equal(key, k) {
+				continue
+			}
+
+			// 如果key需要更新，更新以下key
+			if t.needkeyupdate() {
+				typedmemmove(t.key, k, key)
+			}
+
+			// 定位到对应的元素的地址，直接返回结束
+			elem = add(unsafe.Pointer(b), dataOffset+bucketCnt*uintptr(t.keysize)+i*uintptr(t.elemsize))
+			goto done
+		}
+
+		// 如果将 bucket 的 8 个槽都找完了没找到，就接着去 overflow bucket 中去找
+		ovf := b.overflow(t)
+		if ovf == nil {
+			break
+		}
+		b = ovf
+	}
+
+	// map 中原先不存在 key，那就添加一个
+
+	// 如果目前没处在扩容过程中，但是负载系数超过了 6.5 或者有太多的 overflow buckets，那就开始扩容
+	if !h.growing() && (overLoadFactor(h.count+1, h.B) || tooManyOverflowBuckets(h.noverflow, h.B)) {
+		hashGrow(t, h)
+		// 扩容完之后，跳转到开头重新执行
+		goto again // Growing the table invalidates everything, so try again
+	}
+
+	// 如果在定位到的 map 没找到空闲的槽，也遍历了它的所有 overflow bucket，那就重新申请一个 overflow bucket
+	// 将它链在后面，并且更新 inserti，insertk 以及 elem
+	if inserti == nil {
+		newb := h.newoverflow(t, b)
+		inserti = &newb.tophash[0]
+		insertk = add(unsafe.Pointer(newb), dataOffset)
+		elem = add(insertk, bucketCnt*uintptr(t.keysize))
+	}
+
+	// 将 key 和 elem 存储到相应的内存位置
+	if t.indirectkey() {
+		kmem := newobject(t.key)
+		*(*unsafe.Pointer)(insertk) = kmem
+		insertk = kmem
+	}
+	if t.indirectelem() {
+		vmem := newobject(t.elem)
+		*(*unsafe.Pointer)(elem) = vmem
+	}
+
+	// 将 key 移动到指定的内存
+	typedmemmove(t.key, insertk, key)
+	// 更新 tophash
+	*inserti = top
+	// 计数加一
+	h.count++
+
+done:
+	if h.flags&hashWriting == 0 {
+		throw("concurrent map writes")
+	}
+	h.flags &^= hashWriting
+	if t.indirectelem() {
+		elem = *((*unsafe.Pointer)(elem))
+	}
+	// 返回存储elem的内存位置
+	return elem
+}
+```
+
+从上面的函数中可以看到下面这些信息：
+
+1. 对值为 `nil` 的 `map` 会引发 `panic`；
+2. `map` 不支持并发读写，并发读写会引发 `panic`；
+3. `map` 的扩容涉及到数据搬迁，为了避免在数据搬迁过程中引起 `CPU` 陡增，`Go` 将数据搬迁平摊到了每次操作中；
+4. `key` 和 `elem` 对应内存位置的定位公式和前一节讲的是相同的；
+5. 因为 `map` 的操作可能是更新，也有可能是新插入，所以在遍历 `bucket` 及其 `overflow bucket` 的过程中会将第一个遇到的空闲位置记录下来，分别保存在 `inserti`，`insertk` 以及 `elem` 中。 如果 `key` 已经存在，那么直接跳转到末尾位置将 `elem` 的内存地址返回；
+6. 如果不存在就新插入一个，但是如果发现当前 `map` 的负载系数超过 `6.5`并且还没有扩容，那就开始扩容，扩容之后，`key` 要存放的位置就会变化，所以要从查找 `bucket` 的过程重新开始；
+7. 如果新插入的时候，发现 `key` 对应的 `bucket` 及其 `overflow bucket` 中都没有空闲位置了，那就重新申请一个 `overflow bucket` 链接在 `bucket` 后面，并且更新 `inserti`，`insertk` 以及 `elem` 为新的溢出桶的第一个槽位；
+8. 接下来就是将 `key` 放到对应的内存位置，如果是新插入则更新计数并且返回存放 `elem` 的内存地址；
+
+除了上述这些信息之外，我们还有一些小函数应该将它的原理搞清楚。[`runtime.(*maptype).indirectkey`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/type.go#L363)：
+
+```go
+func (mt *maptype) indirectkey() bool { // store ptr to key instead of key itself
+	return mt.flags&1 != 0
+}
+```
+
+间接 `key` 就是 `bucket` 中对应存放 `key` 的位置存的不是 `key` 对应的值本身，而是指向 `key` 的地址，每个 `map` 在编译时都有对应的 `maptype`，由编译器来决定。另外 [`runtime.(*maptype).needkeyupdate`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/type.go#L372) 决定在更新键值对的时候要不要重新覆盖 `key`：
+
+```go
+func (mt *maptype) needkeyupdate() bool { // true if we need to update key on an overwrite
+	return mt.flags&8 != 0
+}
+```
+
+[`runtime.(*hmap).growing`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/map.go#L1103) 用于判断当前 `map` 是否在扩容过程中：
+
+```go
+func (h *hmap) growing() bool {
+	return h.oldbuckets != nil
+}
+```
+
+[`runtime.overLoadFactor`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/map.go#L1083) 判断当前的 `map` 是否过载，其实就是当 `map` 中元素的总量超过 `6.5 * (1 << h.B)`，即每个桶平均存放超过 `6.5` 个 `key` 时：
+
+```go
+func overLoadFactor(count int, B uint8) bool {
+	return count > bucketCnt && uintptr(count) > loadFactorNum*(bucketShift(B)/loadFactorDen)
+}
+```
+
+[`runtime.tooManyOverflowBuckets`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/map.go#L1090) 用于判断是否有太多溢出桶，溢出桶最多是 $2^{15}$ 个：
+
+```golang
+// tooManyOverflowBuckets reports whether noverflow buckets is too many for a map with 1<<B buckets.
+// Note that most of these overflow buckets must be in sparse use;
+// if use was dense, then we'd have already triggered regular map growth.
+func tooManyOverflowBuckets(noverflow uint16, B uint8) bool {
+	// If the threshold is too low, we do extraneous work.
+	// If the threshold is too high, maps that grow and shrink can hold on to lots of unused memory.
+	// "too many" means (approximately) as many overflow buckets as regular buckets.
+	// See incrnoverflow for more details.
+	if B > 15 {
+		B = 15
+	}
+	// The compiler doesn't see here that B < 16; mask B to generate shorter shift code.
+	return noverflow >= uint16(1)<<(B&15)
+}
+```
+
+当 `map` 变得过大，装载太多元素，或者有太多的的溢出桶时就会扩容，调用 [`runtime.hashGrow`](https://github.com/golang/go/blob/8ed0e51b5e5cc50985444f39dc56c55e4fa3bcf9/src/runtime/map.go#L1039) 函数进行：
+
+- 如果已经达到装载系数，那么桶数量就增大一倍；
+- 否则进行等量扩容，等量扩容是由于删除操作让 `bucket` 及其溢出桶变得比较稀疏，重新进行规整；
+
+这里只是扩充容量，申请内存，但实际并未进行数据搬迁，数据搬迁是在每次的删除或者赋值过程中进行的。
+
+```go
+func hashGrow(t *maptype, h *hmap) {
+	
+	// B+1 相当于扩容为原来的两倍
+	// 等量扩容保持容量不变
+	bigger := uint8(1)
+	if !overLoadFactor(h.count+1, h.B) {
+		bigger = 0
+		h.flags |= sameSizeGrow
+	}
+	oldbuckets := h.buckets
+	newbuckets, nextOverflow := makeBucketArray(t, h.B+bigger, nil)
+
+	flags := h.flags &^ (iterator | oldIterator)
+	if h.flags&iterator != 0 {
+		flags |= oldIterator  // 如果 h.flags 有 iterator 标记，现在让它去迭代 oldIterator
+	}
+
+	// 提交 grow 的=动作
+	h.B += bigger
+	h.flags = flags
+	h.oldbuckets = oldbuckets
+	h.buckets = newbuckets
+	h.nevacuate = 0 // 搬迁进度为0
+	h.noverflow = 0 // overflow buckets 数为0
+
+	if h.extra != nil && h.extra.overflow != nil {
+		// Promote current overflow buckets to the old generation.
+		if h.extra.oldoverflow != nil {
+			throw("oldoverflow is not nil")
+		}
+		h.extra.oldoverflow = h.extra.overflow
+		h.extra.overflow = nil
+	}
+	if nextOverflow != nil {
+		if h.extra == nil {
+			h.extra = new(mapextra)
+		}
+		h.extra.nextOverflow = nextOverflow
+	}
+
+	// the actual copying of the hash table data is done incrementally
+	// by growWork() and evacuate().
+}
+```
+
+这里还有几个二进制操作，`&^` 叫做按位置 `0` 运算符。例如，对于如下示例，如果 `y` 对应 `bit` 位为 `1`，那么 `z` 对应 `bit` 位为 `0`，否则 `z` 对应 `bit` 位为和 `x` 保持一致：
+
+```go
+func main() {
+	x := 0b01010011
+	y := 0b01010100
+	z := x &^ y     // 3
+	fmt.Println(z)
+}
+```
+
+所以下面的操作：
+
+- 将清除 `h.flags` 中的 `hashWriting` 标记；
+- 或者将 `h.flags` 中的 `iterator` 和 `oldIterator` 清零；
+
+```golang
+h.flags &^= hashWriting
+
+flags := h.flags &^ (iterator | oldIterator)
+```
+

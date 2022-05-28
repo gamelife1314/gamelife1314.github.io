@@ -3,6 +3,8 @@ title: 【Regex】正则表达式
 date: 2022-05-21 15:05:16
 tags:
   - regex
+category:
+  - linux
 ---
 
 一直以来，从 `JavaScript`，`PHP`，`Python`到`Golang`，然后还有`linux`系统中，无处不见正则表达式的身影，可是一致困扰在`POSIX`和`PCRE`的概念中，分不清这两个是个啥，今天就来翻翻正则表达式的老底，了解了解正则表达式的前世今生。
