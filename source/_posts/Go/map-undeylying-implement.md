@@ -1529,6 +1529,20 @@ next:
 }
 ```
 
+我们来看一个示例，假设 `h.oldB = 1`，扩容之后 `h.newB = 2`，原先 `oldBuckets` 中 `0` 号桶需要搬迁到 `buckets` 中的 `0` 号和 `2` 号桶，但是还没有搬迁；原先 `oldBuckets` 中 `1` 号桶需要搬迁到 `buckets` 中的 `1` 号和 `3` 号桶，目前已经搬迁结束，重新哈希之后，`key1` 落到了 `buckets` 中的 `1` 号桶，`key2`，`key3` 和 `key4` 落到了 `buckets` 中的 `3` 号桶。如下图所示：
+
+![](Go-map-iterate-process.png)
+
+假设经过初始化之后，`it.startBucket = 3`，`it.offset = 2`，也就是会从上面 `buckets` 的 `3` 号桶的第 `3` 个 `cell` 开始遍历，遍历完 `3` 号桶及其溢出桶的 `8` 个 `cell` 之后，依次得到了 `key3`，`key2` 和 `key4` 这三个键。
+
+然后从 `bucekts` 的 `0` 号桶开始，发现 `0` 号桶还没有搬迁，那么就从 `oldbuckets` 中的 `0` 号找到那些将要搬迁到 `buckets` 中 `0` 号桶的键，即 `key5`。
+
+`0` 号桶遍历结束之后，接着遍历 `buckets` 的 `1` 号桶，找到了 `key1`；
+
+在遍历 `buckets` 的 `2` 号桶时，发现它应该从 `oldbuckets` 的 `0` 号桶迁移过来，目前 `oldbuckets` 的 `0` 号桶还没有迁移结束，那就从`oldbuckets` 的 `0` 号桶中找到要搬迁到 `buckets` 中 `2` 号桶的 `key6`；
+
+至此遍历结束，依次得到了 `key3`，`key2`，`key4`，`key5`，`key1`，`key6`。
+
 ### 为何遍历`map`是无序的 ?
 
 这个获取是为了避免误解吧，因为 `map` 扩容之后，同一个 `bucket` 中的 `key` 要么保留在当前 `bucket` 中，要么转移到其他 `bucket`。如果按顺序遍历 `bucket`，按顺序遍历 `cell` ，在扩容之后这个顺序就无法避免了，所以干脆就让它保持这种无序，因此在遍历的时候引入随机数，每次都随机选择某个桶的某个 `cell` 开始。
