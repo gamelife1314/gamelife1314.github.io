@@ -17,7 +17,7 @@ date: 2022-05-09 12:16:07
 
 ### 学习资料
 
-- [`LeetCode-Go`](https://github.com/halfrost/LeetCode-Go)
+- [`LeetCode-Go`](https://books.halfrost.com/leetcode/)
 - [`Go` 语言高级编程](https://github.com/chai2010/advanced-go-programming-book)
 - [`Go` 语言设计与实现](https://draveness.me/golang/)
 - [`Go` 语言原本](https://golang.design/under-the-hood/)

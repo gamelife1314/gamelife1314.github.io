@@ -2,7 +2,7 @@
 title: 【Leetcode-Rust】两数之和(0001)
 date: 2022-05-27 00:25:05
 categories:
-    - Leetcode
+  - Leetcode
 ---
 
 ### [题目](https://leetcode.cn/problems/two-sum/)
@@ -52,3 +52,7 @@ impl Solution {
     }
 }
 ```
+
+### 参考链接
+
+1. [`Two Sum`](https://books.halfrost.com/leetcode/ChapterFour/0001~0099/0001.Two-Sum/)
