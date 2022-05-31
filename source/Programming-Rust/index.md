@@ -119,6 +119,7 @@ date: 2022-05-05 09:54:08
 ### 区块链
 
 - [`solana`](https://github.com/solana-labs/solana)
+- [`password-hashes`](https://github.com/RustCrypto/password-hashes)
 
 ### 数据库
 
