@@ -49,7 +49,7 @@ date: 2022-05-05 09:54:08
 - [`lldb` 使用帮助](https://lldb.llvm.org/use/map.html)
 - [用 `GitHub Actions` 进行持续集成](https://course.rs/test/ci.html)
 - [`Rust Docker Tutorial`](https://tutorialedge.net/rust/rust-docker-tutorial/)
-- [`Rust`日报】关于 `pprof-rs` 内部工作原理的一些笔记](https://mp.weixin.qq.com/s/SIgvfBKOIzTtG8x2metdKA)
+- [【`Rust`日报】关于 `pprof-rs` 内部工作原理的一些笔记](https://mp.weixin.qq.com/s/SIgvfBKOIzTtG8x2metdKA)
 
 ### `WEB`
 
