@@ -49,6 +49,7 @@ date: 2022-05-05 09:54:08
 - [`lldb` 使用帮助](https://lldb.llvm.org/use/map.html)
 - [用 `GitHub Actions` 进行持续集成](https://course.rs/test/ci.html)
 - [`Rust Docker Tutorial`](https://tutorialedge.net/rust/rust-docker-tutorial/)
+- [`Rust`日报】关于 `pprof-rs` 内部工作原理的一些笔记](https://mp.weixin.qq.com/s/SIgvfBKOIzTtG8x2metdKA)
 
 ### `WEB`
 
@@ -189,6 +190,7 @@ date: 2022-05-05 09:54:08
 - [`nom`](https://github.com/Geal/nom#example)：解析器组合库；
 - [`rusoto_core`](https://docs.rs/rusoto_core/latest/rusoto_core/)：`Rust` 实现的 `AWS` `SDK`；
 - [`polars`](https://github.com/pola-rs/polars)：用于 `Rust` 和 `Python` 快速的 `DataFrame` 库；
+- [`pprof-rs`](https://github.com/tikv/pprof-rs)：借助 `backtrace-rs` 实现的 `Rust` `CPU` 分析器；
 
 ### 学习资料
 
