@@ -14,7 +14,7 @@ date: 2022-05-09 12:16:07
 - [【`Golang`】谈谈 `slice` 的实现](/2022/05/15/Go/slice-implement/)
 - [【`Golang`】谈谈 `map` 的实现](/2022/05/22/Go/map-undeylying-implement/)
 - [【`Golang`】进程初始化和调度系统](/2021/12/19/【Golang】进程的启动和初始化/)
-- [【`Golang`】`Interface` 实现原理](/2022/03/31/【Golang】Interface-实现原理/)
+- [【`Golang`】`Interface` 实现原理](/2022/06/03/Go/interface-undeylying-implement/)
 
 ### 学习资料
 
