@@ -48,6 +48,7 @@ date: 2022-05-05 09:54:08
 - [`gdb` 速查手册](https://darkdust.net/files/GDB%20Cheat%20Sheet.pdf)
 - [`lldb` 使用帮助](https://lldb.llvm.org/use/map.html)
 - [用 `GitHub Actions` 进行持续集成](https://course.rs/test/ci.html)
+- [`GitHub Action` 构建 `Rust` 程序加速](https://ectobit.com/blog/speed-up-github-actions-rust-pipelines/)
 - [`Rust Docker Tutorial`](https://tutorialedge.net/rust/rust-docker-tutorial/)
 - [【`Rust`日报】关于 `pprof-rs` 内部工作原理的一些笔记](https://mp.weixin.qq.com/s/SIgvfBKOIzTtG8x2metdKA)
 
@@ -146,7 +147,7 @@ date: 2022-05-05 09:54:08
 - [`wasmer`](https://github.com/wasmerio/wasmer)：`Wasmer` 提供基于 `WebAssembly` 的超轻量级容器，其可以在任何地方运行：从桌面到云、以及 `IoT` 设备，并且也能嵌入到 任何编程语言中；
 - [`trunk`](https://github.com/thedodd/trunk)：构建、打包以及发布 `wasm` 应用；
 - [`spin`](https://github.com/fermyon/spin)：`Spin` 用于使用 `WebAssembly` 构建和运行快速、安全和可组合的云微服务；
-- [`WasmEdge`](https://github.com/WasmEdge/WasmEdge)：WasmEdge 是一个轻量级、高性能和可扩展的 WebAssembly 运行时，适用于云原生、边缘和去中心化应用程序。它为无服务器应用程序、嵌入式功能、微服务、智能合约和物联网设备提供支持。
+- [`WasmEdge`](https://github.com/WasmEdge/WasmEdge)：WasmEdge 是一个轻量级、高性能和可扩展的 WebAssembly 运行时，适用于云原生、边缘和去中心化应用程序。它为无服务器应用程序、嵌入式功能、微服务、智能合约和物联网设备提供支持；
 
 ### 机器学习
 
