@@ -442,3 +442,7 @@ func growslice(et *_type, old slice, cap int) slice {
 ```
 
 经过第二部分的优化，最终的 `newcap` 也和我们输出中的结果对应，也就是开始容量小于 `256` 时成倍增长，后面则降低了增长速度，并且还会一些特殊大小的类型做些优化。
+
+### 参考链接
+
+1. [https://ueokande.github.io/go-slice-tricks/](https://ueokande.github.io/go-slice-tricks/)
