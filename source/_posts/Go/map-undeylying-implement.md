@@ -1673,3 +1673,68 @@ func main() {
 }
 ```
 {% endnote %}
+
+### `map` 使用注意事项
+
+1. 相同的功能如果可以使用 `slice` 就不要用 `map`，因为 `map` 的 `key` 查找涉及到哈希值计算，`bucket` 和 `key` 的寻址等，而 `slice` 只是指针的移动。使用一个简单的例子来标间二者的性能差距：
+
+	```go
+	package main
+
+	import "testing"
+
+	type Person struct {
+		Name   string
+		Age    uint32
+		Salary uint32
+	}
+
+	const num = 1000000
+
+	func generateSlicePersons(n int) []Person {
+		persons := make([]Person, n)
+		for i := 0; i < n; i++ {
+			persons[i] = Person{
+				Name:   "test",
+				Age:    uint32(i),
+				Salary: uint32(i),
+			}
+		}
+		return persons
+	}
+
+	func generateMapPersons(n int) map[int]Person {
+		persons := make(map[int]Person, n)
+		for i := 0; i < n; i++ {
+			persons[i] = Person{
+				Name:   "test",
+				Age:    uint32(i),
+				Salary: uint32(i),
+			}
+		}
+		return persons
+	}
+
+	func BenchmarkAccessSlicePersons(b *testing.B) {
+		persons := generateSlicePersons(num)
+		b.ResetTimer()
+		for i := 0; i < num; i++ {
+			_ = persons[i]
+		}
+	}
+
+	func BenchmarkAccessMapPersons(b *testing.B) {
+		persons := generateMapPersons(num)
+		b.ResetTimer()
+		for i := 0; i < num; i++ {
+			_ = persons[i]
+		}
+	}
+	```
+
+	测试数据如下：
+
+		BenchmarkAccessSlicePersons
+		BenchmarkAccessSlicePersons-10    	1000000000	         0.0003243 ns/op
+		BenchmarkAccessMapPersons
+		BenchmarkAccessMapPersons-10      	1000000000	         0.04320 ns/op
