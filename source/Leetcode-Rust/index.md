@@ -17,5 +17,5 @@ date: 2022-05-27 00:30:23
 
 - [无重复字符的最长子串 (`0003`)](/2022/05/30/Leetcode-Rust/longest-substring-without-repeating-characters-0003/)
 - [串联所有单词的子串 (`0030`)](/2022/06/01/Leetcode-Rust/substring-with-concatenation-of-all-words-0030/)
-- [重复的 DNA 序列 (`0187`)](/2022/06/11/Leetcode-Rust/repeated-dna-sequences-0187/)
+- [重复的 `DNA` 序列 (`0187`)](/2022/06/11/Leetcode-Rust/repeated-dna-sequences-0187/)
 
