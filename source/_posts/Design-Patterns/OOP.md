@@ -73,3 +73,34 @@ public class Wallet {
 
 我们根据封装的目的，对钱包的这四个属性的访问方式进行了限制，调用者只允许通过上面六个方法来访问或者修改钱包里的数据。之所以这样设计，是因为从业务的角度来说，`id`、`createTime`在创建钱包的时候就确定好了，之后不应该再被改动，所以，我们并没有在`Wallet`类中，暴露`id`、`createTime`这两个属性的任何修改方法，比如`set`方法。而且，这两个属性的初始化设置，对于`Wallet`类的调用者来说，也应该是透明的，所以，我们在`Wallet`类的构造函数内部将其初始化设置好，而不是通过构造函数的参数来外部赋值。
 
+封装意味着我们需要控制类的灵活性，仅通过暴露必要的操作，提高类的易用性。
+
+#### 抽象
+
+封装的目的是隐藏数据和信息，抽象的目的是隐藏方法实现，让调用这只需知道类提供了哪些能力，而不关注其具体实现。在不同的语言中，对于抽象有不同的实现，例如，`Go` 和 `Java` 中的接口，`Rust` 中的 `Trait` 或者其他语言中的抽象类。
+
+```golang
+type Picture struct {
+	Id string
+}
+
+type PictureStorager interface {
+	SavePicture(picture *Picture)
+	GetPicture(id string) *Picture
+	DeletePicture(id string)
+}
+
+type MemoryStorage struct{}
+
+func (m *MemoryStorage) SavePicture(picture *Picture) {}
+
+func (m *MemoryStorage) GetPicture(id string) *Picture {
+	return &Picture{}
+}
+
+func (m *MemoryStorage) DeletePicture(id string) {}
+```
+
+在上面的这段代码中，对于调用者而言，在使用图片存储功能的时候，只需要了解 `PictureStorager` 这个接口暴露了哪些方法，而不用去查看具体类对应方法的实现逻辑。
+
+抽象作为一个非常宽泛的设计思想，在代码设计中，起到了非常重要的指导作用，很多设计原则都体现了抽象这种设计思想，比如基于接口而非实现编程、开闭原则，代码解耦等。
