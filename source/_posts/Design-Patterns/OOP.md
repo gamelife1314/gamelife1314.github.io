@@ -539,3 +539,87 @@ public class ImageProcessingJob {
 从这个设计初衷上来看，如果在我们的业务场景中，某个功能只有一种实现方式，未来也不可能被其他实现方式替换，那我们就没有必要为其设计接口，也没有必要基于接口编程，直接使用实现类就可以了。
 
 除此之外，越是不稳定的系统，我们越是要在代码的扩展性、维护性上下功夫。相反，如果某个系统特别稳定，在开发完之后，基本上不需要做维护，那我们就没有必要为其扩展性，投入不必要的开发时间。
+
+### 组合或许优于继承
+
+继承是面向对象的四大特性之一，用来表示类之间的 `is-a` 关系，可以解决代码复用的问题，但是如果继承层次过深，过复杂，继承了不必要的功能，也会影响到代码的可维护性。
+
+举个例子，我们如果要写一个关于鸟的类，首先定义一个 `AbsctractBird`，具体的麻雀，鸽子，乌鸦都会继承自这个类，那么我们能否在这个抽象类中定义一个 `fly()` 方法？当然不能，因为还有不会飞的鸟，比如说鸵鸟。如果鸵鸟类继承自 `AbsctractBird`，鸵鸟就能飞了，不符合事实。有人可能说，我们重写 `fly()` 让它抛出异常岂不是就可以了，可以是可以，但是不够优雅：
+
+{% note warning %}
+```java
+public class AbsctractBird {
+  // ... 省略其他方法
+  public void fly() { 
+    // ...
+  }
+}
+
+public class Ostrich extends AbsctractBird {
+  
+  public void fly() {
+    throw new UnSupportedMethodException("I cant't fly");
+  }
+}
+```
+{% endnote %}
+
+而且，不会飞的鸟有很多，还有企鹅，我们都需要重写 `fly()` 方法，抛出异常。到这里，支持继承的一方可能还会提出，可将鸟类分成能飞的鸟（`AbsctractFlyableBird`），和不能飞的鸟（`AbsctractUnFlyableBird`），它们都继承自 `AbsctractBird`，那么再实现具体类，这个时候继承深度已经达到三层了。如果再要区分能不能下蛋，能不能叫，我们就得设计能飞能下蛋能叫的鸟这种抽象类，继承爆炸：
+
+![](继承爆炸.png)
+
+如何使用组合来优化这种继承爆炸的问题呢？我们可以将飞，叫，下蛋定义为一种能力，哪种鸟有就给哪种鸟加上。我们会使用接口，组合，委托的技术来实现我们的诉求：
+
+```java
+public interface Flyable {
+  void fly();
+}
+
+public interface Tweetable {
+  void tweet();
+}
+
+public interface EggLayable {
+  void layEgg();
+}
+
+public class FlyAbility implements Flyable {
+  @Override
+  public void fly() {
+    // ...
+  }
+}
+
+// 省略，TweetAbility 和 EgglayAbility 的实现
+
+public class Pigeon implements Tweetable, EggLayable, Flyable {
+
+  private FlyAbility flyAbility = new FlyAbility();
+  private TweetAbility tweetAbility = new TweetAbility();
+  private EgglayAbility egglayAbility = new EgglayAbility();
+
+  @Override
+  public void fly() {
+    flyAbility.fly();
+  }
+
+  @Override
+  public void tweet() {
+    tweetAbility.tweet();
+  }
+
+  @Override
+  public void layEgg() {
+    egglayAbility.layEgg();  // 委托
+  }
+}
+```
+
+继承的三个作用：表示 `is-a` 关系，支持多态，代码复用。这三个作用都可以通过其他技术手段来实现。例如，我们可以用组合和接口的 `has-a` 来实现 `is-a`，多态可以用接口来实现；代码复用可以用组合和委托来实现。
+
+上面的例子虽然证明了组合优于继承，但不是说继承一无是处。如果类的继承结构稳定，继承层次比较浅，继承关系也不复杂，我们可以用继承。反之，如果系统不稳定，继承层次还比较深，继承关系比较复杂，我们就考虑使用组合替换它。
+
+关于继承可以实现代码复用，需要就具体情况具体分析，因为继承首先表明一种 `is-a` 关系，然后才考虑复用，例如，我们可以将能飞的鸟，飞，这个功能提取到父类中，实现代码复用。但是，对于 `Crawler` 和 `PageAnalyzer` 这两个都用到了 `URL` 拼接功能的类，我们没法抽象出一个父类，将这个公共的方法提取到父类中达到代码复用的目的，因为这个两个类不同宗也不同源，没有任何关系，硬生生扯出一个公共的类，只会影响代码的可读性。
+
+所以，结论是，虽然鼓励多用组合少用继承，但组合也并不完美，继承也不是说一无是处，实际项目中，还要根据具体的情况进行分析。
+
