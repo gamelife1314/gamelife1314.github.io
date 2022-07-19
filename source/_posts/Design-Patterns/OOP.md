@@ -623,3 +623,91 @@ public class Pigeon implements Tweetable, EggLayable, Flyable {
 
 所以，结论是，虽然鼓励多用组合少用继承，但组合也并不完美，继承也不是说一无是处，实际项目中，还要根据具体的情况进行分析。
 
+### 类之间的交互关系
+
+`UML` 统一建模语言中定义了六种类之间的关系：泛化、实现、关联、聚合、组合、依赖。其中泛化可以理解位简单的继承关系：
+
+```java
+public class A {...}
+
+public class B extends A {...}
+```
+
+实现指的是接口和实现类之间的关系：
+
+```java
+public interface A {...}
+
+public class B implements A {...}
+```
+
+聚合是一种包含关系，`A` 类的对象包含 `B` 类的对象，`B` 类对象的生命周期可以不依赖 `A` 类对象的生命周期，也就是说可以单独销毁 `A` 类对象但是不影响 `B` 类对象，比如学生和课程之间的关系：
+
+```java
+public class A {
+  private B b;
+  public A(B b) {
+    this.b = b;
+  }
+}
+```
+
+组合也是一种包含关系，但是如果 `A` 类对象包含 `B` 类对象，`B` 类对象的生命周期依赖 `A` 类对象的生命周期，`B` 类对象不可以单独存在，比如，鸟和翅膀的关系：
+
+```java
+public class A {
+  private B b;
+  public A() {
+    this.b = new B();
+  }
+}
+```
+
+关联是一种非常弱的关系，包含聚合和组合两种关系，具体到代码里面，如果 `B` 类对象是 `A` 类对象的成员变量，那 `B` 类和 `A` 类就是关联关系。具体到 `Java` 代码就是下面这样：
+
+```java
+public class A {
+  private B b;
+  public A(B b) {
+    this.b = b;
+  }
+}
+
+// 或者
+
+public class A {
+  private B b;
+  public A() {
+    this.b = new B();
+  }
+}
+```
+
+依赖是一种比关联关系更加弱的关系，包含关联关系。不管是 `B` 类对象是 `A` 类对象的成员变量，还是 `A` 类的方法使用 `B` 类对象作为参数或者返回值、局部变量，只要 `A` 类对象使用到了 `B` 类对象，我们都称它们有依赖关系。具体到 `Java` 代码就是下面这样：
+
+```java
+public class A {
+  private B b;
+  public A(B b) {
+    this.b = b;
+  }
+}
+
+// 或者
+
+public class A {
+  private B b;
+  public A() {
+    this.b = new B();
+  }
+}
+
+// 或者
+
+public class A {
+  public void func(B b) {...}
+}
+```
+
+从实用的角度来说，我们只保留泛化、实现、依赖和组合即可。
+
