@@ -1,6 +1,7 @@
 ---
 title: SOLID 设计原则
 date: 2022-07-19 22:15:12
+tags:
   - SOLID
 categories:
   - 设计原则
