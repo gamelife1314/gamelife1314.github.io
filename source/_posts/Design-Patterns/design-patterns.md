@@ -803,6 +803,158 @@ ResourcePoolConfig config = new ResourcePoolConfig.Builder()
 
 网上有一个经典的例子很好地解释了两者的区别。顾客走进一家餐馆点餐，我们利用工厂模式，根据用户不同的选择，来制作不同的食物，比如披萨、汉堡、沙拉。对于披萨来说，用户又有各种配料可以定制，比如奶酪、西红柿、起司，我们通过建造者模式根据用户选择的不同配料来制作披萨。
 
+#### 原型模式
+
+如果对象的创建成本比较大，而同一个类的不同对象之间差别不大（大部分字段都相同），在这种情况下，我们可以利用对已有对象（原型）进行复制（或者叫拷贝）的方式来创建新对象，以达到节省创建时间的目的。这种基于原型来创建对象的方式就叫作原型设计模式，简称原型模式。
+
+实际上，创建对象包含的申请内存、给成员变量赋值这一过程，本身并不会花费太多时间，或者说对于大部分业务系统来说，这点时间完全是可以忽略的。应用一个复杂的模式，只得到一点点的性能提升，这就是所谓的过度设计，得不偿失。
+
+但是，如果对象中的数据需要经过复杂的计算才能得到（比如排序、计算哈希值），或者需要从 `RPC`、网络、数据库、文件系统等非常慢速的 `IO` 中读取，这种情况下，我们就可以利用原型模式，从其他已有对象中直接拷贝得到，而不用每次在创建新对象的时候，都重复执行这些耗时的操作。
+
+举个例子，假设数据库中存储了大约 `10` 万条“搜索关键词”信息，每条信息包含关键词、关键词被搜索的次数、信息最近被更新的时间等。系统 `A` 在启动的时候会加载这份数据到内存中，用于处理某些其他的业务需求。为了方便快速地查找某个关键词对应的信息，我们给关键词建立一个散列表索引。
+
+如果是 `Java` 语言，可以直接使用语言中提供的 `HashMap` 容器来实现。其中，`HashMap` 的 `key` 为搜索关键词，`value` 为关键词详细信息（比如搜索次数）。我们只需要将数据从数据库中读取出来，放入 `HashMap` 就可以了。
+
+不过，我们还有另外一个系统 `B`，专门用来分析搜索日志，定期（比如间隔 `10` 分钟）批量地更新数据库中的数据，并且标记为新的数据版本。比如，在下面的示例图中，我们对 `v2` 版本的数据进行更新，得到 `v3` 版本的数据。这里我们假设只有更新和新添关键词，没有删除关键词的行为。
+
+![](prototype-pattern.webp)
+
+{% tabs 原型模式 %}
+
+<!-- tab 初始需求 -->
+
+为了保证系统 `A` 中数据的实时性，系统 `A` 需要定期根据数据库中的数据，更新内存中的索引和数据。实现这个需求，我们只需要在系统 `A` 中，记录当前数据的版本 `Va `对应的更新时间 `Ta`，从数据库中捞出更新时间大于 `Ta` 的所有搜索关键词，也就是找出 `Va` 版本与最新版本数据的“差集”，然后针对差集中的每个关键词进行处理。如果它已经在散列表中存在了，我们就更新相应的搜索次数、更新时间等信息；如果它在散列表中不存在，我们就将它插入到散列表中。
+
+按照这个思路，我们可以写出下面这样的代码：
+
+{% note warning %}
+```java
+
+public class Demo {
+  private ConcurrentHashMap<String, SearchWord> currentKeywords = new ConcurrentHashMap<>();
+  private long lastUpdateTime = -1;
+
+  public void refresh() {
+    // 从数据库中取出更新时间>lastUpdateTime的数据，放入到currentKeywords中
+    List<SearchWord> toBeUpdatedSearchWords = getSearchWords(lastUpdateTime);
+    long maxNewUpdatedTime = lastUpdateTime;
+    for (SearchWord searchWord : toBeUpdatedSearchWords) {
+      if (searchWord.getLastUpdateTime() > maxNewUpdatedTime) {
+        maxNewUpdatedTime = searchWord.getLastUpdateTime();
+      }
+      if (currentKeywords.containsKey(searchWord.getKeyword())) {
+        currentKeywords.replace(searchWord.getKeyword(), searchWord);
+      } else {
+        currentKeywords.put(searchWord.getKeyword(), searchWord);
+      }
+    }
+
+    lastUpdateTime = maxNewUpdatedTime;
+  }
+
+  private List<SearchWord> getSearchWords(long lastUpdateTime) {
+    // TODO: 从数据库中取出更新时间>lastUpdateTime的数据
+    return null;
+  }
+}
+```
+{% endnote %}
+
+<!-- endtab -->
+
+<!-- tab 进一步要求 -->
+
+不过，现在，我们有一个特殊的要求：任何时刻，系统 `A` 中的所有数据都必须是同一个版本的，要么都是版本 `a`，要么都是版本 `b`，不能有的是版本 `a`，有的是版本 `b`。那刚刚的更新方式就不能满足这个要求了。除此之外，我们还要求：在更新内存数据的时候，系统 `A` 不能处于不可用状态，也就是不能停机更新数据。
+
+按照这个思路，我们把正在使用的数据的版本定义为“服务版本”，当我们要更新内存中的数据的时候，我们并不是直接在服务版本（假设是版本 `a` 数据）上更新，而是重新创建另一个版本数据（假设是版本 `b` 数据），等新的版本数据建好之后，再一次性地将服务版本从版本 `a` 切换到版本 `b`。这样既保证了数据一直可用，又避免了中间状态的存在。
+
+{% note warning %}
+```java
+
+public class Demo {
+  private HashMap<String, SearchWord> currentKeywords=new HashMap<>();
+
+  public void refresh() {
+    HashMap<String, SearchWord> newKeywords = new LinkedHashMap<>();
+
+    // 从数据库中取出所有的数据，放入到newKeywords中
+    List<SearchWord> toBeUpdatedSearchWords = getSearchWords();
+    for (SearchWord searchWord : toBeUpdatedSearchWords) {
+      newKeywords.put(searchWord.getKeyword(), searchWord);
+    }
+
+    currentKeywords = newKeywords;
+  }
+
+  private List<SearchWord> getSearchWords() {
+    // TODO: 从数据库中取出所有的数据
+    return null;
+  }
+}
+```
+{% endnote %}
+
+不过，在上面的代码实现中，`newKeywords` 构建的成本比较高。我们需要将这 `10` 万条数据从数据库中读出，然后计算哈希值，构建 `newKeywords`。这个过程显然是比较耗时。为了提高效率，原型模式就派上用场了。
+
+<!-- endtab -->
+
+<!-- tab 原型模式 -->
+
+我们拷贝 `currentKeywords` 数据到 `newKeywords` 中，然后从数据库中只捞出新增或者有更新的关键词，更新到 `newKeywords` 中。而相对于 `10` 万条数据来说，每次新增或者更新的关键词个数是比较少的，所以，这种策略大大提高了数据更新的效率。
+
+{% note success %}
+```java
+
+public class Demo {
+  private HashMap<String, SearchWord> currentKeywords=new HashMap<>();
+  private long lastUpdateTime = -1;
+
+  public void refresh() {
+    // 原型模式就这么简单，拷贝已有对象的数据，更新少量差值
+    HashMap<String, SearchWord> newKeywords = (HashMap<String, SearchWord>) currentKeywords.clone();
+
+    // 从数据库中取出更新时间>lastUpdateTime的数据，放入到newKeywords中
+    List<SearchWord> toBeUpdatedSearchWords = getSearchWords(lastUpdateTime);
+    long maxNewUpdatedTime = lastUpdateTime;
+    for (SearchWord searchWord : toBeUpdatedSearchWords) {
+      if (searchWord.getLastUpdateTime() > maxNewUpdatedTime) {
+        maxNewUpdatedTime = searchWord.getLastUpdateTime();
+      }
+      if (newKeywords.containsKey(searchWord.getKeyword())) {
+        SearchWord oldSearchWord = newKeywords.get(searchWord.getKeyword());
+        oldSearchWord.setCount(searchWord.getCount());
+        oldSearchWord.setLastUpdateTime(searchWord.getLastUpdateTime());
+      } else {
+        newKeywords.put(searchWord.getKeyword(), searchWord);
+      }
+    }
+
+    lastUpdateTime = maxNewUpdatedTime;
+    currentKeywords = newKeywords;
+  }
+
+  private List<SearchWord> getSearchWords(long lastUpdateTime) {
+    // TODO: 从数据库中取出更新时间>lastUpdateTime的数据
+    return null;
+  }
+}
+```
+{% endnote %}
+
+这里利用了 `Java` 中的 `clone()` 语法来复制一个对象。如果熟悉的语言没有这个语法，那把数据从 `currentKeywords` 中一个个取出来，然后再重新计算哈希值，放入到 `newKeywords` 中也是可以接受的。毕竟，最耗时的还是从数据库中取数据的操作。相对于数据库的 `IO` 操作来说，内存操作和 `CPU` 计算的耗时都是可以忽略的。
+<!-- endtab -->
+{% endtabs %}
+
+原型模式将克隆过程委派给被克隆的实际对象。 模式为所有支持克隆的对象声明了一个通用接口， 该接口让你能够克隆对象， 同时又无需将代码和对象所属类耦合。 通常情况下， 这样的接口中仅包含一个`clone`方法。
+
+所有的类对 `clone` 方法的实现都非常相似。该方法会创建一个当前类的对象， 然后将原始对象所有的成员变量值复制到新建的类中。 你甚至可以复制私有成员变量， 因为绝大部分编程语言都允许对象访问其同类对象的私有成员变量。
+
+支持克隆的对象即为原型。
+
+原型模式有两种实现方法，深拷贝和浅拷贝。浅拷贝只会复制对象中基本数据类型数据和引用对象的内存地址，不会递归地复制引用对象，而深拷贝得到的是一份完完全全独立的对象。所以，深拷贝比起浅拷贝来说，更加耗时，更加耗内存空间。
+
+如果要拷贝的对象是不可变对象，浅拷贝共享不可变对象是没问题的，但对于可变对象来说，浅拷贝得到的对象和原始对象会共享部分数据，就有可能出现数据被修改的风险，也就变得复杂多了。除非像前面的那个例子，需要从数据库中加载 `10` 万条数据并构建散列表索引，操作非常耗时，这种情况下比较推荐使用浅拷贝，否则，没有充分的理由，不要为了一点点的性能提升而使用浅拷贝。
+
 ### 题外话
 
 #### 工厂模式和 `DI` 容器
