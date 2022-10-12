@@ -955,6 +955,255 @@ public class Demo {
 
 如果要拷贝的对象是不可变对象，浅拷贝共享不可变对象是没问题的，但对于可变对象来说，浅拷贝得到的对象和原始对象会共享部分数据，就有可能出现数据被修改的风险，也就变得复杂多了。除非像前面的那个例子，需要从数据库中加载 `10` 万条数据并构建散列表索引，操作非常耗时，这种情况下比较推荐使用浅拷贝，否则，没有充分的理由，不要为了一点点的性能提升而使用浅拷贝。
 
+### 结构型
+
+创建型模式主要解决对象的创建问题，封装复杂的创建过程，解耦对象的创建代码和使用代码。其中，单例模式用来创建全局唯一的对象。工厂模式用来创建不同但是相关类型的对象（继承同一父类或者接口的一组子类），由给定的参数来决定创建哪种类型的对象。建造者模式是用来创建复杂对象，可以通过设置不同的可选参数，“定制化”地创建不同的对象。原型模式针对创建成本比较大的对象，利用对已有对象进行复制的方式进行创建，以达到节省创建时间的目的。
+
+结构型模式主要总结了一些类或对象组合在一起的经典结构，这些经典的结构可以解决特定应用场景的问题。结构型模式包括：代理模式、桥接模式、装饰器模式、适配器模式、门面模式、组合模式、享元模式。
+
+#### 代理模式
+
+代理模式（`Proxy Design Pattern`）的原理和代码实现都不难掌握。它在不改变原始类（或叫被代理类）代码的情况下，通过引入代理类来给原始类附加功能。
+
+假设我们正在开发 `MetricsCollector` 类，用来收集接口请求的原始数据，比如访问时间、处理时长等。
+
+{% tabs 代理模式 %}
+
+<!-- tab 初始设计 -->
+
+一开始，我们会采用如下的方式来使用 `MetricsCollector` 类：
+
+{% note  warning %}
+```java
+
+public class UserController {
+  //...省略其他属性和方法...
+  private MetricsCollector metricsCollector; // 依赖注入
+
+  public UserVo login(String telephone, String password) {
+    long startTimestamp = System.currentTimeMillis();
+
+    // ... 省略login逻辑...
+
+    long endTimeStamp = System.currentTimeMillis();
+    long responseTime = endTimeStamp - startTimestamp;
+    RequestInfo requestInfo = new RequestInfo("login", responseTime, startTimestamp);
+    metricsCollector.recordRequest(requestInfo);
+
+    //...返回UserVo数据...
+  }
+
+  public UserVo register(String telephone, String password) {
+    long startTimestamp = System.currentTimeMillis();
+
+    // ... 省略register逻辑...
+
+    long endTimeStamp = System.currentTimeMillis();
+    long responseTime = endTimeStamp - startTimestamp;
+    RequestInfo requestInfo = new RequestInfo("register", responseTime, startTimestamp);
+    metricsCollector.recordRequest(requestInfo);
+
+    //...返回UserVo数据...
+  }
+}
+```
+{% endnote %}
+
+上面的写法有两个问题。第一，性能计数器框架代码侵入到业务代码中，跟业务代码高度耦合。如果未来需要替换这个框架，那替换的成本会比较大。第二，收集接口请求的代码跟业务代码无关，本就不应该放到一个类中。业务类最好职责更加单一，只聚焦业务处理。
+<!-- endtab -->
+
+<!-- tab 代理模式 -->
+
+为了将框架代码和业务代码解耦，代理模式就派上用场了。代理类 `UserControllerProxy` 和原始类 `UserController` 实现相同的接口 `IUserController`。`UserController` 类只负责业务功能。代理类 `UserControllerProxy` 负责在业务代码执行前后附加其他逻辑代码，并通过委托的方式调用原始类来执行业务代码。
+
+{% note success %}
+```java
+
+public interface IUserController {
+  UserVo login(String telephone, String password);
+  UserVo register(String telephone, String password);
+}
+
+public class UserController implements IUserController {
+  //...省略其他属性和方法...
+
+  @Override
+  public UserVo login(String telephone, String password) {
+    //...省略login逻辑...
+    //...返回UserVo数据...
+  }
+
+  @Override
+  public UserVo register(String telephone, String password) {
+    //...省略register逻辑...
+    //...返回UserVo数据...
+  }
+}
+
+public class UserControllerProxy implements IUserController {
+  private MetricsCollector metricsCollector;
+  private UserController userController;
+
+  public UserControllerProxy(UserController userController) {
+    this.userController = userController;
+    this.metricsCollector = new MetricsCollector();
+  }
+
+  @Override
+  public UserVo login(String telephone, String password) {
+    long startTimestamp = System.currentTimeMillis();
+
+    // 委托
+    UserVo userVo = userController.login(telephone, password);
+
+    long endTimeStamp = System.currentTimeMillis();
+    long responseTime = endTimeStamp - startTimestamp;
+    RequestInfo requestInfo = new RequestInfo("login", responseTime, startTimestamp);
+    metricsCollector.recordRequest(requestInfo);
+
+    return userVo;
+  }
+
+  @Override
+  public UserVo register(String telephone, String password) {
+    long startTimestamp = System.currentTimeMillis();
+
+    UserVo userVo = userController.register(telephone, password);
+
+    long endTimeStamp = System.currentTimeMillis();
+    long responseTime = endTimeStamp - startTimestamp;
+    RequestInfo requestInfo = new RequestInfo("register", responseTime, startTimestamp);
+    metricsCollector.recordRequest(requestInfo);
+
+    return userVo;
+  }
+}
+
+//UserControllerProxy使用举例
+//因为原始类和代理类实现相同的接口，是基于接口而非实现编程
+//将UserController类对象替换为UserControllerProxy类对象，不需要改动太多代码
+IUserController userController = new UserControllerProxy(new UserController());
+```
+
+{% endnote %}
+
+参照基于接口而非实现编程的设计思想，将原始类对象替换为代理类对象的时候，为了让代码改动尽量少，在刚刚的代理模式的代码实现中，代理类和原始类需要实现相同的接口。
+
+如果原始类并没有定义接口，并且原始类代码并不是我们开发维护的（比如它来自一个第三方的类库），我们也没办法直接修改原始类，给它重新定义一个接口。对于这种外部类的扩展，我们一般都是采用继承的方式。这里也不例外。我们让代理类继承原始类，然后扩展附加功能。
+
+{% note success %}
+
+```java
+public class UserControllerProxy extends UserController {
+  private MetricsCollector metricsCollector;
+
+  public UserControllerProxy() {
+    this.metricsCollector = new MetricsCollector();
+  }
+
+  public UserVo login(String telephone, String password) {
+    long startTimestamp = System.currentTimeMillis();
+
+    UserVo userVo = super.login(telephone, password);
+
+    long endTimeStamp = System.currentTimeMillis();
+    long responseTime = endTimeStamp - startTimestamp;
+    RequestInfo requestInfo = new RequestInfo("login", responseTime, startTimestamp);
+    metricsCollector.recordRequest(requestInfo);
+
+    return userVo;
+  }
+
+  public UserVo register(String telephone, String password) {
+    long startTimestamp = System.currentTimeMillis();
+
+    UserVo userVo = super.register(telephone, password);
+
+    long endTimeStamp = System.currentTimeMillis();
+    long responseTime = endTimeStamp - startTimestamp;
+    RequestInfo requestInfo = new RequestInfo("register", responseTime, startTimestamp);
+    metricsCollector.recordRequest(requestInfo);
+
+    return userVo;
+  }
+}
+//UserControllerProxy使用举例
+UserController userController = new UserControllerProxy();
+```
+
+{% endnote %}
+
+<!-- endtab -->
+
+<!-- tab 动态代理 -->
+
+不过，刚刚的代码实现还是有点问题。一方面，我们需要在代理类中，将原始类中的所有的方法，都重新实现一遍，并且为每个方法都附加相似的代码逻辑。另一方面，如果要添加的附加功能的类有不止一个，我们需要针对每个类都创建一个代理类。
+
+如果有 `50` 个要添加附加功能的原始类，那我们就要创建 `50` 个对应的代理类。这会导致项目中类的个数成倍增加，增加了代码维护成本。并且，每个代理类中的代码都有点像模板式的“重复”代码，也增加了不必要的开发成本。
+
+我们可以使用动态代理来解决这个问题。所谓动态代理（`Dynamic Proxy`），就是我们不事先为每个原始类编写代理类，而是在运行的时候，动态地创建原始类对应的代理类，然后在系统中用代理类替换掉原始类。
+
+`Java` 语言，实现动态代理就是件很简单的事情。因为 Java 语言本身就已经提供了动态代理的语法（实际上，动态代理底层依赖的就是 `Java` 的反射语法）。
+
+{% note success %}
+```java
+
+public class MetricsCollectorProxy {
+  private MetricsCollector metricsCollector;
+
+  public MetricsCollectorProxy() {
+    this.metricsCollector = new MetricsCollector();
+  }
+
+  public Object createProxy(Object proxiedObject) {
+    Class<?>[] interfaces = proxiedObject.getClass().getInterfaces();
+    DynamicProxyHandler handler = new DynamicProxyHandler(proxiedObject);
+    return Proxy.newProxyInstance(proxiedObject.getClass().getClassLoader(), interfaces, handler);
+  }
+
+  private class DynamicProxyHandler implements InvocationHandler {
+    private Object proxiedObject;
+
+    public DynamicProxyHandler(Object proxiedObject) {
+      this.proxiedObject = proxiedObject;
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+      long startTimestamp = System.currentTimeMillis();
+      Object result = method.invoke(proxiedObject, args);
+      long endTimeStamp = System.currentTimeMillis();
+      long responseTime = endTimeStamp - startTimestamp;
+      String apiName = proxiedObject.getClass().getName() + ":" + method.getName();
+      RequestInfo requestInfo = new RequestInfo(apiName, responseTime, startTimestamp);
+      metricsCollector.recordRequest(requestInfo);
+      return result;
+    }
+  }
+}
+
+//MetricsCollectorProxy使用举例
+MetricsCollectorProxy proxy = new MetricsCollectorProxy();
+IUserController userController = (IUserController) proxy.createProxy(new UserController());
+```
+
+{% endnote %}
+
+实际上，`Spring AOP` 底层的实现原理就是基于动态代理。用户配置好需要给哪些类创建代理，并定义好在执行原始类的业务代码前后执行哪些附加功能。`Spring` 为这些类创建动态代理对象，并在 `JVM` 中替代原始类对象。原本在代码中执行的原始类的方法，被换作执行代理类的方法，也就实现了给原始类添加附加功能的目的。
+<!-- endtab -->
+
+{% endtabs %}
+
+代理模式最常用的一个应用场景就是，在业务系统中开发一些非功能性需求，比如：监控、统计、鉴权、限流、事务、幂等、日志。我们将这些附加功能与业务功能解耦，放到代理类中统一处理，让程序员只需要关注业务方面的开发。
+
+实际上，`RPC` 框架也可以看作一种代理模式，`GoF` 的《设计模式》一书中把它称作远程代理。通过远程代理，将网络通信、数据编解码等细节隐藏起来。客户端在使用 RPC 服务的时候，就像使用本地函数一样，无需了解跟服务器交互的细节。除此之外，`RPC` 服务的开发者也只需要开发业务逻辑，就像开发本地使用的函数一样，不需要关注跟客户端的交互细节。
+
+另外，假设我们要开发一个接口请求的缓存功能，对于某些接口请求，如果入参相同，在设定的过期时间内，直接返回缓存结果，而不用重新进行逻辑处理。比如，针对获取用户个人信息的需求，我们可以开发两个接口，一个支持缓存，一个支持实时查询。对于需要实时数据的需求，我们让其调用实时查询接口，对于不需要实时数据的需求，我们让其调用支持缓存的接口。
+
+最简单的实现方法就是刚刚我们讲到的，给每个需要支持缓存的查询需求都开发两个不同的接口，一个支持缓存，一个支持实时查询。但是，这样做显然增加了开发成本，而且会让代码看起来非常臃肿（接口个数成倍增加），也不方便缓存接口的集中管理（增加、删除缓存接口）、集中配置（比如配置每个接口缓存过期时间）。
+
+针对这些问题，代理模式就能派上用场了，确切地说，应该是动态代理。如果是基于 `Spring` 框架来开发的话，那就可以在 `AOP` 切面中完成接口缓存的功能。在应用启动的时候，我们从配置文件中加载需要支持缓存的接口，以及相应的缓存策略（比如过期时间）等。当请求到来的时候，我们在 `AOP` 切面中拦截请求，如果请求中带有支持缓存的字段（比如 `http://…?..&cached=true`），我们便从缓存（内存缓存或者 `Redis` 缓存等）中获取数据直接返回。
+
 ### 题外话
 
 #### 工厂模式和 `DI` 容器
