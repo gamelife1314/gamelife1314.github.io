@@ -1204,6 +1204,109 @@ IUserController userController = (IUserController) proxy.createProxy(new UserCon
 
 针对这些问题，代理模式就能派上用场了，确切地说，应该是动态代理。如果是基于 `Spring` 框架来开发的话，那就可以在 `AOP` 切面中完成接口缓存的功能。在应用启动的时候，我们从配置文件中加载需要支持缓存的接口，以及相应的缓存策略（比如过期时间）等。当请求到来的时候，我们在 `AOP` 切面中拦截请求，如果请求中带有支持缓存的字段（比如 `http://…?..&cached=true`），我们便从缓存（内存缓存或者 `Redis` 缓存等）中获取数据直接返回。
 
+#### 桥接模式
+
+桥接模式，也叫作桥梁模式，英文是 **Bridge Design Pattern**。关于桥接模式有两种理解：
+
+1. 将抽象和实现解耦，让它们可以独立变化；
+2. 一个类存在两个（或多个）独立变化的维度，我们通过组合的方式，让这两个（或多个）维度可以独立进行扩展；
+
+看个例子，`JDBC` 驱动是桥接模式的经典应用。具体代码如下所示：
+
+```java
+Class.forName("com.mysql.jdbc.Driver");//加载及注册JDBC驱动程序
+String url = "jdbc:mysql://localhost:3306/sample_db?user=root&password=your_password";
+Connection con = DriverManager.getConnection(url);
+Statement stmt = con.createStatement()；
+String query = "select * from test";
+ResultSet rs=stmt.executeQuery(query);
+while(rs.next()) {
+  rs.getString(1);
+  rs.getInt(2);
+}
+```
+
+如果我们想要把 `MySQL` 数据库换成 `Oracle` 数据库，只需要把第一行代码中的 `com.mysql.jdbc.Driver` 换成 `oracle.jdbc.driver.OracleDriver` 就可以了。当然，也有更灵活的实现方式，我们可以把需要加载的 `Driver` 类写到配置文件中，当程序启动的时候，自动从配置文件中加载，这样在切换数据库的时候，我们都不需要修改代码，只需要修改配置文件就可以了。
+
+为了弄清楚如何实现的这么优雅，来看看源码是如何实现的：
+
+```java
+
+package com.mysql.jdbc;
+import java.sql.SQLException;
+
+public class Driver extends NonRegisteringDriver implements java.sql.Driver {
+  static {
+    try {
+      java.sql.DriverManager.registerDriver(new Driver());
+    } catch (SQLException E) {
+      throw new RuntimeException("Can't register driver!");
+    }
+  }
+
+  /**
+   * Construct a new driver and register it with DriverManager
+   * @throws SQLException if a database error occurs.
+   */
+  public Driver() throws SQLException {
+    // Required for Class.forName().newInstance()
+  }
+}
+```
+
+我们可以发现，当执行 `Class.forName(“com.mysql.jdbc.Driver”)` 这条语句的时候，实际上是做了两件事情。第一件事情是要求 `JVM` 查找并加载指定的 `Driver` 类，第二件事情是执行该类的静态代码，也就是将 `MySQL Driver` 注册到 `DriverManager` 类中。
+
+当我们把具体的 `Driver` 实现类（比如，`com.mysql.jdbc.Driver`）注册到 `DriverManager` 之后，后续所有对 `JDBC` 接口的调用，都会委派到对具体的 `Driver` 实现类来执行。而 `Driver` 实现类都实现了相同的接口（`java.sql.Driver`），这也是可以灵活切换 `Driver` 的原因。
+
+```java
+public class DriverManager {
+  private final static CopyOnWriteArrayList<DriverInfo> registeredDrivers = new CopyOnWriteArrayList<DriverInfo>();
+
+  //...
+  static {
+    loadInitialDrivers();
+    println("JDBC DriverManager initialized");
+  }
+  //...
+
+  public static synchronized void registerDriver(java.sql.Driver driver) throws SQLException {
+    if (driver != null) {
+      registeredDrivers.addIfAbsent(new DriverInfo(driver));
+    } else {
+      throw new NullPointerException();
+    }
+  }
+
+  public static Connection getConnection(String url, String user, String password) throws SQLException {
+    java.util.Properties info = new java.util.Properties();
+    if (user != null) {
+      info.put("user", user);
+    }
+    if (password != null) {
+      info.put("password", password);
+    }
+    return (getConnection(url, info, Reflection.getCallerClass()));
+  }
+  //...
+}
+```
+
+桥接模式的定义是“将抽象和实现解耦，让它们可以独立变化”。那弄懂定义中“抽象”和“实现”两个概念，就是理解桥接模式的关键。那在 `JDBC` 这个例子中，什么是**抽象**？什么是**实现**呢？
+
+实际上，`JDBC` 本身就相当于**抽象**。注意，这里所说的**抽象**，指的并非**抽象类**或**接口**，而是跟具体的数据库无关的、被抽象出来的一套**类库**。具体的 `Driver`（比如，`com.mysql.jdbc.Driver`）就相当于**实现**。注意，这里所说的**实现**，也并非指**接口的实现类**，而是跟具体数据库相关的一套**类库**。`JDBC` 和 `Driver` 独立开发，通过对象之间的组合关系，组装在一起。`JDBC` 的所有逻辑操作，最终都委托给 `Driver` 来执行。它们之间的关系如下图所示：
+
+![](bridge-pattern.webp)
+
+在这里，`JDBC`(抽象) 和 `Driver`（接口） 都是可以独立演进的，`JDBC` 本身不完成任何具体的工作，它只是将工作委派给具体的实现层。
+
+再举个例子，在实际的程序中， 抽象出来的图形用户界面（`GUI`）， 由底层操作系统代码（`API`）实现，`GUI` 层调用 `API` 层来对用户的各种操作做出响应。
+
+一般来说， 你可以在两个独立方向上扩展这种应用：
+
+1. 开发多个不同的 `GUI` （例如面向普通用户和管理员进行分别配置）；
+2. 支持多个不同的 `API` （例如， 能够在 `Windows`、 `Linux` 和 `macOS` 上运行该程序）；
+
+
 ### 题外话
 
 #### 工厂模式和 `DI` 容器
