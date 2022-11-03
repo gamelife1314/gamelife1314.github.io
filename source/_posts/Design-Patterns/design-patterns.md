@@ -5,6 +5,7 @@ tags:
   - 设计模式
 categories:
   - 设计原则
+searchOnlyTitle: true
 ---
 
 
