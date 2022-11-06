@@ -1835,6 +1835,3571 @@ List<String> stooges = Arrays.asList("Larry", "Moe", "Curly");
 
 {% endtabs %}
 
+#### 门面模式
+
+门面模式，也叫外观模式，原理和实现都特别简单，应用场景也比较明确，主要在接口设计方面使用。
+
+为了保证接口的可复用性（或者叫通用性），我们需要将接口尽量设计得细粒度一点，职责单一一点。但是，如果接口的粒度过小，在接口的使用者开发一个业务功能时，就会导致需要调用 `n` 多细粒度的接口才能完成。调用者肯定会抱怨接口不好用。相反，如果接口粒度设计得太大，一个接口返回 `n` 多数据，要做 `n` 多事情，就会导致接口不够通用、可复用性不好。接口不可复用，那针对不同的调用者的业务需求，我们就需要开发不同的接口来满足，这就会导致系统的接口无限膨胀，门面模式就是用来解决这种问题。
+
+门面模式总结下来有几个应用场景：
+
+{% tabs 门面模式 %}
+
+<!-- tab 1. 解决易用性问题 -->
+
+门面模式可以用来封装系统的底层实现，隐藏系统的复杂性，提供一组更加简单易用、更高层的接口。比如，`Linux` 系统调用函数就可以看作一种“门面”。它是 `Linux` 操作系统暴露给开发者的一组“特殊”的编程接口，它封装了底层更基础的 `Linux` `内核调用。再比如，Linux` 的 `Shell` 命令，实际上也可以看作一种门面模式的应用。它继续封装系统调用，提供更加友好、简单的命令，让我们可以直接通过执行命令来跟操作系统交互。我们前面也多次讲过，设计原则、思想、模式很多都是相通的，是同一个道理不同角度的表述。实际上，从隐藏实现复杂性，提供更易用接口这个意图来看，门面模式有点类似之前讲到的迪米特法则（最少知识原则）和接口隔离原则：两个有交互的系统，只暴露有限的必要的接口。除此之外，门面模式还有点类似之前提到封装、抽象的设计思想，提供更抽象的接口，封装底层实现细节。
+
+<!-- endtab -->
+
+<!-- tab 2. 解决性能问题 -->
+
+此外利用门面模式还可以解决性能问题。假设有一个系统 `A`，提供了 `a、b、c、d` 四个接口。系统 `B` 完成某个业务功能，需要调用 `A` 系统的 `a、b、d` 接口。利用门面模式，我们提供一个包裹 `a、b、d` 接口调用的门面接口 `x`，给系统 `B` 直接使用。
+
+但是让系统 `B` 直接调用 `a、b、d` 感觉也没有太大问题，为什么还要提供一个包裹 `a、b、d` 的接口 `x` 呢？关于这个问题，通过一个具体的例子来解释一下。
+
+假设我们刚刚提到的系统 `A` 是一个后端服务器，系统 `B` 是 `App` 客户端。`App` 客户端通过后端服务器提供的接口来获取数据。我们知道，`App` 和服务器之间是通过移动网络通信的，网络通信耗时比较多，为了提高 `App` 的响应速度，我们要尽量减少 `App` 与服务器之间的网络通信次数。
+
+假设，完成某个业务功能（比如显示某个页面信息）需要“依次”调用 `a、b、d` 三个接口，因自身业务的特点，不支持并发调用这三个接口。如果我们现在发现 `App` 客户端的响应速度比较慢，排查之后发现，是因为过多的接口调用过多的网络通信。针对这种情况，我们就可以利用门面模式，让后端服务器提供一个包裹 `a、b、d` 三个接口调用的接口 `x`。`App` 客户端调用一次接口 `x`，来获取到所有想要的数据，将网络通信的次数从 `3` 次减少到 `1` 次，也就提高了 `App` 的响应速度。
+
+上面是一个简单的应用场景，从代码实现的角度来看，该如何组织门面接口和非门面接口？如果门面接口不多，我们完全可以将它跟非门面接口放到一块，也不需要特殊标记，当作普通接口来用即可。如果门面接口很多，我们可以在已有的接口之上，再重新抽象出一层，专门放置门面接口，从类、包的命名上跟原来的接口层做区分。如果门面接口特别多，并且很多都是跨多个子系统的，我们可以将门面接口放到一个新的子系统中。
+
+<!-- endtab -->
+
+<!-- tab 3. 解决分布式事务问题 -->
+
+同样举个例子，在一个金融系统中，有两个业务领域模型，用户和钱包。这两个业务领域模型都对外暴露了一系列接口，比如用户的增删改查接口、钱包的增删改查接口。假设有这样一个业务场景：在用户注册的时候，我们不仅会创建用户（在数据库 `User` 表中），还会给用户创建一个钱包（在数据库的 `Wallet` 表中）。
+
+对于这样一个简单的业务需求，我们可以通过依次调用用户的创建接口和钱包的创建接口来完成。但是，用户注册需要支持事务，也就是说，创建用户和钱包的两个操作，要么都成功，要么都失败，不能一个成功、一个失败。
+
+要支持两个接口调用在一个事务中执行，是比较难实现的，这涉及分布式事务问题。虽然我们可以通过引入分布式事务框架或者事后补偿的机制来解决，但代码实现都比较复杂。而最简单的解决方案是，利用数据库事务或者 Spring 框架提供的事务（如果是 `Java` 语言的话），在一个事务中，执行创建用户和创建钱包这两个 `SQL` 操作。这就要求两个 `SQL` 操作要在一个接口中完成，所以，我们可以借鉴门面模式的思想，再设计一个包裹这两个操作的新接口，让新接口在一个事务中执行两个 `SQL` 操作。
+
+<!-- endtab -->
+
+{% endtabs %}
+
+#### 组合模式
+
+组合模式（`Composite Design Pattern`）跟之前讲的面向对象设计中的“组合关系（通过组合来组装两个类）”，完全是两码事。这里讲的“组合模式”，主要是用来处理树形结构数据。这里的**数据**，可以简单理解为一组对象集合。
+
+假设我们有这样一个需求：设计一个类来表示文件系统中的目录，能方便地实现下面这些功能：
+
+1. 动态地添加、删除某个目录下的子目录或文件；
+2. 统计指定目录下的文件个数；
+3. 统计指定目录下的文件总大小；
+
+{% tabs 组合模式 %}
+
+<!-- tab 基础实现 -->
+下面给出这个类的骨架代码，在下面的代码实现中，我们把文件和目录统一用 `FileSystemNode` 类来表示，并且通过 `isFile` 属性来区分。
+
+{% note warning 示例 %}
+```java
+
+public class FileSystemNode {
+  private String path;
+  private boolean isFile;
+  private List<FileSystemNode> subNodes = new ArrayList<>();
+
+  public FileSystemNode(String path, boolean isFile) {
+    this.path = path;
+    this.isFile = isFile;
+  }
+
+  public int countNumOfFiles() {
+    // TODO:...
+  }
+
+  public long countSizeOfFiles() {
+    // TODO:...
+  }
+
+  public String getPath() {
+    return path;
+  }
+
+  public void addSubNode(FileSystemNode fileOrDir) {
+    subNodes.add(fileOrDir);
+  }
+
+  public void removeSubNode(FileSystemNode fileOrDir) {
+    int size = subNodes.size();
+    int i = 0;
+    for (; i < size; ++i) {
+      if (subNodes.get(i).getPath().equalsIgnoreCase(fileOrDir.getPath())) {
+        break;
+      }
+    }
+    if (i < size) {
+      subNodes.remove(i);
+    }
+  }
+}
+```
+{% endnote %}
+
+想要补全其中的 `countNumOfFiles()` 和 `countSizeOfFiles()` 这两个函数，并不是件难事，实际上这就是树上的递归遍历算法。对于文件，我们直接返回文件的个数（返回 `1`）或大小。对于目录，我们遍历目录中每个子目录或者文件，递归计算它们的个数或大小，然后求和，就是这个目录下的文件个数和文件大小。
+
+{% note warning 实现示例 %}
+
+```java
+
+  public int countNumOfFiles() {
+    if (isFile) {
+      return 1;
+    }
+    int numOfFiles = 0;
+    for (FileSystemNode fileOrDir : subNodes) {
+      numOfFiles += fileOrDir.countNumOfFiles();
+    }
+    return numOfFiles;
+  }
+
+  public long countSizeOfFiles() {
+    if (isFile) {
+      File file = new File(path);
+      if (!file.exists()) return 0;
+      return file.length();
+    }
+    long sizeofFiles = 0;
+    for (FileSystemNode fileOrDir : subNodes) {
+      sizeofFiles += fileOrDir.countSizeOfFiles();
+    }
+    return sizeofFiles;
+  }
+```
+
+{% endnote %}
+
+单纯从功能实现角度来说，上面的代码没有问题，已经实现了我们想要的功能。但是，如果我们开发的是一个大型系统，从扩展性（文件或目录可能会对应不同的操作）、业务建模（文件和目录从业务上是两个概念）、代码的可读性（文件和目录区分对待更加符合人们对业务的认知）的角度来说，我们最好对文件和目录进行区分设计，定义为 `File` 和 `Directory` 两个类。
+<!-- endtab -->
+
+<!-- tab 组合模式 -->
+
+按照前面的设计思路，我们对代码进行重构。重构之后的代码如下所示：
+
+{% note success %}
+```java
+
+public abstract class FileSystemNode {
+  protected String path;
+
+  public FileSystemNode(String path) {
+    this.path = path;
+  }
+
+  public abstract int countNumOfFiles();
+  public abstract long countSizeOfFiles();
+
+  public String getPath() {
+    return path;
+  }
+}
+
+public class File extends FileSystemNode {
+  public File(String path) {
+    super(path);
+  }
+
+  @Override
+  public int countNumOfFiles() {
+    return 1;
+  }
+
+  @Override
+  public long countSizeOfFiles() {
+    java.io.File file = new java.io.File(path);
+    if (!file.exists()) return 0;
+    return file.length();
+  }
+}
+
+public class Directory extends FileSystemNode {
+  private List<FileSystemNode> subNodes = new ArrayList<>();
+
+  public Directory(String path) {
+    super(path);
+  }
+
+  @Override
+  public int countNumOfFiles() {
+    int numOfFiles = 0;
+    for (FileSystemNode fileOrDir : subNodes) {
+      numOfFiles += fileOrDir.countNumOfFiles();
+    }
+    return numOfFiles;
+  }
+
+  @Override
+  public long countSizeOfFiles() {
+    long sizeofFiles = 0;
+    for (FileSystemNode fileOrDir : subNodes) {
+      sizeofFiles += fileOrDir.countSizeOfFiles();
+    }
+    return sizeofFiles;
+  }
+
+  public void addSubNode(FileSystemNode fileOrDir) {
+    subNodes.add(fileOrDir);
+  }
+
+  public void removeSubNode(FileSystemNode fileOrDir) {
+    int size = subNodes.size();
+    int i = 0;
+    for (; i < size; ++i) {
+      if (subNodes.get(i).getPath().equalsIgnoreCase(fileOrDir.getPath())) {
+        break;
+      }
+    }
+    if (i < size) {
+      subNodes.remove(i);
+    }
+  }
+}
+```
+
+{% endnote %}
+
+<!-- endtab -->
+
+<!-- tab 示例 -->
+
+如何用上节的实现来表示一个文件系统中的目录树结构。具体的代码示例如下所示：
+
+```java
+
+public class Demo {
+  public static void main(String[] args) {
+    /**
+     * /
+     * /wz/
+     * /wz/a.txt
+     * /wz/b.txt
+     * /wz/movies/
+     * /wz/movies/c.avi
+     * /xzg/
+     * /xzg/docs/
+     * /xzg/docs/d.txt
+     */
+    Directory fileSystemTree = new Directory("/");
+    Directory node_wz = new Directory("/wz/");
+    Directory node_xzg = new Directory("/xzg/");
+    fileSystemTree.addSubNode(node_wz);
+    fileSystemTree.addSubNode(node_xzg);
+
+    File node_wz_a = new File("/wz/a.txt");
+    File node_wz_b = new File("/wz/b.txt");
+    Directory node_wz_movies = new Directory("/wz/movies/");
+    node_wz.addSubNode(node_wz_a);
+    node_wz.addSubNode(node_wz_b);
+    node_wz.addSubNode(node_wz_movies);
+
+    File node_wz_movies_c = new File("/wz/movies/c.avi");
+    node_wz_movies.addSubNode(node_wz_movies_c);
+
+    Directory node_xzg_docs = new Directory("/xzg/docs/");
+    node_xzg.addSubNode(node_xzg_docs);
+
+    File node_xzg_docs_d = new File("/xzg/docs/d.txt");
+    node_xzg_docs.addSubNode(node_xzg_docs_d);
+
+    System.out.println("/ files num:" + fileSystemTree.countNumOfFiles());
+    System.out.println("/wz/ files num:" + node_wz.countNumOfFiles());
+  }
+}
+```
+
+对照着这个例子，再重新看一下组合模式的定义：“将一组对象（文件和目录）组织成树形结构，以表示一种‘部分 - 整体’的层次结构（目录与子目录的嵌套结构）。组合模式让客户端可以统一单个对象（文件）和组合对象（目录）的处理逻辑（递归遍历）。”
+
+实际上，刚才讲的这种组合模式的设计思路，与其说是一种设计模式，倒不如说是对业务场景的一种数据结构和算法的抽象。其中，数据可以表示成树这种数据结构，业务需求可以通过在树上的递归遍历算法来实现。
+<!-- endtab -->
+
+{% endtabs %}
+
+另外举个例子，假设我们在开发一个 `OA` 系统（办公自动化系统）。公司的组织结构包含部门和员工两种数据类型。其中，部门又可以包含子部门和员工。我们希望在内存中构建整个公司的人员架构图（部门、子部门、员工的隶属关系），并且提供接口计算出部门的薪资成本（隶属于这个部门的所有员工的薪资和）。部门包含子部门和员工，这是一种嵌套结构，可以表示成树这种数据结构。计算每个部门的薪资开支这样一个需求，也可以通过在树上的遍历算法来实现。所以，从这个角度来看，这个应用场景可以使用组合模式来设计和实现。
+
+代码实现如下，`HumanResource` 是部门类（`Department`）和员工类（`Employee`）抽象出来的父类，为的是能统一薪资的处理逻辑。`Demo` 中的代码负责从数据库中读取数据并在内存中构建组织架构图。
+
+{% note success 点击查看实现 %}
+```java
+
+public abstract class HumanResource {
+  protected long id;
+  protected double salary;
+
+  public HumanResource(long id) {
+    this.id = id;
+  }
+
+  public long getId() {
+    return id;
+  }
+
+  public abstract double calculateSalary();
+}
+
+public class Employee extends HumanResource {
+  public Employee(long id, double salary) {
+    super(id);
+    this.salary = salary;
+  }
+
+  @Override
+  public double calculateSalary() {
+    return salary;
+  }
+}
+
+public class Department extends HumanResource {
+  private List<HumanResource> subNodes = new ArrayList<>();
+
+  public Department(long id) {
+    super(id);
+  }
+
+  @Override
+  public double calculateSalary() {
+    double totalSalary = 0;
+    for (HumanResource hr : subNodes) {
+      totalSalary += hr.calculateSalary();
+    }
+    this.salary = totalSalary;
+    return totalSalary;
+  }
+
+  public void addSubNode(HumanResource hr) {
+    subNodes.add(hr);
+  }
+}
+
+// 构建组织架构的代码
+public class Demo {
+  private static final long ORGANIZATION_ROOT_ID = 1001;
+  private DepartmentRepo departmentRepo; // 依赖注入
+  private EmployeeRepo employeeRepo; // 依赖注入
+
+  public void buildOrganization() {
+    Department rootDepartment = new Department(ORGANIZATION_ROOT_ID);
+    buildOrganization(rootDepartment);
+  }
+
+  private void buildOrganization(Department department) {
+    List<Long> subDepartmentIds = departmentRepo.getSubDepartmentIds(department.getId());
+    for (Long subDepartmentId : subDepartmentIds) {
+      Department subDepartment = new Department(subDepartmentId);
+      department.addSubNode(subDepartment);
+      buildOrganization(subDepartment);
+    }
+    List<Long> employeeIds = employeeRepo.getDepartmentEmployeeIds(department.getId());
+    for (Long employeeId : employeeIds) {
+      double salary = employeeRepo.getEmployeeSalary(employeeId);
+      department.addSubNode(new Employee(employeeId, salary));
+    }
+  }
+}
+```
+{% endnote %}
+
+再拿组合模式的定义跟这个例子对照一下：“将一组对象（员工和部门）组织成树形结构，以表示一种‘部分 - 整体’的层次结构（部门与子部门的嵌套结构）。组合模式让客户端可以统一单个对象（员工）和组合对象（部门）的处理逻辑（递归遍历）。”
+
+#### 享元模式
+
+所谓“享元”，顾名思义就是被共享的单元。享元模式的意图是复用对象，节省内存，前提是享元对象是不可变对象。
+
+具体来讲，当一个系统中存在大量重复对象的时候，如果这些重复的对象是不可变对象，我们就可以利用享元模式将对象设计成享元，在内存中只保留一份实例，供多处代码引用。这样可以减少内存中对象的数量，起到节省内存的目的。实际上，不仅仅相同对象可以设计成享元，对于相似对象，我们也可以将这些对象中相同的部分（字段）提取出来，设计成享元，让这些大量相似对象引用这些享元。
+
+定义中的“不可变对象”指的是，一旦通过构造函数初始化完成之后，它的状态（对象的成员变量或者属性）就不会再被修改了。所以，不可变对象不能暴露任何 `set()` 等修改内部状态的方法。之所以要求享元是不可变对象，那是因为它会被多处代码共享使用，避免一处代码对享元进行了修改，影响到其他使用它的代码。
+
+举个例子，假设我们在开发一个棋牌游戏（比如象棋）。一个游戏厅中有成千上万个“房间”，每个房间对应一个棋局。棋局要保存每个棋子的数据，比如：棋子类型（将、相、士、炮等）、棋子颜色（红方、黑方）、棋子在棋局中的位置。利用这些数据，我们就能显示一个完整的棋盘给玩家。具体的代码如下所示。其中，`ChessPiece` 类表示棋子，`ChessBoard` 类表示一个棋局，里面保存了象棋中 `30` 个棋子的信息。
+
+{% tabs 享元模式 %}
+
+<!-- tab 初步实现 -->
+```java
+
+public class ChessPiece {//棋子
+  private int id;
+  private String text;
+  private Color color;
+  private int positionX;
+  private int positionY;
+
+  public ChessPiece(int id, String text, Color color, int positionX, int positionY) {
+    this.id = id;
+    this.text = text;
+    this.color = color;
+    this.positionX = positionX;
+    this.positionY = positionX;
+  }
+
+  public static enum Color {
+    RED, BLACK
+  }
+
+  // ...省略其他属性和getter/setter方法...
+}
+
+public class ChessBoard {//棋局
+  private Map<Integer, ChessPiece> chessPieces = new HashMap<>();
+
+  public ChessBoard() {
+    init();
+  }
+
+  private void init() {
+    chessPieces.put(1, new ChessPiece(1, "車", ChessPiece.Color.BLACK, 0, 0));
+    chessPieces.put(2, new ChessPiece(2,"馬", ChessPiece.Color.BLACK, 0, 1));
+    //...省略摆放其他棋子的代码...
+  }
+
+  public void move(int chessPieceId, int toPositionX, int toPositionY) {
+    //...省略...
+  }
+}
+```
+
+为了记录每个房间当前的棋局情况，我们需要给每个房间都创建一个 `ChessBoard` 棋局对象。因为游戏大厅中有成千上万的房间（实际上，百万人同时在线的游戏大厅也有很多），那保存这么多棋局对象就会消耗大量的内存。
+
+<!-- endtab -->
+
+<!-- tab 享元模式 -->
+
+在使用享元模式之前，记录 `1` 万个棋局，我们要创建 `30` 万（`30*1` 万）个棋子的 `ChessPieceUnit` 对象。利用享元模式，我们只需要创建 `30` 个享元对象供所有棋局共享使用即可，将大大节省内存。
+
+刚刚的实现方式，在内存中会有大量的相似对象。这些相似对象的 `id`、`text`、`color` 都是相同的，唯独 `positionX`、`positionY` 不同。实际上，我们可以将棋子的 `id`、`text`、`color` 属性拆分出来，设计成独立的类，并且作为享元供多个棋盘复用。这样，棋盘只需要记录每个棋子的位置信息就可以了。具体的代码实现如下所示：
+
+```java
+
+// 享元类
+public class ChessPieceUnit {
+  private int id;
+  private String text;
+  private Color color;
+
+  public ChessPieceUnit(int id, String text, Color color) {
+    this.id = id;
+    this.text = text;
+    this.color = color;
+  }
+
+  public static enum Color {
+    RED, BLACK
+  }
+
+  // ...省略其他属性和getter方法...
+}
+
+public class ChessPieceUnitFactory {
+  private static final Map<Integer, ChessPieceUnit> pieces = new HashMap<>();
+
+  static {
+    pieces.put(1, new ChessPieceUnit(1, "車", ChessPieceUnit.Color.BLACK));
+    pieces.put(2, new ChessPieceUnit(2,"馬", ChessPieceUnit.Color.BLACK));
+    //...省略摆放其他棋子的代码...
+  }
+
+  public static ChessPieceUnit getChessPiece(int chessPieceId) {
+    return pieces.get(chessPieceId);
+  }
+}
+
+public class ChessPiece {
+  private ChessPieceUnit chessPieceUnit;
+  private int positionX;
+  private int positionY;
+
+  public ChessPiece(ChessPieceUnit unit, int positionX, int positionY) {
+    this.chessPieceUnit = unit;
+    this.positionX = positionX;
+    this.positionY = positionY;
+  }
+  // 省略getter、setter方法
+}
+
+public class ChessBoard {
+  private Map<Integer, ChessPiece> chessPieces = new HashMap<>();
+
+  public ChessBoard() {
+    init();
+  }
+
+  private void init() {
+    chessPieces.put(1, new ChessPiece(
+            ChessPieceUnitFactory.getChessPiece(1), 0,0));
+    chessPieces.put(1, new ChessPiece(
+            ChessPieceUnitFactory.getChessPiece(2), 1,0));
+    //...省略摆放其他棋子的代码...
+  }
+
+  public void move(int chessPieceId, int toPositionX, int toPositionY) {
+    //...省略...
+  }
+}
+```
+
+上面的代码实现中，我们利用工厂类来缓存 `ChessPieceUnit` 信息（也就是 `id`、`text`、`color`）。通过工厂类获取到的 ChessPieceUnit 就是享元。所有的 `ChessBoard` 对象共享这 `30` 个 `ChessPieceUnit` 对象（因为象棋中只有 `30` 个棋子）。
+
+<!-- endtab -->
+
+{% endtabs %}
+
+另外一个示例应用场景，文本编辑器，可以把这里提到的文本编辑器想象成 `Office` 的 `Wor`d。不过，为了简化需求背景，我们假设这个文本编辑器只实现了文字编辑功能，不包含图片、表格等复杂的编辑功能。对于简化之后的文本编辑器，我们要在内存中表示一个文本文件，只需要记录文字和格式两部分信息就可以了，其中，格式又包括文字的字体、大小、颜色等信息。
+
+尽管在实际的文档编写中，我们一般都是按照文本类型（标题、正文……）来设置文字的格式，标题是一种格式，正文是另一种格式等等。但是，从理论上讲，我们可以给文本文件中的每个文字都设置不同的格式。为了实现如此灵活的格式设置，并且代码实现又不过于太复杂，我们把每个文字都当作一个独立的对象来看待，并且在其中包含它的格式信息。具体的代码示例如下所示：
+
+{% tabs 享元模式2 %}
+
+<!-- tab 初步实现 -->
+
+{% note warning %}
+
+```java
+
+public class Character {//文字
+  private char c;
+
+  private Font font;
+  private int size;
+  private int colorRGB;
+
+  public Character(char c, Font font, int size, int colorRGB) {
+    this.c = c;
+    this.font = font;
+    this.size = size;
+    this.colorRGB = colorRGB;
+  }
+}
+
+public class Editor {
+  private List<Character> chars = new ArrayList<>();
+
+  public void appendCharacter(char c, Font font, int size, int colorRGB) {
+    Character character = new Character(c, font, size, colorRGB);
+    chars.add(character);
+  }
+}
+```
+
+{% endnote %}
+
+在文本编辑器中，我们每敲一个文字，都会调用 `Editor` 类中的 a`ppendCharacter()` 方法，创建一个新的 `Character` 对象，保存到 `chars` 数组中。如果一个文本文件中，有上万、十几万、几十万的文字，那我们就要在内存中存储这么多 `Character` 对象。
+<!-- endtab -->
+
+<!-- tab 享元模式 -->
+
+实际上，在一个文本文件中，用到的字体格式不会太多，毕竟不大可能有人把每个文字都设置成不同的格式。所以，对于字体格式，我们可以将它设计成享元，让不同的文字共享使用。按照这个设计思路，我们对上面的代码进行重构。重构后的代码如下所示：
+
+{% note success %}
+
+```java
+
+public class CharacterStyle {
+  private Font font;
+  private int size;
+  private int colorRGB;
+
+  public CharacterStyle(Font font, int size, int colorRGB) {
+    this.font = font;
+    this.size = size;
+    this.colorRGB = colorRGB;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    CharacterStyle otherStyle = (CharacterStyle) o;
+    return font.equals(otherStyle.font)
+            && size == otherStyle.size
+            && colorRGB == otherStyle.colorRGB;
+  }
+}
+
+public class CharacterStyleFactory {
+  private static final List<CharacterStyle> styles = new ArrayList<>();
+
+  public static CharacterStyle getStyle(Font font, int size, int colorRGB) {
+    CharacterStyle newStyle = new CharacterStyle(font, size, colorRGB);
+    for (CharacterStyle style : styles) {
+      if (style.equals(newStyle)) {
+        return style;
+      }
+    }
+    styles.add(newStyle);
+    return newStyle;
+  }
+}
+
+public class Character {
+  private char c;
+  private CharacterStyle style;
+
+  public Character(char c, CharacterStyle style) {
+    this.c = c;
+    this.style = style;
+  }
+}
+
+public class Editor {
+  private List<Character> chars = new ArrayList<>();
+
+  public void appendCharacter(char c, Font font, int size, int colorRGB) {
+    Character character = new Character(c, CharacterStyleFactory.getStyle(font, size, colorRGB));
+    chars.add(character);
+  }
+}
+```
+
+{% endnote %}
+
+<!-- endtab -->
+
+{% endtabs %}
+
+### 行为型
+
+行为型设计模式几乎占了 `23` 种经典设计模式的一半。它们分别是：观察者模式、模板模式、策略模式、职责链模式、状态模式、迭代器模式、访问者模式、备忘录模式、命令模式、解释器模式、中介模式。
+
+#### 观察者模式
+
+观察者模式（`Observer Design Pattern`）也被称为发布订阅模式（`Publish-Subscribe Design Pattern`），它的意思是在对象之间定义一个一对多的依赖，当一个对象状态改变的时候，所有依赖的对象都会自动收到通知。
+
+一般情况下，被依赖的对象叫作被观察者（`Observable`），依赖的对象叫作观察者（`Observer`）。不过，在实际的项目开发中，这两种对象的称呼是比较灵活的，有各种不同的叫法，比如：`Subject-Observer`、`Publisher-Subscriber`、`Producer-Consumer`、`EventEmitter-EventListener`、`Dispatcher-Listener`。不管怎么称呼，只要应用场景符合刚刚给出的定义，都可以看作观察者模式。
+
+实际上，观察者模式是一个比较抽象的模式，根据不同的应用场景和需求，有完全不同的实现方式，现在，我们先来看其中最经典的一种实现方式。这也是在讲到这种模式的时候，很多书籍或资料给出的最常见的实现方式。具体的代码如下所示：
+
+{% note success %}
+
+```java
+
+public interface Subject {
+  void registerObserver(Observer observer);
+  void removeObserver(Observer observer);
+  void notifyObservers(Message message);
+}
+
+public interface Observer {
+  void update(Message message);
+}
+
+public class ConcreteSubject implements Subject {
+  private List<Observer> observers = new ArrayList<Observer>();
+
+  @Override
+  public void registerObserver(Observer observer) {
+    observers.add(observer);
+  }
+
+  @Override
+  public void removeObserver(Observer observer) {
+    observers.remove(observer);
+  }
+
+  @Override
+  public void notifyObservers(Message message) {
+    for (Observer observer : observers) {
+      observer.update(message);
+    }
+  }
+
+}
+
+public class ConcreteObserverOne implements Observer {
+  @Override
+  public void update(Message message) {
+    //TODO: 获取消息通知，执行自己的逻辑...
+    System.out.println("ConcreteObserverOne is notified.");
+  }
+}
+
+public class ConcreteObserverTwo implements Observer {
+  @Override
+  public void update(Message message) {
+    //TODO: 获取消息通知，执行自己的逻辑...
+    System.out.println("ConcreteObserverTwo is notified.");
+  }
+}
+
+public class Demo {
+  public static void main(String[] args) {
+    ConcreteSubject subject = new ConcreteSubject();
+    subject.registerObserver(new ConcreteObserverOne());
+    subject.registerObserver(new ConcreteObserverTwo());
+    subject.notifyObservers(new Message());
+  }
+}
+```
+{% endnote %}
+
+实际上，上面的代码算是观察者模式的“模板代码”，只能反映大体的设计思路。在真实的软件开发中，并不需要照搬上面的模板代码。观察者模式的实现方法各式各样，函数、类的命名等会根据业务场景的不同有很大的差别，比如 `register` 函数还可以叫作 `attach`，`remove` 函数还可以叫作 `detach `等等。不过，万变不离其宗，设计思路都是差不多的。
+
+举个实际的应用场景，假设我们在开发一个 `P2P` 投资理财系统，用户注册成功之后，我们会给用户发放投资体验金。代码实现大致是下面这个样子的：
+
+```java
+
+public class UserController {
+  private UserService userService; // 依赖注入
+  private PromotionService promotionService; // 依赖注入
+
+  public Long register(String telephone, String password) {
+    //省略输入参数的校验代码
+    //省略userService.register()异常的try-catch代码
+    long userId = userService.register(telephone, password);
+    promotionService.issueNewUserExperienceCash(userId);
+    return userId;
+  }
+}
+```
+
+虽然注册接口做了两件事情，注册和发放体验金，违反单一职责原则，但是，如果没有扩展和修改的需求，现在的代码实现是可以接受的。如果非得用观察者模式，就需要引入更多的类和更加复杂的代码结构，反倒是一种过度设计。
+
+相反，如果需求频繁变动，比如，用户注册成功之后，不再发放体验金，而是改为发放优惠券，并且还要给用户发送一封“欢迎注册成功”的站内信。这种情况下，我们就需要频繁地修改 `register()` 函数中的代码，违反开闭原则。而且，如果注册成功之后需要执行的后续操作越来越多，那 `register()` 函数的逻辑会变得越来越复杂，也就影响到代码的可读性和可维护性。
+
+这个时候，观察者模式就能派上用场了。利用观察者模式，我对上面的代码进行了重构。重构之后的代码如下所示：
+
+```java
+
+public interface RegObserver {
+  void handleRegSuccess(long userId);
+}
+
+public class RegPromotionObserver implements RegObserver {
+  private PromotionService promotionService; // 依赖注入
+
+  @Override
+  public void handleRegSuccess(long userId) {
+    promotionService.issueNewUserExperienceCash(userId);
+  }
+}
+
+public class RegNotificationObserver implements RegObserver {
+  private NotificationService notificationService;
+
+  @Override
+  public void handleRegSuccess(long userId) {
+    notificationService.sendInboxMessage(userId, "Welcome...");
+  }
+}
+
+public class UserController {
+  private UserService userService; // 依赖注入
+  private List<RegObserver> regObservers = new ArrayList<>();
+
+  // 一次性设置好，之后也不可能动态的修改
+  public void setRegObservers(List<RegObserver> observers) {
+    regObservers.addAll(observers);
+  }
+
+  public Long register(String telephone, String password) {
+    //省略输入参数的校验代码
+    //省略userService.register()异常的try-catch代码
+    long userId = userService.register(telephone, password);
+
+    for (RegObserver observer : regObservers) {
+      observer.handleRegSuccess(userId);
+    }
+
+    return userId;
+  }
+}
+```
+
+当我们需要添加新的观察者的时候，比如，用户注册成功之后，推送用户注册信息给大数据征信系统，基于观察者模式的代码实现，`UserController` 类的 `register()` 函数完全不需要修改，只需要再添加一个实现了` RegObserver` 接口的类，并且通过 `setRegObservers()` 函数将它注册到 `UserController` 类中即可。
+
+不过，你可能会说，当我们把发送体验金替换为发送优惠券的时候，需要修改 `RegPromotionObserver` 类中 `handleRegSuccess()` 函数的代码，这还是违反开闭原则呀？你说得没错，不过，相对于 `register()` 函数来说，`handleRegSuccess()` 函数的逻辑要简单很多，修改更不容易出错，引入 `bug` 的风险更低。
+
+设计模式要干的事情就是解耦。创建型模式是将创建和使用代码解耦，结构型模式是将不同功能代码解耦，行为型模式是将不同的行为代码解耦，具体到观察者模式，它是将观察者和被观察者代码解耦。借助设计模式，我们利用更好的代码结构，将一大坨代码拆分成职责更单一的小类，让其满足开闭原则、高内聚松耦合等特性，以此来控制和应对代码的复杂性，提高代码的可扩展性。
+
+#### 模板模式
+
+模板模式，全称是模板方法设计模式，英文是 `Template Method Design Pattern`，主要是用来解决复用和扩展两个问题，它的定义是：模板方法模式在一个方法中定义一个算法骨架，并将某些步骤推迟到子类中实现。模板方法模式可以让子类在不改变算法整体结构的情况下，重新定义算法中的某些步骤。
+
+这里的“算法”，我们可以理解为广义上的“业务逻辑”，并不特指数据结构和算法中的“算法”。这里的算法骨架就是“模板”，包含算法骨架的方法就是“模板方法”，这也是模板方法模式名字的由来。
+
+原理很简单，代码实现就更加简单，我写了一个示例代码，如下所示。`templateMethod()` 函数定义为 `final`，是为了避免子类重写它。`method1()` 和 `method2()` 定义为 `abstract`，是为了强迫子类去实现。不过，这些都不是必须的，在实际的项目开发中，模板模式的代码实现比较灵活，待会儿讲到应用场景的时候，我们会有具体的体现。
+
+```java
+
+public abstract class AbstractClass {
+  public final void templateMethod() {
+    //...
+    method1();
+    //...
+    method2();
+    //...
+  }
+  
+  protected abstract void method1();
+  protected abstract void method2();
+}
+
+public class ConcreteClass1 extends AbstractClass {
+  @Override
+  protected void method1() {
+    //...
+  }
+  
+  @Override
+  protected void method2() {
+    //...
+  }
+}
+
+public class ConcreteClass2 extends AbstractClass {
+  @Override
+  protected void method1() {
+    //...
+  }
+  
+  @Override
+  protected void method2() {
+    //...
+  }
+}
+
+AbstractClass demo = ConcreteClass1();
+demo.templateMethod();
+```
+
+下面分别来讲模板模式的量大作用：复用和扩展。
+
+{% tabs 模板模式 %}
+
+<!-- tab 复用 -->
+
+模板模式第一的作用是流程复用，模板模式把一个算法中不变的流程抽象到父类的模板方法 `templateMethod()` 中，将可变的部分 `method1()`、`method2()` 留给子类 `ContreteClass1` 和 `ContreteClass2` 来实现。所有的子类都可以复用父类中模板方法定义的流程代码。我们通过两个小例子来更直观地体会一下。
+
+`Java IO` 类库中，有很多类的设计用到了模板模式，比如 `InputStream`、`OutputStream`、`Reader`、`Writer`。我们拿 `InputStream` 来举例说明一下。我把 `InputStream` 部分相关代码贴在了下面。在代码中，`read()` 函数是一个模板方法，定义了读取数据的整个流程，并且暴露了一个可以由子类来定制的抽象方法。不过这个方法也被命名为了 `read()`，只是参数跟模板方法不同。
+
+```java
+
+public abstract class InputStream implements Closeable {
+  //...省略其他代码...
+  
+  public int read(byte b[], int off, int len) throws IOException {
+    if (b == null) {
+      throw new NullPointerException();
+    } else if (off < 0 || len < 0 || len > b.length - off) {
+      throw new IndexOutOfBoundsException();
+    } else if (len == 0) {
+      return 0;
+    }
+
+    int c = read();
+    if (c == -1) {
+      return -1;
+    }
+    b[off] = (byte)c;
+
+    int i = 1;
+    try {
+      for (; i < len ; i++) {
+        c = read();
+        if (c == -1) {
+          break;
+        }
+        b[off + i] = (byte)c;
+      }
+    } catch (IOException ee) {
+    }
+    return i;
+  }
+  
+  public abstract int read() throws IOException;
+}
+
+public class ByteArrayInputStream extends InputStream {
+  //...省略其他代码...
+  
+  @Override
+  public synchronized int read() {
+    return (pos < count) ? (buf[pos++] & 0xff) : -1;
+  }
+}
+```
+
+<!-- endtab -->
+
+<!-- tab 扩展 -->
+
+模板模式的第二大作用的是扩展。这里所说的扩展，并不是指代码的扩展性，而是指框架的扩展性，有点类似我们之前讲到的控制反转。基于这个作用，模板模式常用在框架的开发中，让框架用户可以在不修改框架源码的情况下，定制化框架的功能。我们通过 `Junit TestCase`、`Java Servlet` 两个例子来解释一下。
+
+1. `Java Servlet`
+    对于 `Java Web `项目开发来说，常用的开发框架是 `SpringMVC`。利用它，我们只需要关注业务代码的编写，底层的原理几乎不会涉及。但是，如果我们抛开这些高级框架来开发 `Web` 项目，必然会用到 `Servlet`。实际上，使用比较底层的 `Servlet` 来开发 `Web` 项目也不难。我们只需要定义一个继承 `HttpServlet` 的类，并且重写其中的 `doGet()` 或 `doPost()` 方法，来分别处理 `get` 和 `post` 请求。具体的代码示例如下所示：
+    ```java
+    public class HelloServlet extends HttpServlet {
+      @Override
+      protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        this.doPost(req, resp);
+      }
+      
+      @Override
+      protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.getWriter().write("Hello World.");
+      }
+    }
+    ```
+    除此之外，我们还需要在配置文件 `web.xml` 中做如下配置。`Tomcat`、`Jetty` 等 `Servlet` 容器在启动的时候，会自动加载这个配置文件中的 `URL` 和 `Servlet` 之间的映射关系。
+    ```xml
+    <servlet>
+        <servlet-name>HelloServlet</servlet-name>
+        <servlet-class>com.xzg.cd.HelloServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>HelloServlet</servlet-name>
+        <url-pattern>/hello</url-pattern>
+    </servlet-mapping>
+    ```
+    当我们在浏览器中输入网址（比如，`http://127.0.0.1:8080/hello` ）的时候，`Servlet` 容器会接收到相应的请求，并且根据 `URL` 和 `Servlet` 之间的映射关系，找到相应的 `Servlet（HelloServlet）`，然后执行它的 `service()` 方法。`service()` 方法定义在父类 `HttpServlet` 中，它会调用 `doGet()` 或 `doPost()` 方法，然后输出数据（`Hello world`）到网页。
+
+    而`HttpServlet` 的 `service()` 方法就是一个模板方法，它实现了整个 `HTTP` 请求的执行流程，`doGet()`、`doPost()` 是模板中可以由子类来定制的部分。实际上，这就相当于 `Servlet` 框架提供了一个扩展点（`doGet()`、`doPost()` 方法），让框架用户在不用修改 `Servlet` 框架源码的情况下，将业务代码通过扩展点镶嵌到框架中执行。
+
+    接下来是它的实现，感兴趣的可以点开看：
+    ```java
+    public void service(ServletRequest req, ServletResponse res)
+        throws ServletException, IOException
+    {
+        HttpServletRequest  request;
+        HttpServletResponse response;
+        if (!(req instanceof HttpServletRequest &&
+                res instanceof HttpServletResponse)) {
+            throw new ServletException("non-HTTP request or response");
+        }
+        request = (HttpServletRequest) req;
+        response = (HttpServletResponse) res;
+        service(request, response);
+    }
+
+    protected void service(HttpServletRequest req, HttpServletResponse resp)
+        throws ServletException, IOException
+    {
+        String method = req.getMethod();
+        if (method.equals(METHOD_GET)) {
+            long lastModified = getLastModified(req);
+            if (lastModified == -1) {
+                // servlet doesn't support if-modified-since, no reason
+                // to go through further expensive logic
+                doGet(req, resp);
+            } else {
+                long ifModifiedSince = req.getDateHeader(HEADER_IFMODSINCE);
+                if (ifModifiedSince < lastModified) {
+                    // If the servlet mod time is later, call doGet()
+                    // Round down to the nearest second for a proper compare
+                    // A ifModifiedSince of -1 will always be less
+                    maybeSetLastModified(resp, lastModified);
+                    doGet(req, resp);
+                } else {
+                    resp.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+                }
+            }
+        } else if (method.equals(METHOD_HEAD)) {
+            long lastModified = getLastModified(req);
+            maybeSetLastModified(resp, lastModified);
+            doHead(req, resp);
+        } else if (method.equals(METHOD_POST)) {
+            doPost(req, resp);
+        } else if (method.equals(METHOD_PUT)) {
+            doPut(req, resp);
+        } else if (method.equals(METHOD_DELETE)) {
+            doDelete(req, resp);
+        } else if (method.equals(METHOD_OPTIONS)) {
+            doOptions(req,resp);
+        } else if (method.equals(METHOD_TRACE)) {
+            doTrace(req,resp);
+        } else {
+            String errMsg = lStrings.getString("http.method_not_implemented");
+            Object[] errArgs = new Object[1];
+            errArgs[0] = method;
+            errMsg = MessageFormat.format(errMsg, errArgs);
+            resp.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, errMsg);
+        }
+    }
+    ```
+
+2. `JUnit TestCase`
+    跟 `Java Servlet` 类似，`JUnit` 框架也通过模板模式提供了一些功能扩展点（`setUp()`、t`earDown()` 等），让框架用户可以在这些扩展点上扩展功能。在使用 `JUnit` 测试框架来编写单元测试的时候，我们编写的测试类都要继承框架提供的 `TestCase` 类。在 `TestCase` 类中，`runBare()` 函数是模板方法，它定义了执行测试用例的整体流程：先执行 `setUp()` 做些准备工作，然后执行 `runTest()` 运行真正的测试代码，最后执行 `tearDown()` 做扫尾工作。`TestCase` 类的具体代码如下所示。尽管 `setUp()`、`tearDown()` 并不是抽象函数，还提供了默认的实现，不强制子类去重新实现，但这部分也是可以在子类中定制的，所以也符合模板模式的定义。
+
+    ```java
+
+    public abstract class TestCase extends Assert implements Test {
+      public void runBare() throws Throwable {
+        Throwable exception = null;
+        setUp();
+        try {
+          runTest();
+        } catch (Throwable running) {
+          exception = running;
+        } finally {
+          try {
+            tearDown();
+          } catch (Throwable tearingDown) {
+            if (exception == null) exception = tearingDown;
+          }
+        }
+        if (exception != null) throw exception;
+      }
+      
+      /**
+      * Sets up the fixture, for example, open a network connection.
+      * This method is called before a test is executed.
+      */
+      protected void setUp() throws Exception {
+      }
+
+      /**
+      * Tears down the fixture, for example, close a network connection.
+      * This method is called after a test is executed.
+      */
+      protected void tearDown() throws Exception {
+      }
+    }
+    ```
+
+<!-- endtab -->
+
+{% endtabs %}
+
+#### 策略模式
+
+策略模式，英文全称是 `Strategy Design Pattern`，它是这样定义的：定义一族算法类，将每个算法分别封装起来，让它们可以互相替换。策略模式可以使算法的变化独立于使用它们的客户端（这里的客户端代指使用算法的代码）。
+
+工厂模式是解耦对象的创建和使用，观察者模式是解耦观察者和被观察者。策略模式跟两者类似，也能起到解耦的作用，不过，它解耦的是策略的定义、创建、使用这三部分。接下来，我就详细讲讲一个完整的策略模式应该包含的这三个部分。
+
+{% tabs 策略模式 %}
+
+<!-- tab 策略定义 -->
+策略类的定义比较简单，包含一个策略接口和一组实现这个接口的策略类。因为所有的策略类都实现相同的接口，所以，客户端代码基于接口而非实现编程，可以灵活地替换不同的策略。示例代码如下所示：
+
+```java
+
+public interface Strategy {
+  void algorithmInterface();
+}
+
+public class ConcreteStrategyA implements Strategy {
+  @Override
+  public void  algorithmInterface() {
+    //具体的算法...
+  }
+}
+
+public class ConcreteStrategyB implements Strategy {
+  @Override
+  public void  algorithmInterface() {
+    //具体的算法...
+  }
+}
+```
+<!-- endtab -->
+
+<!-- tab 策略创建 -->
+因为策略模式会包含一组策略，在使用它们的时候，一般会通过类型（`type`）来判断创建哪个策略来使用。为了封装创建逻辑，我们需要对客户端代码屏蔽创建细节。我们可以把根据 `type` 创建策略的逻辑抽离出来，放到工厂类中。示例代码如下所示：
+
+```java
+public class StrategyFactory {
+  private static final Map<String, Strategy> strategies = new HashMap<>();
+
+  static {
+    strategies.put("A", new ConcreteStrategyA());
+    strategies.put("B", new ConcreteStrategyB());
+  }
+
+  public static Strategy getStrategy(String type) {
+    if (type == null || type.isEmpty()) {
+      throw new IllegalArgumentException("type should not be empty.");
+    }
+    return strategies.get(type);
+  }
+}
+```
+
+一般来讲，如果策略类是无状态的，不包含成员变量，只是纯粹的算法实现，这样的策略对象是可以被共享使用的，不需要在每次调用 `getStrategy()` 的时候，都创建一个新的策略对象。针对这种情况，我们可以使用上面这种工厂类的实现方式，事先创建好每个策略对象，缓存到工厂类中，用的时候直接返回。
+
+相反，如果策略类是有状态的，根据业务场景的需要，我们希望每次从工厂方法中，获得的都是新创建的策略对象，而不是缓存好可共享的策略对象，那我们就需要按照如下方式来实现策略工厂类。
+
+```java
+
+public class StrategyFactory {
+  public static Strategy getStrategy(String type) {
+    if (type == null || type.isEmpty()) {
+      throw new IllegalArgumentException("type should not be empty.");
+    }
+
+    if (type.equals("A")) {
+      return new ConcreteStrategyA();
+    } else if (type.equals("B")) {
+      return new ConcreteStrategyB();
+    }
+
+    return null;
+  }
+}
+```
+
+<!-- endtab -->
+
+<!-- tab 策略使用 -->
+
+我们知道，策略模式包含一组可选策略，客户端代码一般如何确定使用哪个策略呢？最常见的是运行时动态确定使用哪种策略，这也是策略模式最典型的应用场景。这里的“运行时动态”指的是，我们事先并不知道会使用哪个策略，而是在程序运行期间，根据配置、用户输入、计算结果等这些不确定因素，动态决定使用哪种策略。接下来，我们通过一个例子来解释一下。
+
+```java
+
+// 策略接口：EvictionStrategy
+// 策略类：LruEvictionStrategy、FifoEvictionStrategy、LfuEvictionStrategy...
+// 策略工厂：EvictionStrategyFactory
+
+public class UserCache {
+  private Map<String, User> cacheData = new HashMap<>();
+  private EvictionStrategy eviction;
+
+  public UserCache(EvictionStrategy eviction) {
+    this.eviction = eviction;
+  }
+
+  //...
+}
+
+// 运行时动态确定，根据配置文件的配置决定使用哪种策略
+public class Application {
+  public static void main(String[] args) throws Exception {
+    EvictionStrategy evictionStrategy = null;
+    Properties props = new Properties();
+    props.load(new FileInputStream("./config.properties"));
+    String type = props.getProperty("eviction_type");
+    evictionStrategy = EvictionStrategyFactory.getEvictionStrategy(type);
+    UserCache userCache = new UserCache(evictionStrategy);
+    //...
+  }
+}
+
+// 非运行时动态确定，在代码中指定使用哪种策略
+public class Application {
+  public static void main(String[] args) {
+    //...
+    EvictionStrategy evictionStrategy = new LruEvictionStrategy();
+    UserCache userCache = new UserCache(evictionStrategy);
+    //...
+  }
+}
+```
+<!-- endtab -->
+{% endtabs %}
+
+##### 使用策略模式避免分支判断
+
+实际上，能够移除分支判断逻辑的模式不仅仅有策略模式，后面我们要讲的状态模式也可以。对于使用哪种模式，具体还要看应用场景来定。 策略模式适用于根据不同类型的动态，决定使用哪种策略这样一种应用场景。
+
+我们先通过一个例子来看下，`if-else` 或 `switch-case` 分支判断逻辑是如何产生的。具体的代码如下所示。在这个例子中，我们没有使用策略模式，而是将策略的定义、创建、使用直接耦合在一起。
+
+{% note warning %}
+```java
+
+public class OrderService {
+  public double discount(Order order) {
+    double discount = 0.0;
+    OrderType type = order.getType();
+    if (type.equals(OrderType.NORMAL)) { // 普通订单
+      //...省略折扣计算算法代码
+    } else if (type.equals(OrderType.GROUPON)) { // 团购订单
+      //...省略折扣计算算法代码
+    } else if (type.equals(OrderType.PROMOTION)) { // 促销订单
+      //...省略折扣计算算法代码
+    }
+    return discount;
+  }
+}
+```
+{% endnote %}
+
+我们使用策略模式对上面的代码重构，将不同类型订单的打折策略设计成策略类，并由工厂类来负责创建策略对象。具体的代码如下所示：
+
+{% note success %}
+```java
+
+// 策略的定义
+public interface DiscountStrategy {
+  double calDiscount(Order order);
+}
+// 省略NormalDiscountStrategy、GrouponDiscountStrategy、PromotionDiscountStrategy类代码...
+
+// 策略的创建
+public class DiscountStrategyFactory {
+  private static final Map<OrderType, DiscountStrategy> strategies = new HashMap<>();
+
+  static {
+    strategies.put(OrderType.NORMAL, new NormalDiscountStrategy());
+    strategies.put(OrderType.GROUPON, new GrouponDiscountStrategy());
+    strategies.put(OrderType.PROMOTION, new PromotionDiscountStrategy());
+  }
+
+  public static DiscountStrategy getDiscountStrategy(OrderType type) {
+    return strategies.get(type);
+  }
+}
+
+// 策略的使用
+public class OrderService {
+  public double discount(Order order) {
+    OrderType type = order.getType();
+    DiscountStrategy discountStrategy = DiscountStrategyFactory.getDiscountStrategy(type);
+    return discountStrategy.calDiscount(order);
+  }
+}
+```
+{% endnote %}
+
+重构之后的代码就没有了 `if-else` 分支判断语句了。实际上，这得益于策略工厂类。在工厂类中，我们用 Map 来缓存策略，根据 `type` 直接从 `Map` 中获取对应的策略，从而避免 `if-else` 分支判断逻辑。等后面讲到使用状态模式来避免分支判断逻辑的时候，你会发现，它们使用的是同样的套路。本质上都是借助“查表法”，根据 `type` 查表（代码中的 `strategies` 就是表）替代根据 `type` 分支判断。但是，如果业务场景需要每次都创建不同的策略对象，我们就要用另外一种工厂类的实现方式了。具体的代码如下所示：
+
+```java
+
+public class DiscountStrategyFactory {
+  public static DiscountStrategy getDiscountStrategy(OrderType type) {
+    if (type == null) {
+      throw new IllegalArgumentException("Type should not be null.");
+    }
+    if (type.equals(OrderType.NORMAL)) {
+      return new NormalDiscountStrategy();
+    } else if (type.equals(OrderType.GROUPON)) {
+      return new GrouponDiscountStrategy();
+    } else if (type.equals(OrderType.PROMOTION)) {
+      return new PromotionDiscountStrategy();
+    }
+    return null;
+  }
+}
+```
+
+#### 职责链模式
+
+职责链模式，英文翻译是 `Chain Of Responsibility Design Pattern`，它的定义式：将请求的发送和接收解耦，让多个接收对象都有机会处理这个请求。将这些接收对象串成一条链，并沿着这条链传递这个请求，直到链上的某个接收对象能够处理它为止。
+
+详细点说就是，在职责链模式中，多个处理器（也就是刚刚定义中说的“接收对象”）依次处理同一个请求。一个请求先经过 `A` 处理器处理，然后再把请求传递给 `B` 处理器，`B` 处理器处理完后再传递给 `C` 处理器，以此类推，形成一个链条。链条上的每个处理器各自承担各自的处理职责，所以叫作职责链模式。
+
+下面的示例中，`IHandler` 是 `Handler` 的通用接口，`HandlerChain` 使用数组保存了所有 `Handler`，并且需要在 `handle()` 函数中，依次调用每个处理器的 `handle()` 函数。
+
+```java
+
+public interface IHandler {
+  boolean handle();
+}
+
+public class HandlerA implements IHandler {
+  @Override
+  public boolean handle() {
+    boolean handled = false;
+    //...
+    return handled;
+  }
+}
+
+public class HandlerB implements IHandler {
+  @Override
+  public boolean handle() {
+    boolean handled = false;
+    //...
+    return handled;
+  }
+}
+
+public class HandlerChain {
+  private List<IHandler> handlers = new ArrayList<>();
+
+  public void addHandler(IHandler handler) {
+    this.handlers.add(handler);
+  }
+
+  public void handle() {
+    for (IHandler handler : handlers) {
+      boolean handled = handler.handle();
+      if (handled) {
+        break;
+      }
+    }
+  }
+}
+
+// 使用举例
+public class Application {
+  public static void main(String[] args) {
+    HandlerChain chain = new HandlerChain();
+    chain.addHandler(new HandlerA());
+    chain.addHandler(new HandlerB());
+    chain.handle();
+  }
+}
+```
+
+在 `GoF` 给出的定义中，如果处理器链上的某个处理器能够处理这个请求，那就不会继续往下传递请求。实际上，职责链模式还有一种变体，那就是请求会被所有的处理器都处理一遍，不存在中途终止的情况。
+
+职责链模式通常应用于一系列过滤器出现的地方，例如，对于支持 `UGC`（`User Generated Content`，用户生成内容）的应用（比如论坛）来说，用户生成的内容（比如，在论坛中发表的帖子）可能会包含一些敏感词（比如涉黄、广告、反动等词汇）。针对这个应用场景，我们就可以利用职责链模式来过滤这些敏感词。
+
+对于包含敏感词的内容，我们有两种处理方式，一种是直接禁止发布，另一种是给敏感词打马赛克（比如，用 `***` 替换敏感词）之后再发布。第一种处理方式符合 `GoF` 给出的职责链模式的定义，第二种处理方式是职责链模式的变体。
+
+下面是第一种方案的实现，如果哪一个 `Handler` 返回不合法，就直接结束流程。而第二种方案，需要依次应用每个 `Handler`，不会出现中途终止的情况。
+
+{% note success %}
+```java
+
+public interface SensitiveWordFilter {
+  boolean doFilter(Content content);
+}
+
+public class SexyWordFilter implements SensitiveWordFilter {
+  @Override
+  public boolean doFilter(Content content) {
+    boolean legal = true;
+    //...
+    return legal;
+  }
+}
+
+// PoliticalWordFilter、AdsWordFilter类代码结构与SexyWordFilter类似
+
+public class SensitiveWordFilterChain {
+  private List<SensitiveWordFilter> filters = new ArrayList<>();
+
+  public void addFilter(SensitiveWordFilter filter) {
+    this.filters.add(filter);
+  }
+
+  // return true if content doesn't contain sensitive words.
+  public boolean filter(Content content) {
+    for (SensitiveWordFilter filter : filters) {
+      if (!filter.doFilter(content)) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
+public class ApplicationDemo {
+  public static void main(String[] args) {
+    SensitiveWordFilterChain filterChain = new SensitiveWordFilterChain();
+    filterChain.addFilter(new AdsWordFilter());
+    filterChain.addFilter(new SexyWordFilter());
+    filterChain.addFilter(new PoliticalWordFilter());
+
+    boolean legal = filterChain.filter(new Content());
+    if (!legal) {
+      // 不发表
+    } else {
+      // 发表
+    }
+  }
+}
+```
+
+{% endnote %}
+
+应用设计模式主要是为了应对代码的复杂性，让其满足开闭原则，提高代码的扩展性，这里应用职责链模式也不例外。为了解决这个问题，下面的方案何尝不可，只是不号扩展：
+
+{% note warning 错误示例 %}
+```java
+
+public class SensitiveWordFilter {
+  // return true if content doesn't contain sensitive words.
+  public boolean filter(Content content) {
+    if (!filterSexyWord(content)) {
+      return false;
+    }
+
+    if (!filterAdsWord(content)) {
+      return false;
+    }
+
+    if (!filterPoliticalWord(content)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private boolean filterSexyWord(Content content) {
+    //....
+  }
+
+  private boolean filterAdsWord(Content content) {
+    //...
+  }
+
+  private boolean filterPoliticalWord(Content content) {
+    //...
+  }
+}
+```
+{% endnote %}
+
+对比来看，职责链模式将大块代码逻辑拆分成函数，将大类拆分成小类，是应对代码复杂性的常用方法。应用职责链模式，我们把各个敏感词过滤函数继续拆分出来，设计成独立的类，进一步简化了 `SensitiveWordFilter` 类，让 `SensitiveWordFilter` 类的代码不会过多，过复杂。
+
+其次，当我们要扩展新的过滤算法的时候，比如，我们还需要过滤特殊符号，按照非职责链模式的代码实现方式，我们需要修改 `SensitiveWordFilter` 的代码，违反开闭原则。不过，这样的修改还算比较集中，也是可以接受的。而职责链模式的实现方式更加优雅，只需要新添加一个 `Filter` 类，并且通过 `addFilter()` 函数将它添加到 `FilterChain` 中即可，其他代码完全不需要修改。
+
+职责链模式常用在框架的开发中，为框架提供扩展点，让框架的使用者在不修改框架源码的情况下，基于扩展点添加新的功能。实际上，更具体点来说，职责链模式最常用来开发框架的过滤器和拦截器。例如：`Servlet Filter`、`Spring Interceptor`。
+
+{% tabs 职责链模式 %}
+
+<!-- tab Servlet Filter -->
+
+`Servlet Filter` 是 `Java Servlet` 规范中定义的组件，翻译成中文就是过滤器，它可以实现对 `HTTP` 请求的过滤功能，比如鉴权、限流、记录日志、验证参数等等。因为它是 `Servlet` 规范的一部分，所以，只要是支持 `Servlet` 的 `Web` 容器（比如，`Tomcat`、`Jetty` 等），都支持过滤器功能。工作原理图如下所示：
+
+![](Chain-Of-Responsibility-Design-Pattern.webp)
+
+在实际项目中，添加一个过滤器，我们只需要定义一个实现 `javax.servlet.Filter` 接口的过滤器类，并且将它配置在 `web.xml` 配置文件中。`Web` 容器启动的时候，会读取 `web.xml` 中的配置，创建过滤器对象。当有请求到来的时候，会先经过过滤器，然后才由 `Servlet` 来处理。
+
+```java
+
+public class LogFilter implements Filter {
+  @Override
+  public void init(FilterConfig filterConfig) throws ServletException {
+    // 在创建Filter时自动调用，
+    // 其中filterConfig包含这个Filter的配置参数，比如name之类的（从配置文件中读取的）
+  }
+
+  @Override
+  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+    System.out.println("拦截客户端发送来的请求.");
+    chain.doFilter(request, response);
+    System.out.println("拦截发送给客户端的响应.");
+  }
+
+  @Override
+  public void destroy() {
+    // 在销毁Filter时自动调用
+  }
+}
+
+// 在web.xml配置文件中如下配置：
+<filter>
+  <filter-name>logFilter</filter-name>
+  <filter-class>com.xzg.cd.LogFilter</filter-class>
+</filter>
+<filter-mapping>
+    <filter-name>logFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+</filter-mapping>
+```
+
+示例代码中，我们发现，添加过滤器非常方便，不需要修改任何代码，定义一个实现 `javax.servlet.Filter` 的类，再改改配置就搞定了，完全符合开闭原则。`Servlet Filter` 能做到这点，其实就是应用了职责链模式。
+
+前面讲过，`Servlet` 只是一个规范，并不包含具体的实现，所以，`Servlet` 中的 `FilterChain` 只是一个接口定义。具体的实现类由遵从 `Servlet` 规范的 `Web` 容器来提供，比如，`ApplicationFilterChain` 类就是 `Tomcat` 提供的 `FilterChain` 的实现类，源码如下所示(为了让代码更易读懂，对代码进行了简化，只保留了跟设计思路相关的代码片段)。
+
+```java
+
+public final class ApplicationFilterChain implements FilterChain {
+  private int pos = 0; //当前执行到了哪个filter
+  private int n; //filter的个数
+  private ApplicationFilterConfig[] filters;
+  private Servlet servlet;
+  
+  @Override
+  public void doFilter(ServletRequest request, ServletResponse response) {
+    if (pos < n) {
+      ApplicationFilterConfig filterConfig = filters[pos++];
+      Filter filter = filterConfig.getFilter();
+      filter.doFilter(request, response, this);
+    } else {
+      // filter都处理完毕后，执行servlet
+      servlet.service(request, response);
+    }
+  }
+  
+  public void addFilter(ApplicationFilterConfig filterConfig) {
+    for (ApplicationFilterConfig filter:filters)
+      if (filter==filterConfig)
+         return;
+
+    if (n == filters.length) {//扩容
+      ApplicationFilterConfig[] newFilters = new ApplicationFilterConfig[n + INCREMENT];
+      System.arraycopy(filters, 0, newFilters, 0, n);
+      filters = newFilters;
+    }
+    filters[n++] = filterConfig;
+  }
+}
+```
+
+<!-- endtab -->
+
+<!-- tab Spring Interceptor -->
+
+`Spring Interceptor`，翻译成中文就是拦截器，用来实现对 `HTTP` 请求进行拦截处理。它和 `Servlet Filter` 不同之处在于，`Servlet Filter` 是 `Servlet` 规范的一部分，实现依赖于 `Web` 容器。`Spring Interceptor` 是 `Spring MVC` 框架的一部分，由 `Spring MVC` 框架来提供实现。客户端发送的请求，会先经过 `Servlet Filter`，然后再经过 `Spring Interceptor`，最后到达具体的业务代码中，原理具体如下图所示：
+
+![](spring-interceptor.webp)
+
+下面的示例，简单说明 `Spring Interceptor` 如何使用，`LogInterceptor` 实现的功能跟刚才的 `LogFilter` 完全相同，只是实现方式上稍有区别。`LogFilter` 对请求和响应的拦截是在 `doFilter()` 一个函数中实现的，而 `LogInterceptor` 对请求的拦截在 `preHandle()` 中实现，对响应的拦截在` postHandle()` 中实现。
+
+```java
+
+public class LogInterceptor implements HandlerInterceptor {
+
+  @Override
+  public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    System.out.println("拦截客户端发送来的请求.");
+    return true; // 继续后续的处理
+  }
+
+  @Override
+  public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+    System.out.println("拦截发送给客户端的响应.");
+  }
+
+  @Override
+  public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+    System.out.println("这里总是被执行.");
+  }
+}
+
+//在Spring MVC配置文件中配置interceptors
+<mvc:interceptors>
+   <mvc:interceptor>
+       <mvc:mapping path="/*"/>
+       <bean class="com.xzg.cd.LogInterceptor" />
+   </mvc:interceptor>
+</mvc:interceptors>
+```
+
+`Spring Interceptor` 底层也是基于职责链模式实现的。其中，`HandlerExecutionChain` 类是职责链模式中的处理器链。它的实现相较于 `Tomcat` 中的 `ApplicationFilterChain` 来说，逻辑更加清晰，主要是因为它将请求和响应的拦截工作，拆分到了两个函数中实现。`HandlerExecutionChain` 的源码如下所示：
+
+```java
+
+public class HandlerExecutionChain {
+ private final Object handler;
+ private HandlerInterceptor[] interceptors;
+ 
+ public void addInterceptor(HandlerInterceptor interceptor) {
+  initInterceptorList().add(interceptor);
+ }
+
+ boolean applyPreHandle(HttpServletRequest request, HttpServletResponse response) throws Exception {
+  HandlerInterceptor[] interceptors = getInterceptors();
+  if (!ObjectUtils.isEmpty(interceptors)) {
+   for (int i = 0; i < interceptors.length; i++) {
+    HandlerInterceptor interceptor = interceptors[i];
+    if (!interceptor.preHandle(request, response, this.handler)) {
+     triggerAfterCompletion(request, response, null);
+     return false;
+    }
+   }
+  }
+  return true;
+ }
+
+ void applyPostHandle(HttpServletRequest request, HttpServletResponse response, ModelAndView mv) throws Exception {
+  HandlerInterceptor[] interceptors = getInterceptors();
+  if (!ObjectUtils.isEmpty(interceptors)) {
+   for (int i = interceptors.length - 1; i >= 0; i--) {
+    HandlerInterceptor interceptor = interceptors[i];
+    interceptor.postHandle(request, response, this.handler, mv);
+   }
+  }
+ }
+
+ void triggerAfterCompletion(HttpServletRequest request, HttpServletResponse response, Exception ex)
+   throws Exception {
+  HandlerInterceptor[] interceptors = getInterceptors();
+  if (!ObjectUtils.isEmpty(interceptors)) {
+   for (int i = this.interceptorIndex; i >= 0; i--) {
+    HandlerInterceptor interceptor = interceptors[i];
+    try {
+     interceptor.afterCompletion(request, response, this.handler, ex);
+    } catch (Throwable ex2) {
+     logger.error("HandlerInterceptor.afterCompletion threw exception", ex2);
+    }
+   }
+  }
+ }
+}
+```
+<!-- endtab -->
+
+{% endtabs %}
+
+#### 状态模式
+
+状态模式一般用来实现状态机，而状态机常用在游戏、工作流引擎等系统开发中。不过，状态机的实现方式有多种，除了状态模式，比较常用的还有分支逻辑法和查表法。
+
+开始之前，首先说明下什么是有限状态机，英文是 `Finite State Machine`，缩写为 `FSM`，简称为状态机。状态机有 `3` 个组成部分：状态（`State`）、事件（`Event`）、动作（`Action`）。其中，事件也称为转移条件（`Transition Condition`）。事件触发状态的转移及动作的执行。不过，动作不是必须的，也可能只转移状态，不执行任何动作。
+
+在游戏**超级马里奥**中，马里奥可以变身为多种形态，比如小马里奥（`Small Mario`）、超级马里奥（`Super Mario`）、火焰马里奥（`Fire Mario`）、斗篷马里奥（`Cape Mario`）等等。在不同的游戏情节下，各个形态会互相转化，并相应的增减积分。比如，初始形态是小马里奥，吃了蘑菇之后就会变成超级马里奥，并且增加 `100` 积分。
+
+实际上，马里奥形态的转变就是一个状态机。其中，马里奥的不同形态就是状态机中的“状态”，游戏情节（比如吃了蘑菇）就是状态机中的“事件”，加减积分就是状态机中的“动作”。比如，吃蘑菇这个事件，会触发状态的转移：从小马里奥转移到超级马里奥，以及触发动作的执行（增加 `100` 积分）。
+
+为了方便接下来的讲解，对游戏背景做了简化，只保留了部分状态和事件。简化之后的状态转移如下图所示：
+
+![](super-mario.webp)
+
+下面是实现这种状态机的代码骨架：
+
+{% note success 点击展开 %}
+```java
+
+public enum State {
+  SMALL(0),
+  SUPER(1),
+  FIRE(2),
+  CAPE(3);
+
+  private int value;
+
+  private State(int value) {
+    this.value = value;
+  }
+
+  public int getValue() {
+    return this.value;
+  }
+}
+
+public class MarioStateMachine {
+  private int score;
+  private State currentState;
+
+  public MarioStateMachine() {
+    this.score = 0;
+    this.currentState = State.SMALL;
+  }
+
+  public void obtainMushRoom() {
+    //TODO
+  }
+
+  public void obtainCape() {
+    //TODO
+  }
+
+  public void obtainFireFlower() {
+    //TODO
+  }
+
+  public void meetMonster() {
+    //TODO
+  }
+
+  public int getScore() {
+    return this.score;
+  }
+
+  public State getCurrentState() {
+    return this.currentState;
+  }
+}
+
+public class ApplicationDemo {
+  public static void main(String[] args) {
+    MarioStateMachine mario = new MarioStateMachine();
+    mario.obtainMushRoom();
+    int score = mario.getScore();
+    State state = mario.getCurrentState();
+    System.out.println("mario score: " + score + "; state: " + state);
+  }
+}
+```
+{% endnote %}
+
+实现状态机这里提供三种方式，分支逻辑法，查表法和状态模式。
+
+{% tabs 状态模式, 3 %}
+
+<!-- tab 分支逻辑法 -->
+
+其中，分支逻辑法最简单直接，参照状态转移图，将每一个状态转移，原模原样地直译成代码。这样编写的代码会包含大量的 `if-else` 或 `switch-case` 分支判断逻辑，甚至是嵌套的分支判断逻辑。
+
+按照这个实现思路，补全下代码：
+
+```java
+
+public class MarioStateMachine {
+  private int score;
+  private State currentState;
+
+  public MarioStateMachine() {
+    this.score = 0;
+    this.currentState = State.SMALL;
+  }
+
+  public void obtainMushRoom() {
+    if (currentState.equals(State.SMALL)) {
+      this.currentState = State.SUPER;
+      this.score += 100;
+    }
+  }
+
+  public void obtainCape() {
+    if (currentState.equals(State.SMALL) || currentState.equals(State.SUPER) ) {
+      this.currentState = State.CAPE;
+      this.score += 200;
+    }
+  }
+
+  public void obtainFireFlower() {
+    if (currentState.equals(State.SMALL) || currentState.equals(State.SUPER) ) {
+      this.currentState = State.FIRE;
+      this.score += 300;
+    }
+  }
+
+  public void meetMonster() {
+    if (currentState.equals(State.SUPER)) {
+      this.currentState = State.SMALL;
+      this.score -= 100;
+      return;
+    }
+
+    if (currentState.equals(State.CAPE)) {
+      this.currentState = State.SMALL;
+      this.score -= 200;
+      return;
+    }
+
+    if (currentState.equals(State.FIRE)) {
+      this.currentState = State.SMALL;
+      this.score -= 300;
+      return;
+    }
+  }
+
+  public int getScore() {
+    return this.score;
+  }
+
+  public State getCurrentState() {
+    return this.currentState;
+  }
+}
+```
+对于简单的状态机来说，分支逻辑这种实现方式是可以接受的。但是，对于复杂的状态机来说，这种实现方式极易漏写或者错写某个状态转移。除此之外，代码中充斥着大量的 `if-else` 或者 `switch-case` 分支判断逻辑，可读性和可维护性都很差。如果哪天修改了状态机中的某个状态转移，我们要在冗长的分支逻辑中找到对应的代码进行修改，很容易改错，引入 `bug`。
+
+<!-- endtab -->
+
+<!-- tab 查表法 -->
+
+前一种方法有点类似 `hard code`，对于复杂的状态机来说不适用，而状态机的第二种实现方式查表法，就更加合适了。接下来，我们就一块儿来看下，如何利用查表法来补全骨架代码。
+
+实际上，除了用状态转移图来表示之外，状态机还可以用二维表来表示，如下所示。在这个二维表中，第一维表示当前状态，第二维表示事件，值表示当前状态经过事件之后，转移到的新状态及其执行的动作。
+
+![](state-patttern-find-table.webp)
+
+相对于分支逻辑的实现方式，查表法的代码实现更加清晰，可读性和可维护性更好。当修改状态机时，我们只需要修改 `transitionTable` 和 `actionTable` 两个二维数组即可。实际上，如果我们把这两个二维数组存储在配置文件中，当需要修改状态机时，我们甚至可以不修改任何代码，只需要修改配置文件就可以了。具体的代码如下所示：
+
+```java
+
+public enum Event {
+  GOT_MUSHROOM(0),
+  GOT_CAPE(1),
+  GOT_FIRE(2),
+  MET_MONSTER(3);
+
+  private int value;
+
+  private Event(int value) {
+    this.value = value;
+  }
+
+  public int getValue() {
+    return this.value;
+  }
+}
+
+public class MarioStateMachine {
+  private int score;
+  private State currentState;
+
+  private static final State[][] transitionTable = {
+          {SUPER, CAPE, FIRE, SMALL},
+          {SUPER, CAPE, FIRE, SMALL},
+          {CAPE, CAPE, CAPE, SMALL},
+          {FIRE, FIRE, FIRE, SMALL}
+  };
+
+  private static final int[][] actionTable = {
+          {+100, +200, +300, +0},
+          {+0, +200, +300, -100},
+          {+0, +0, +0, -200},
+          {+0, +0, +0, -300}
+  };
+
+  public MarioStateMachine() {
+    this.score = 0;
+    this.currentState = State.SMALL;
+  }
+
+  public void obtainMushRoom() {
+    executeEvent(Event.GOT_MUSHROOM);
+  }
+
+  public void obtainCape() {
+    executeEvent(Event.GOT_CAPE);
+  }
+
+  public void obtainFireFlower() {
+    executeEvent(Event.GOT_FIRE);
+  }
+
+  public void meetMonster() {
+    executeEvent(Event.MET_MONSTER);
+  }
+
+  private void executeEvent(Event event) {
+    int stateValue = currentState.getValue();
+    int eventValue = event.getValue();
+    this.currentState = transitionTable[stateValue][eventValue];
+    this.score += actionTable[stateValue][eventValue];
+  }
+
+  public int getScore() {
+    return this.score;
+  }
+
+  public State getCurrentState() {
+    return this.currentState;
+  }
+
+}
+```
+
+<!-- endtab -->
+
+<!-- tab 状态模式 -->
+
+在查表法的代码实现中，事件触发的动作只是简单的积分加减，所以，用一个 `int` 类型的二维数组 `actionTable` 就能表示，二维数组中的值表示积分的加减值。但是，如果要执行的动作并非这么简单，而是一系列复杂的逻辑操作（比如加减积分、写数据库，还有可能发送消息通知等等），我们就没法用如此简单的二维数组来表示了。这也就是说，查表法的实现方式有一定局限性。
+
+虽然分支逻辑的实现方式不存在这个问题，但它又存在前面讲到的其他问题，比如分支判断逻辑较多，导致代码可读性和可维护性不好等。实际上，针对分支逻辑法存在的问题，我们可以使用状态模式来解决。
+
+状态模式通过将事件触发的状态转移和动作执行，拆分到不同的状态类中，来避免分支判断逻辑。我们还是结合代码来理解这句话。
+
+利用状态模式，我们来补全 `MarioStateMachine` 类，补全后的代码如下所示。其中，`IMario` 是状态的接口，定义了所有的事件。`SmallMario`、`SuperMario`、`CapeMario`、`FireMario` 是 `IMario` 接口的实现类，分别对应状态机中的 `4` 个状态。原来所有的状态转移和动作执行的代码逻辑，都集中在 `MarioStateMachine` 类中，现在，这些代码逻辑被分散到了这 `4` 个状态类中。
+
+```java
+
+public interface IMario { //所有状态类的接口
+  State getName();
+  //以下是定义的事件
+  void obtainMushRoom();
+  void obtainCape();
+  void obtainFireFlower();
+  void meetMonster();
+}
+
+public class SmallMario implements IMario {
+  private MarioStateMachine stateMachine;
+
+  public SmallMario(MarioStateMachine stateMachine) {
+    this.stateMachine = stateMachine;
+  }
+
+  @Override
+  public State getName() {
+    return State.SMALL;
+  }
+
+  @Override
+  public void obtainMushRoom() {
+    stateMachine.setCurrentState(new SuperMario(stateMachine));
+    stateMachine.setScore(stateMachine.getScore() + 100);
+  }
+
+  @Override
+  public void obtainCape() {
+    stateMachine.setCurrentState(new CapeMario(stateMachine));
+    stateMachine.setScore(stateMachine.getScore() + 200);
+  }
+
+  @Override
+  public void obtainFireFlower() {
+    stateMachine.setCurrentState(new FireMario(stateMachine));
+    stateMachine.setScore(stateMachine.getScore() + 300);
+  }
+
+  @Override
+  public void meetMonster() {
+    // do nothing...
+  }
+}
+
+public class SuperMario implements IMario {
+  private MarioStateMachine stateMachine;
+
+  public SuperMario(MarioStateMachine stateMachine) {
+    this.stateMachine = stateMachine;
+  }
+
+  @Override
+  public State getName() {
+    return State.SUPER;
+  }
+
+  @Override
+  public void obtainMushRoom() {
+    // do nothing...
+  }
+
+  @Override
+  public void obtainCape() {
+    stateMachine.setCurrentState(new CapeMario(stateMachine));
+    stateMachine.setScore(stateMachine.getScore() + 200);
+  }
+
+  @Override
+  public void obtainFireFlower() {
+    stateMachine.setCurrentState(new FireMario(stateMachine));
+    stateMachine.setScore(stateMachine.getScore() + 300);
+  }
+
+  @Override
+  public void meetMonster() {
+    stateMachine.setCurrentState(new SmallMario(stateMachine));
+    stateMachine.setScore(stateMachine.getScore() - 100);
+  }
+}
+
+// 省略CapeMario、FireMario类...
+
+public class MarioStateMachine {
+  private int score;
+  private IMario currentState; // 不再使用枚举来表示状态
+
+  public MarioStateMachine() {
+    this.score = 0;
+    this.currentState = new SmallMario(this);
+  }
+
+  public void obtainMushRoom() {
+    this.currentState.obtainMushRoom();
+  }
+
+  public void obtainCape() {
+    this.currentState.obtainCape();
+  }
+
+  public void obtainFireFlower() {
+    this.currentState.obtainFireFlower();
+  }
+
+  public void meetMonster() {
+    this.currentState.meetMonster();
+  }
+
+  public int getScore() {
+    return this.score;
+  }
+
+  public State getCurrentState() {
+    return this.currentState.getName();
+  }
+
+  public void setScore(int score) {
+    this.score = score;
+  }
+
+  public void setCurrentState(IMario currentState) {
+    this.currentState = currentState;
+  }
+}
+```
+
+上面的代码实现不难看懂，我只强调其中的一点，即 `MarioStateMachine` 和各个状态类之间是双向依赖关系。`MarioStateMachine` 依赖各个状态类是理所当然的，但是，反过来，各个状态类为什么要依赖 `MarioStateMachine` 呢？这是因为，各个状态类需要更新 `MarioStateMachine` 中的两个变量，`score` 和 `currentState`。
+
+实际上，上面的代码还可以继续优化，我们可以将状态类设计成单例，毕竟状态类中不包含任何成员变量。但是，当将状态类设计成单例之后，我们就无法通过构造函数来传递 `MarioStateMachine` 了，而状态类又要依赖 `MarioStateMachine`，那该如何解决这个问题呢？
+
+在这里，我们可以通过函数参数将 `MarioStateMachine` 传递进状态类。根据这个设计思路，我们对上面的代码进行重构。重构之后的代码如下所示：
+
+```java
+
+public interface IMario {
+  State getName();
+  void obtainMushRoom(MarioStateMachine stateMachine);
+  void obtainCape(MarioStateMachine stateMachine);
+  void obtainFireFlower(MarioStateMachine stateMachine);
+  void meetMonster(MarioStateMachine stateMachine);
+}
+
+public class SmallMario implements IMario {
+  private static final SmallMario instance = new SmallMario();
+  private SmallMario() {}
+  public static SmallMario getInstance() {
+    return instance;
+  }
+
+  @Override
+  public State getName() {
+    return State.SMALL;
+  }
+
+  @Override
+  public void obtainMushRoom(MarioStateMachine stateMachine) {
+    stateMachine.setCurrentState(SuperMario.getInstance());
+    stateMachine.setScore(stateMachine.getScore() + 100);
+  }
+
+  @Override
+  public void obtainCape(MarioStateMachine stateMachine) {
+    stateMachine.setCurrentState(CapeMario.getInstance());
+    stateMachine.setScore(stateMachine.getScore() + 200);
+  }
+
+  @Override
+  public void obtainFireFlower(MarioStateMachine stateMachine) {
+    stateMachine.setCurrentState(FireMario.getInstance());
+    stateMachine.setScore(stateMachine.getScore() + 300);
+  }
+
+  @Override
+  public void meetMonster(MarioStateMachine stateMachine) {
+    // do nothing...
+  }
+}
+
+// 省略SuperMario、CapeMario、FireMario类...
+
+public class MarioStateMachine {
+  private int score;
+  private IMario currentState;
+
+  public MarioStateMachine() {
+    this.score = 0;
+    this.currentState = SmallMario.getInstance();
+  }
+
+  public void obtainMushRoom() {
+    this.currentState.obtainMushRoom(this);
+  }
+
+  public void obtainCape() {
+    this.currentState.obtainCape(this);
+  }
+
+  public void obtainFireFlower() {
+    this.currentState.obtainFireFlower(this);
+  }
+
+  public void meetMonster() {
+    this.currentState.meetMonster(this);
+  }
+
+  public int getScore() {
+    return this.score;
+  }
+
+  public State getCurrentState() {
+    return this.currentState.getName();
+  }
+
+  public void setScore(int score) {
+    this.score = score;
+  }
+
+  public void setCurrentState(IMario currentState) {
+    this.currentState = currentState;
+  }
+}
+```
+实际上，像游戏这种比较复杂的状态机，包含的状态比较多，优先推荐使用查表法，而状态模式会引入非常多的状态类，会导致代码比较难维护。相反，像电商下单、外卖下单这种类型的状态机，它们的状态并不多，状态转移也比较简单，但事件触发执行的动作包含的业务逻辑可能会比较复杂，所以，更加推荐使用状态模式来实现。
+
+<!-- endtab -->
+
+{% endtabs %}
+
+#### 迭代器模式
+
+迭代器模式（`Iterator Design Pattern`），也叫作游标模式（`Cursor Design Pattern`）。它用来遍历集合对象。不过，很多编程语言都将迭代器作为一个基础的类库，直接提供出来了。在平时开发中，特别是业务开发，我们直接使用即可，很少会自己去实现一个迭代器。不过，知其然知其所以然，弄懂原理能帮助我们更好的使用这些工具类，所以，我觉得还是有必要学习一下这个模式。
+
+大部分编程语言都提供了多种遍历集合的方式，比如 `for` 循环、`foreach` 循环、迭代器等。所以，本节除了讲解迭代器的原理和实现之外，还会重点讲一下，相对于其他遍历方式，利用迭代器来遍历集合的优势。
+
+##### 迭代器原理和实现
+
+迭代器用来遍历集合对象。这里说的“集合对象”也可以叫“容器”“聚合对象”，实际上就是包含一组对象的对象，比如数组、链表、树、图、跳表。迭代器模式将集合对象的遍历操作从集合类中拆分出来，放到迭代器类中，让两者的职责更加单一。
+
+迭代器是用来遍历容器的，所以，一个完整的迭代器模式一般会涉及容器和容器迭代器两部分内容。为了达到基于接口而非实现编程的目的，容器又包含容器接口、容器实现类，迭代器又包含迭代器接口、迭代器实现类。对于迭代器模式，画了一张简单的类图。
+
+![](iterator-pattern-1.webp)
+
+为了讲解迭代器的实现原理，从零开始开发一个迭代器。我们知道，线性数据结构包括数组和链表，在大部分编程语言中都有对应的类来封装这两种数据结构，在开发中直接拿来用就可以了。假设在这种新的编程语言中，这两个数据结构分别对应 `ArrayList` 和 `LinkedList` 两个类。除此之外，我们从两个类中抽象出公共的接口，定义为 `List` 接口，以方便开发者基于接口而非实现编程，编写的代码能在两种数据存储结构之间灵活切换。
+
+现在，我们针对 `ArrayList` 和 `LinkedList` 两个线性容器，设计实现对应的迭代器。按照之前给出的迭代器模式的类图，我们定义一个迭代器接口 `Iterator`，以及针对两种容器的具体的迭代器实现类 `ArrayIterator` 和 `ListIterator`。
+
+先来看下 `Iterator` 接口的定义。具体的代码如下所示：
+
+```java
+
+// 接口定义方式一
+public interface Iterator<E> {
+  boolean hasNext();
+  void next();
+  E currentItem();
+}
+
+// 接口定义方式二
+public interface Iterator<E> {
+  boolean hasNext();
+  E next();
+}
+```
+
+`Iterator` 接口有两种定义方式。在第一种定义中，`next()` 函数用来将游标后移一位元素，`currentItem()` 函数用来返回当前游标指向的元素。在第二种定义中，返回当前元素与后移一位这两个操作，要放到同一个函数 `next()` 中完成。第一种定义方式更加灵活一些，比如我们可以多次调用 `currentItem()` 查询当前元素，而不移动游标。所以，在接下来的实现中，我们选择第一种接口定义方式。现在，我们再来看下 `ArrayIterator` 的代码实现，具体如下所示。代码实现非常简单，不需要太多解释。
+
+```java
+
+public class ArrayIterator<E> implements Iterator<E> {
+  private int cursor;
+  private ArrayList<E> arrayList;
+
+  public ArrayIterator(ArrayList<E> arrayList) {
+    this.cursor = 0;
+    this.arrayList = arrayList;
+  }
+
+  @Override
+  public boolean hasNext() {
+    return cursor != arrayList.size(); //注意这里，cursor在指向最后一个元素的时候，hasNext()仍旧返回true。
+  }
+
+  @Override
+  public void next() {
+    cursor++;
+  }
+
+  @Override
+  public E currentItem() {
+    if (cursor >= arrayList.size()) {
+      throw new NoSuchElementException();
+    }
+    return arrayList.get(cursor);
+  }
+}
+
+public class Demo {
+  public static void main(String[] args) {
+    ArrayList<String> names = new ArrayList<>();
+    names.add("xzg");
+    names.add("wang");
+    names.add("zheng");
+    
+    Iterator<String> iterator = new ArrayIterator(names);
+    while (iterator.hasNext()) {
+      System.out.println(iterator.currentItem());
+      iterator.next();
+    }
+  }
+}
+```
+
+在上面的代码实现中，我们需要将待遍历的容器对象，通过构造函数传递给迭代器类。实际上，为了封装迭代器的创建细节，我们可以在容器中定义一个 `iterator()` 方法，来创建对应的迭代器。为了能实现基于接口而非实现编程，我们还需要将这个方法定义在 `List` 接口中。具体的代码实现和使用示例如下所示：
+
+```java
+
+public interface List<E> {
+  Iterator iterator();
+  //...省略其他接口函数...
+}
+
+public class ArrayList<E> implements List<E> {
+  //...
+  public Iterator iterator() {
+    return new ArrayIterator(this);
+  }
+  //...省略其他代码
+}
+
+public class Demo {
+  public static void main(String[] args) {
+    List<String> names = new ArrayList<>();
+    names.add("xzg");
+    names.add("wang");
+    names.add("zheng");
+    
+    Iterator<String> iterator = names.iterator();
+    while (iterator.hasNext()) {
+      System.out.println(iterator.currentItem());
+      iterator.next();
+    }
+  }
+}
+```
+
+对于 `LinkedIterator`，它的代码结构跟 `ArrayIterator` 完全相同，就不给出具体的代码实现了。结合刚刚的例子，我们来总结一下迭代器的设计思路。总结下来就三句话：迭代器中需要定义 `hasNext()`、`currentItem()`、`next()` 三个最基本的方法。待遍历的容器对象通过依赖注入传递到迭代器类中。容器通过 `iterator()` 方法来创建迭代器。
+
+画了一张类图，如下所示，实际上就是对上面那张类图的细化，你可以结合着一块看：
+
+![](iterator-pattern-2.webp)
+
+##### 在遍历的同时增删集合元素会咋样
+
+在通过迭代器来遍历集合元素的同时，增加或者删除集合中的元素，有可能会导致某个元素被重复遍历或遍历不到。不过，并不是所有情况下都会遍历出错，有的时候也可以正常遍历，所以，这种行为称为结果不可预期行为或者未决行为，也就是说，运行结果到底是对还是错，要视情况而定。
+
+延续上一节课实现的 `ArrayList` 迭代器的例子，举个例子：
+
+```java
+public class Demo {
+  public static void main(String[] args) {
+    List<String> names = new ArrayList<>();
+    names.add("a");
+    names.add("b");
+    names.add("c");
+    names.add("d");
+
+    Iterator<String> iterator = names.iterator();
+    iterator.next();
+    names.remove("a");
+  }
+}
+```
+
+`ArrayList` 底层对应的是数组这种数据结构，在执行完第 `55` 行代码的时候，数组中存储的是 `a、b、c、d` 四个元素，迭代器的游标 `cursor` 指向元素 `a`。当执行完第 `10` 行代码的时候，游标指向元素 `b`，到这里都没有问题。为了保持数组存储数据的连续性，数组的删除操作会涉及元素的搬移。当执行到第 `11` 行代码的时候，我们从数组中将元素 `a` 删除掉，`b、c、d` 三个元素会依次往前搬移一位，这就会导致游标本来指向元素 `b`，现在变成了指向元素 `c`。原本在执行完第 `10` 行代码之后，我们还可以遍历到 `b、c、d` 三个元素，但在执行完第 `11` 行代码之后，我们只能遍历到 `c、d` 两个元素，`b` 遍历不到了。
+
+不过，如果第 `11` 行代码删除的不是游标前面的元素（元素 `a`）以及游标所在位置的元素（元素 `b`），而是游标后面的元素（元素 `c` 和 `d`），这样就不会存在任何问题了，不会存在某个元素遍历不到的情况了。所以，我们前面说，在遍历的过程中删除集合元素，结果是不可预期的，有时候没问题（删除元素 `c` 或 `d`），有时候就有问题（删除元素 `a` 或 `b`），这个要视情况而定（到底删除的是哪个位置的元素），就是这个意思。
+
+在遍历的过程中删除集合元素，有可能会导致某个元素遍历不到，那在遍历的过程中添加集合元素，会发生什么情况呢？举个例子：
+
+```java
+public class Demo {
+  public static void main(String[] args) {
+    List<String> names = new ArrayList<>();
+    names.add("a");
+    names.add("b");
+    names.add("c");
+    names.add("d");
+
+    Iterator<String> iterator = names.iterator();
+    iterator.next();
+    names.add(0, "x");
+  }
+}
+```
+
+在执行完第 `10` 行代码之后，数组中包含 `a、b、c、d` 四个元素，游标指向 `b` 这个元素，已经跳过了元素 `a`。在执行完第 `11` 行代码之后，我们将 `x` 插入到下标为 `0` 的位置，`a、b、c、d` 四个元素依次往后移动一位。这个时候，游标又重新指向了元素 `a`。元素 `a` 被游标重复指向两次，也就是说，元素 `a` 存在被重复遍历的情况。跟删除情况类似，如果我们在游标的后面添加元素，就不会存在任何问题。所以，在遍历的同时添加集合元素也是一种不可预期行为。
+
+###### 如何应对遍历时改变集合导致的未决行为
+
+当通过迭代器来遍历集合的时候，增加、删除集合元素会导致不可预期的遍历结果。实际上，“不可预期”比直接出错更加可怕，有的时候运行正确，有的时候运行错误，一些隐藏很深、很难 `debug` 的 `bug` 就是这么产生的。有两种比较干脆利索的解决方案：一种是遍历的时候不允许增删元素，另一种是增删元素之后让遍历报错。
+
+实际上，第一种解决方案比较难实现，我们要确定遍历开始和结束的时间点。遍历开始的时间节点我们很容易获得。我们可以把创建迭代器的时间点作为遍历开始的时间点。但是，遍历结束的时间点该如何来确定呢？你可能会说，遍历到最后一个元素的时候就算结束呗。但是，在实际的软件开发中，每次使用迭代器来遍历元素，并不一定非要把所有元素都遍历一遍。如下所示，我们找到一个值为 `b` 的元素就提前结束了遍历。
+
+```java
+public class Demo {
+  public static void main(String[] args) {
+    List<String> names = new ArrayList<>();
+    names.add("a");
+    names.add("b");
+    names.add("c");
+    names.add("d");
+
+    Iterator<String> iterator = names.iterator();
+    while (iterator.hasNext()) {
+      String name = iterator.currentItem();
+      if (name.equals("b")) {
+        break;
+      }
+    }
+  }
+}
+```
+
+那我们可以在迭代器类中定义一个新的接口 `finishIteration()`，主动告知容器迭代器使用完了，你可以增删元素了，示例代码如下所示。但是，这就要求程序员在使用完迭代器之后要主动调用这个函数，也增加了开发成本，还很容易漏掉。
+
+```java
+public class Demo {
+  public static void main(String[] args) {
+    List<String> names = new ArrayList<>();
+    names.add("a");
+    names.add("b");
+    names.add("c");
+    names.add("d");
+
+    Iterator<String> iterator = names.iterator();
+    while (iterator.hasNext()) {
+      String name = iterator.currentItem();
+      if (name.equals("b")) {
+        iterator.finishIteration();//主动告知容器这个迭代器用完了
+        break;
+      }
+    }
+  }
+}
+```
+
+实际上，第二种解决方法更加合理。`Java` 语言就是采用的这种解决方案，增删元素之后，让遍历报错。接下来，我们具体来看一下如何实现。
+
+怎么确定在遍历时候，集合有没有增删元素呢？我们在 `ArrayList` 中定义一个成员变量 `modCount`，记录集合被修改的次数，集合每调用一次增加或删除元素的函数，就会给 `modCount` 加 `1`。当通过调用集合上的 `iterator()` 函数来创建迭代器的时候，我们把 `modCount` 值传递给迭代器的 `expectedModCount` 成员变量，之后每次调用迭代器上的 `hasNext()`、`next()`、`currentItem()` 函数，我们都会检查集合上的 `modCount` 是否等于 `expectedModCount`，也就是看，在创建完迭代器之后，`modCount` 是否改变过。
+
+如果两个值不相同，那就说明集合存储的元素已经改变了，要么增加了元素，要么删除了元素，之前创建的迭代器已经不能正确运行了，再继续使用就会产生不可预期的结果，所以我们选择 `fail-fast` 解决方式，抛出运行时异常，结束掉程序，让程序员尽快修复这个因为不正确使用迭代器而产生的 `bug`。
+
+{% note success 点击展开示例 %}
+```java
+
+public class ArrayIterator implements Iterator {
+  private int cursor;
+  private ArrayList arrayList;
+  private int expectedModCount;
+
+  public ArrayIterator(ArrayList arrayList) {
+    this.cursor = 0;
+    this.arrayList = arrayList;
+    this.expectedModCount = arrayList.modCount;
+  }
+
+  @Override
+  public boolean hasNext() {
+    checkForComodification();
+    return cursor < arrayList.size();
+  }
+
+  @Override
+  public void next() {
+    checkForComodification();
+    cursor++;
+  }
+
+  @Override
+  public Object currentItem() {
+    checkForComodification();
+    return arrayList.get(cursor);
+  }
+  
+  private void checkForComodification() {
+    if (arrayList.modCount != expectedModCount)
+        throw new ConcurrentModificationException();
+  }
+}
+
+//代码示例
+public class Demo {
+  public static void main(String[] args) {
+    List<String> names = new ArrayList<>();
+    names.add("a");
+    names.add("b");
+    names.add("c");
+    names.add("d");
+
+    Iterator<String> iterator = names.iterator();
+    iterator.next();
+    names.remove("a");
+    iterator.next();//抛出ConcurrentModificationException异常
+  }
+}
+```
+{% endnote %}
+
+###### 如何在遍历的同时安全地删除集合元素
+
+像 `Java` 语言，迭代器类中除了前面提到的几个最基本的方法之外，还定义了一个 `remove()` 方法，能够在遍历集合的同时，安全地删除集合中的元素。不过，需要说明的是，它并没有提供添加元素的方法。毕竟迭代器的主要作用是遍历，添加元素放到迭代器里本身就不合适。
+
+个人觉得，`Java` 迭代器中提供的 `remove()` 方法还是比较鸡肋的，作用有限。它只能删除游标指向的前一个元素，而且一个 `next()` 函数之后，只能跟着最多一个 `remove()` 操作，多次调用 `remove()` 操作会报错，还是通过一个例子来解释一下。
+
+```java
+public class Demo {
+  public static void main(String[] args) {
+    List<String> names = new ArrayList<>();
+    names.add("a");
+    names.add("b");
+    names.add("c");
+    names.add("d");
+
+    Iterator<String> iterator = names.iterator();
+    iterator.next();
+    iterator.remove();
+    iterator.remove(); //报错，抛出IllegalStateException异常
+  }
+}
+```
+
+现在，我们一块来看下，为什么通过迭代器就能安全的删除集合中的元素呢？源码之下无秘密。我们来看下 `remove()` 函数是如何实现的，代码如下所示。稍微提醒一下，在 `Java` 实现中，迭代器类是容器类的内部类，并且 `next()` 函数不仅将游标后移一位，还会返回当前的元素。
+
+```java
+
+public class ArrayList<E> {
+  transient Object[] elementData;
+  private int size;
+
+  public Iterator<E> iterator() {
+    return new Itr();
+  }
+
+  private class Itr implements Iterator<E> {
+    int cursor;       // index of next element to return
+    int lastRet = -1; // index of last element returned; -1 if no such
+    int expectedModCount = modCount;
+
+    Itr() {}
+
+    public boolean hasNext() {
+      return cursor != size;
+    }
+
+    @SuppressWarnings("unchecked")
+    public E next() {
+      checkForComodification();
+      int i = cursor;
+      if (i >= size)
+        throw new NoSuchElementException();
+      Object[] elementData = ArrayList.this.elementData;
+      if (i >= elementData.length)
+        throw new ConcurrentModificationException();
+      cursor = i + 1;
+      return (E) elementData[lastRet = i];
+    }
+    
+    public void remove() {
+      if (lastRet < 0)
+        throw new IllegalStateException();
+      checkForComodification();
+
+      try {
+        ArrayList.this.remove(lastRet);
+        cursor = lastRet;
+        lastRet = -1;
+        expectedModCount = modCount;
+      } catch (IndexOutOfBoundsException ex) {
+        throw new ConcurrentModificationException();
+      }
+    }
+  }
+}
+```
+
+在上面的代码实现中，迭代器类新增了一个 `lastRet` 成员变量，用来记录游标指向的前一个元素。通过迭代器去删除这个元素的时候，我们可以更新迭代器中的游标和 `lastRet` 值，来保证不会因为删除元素而导致某个元素遍历不到。如果通过容器来删除元素，并且希望更新迭代器中的游标值来保证遍历不出错，我们就要维护这个容器都创建了哪些迭代器，每个迭代器是否还在使用等信息，代码实现就变得比较复杂了。
+
+##### 如何设计实现一个支持快照功能的迭代器
+
+所谓“快照”，指我们为容器创建迭代器的时候，相当于给容器拍了一张快照（`Snapshot`）。之后即便我们增删容器中的元素，快照中的元素并不会做相应的改动。而迭代器遍历的对象是快照而非容器，这样就避免了在使用迭代器遍历的过程中，增删容器中的元素，导致的不可预期的结果或者报错。
+
+接下来，我举一个例子来解释一下上面这段话。具体的代码如下所示。容器 `list` 中初始存储了 `3、8、2` 三个元素。尽管在创建迭代器 `iter1` 之后，容器 `list` 删除了元素 `3`，只剩下 `8、2` 两个元素，但是，通过 `iter1` 遍历的对象是快照，而非容器 `list` 本身。所以，遍历的结果仍然是 `3、8、2`。同理，`iter2`、`iter3` 也是在各自的快照上遍历，输出的结果如代码中注释所示。
+
+```java
+
+List<Integer> list = new ArrayList<>();
+list.add(3);
+list.add(8);
+list.add(2);
+
+Iterator<Integer> iter1 = list.iterator();//snapshot: 3, 8, 2
+list.remove(new Integer(2));//list：3, 8
+Iterator<Integer> iter2 = list.iterator();//snapshot: 3, 8
+list.remove(new Integer(3));//list：8
+Iterator<Integer> iter3 = list.iterator();//snapshot: 3
+
+// 输出结果：3 8 2
+while (iter1.hasNext()) {
+  System.out.print(iter1.next() + " ");
+}
+System.out.println();
+
+// 输出结果：3 8
+while (iter2.hasNext()) {
+  System.out.print(iter1.next() + " ");
+}
+System.out.println();
+
+// 输出结果：8
+while (iter3.hasNext()) {
+  System.out.print(iter1.next() + " ");
+}
+System.out.println();
+```
+
+下面是针对这个功能需求的骨架代码，其中包含 `ArrayList`、`SnapshotArrayIterator` 两个类。对于这两个类，我只定义了必须的几个关键接口，完整的代码实现我并没有给出。
+
+```java
+
+public ArrayList<E> implements List<E> {
+  // TODO: 成员变量、私有函数等随便你定义
+  
+  @Override
+  public void add(E obj) {
+    //TODO: 由你来完善
+  }
+  
+  @Override
+  public void remove(E obj) {
+    // TODO: 由你来完善
+  }
+  
+  @Override
+  public Iterator<E> iterator() {
+    return new SnapshotArrayIterator(this);
+  }
+}
+
+public class SnapshotArrayIterator<E> implements Iterator<E> {
+  // TODO: 成员变量、私有函数等随便你定义
+  
+  @Override
+  public boolean hasNext() {
+    // TODO: 由你来完善
+  }
+  
+  @Override
+  public E next() {//返回当前元素，并且游标后移一位
+    // TODO: 由你来完善
+  }
+}
+```
+
+###### 解决方案一
+
+先来看最简单的一种解决办法。在迭代器类中定义一个成员变量 `snapshot` 来存储快照。每当创建迭代器的时候，都拷贝一份容器中的元素到快照中，后续的遍历操作都基于这个迭代器自己持有的快照来进行。具体的代码实现如下所示：
+
+```java
+
+public class SnapshotArrayIterator<E> implements Iterator<E> {
+  private int cursor;
+  private ArrayList<E> snapshot;
+
+  public SnapshotArrayIterator(ArrayList<E> arrayList) {
+    this.cursor = 0;
+    this.snapshot = new ArrayList<>();
+    this.snapshot.addAll(arrayList);
+  }
+
+  @Override
+  public boolean hasNext() {
+    return cursor < snapshot.size();
+  }
+
+  @Override
+  public E next() {
+    E currentItem = snapshot.get(cursor);
+    cursor++;
+    return currentItem;
+  }
+}
+```
+
+解决方案虽然简单，但代价也有点高。每次创建迭代器的时候，都要拷贝一份数据到快照中，会增加内存的消耗。如果一个容器同时有多个迭代器在遍历元素，就会导致数据在内存中重复存储多份。不过，庆幸的是，`Java` 中的拷贝属于浅拷贝，也就是说，容器中的对象并非真的拷贝了多份，而只是拷贝了对象的引用而已。
+
+###### 解决方案二
+
+可以在容器中，为每个元素保存两个时间戳，一个是添加时间戳 `addTimestamp`，一个是删除时间戳 `delTimestamp`。当元素被加入到集合中的时候，我们将 `addTimestamp` 设置为当前时间，将 `delTimestamp` 设置成最大长整型值（`Long.MAX_VALUE`）。当元素被删除时，我们将 `delTimestamp` 更新为当前时间，表示已经被删除。
+
+注意，这里只是标记删除，而非真正将它从容器中删除。
+
+同时，每个迭代器也保存一个迭代器创建时间戳 `snapshotTimestamp`，也就是迭代器对应的快照的创建时间戳。当使用迭代器来遍历容器的时候，只有满足 `addTimestamp < snapshotTimestamp < delTimestamp` 的元素，才是属于这个迭代器的快照。
+
+如果元素的 `addTimestamp > snapshotTimestamp`，说明元素在创建了迭代器之后才加入的，不属于这个迭代器的快照；如果元素的 `delTimestamp < snapshotTimestamp`，说明元素在创建迭代器之前就被删除掉了，也不属于这个迭代器的快照。
+
+这样就在不拷贝容器的情况下，在容器本身上借助时间戳实现了快照功能。具体的代码实现如下所示。注意，我们没有考虑 `ArrayList` 的扩容问题，感兴趣的话，你可以自己完善一下。
+
+```java
+
+public class ArrayList<E> implements List<E> {
+  private static final int DEFAULT_CAPACITY = 10;
+
+  private int actualSize; //不包含标记删除元素
+  private int totalSize; //包含标记删除元素
+
+  private Object[] elements;
+  private long[] addTimestamps;
+  private long[] delTimestamps;
+
+  public ArrayList() {
+    this.elements = new Object[DEFAULT_CAPACITY];
+    this.addTimestamps = new long[DEFAULT_CAPACITY];
+    this.delTimestamps = new long[DEFAULT_CAPACITY];
+    this.totalSize = 0;
+    this.actualSize = 0;
+  }
+
+  @Override
+  public void add(E obj) {
+    elements[totalSize] = obj;
+    addTimestamps[totalSize] = System.currentTimeMillis();
+    delTimestamps[totalSize] = Long.MAX_VALUE;
+    totalSize++;
+    actualSize++;
+  }
+
+  @Override
+  public void remove(E obj) {
+    for (int i = 0; i < totalSize; ++i) {
+      if (elements[i].equals(obj)) {
+        delTimestamps[i] = System.currentTimeMillis();
+        actualSize--;
+      }
+    }
+  }
+
+  public int actualSize() {
+    return this.actualSize;
+  }
+
+  public int totalSize() {
+    return this.totalSize;
+  }
+
+  public E get(int i) {
+    if (i >= totalSize) {
+      throw new IndexOutOfBoundsException();
+    }
+    return (E)elements[i];
+  }
+
+  public long getAddTimestamp(int i) {
+    if (i >= totalSize) {
+      throw new IndexOutOfBoundsException();
+    }
+    return addTimestamps[i];
+  }
+
+  public long getDelTimestamp(int i) {
+    if (i >= totalSize) {
+      throw new IndexOutOfBoundsException();
+    }
+    return delTimestamps[i];
+  }
+}
+
+public class SnapshotArrayIterator<E> implements Iterator<E> {
+  private long snapshotTimestamp;
+  private int cursorInAll; // 在整个容器中的下标，而非快照中的下标
+  private int leftCount; // 快照中还有几个元素未被遍历
+  private ArrayList<E> arrayList;
+
+  public SnapshotArrayIterator(ArrayList<E> arrayList) {
+    this.snapshotTimestamp = System.currentTimeMillis();
+    this.cursorInAll = 0;
+    this.leftCount = arrayList.actualSize();;
+    this.arrayList = arrayList;
+
+    justNext(); // 先跳到这个迭代器快照的第一个元素
+  }
+
+  @Override
+  public boolean hasNext() {
+    return this.leftCount >= 0; // 注意是>=, 而非>
+  }
+
+  @Override
+  public E next() {
+    E currentItem = arrayList.get(cursorInAll);
+    justNext();
+    return currentItem;
+  }
+
+  private void justNext() {
+    while (cursorInAll < arrayList.totalSize()) {
+      long addTimestamp = arrayList.getAddTimestamp(cursorInAll);
+      long delTimestamp = arrayList.getDelTimestamp(cursorInAll);
+      if (snapshotTimestamp > addTimestamp && snapshotTimestamp < delTimestamp) {
+        leftCount--;
+        break;
+      }
+      cursorInAll++;
+    }
+  }
+}
+```
+
+实际上，上面的解决方案相当于解决了一个问题，又引入了另外一个问题。`ArrayList` 底层依赖数组这种数据结构，原本可以支持快速的随机访问，在 `O(1)` 时间复杂度内获取下标为 i 的元素，但现在，删除数据并非真正的删除，只是通过时间戳来标记删除，这就导致无法支持按照下标快速随机访问了。
+
+解决的方法也不难，我们可以在 `ArrayList` 中存储两个数组。一个支持标记删除的，用来实现快照遍历功能；一个不支持标记删除的，用来支持随机访问。
+
+#### 访问者模式
+
+访问者模式，英文是：`Visitor Design Pattern`，定义时：允许一个或者多个操作应用到一组对象上，解耦操作和对象本身。它可以算是 `23` 种经典设计模式中最难理解的几个之一。因为它难理解、难实现，应用它会导致代码的可读性、可维护性变差，所以，访问者模式在实际的软件开发中很少被用到，在没有特别必要的情况下，建议你不要使用访问者模式。
+
+通过一个例子，逐步来了解访问者模式，假设我们从网站上爬取了很多资源文件，它们的格式有三种：`PDF`、`PPT`、`Word`。我们现在要开发一个工具来处理这批资源文件。这个工具的其中一个功能是，把这些资源文件中的文本内容抽取出来放到 `txt` 文件中。
+
+{% tabs 访问者模式 %}
+
+<!-- tab 初步实现 -->
+
+实现这个功能并不难，不同的人有不同的写法，下面是一种实现方式。其中，`ResourceFile` 是一个抽象类，包含一个抽象函数 `extract2txt()`。`PdfFile`、`PPTFile`、`WordFile` 都继承 `ResourceFile` 类，并且重写了 `extract2txt()` 函数。在 `ToolApplication` 中，我们可以利用多态特性，根据对象的实际类型，来决定执行哪个方法。
+
+```java
+
+public abstract class ResourceFile {
+  protected String filePath;
+
+  public ResourceFile(String filePath) {
+    this.filePath = filePath;
+  }
+
+  public abstract void extract2txt();
+}
+
+public class PPTFile extends ResourceFile {
+  public PPTFile(String filePath) {
+    super(filePath);
+  }
+
+  @Override
+  public void extract2txt() {
+    //...省略一大坨从PPT中抽取文本的代码...
+    //...将抽取出来的文本保存在跟filePath同名的.txt文件中...
+    System.out.println("Extract PPT.");
+  }
+}
+
+public class PdfFile extends ResourceFile {
+  public PdfFile(String filePath) {
+    super(filePath);
+  }
+
+  @Override
+  public void extract2txt() {
+    //...
+    System.out.println("Extract PDF.");
+  }
+}
+
+public class WordFile extends ResourceFile {
+  public WordFile(String filePath) {
+    super(filePath);
+  }
+
+  @Override
+  public void extract2txt() {
+    //...
+    System.out.println("Extract WORD.");
+  }
+}
+
+// 运行结果是：
+// Extract PDF.
+// Extract WORD.
+// Extract PPT.
+public class ToolApplication {
+  public static void main(String[] args) {
+    List<ResourceFile> resourceFiles = listAllResourceFiles(args[0]);
+    for (ResourceFile resourceFile : resourceFiles) {
+      resourceFile.extract2txt();
+    }
+  }
+
+  private static List<ResourceFile> listAllResourceFiles(String resourceDirectory) {
+    List<ResourceFile> resourceFiles = new ArrayList<>();
+    //...根据后缀(pdf/ppt/word)由工厂方法创建不同的类对象(PdfFile/PPTFile/WordFile)
+    resourceFiles.add(new PdfFile("a.pdf"));
+    resourceFiles.add(new WordFile("b.word"));
+    resourceFiles.add(new PPTFile("c.ppt"));
+    return resourceFiles;
+  }
+}
+```
+
+<!-- endtab  -->
+
+<!-- tab 需求增加 -->
+
+如果工具的功能不停地扩展，不仅要能抽取文本内容，还要支持压缩、提取文件元信息（文件名、大小、更新时间等等）构建索引等一系列的功能，那如果我们继续按照上面的实现思路，就会存在这样几个问题：
+
+- 违背开闭原则，添加一个新的功能，所有类的代码都要修改；
+- 虽然功能增多，每个类的代码都不断膨胀，可读性和可维护性都变差了；
+- 把所有比较上层的业务逻辑都耦合到 `PdfFile`、`PPTFile`、`WordFile` 类中，导致这些类的职责不够单一，变成了大杂烩；
+
+针对上面的问题，我们常用的解决方法就是拆分解耦，把业务操作跟具体的数据结构解耦，设计成独立的类。这里我们按照访问者模式的演进思路来对上面的代码进行重构。重构之后的代码如下所示。
+
+```java
+public abstract class ResourceFile {
+  protected String filePath;
+  public ResourceFile(String filePath) {
+    this.filePath = filePath;
+  }
+  abstract public void accept(Extractor extractor);
+}
+
+public class PdfFile extends ResourceFile {
+  public PdfFile(String filePath) {
+    super(filePath);
+  }
+
+  @Override
+  public void accept(Extractor extractor) {
+    extractor.extract2txt(this);
+  }
+
+  //...
+}
+
+//...PPTFile、WordFile跟PdfFile类似，这里就省略了...
+
+  public void extract2txt(PPTFile pptFile) {
+    //...
+    System.out.println("Extract PPT.");
+  }
+
+  public void extract2txt(PdfFile pdfFile) {
+    //...
+    System.out.println("Extract PDF.");
+  }
+
+  public void extract2txt(WordFile wordFile) {
+    //...
+    System.out.println("Extract WORD.");
+  }
+}
+
+public class ToolApplication {
+  public static void main(String[] args) {
+    Extractor extractor = new Extractor();
+    List<ResourceFile> resourceFiles = listAllResourceFiles(args[0]);
+    for (ResourceFile resourceFile : resourceFiles) {
+      resourceFile.accept(extractor);
+    }
+  }
+
+  private static List<ResourceFile> listAllResourceFiles(String resourceDirectory) {
+    List<ResourceFile> resourceFiles = new ArrayList<>();
+    //...根据后缀(pdf/ppt/word)由工厂方法创建不同的类对象(PdfFile/PPTFile/WordFile)
+    resourceFiles.add(new PdfFile("a.pdf"));
+    resourceFiles.add(new WordFile("b.word"));
+    resourceFiles.add(new PPTFile("c.ppt"));
+    return resourceFiles;
+  }
+}
+```
+
+在执行第 `45` 行的时候，根据多态特性，程序会调用实际类型的 `accept` 函数，比如 `PdfFile` 的 `accept` 函数，也就是第 `16` 行代码。而 `16` 行代码中的 `this` 类型是 `PdfFile` 的，在编译的时候就确定了，所以会调用 `extractor` 的 `extract2txt(PdfFile pdfFile)` 这个重载函数。这里的实现很有技巧性，这是理解访问者模式的关键所在，也是我之前所说的访问者模式不好理解的原因。
+
+现在，如果要继续添加新的功能，比如前面提到的压缩功能，根据不同的文件类型，使用不同的压缩算法来压缩资源文件，那我们该如何实现呢？我们需要实现一个类似 `Extractor` 类的新类 `Compressor` 类，在其中定义三个重载函数，实现对不同类型资源文件的压缩。除此之外，我们还要在每个资源文件类中定义新的 `accept` 重载函数。具体的代码如下所示：
+
+```java
+
+public abstract class ResourceFile {
+  protected String filePath;
+  public ResourceFile(String filePath) {
+    this.filePath = filePath;
+  }
+  abstract public void accept(Extractor extractor);
+  abstract public void accept(Compressor compressor);
+}
+
+public class PdfFile extends ResourceFile {
+  public PdfFile(String filePath) {
+    super(filePath);
+  }
+
+  @Override
+  public void accept(Extractor extractor) {
+    extractor.extract2txt(this);
+  }
+
+  @Override
+  public void accept(Compressor compressor) {
+    compressor.compress(this);
+  }
+
+  //...
+}
+}
+//...PPTFile、WordFile跟PdfFile类似，这里就省略了...
+//...Extractor代码不变
+
+public class ToolApplication {
+  public static void main(String[] args) {
+    Extractor extractor = new Extractor();
+    List<ResourceFile> resourceFiles = listAllResourceFiles(args[0]);
+    for (ResourceFile resourceFile : resourceFiles) {
+      resourceFile.accept(extractor);
+    }
+
+    Compressor compressor = new Compressor();
+    for(ResourceFile resourceFile : resourceFiles) {
+      resourceFile.accept(compressor);
+    }
+  }
+
+  private static List<ResourceFile> listAllResourceFiles(String resourceDirectory) {
+    List<ResourceFile> resourceFiles = new ArrayList<>();
+    //...根据后缀(pdf/ppt/word)由工厂方法创建不同的类对象(PdfFile/PPTFile/WordFile)
+    resourceFiles.add(new PdfFile("a.pdf"));
+    resourceFiles.add(new WordFile("b.word"));
+    resourceFiles.add(new PPTFile("c.ppt"));
+    return resourceFiles;
+  }
+}
+```
+
+上面代码还存在一些问题，添加一个新的业务，还是需要修改每个资源文件类，违反了开闭原则。
+
+<!-- endtab -->
+
+<!-- tab 访问者模式 -->
+
+针对前面的问题，我们抽象出来一个 `Visitor` 接口，包含是三个命名非常通用的 `visit()` 重载函数，分别处理三种不同类型的资源文件。具体做什么业务处理，由实现这个 `Visitor` 接口的具体的类来决定，比如 `Extractor` 负责抽取文本内容，`Compressor` 负责压缩。当我们新添加一个业务功能的时候，资源文件类不需要做任何修改，只需要修改 `ToolApplication` 的代码就可以了。
+
+按照这个思路我们可以对代码进行重构，重构之后的代码如下所示：
+
+```java
+public abstract class ResourceFile {
+  protected String filePath;
+  public ResourceFile(String filePath) {
+    this.filePath = filePath;
+  }
+  abstract public void accept(Visitor vistor);
+}
+
+public class PdfFile extends ResourceFile {
+  public PdfFile(String filePath) {
+    super(filePath);
+  }
+
+  @Override
+  public void accept(Visitor visitor) {
+    visitor.visit(this);
+  }
+
+  //...
+}
+//...PPTFile、WordFile跟PdfFile类似，这里就省略了...
+
+public interface Visitor {
+  void visit(PdfFile pdfFile);
+  void visit(PPTFile pdfFile);
+  void visit(WordFile pdfFile);
+}
+
+public class Extractor implements Visitor {
+  @Override
+  public void visit(PPTFile pptFile) {
+    //...
+    System.out.println("Extract PPT.");
+  }
+
+  @Override
+  public void visit(PdfFile pdfFile) {
+    //...
+    System.out.println("Extract PDF.");
+  }
+
+  @Override
+  public void visit(WordFile wordFile) {
+    //...
+    System.out.println("Extract WORD.");
+  }
+}
+
+public class Compressor implements Visitor {
+  @Override
+  public void visit(PPTFile pptFile) {
+    //...
+    System.out.println("Compress PPT.");
+  }
+
+  @Override
+  public void visit(PdfFile pdfFile) {
+    //...
+    System.out.println("Compress PDF.");
+  }
+
+  @Override
+  public void visit(WordFile wordFile) {
+    //...
+    System.out.println("Compress WORD.");
+  }
+
+}
+
+public class ToolApplication {
+  public static void main(String[] args) {
+    Extractor extractor = new Extractor();
+    List<ResourceFile> resourceFiles = listAllResourceFiles(args[0]);
+    for (ResourceFile resourceFile : resourceFiles) {
+      resourceFile.accept(extractor);
+    }
+
+    Compressor compressor = new Compressor();
+    for(ResourceFile resourceFile : resourceFiles) {
+      resourceFile.accept(compressor);
+    }
+  }
+
+  private static List<ResourceFile> listAllResourceFiles(String resourceDirectory) {
+    List<ResourceFile> resourceFiles = new ArrayList<>();
+    //...根据后缀(pdf/ppt/word)由工厂方法创建不同的类对象(PdfFile/PPTFile/WordFile)
+    resourceFiles.add(new PdfFile("a.pdf"));
+    resourceFiles.add(new WordFile("b.word"));
+    resourceFiles.add(new PPTFile("c.ppt"));
+    return resourceFiles;
+  }
+}
+```
+<!-- endtab -->
+
+{% endtabs %}
+
+访问者模式，定义比较简单，结合前面的例子不难理解。对于访问者模式的代码实现，实际上，在上面例子中，经过层层重构之后的最终代码，就是标准的访问者模式的实现代码。下面总结了一张图，可以对照着前面的例子代码一块儿来看一下。
+
+![](visitor-pattern.webp)
+
+最后，我们再来看下，访问者模式的应用场景。一般来说，访问者模式针对的是一组类型不同的对象（`PdfFile`、`PPTFile`、`WordFile`）。不过，尽管这组对象的类型是不同的，但是，它们继承相同的父类（`ResourceFile`）或者实现相同的接口。在不同的应用场景下，我们需要对这组对象进行一系列不相关的业务操作（抽取文本、压缩等），但为了避免不断添加功能导致类（`PdfFile`、`PPTFile`、`WordFile`）不断膨胀，职责越来越不单一，以及避免频繁地添加功能导致的频繁代码修改，我们使用访问者模式，将对象与操作解耦，将这些业务操作抽离出来，定义在独立细分的访问者类（`Extractor`、`Compressor`）中。
+
+#### 备忘录模式
+
+备忘录模式，也叫快照（`Snapshot`）模式，英文是 `Memento Design Pattern`，定义是：在不违背封装原则的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态，以便之后恢复对象为先前的状态。这个模式理解、掌握起来不难，代码实现比较灵活，应用场景也比较明确和有限，主要是用来防丢失、撤销、恢复等。
+
+假设有这样一个需求，希望编写一个小程序，可以接收命令行的输入。用户输入文本时，程序将其追加存储在内存文本中；用户输入`:list`，程序在命令行中输出内存文本的内容；用户输入`:undo`，程序会撤销上一次输入的文本，也就是从内存文本中将上次输入的文本删除掉。我举了个小例子来解释一下这个需求，如下所示：
+
+```
+>hello
+>:list
+hello
+>world
+>:list
+helloworld
+>:undo
+>:list
+hello
+```
+
+{% tabs 快照模式 %}
+
+<!-- tab 基本实现 -->
+
+下面是一个基本的实现：
+
+{% note warning %}
+```java
+public class InputText {
+  private StringBuilder text = new StringBuilder();
+
+  public String getText() {
+    return text.toString();
+  }
+
+  public void append(String input) {
+    text.append(input);
+  }
+
+  public void setText(String text) {
+    this.text.replace(0, this.text.length(), text);
+  }
+}
+
+public class SnapshotHolder {
+  private Stack<InputText> snapshots = new Stack<>();
+
+  public InputText popSnapshot() {
+    return snapshots.pop();
+  }
+
+  public void pushSnapshot(InputText inputText) {
+    InputText deepClonedInputText = new InputText();
+    deepClonedInputText.setText(inputText.getText());
+    snapshots.push(deepClonedInputText);
+  }
+}
+
+public class ApplicationMain {
+  public static void main(String[] args) {
+    InputText inputText = new InputText();
+    SnapshotHolder snapshotsHolder = new SnapshotHolder();
+    Scanner scanner = new Scanner(System.in);
+    while (scanner.hasNext()) {
+      String input = scanner.next();
+      if (input.equals(":list")) {
+        System.out.println(inputText.getText());
+      } else if (input.equals(":undo")) {
+        InputText snapshot = snapshotsHolder.popSnapshot();
+        inputText.setText(snapshot.getText());
+      } else {
+        snapshotsHolder.pushSnapshot(inputText);
+        inputText.append(input);
+      }
+    }
+  }
+}
+```
+
+{% endnote %}
+
+实际上，备忘录模式的实现很灵活，也没有很固定的实现方式，在不同的业务需求、不同编程语言下，代码实现可能都不大一样。上面的代码基本上已经实现了最基本的备忘录的功能。但是，如果我们深究一下的话，还有一些问题要解决，那就是前面定义中提到的第二点：要在不违背封装原则的前提下，进行对象的备份和恢复。而上面的代码并不满足这一点，主要体现在下面两方面：
+- 第一，为了能用快照恢复 `InputText` 对象，我们在 `InputText` 类中定义了 `setText()` 函数，但这个函数有可能会被其他业务使用，所以，暴露不应该暴露的函数违背了封装原则；
+- 第二，快照本身是不可变的，理论上讲，不应该包含任何 `set()` 等修改内部状态的函数，但在上面的代码实现中，“快照“这个业务模型复用了 `InputText` 类的定义，而 `InputText` 类本身有一系列修改内部状态的函数，所以，用 `InputText` 类来表示快照违背了封装原则。
+
+<!-- endtab -->
+
+<!-- tab 快照模式 -->
+
+针对前面的问题，我们对代码做两点修改。其一，定义一个独立的类（`Snapshot` 类）来表示快照，而不是复用 `InputText` 类。这个类只暴露 `get()` 方法，没有 `set()` 等任何修改内部状态的方法。其二，在 `InputText` 类中，我们把 `setText()` 方法重命名为 `restoreSnapshot()` 方法，用意更加明确，只用来恢复对象。
+
+重构之后的代码如下所示：
+
+```java
+
+public class InputText {
+  private StringBuilder text = new StringBuilder();
+
+  public String getText() {
+    return text.toString();
+  }
+
+  public void append(String input) {
+    text.append(input);
+  }
+
+  public Snapshot createSnapshot() {
+    return new Snapshot(text.toString());
+  }
+
+  public void restoreSnapshot(Snapshot snapshot) {
+    this.text.replace(0, this.text.length(), snapshot.getText());
+  }
+}
+
+public class Snapshot {
+  private String text;
+
+  public Snapshot(String text) {
+    this.text = text;
+  }
+
+  public String getText() {
+    return this.text;
+  }
+}
+
+public class SnapshotHolder {
+  private Stack<Snapshot> snapshots = new Stack<>();
+
+  public Snapshot popSnapshot() {
+    return snapshots.pop();
+  }
+
+  public void pushSnapshot(Snapshot snapshot) {
+    snapshots.push(snapshot);
+  }
+}
+
+public class ApplicationMain {
+  public static void main(String[] args) {
+    InputText inputText = new InputText();
+    SnapshotHolder snapshotsHolder = new SnapshotHolder();
+    Scanner scanner = new Scanner(System.in);
+    while (scanner.hasNext()) {
+      String input = scanner.next();
+      if (input.equals(":list")) {
+        System.out.println(inputText.toString());
+      } else if (input.equals(":undo")) {
+        Snapshot snapshot = snapshotsHolder.popSnapshot();
+        inputText.restoreSnapshot(snapshot);
+      } else {
+        snapshotsHolder.pushSnapshot(inputText.createSnapshot());
+        inputText.append(input);
+      }
+    }
+  }
+}
+```
+
+上面的代码实现就是典型的备忘录模式的代码实现，也是很多书籍（包括 `GoF` 的《设计模式》）中给出的实现方法。
+
+<!-- endtab -->
+
+{% endtabs %}
+
+#### 命令模式
+
+命令模式，英文 `Command Design Pattern`，定义是：命令模式将请求（命令）封装为一个对象，这样可以使用不同的请求参数化其他对象（将不同请求依赖注入到其他对象），并且能够支持请求（命令）的排队执行、记录日志、撤销等（附加控制）功能。
+
+落实到编码实现，命令模式用的最核心的实现手段，是将函数封装成对象。我们知道，`C` 语言支持函数指针，我们可以把函数当作变量传递来传递去。但是，在大部分编程语言中，函数没法儿作为参数传递给其他函数，也没法儿赋值给变量。借助命令模式，我们可以将函数封装成对象。具体来说就是，设计一个包含这个函数的类，实例化一个对象传来传去，这样就可以实现把函数像对象一样使用。从实现的角度来说，它类似我们之前讲过的回调。
+
+当我们把函数封装成对象之后，对象就可以存储下来，方便控制执行。所以，命令模式的主要作用和应用场景，是用来控制命令的执行，比如，异步、延迟、排队执行命令、撤销重做命令、存储命令、给命令记录日志等等，这才是命令模式能发挥独一无二作用的地方。
+
+举个例子，假设我们正在开发一个类似《天天酷跑》或者《`QQ` 卡丁车》这样的手游。这种游戏本身的复杂度集中在客户端。后端基本上只负责数据（比如积分、生命值、装备）的更新和查询，所以，后端逻辑相对于客户端来说，要简单很多。
+
+一般来说，游戏客户端和服务器之间的数据交互是比较频繁的，所以，为了节省网络连接建立的开销，客户端和服务器之间一般采用长连接的方式来通信。通信的格式有多种，比如 `Protocol Buffer`、`JSON`、`XML`，甚至可以自定义格式。不管是什么格式，客户端发送给服务器的请求，一般都包括两部分内容：指令和数据。其中，指令我们也可以叫作事件，数据是执行这个指令所需的数据。服务器在接收到客户端的请求之后，会解析出指令和数据，并且根据指令的不同，执行不同的处理逻辑。对于这样的一个业务场景，一般有两种架构实现思路。
+
+1. 一个线程接收请求，接收到请求之后，启动一个新的线程来处理请求。具体点讲，一般是通过一个主线程来接收客户端发来的请求。每当接收到一个请求之后，就从一个专门用来处理请求的线程池中，捞出一个空闲线程来处理；
+2. 在一个线程内轮询接收请求和处理请求。这种处理方式不太常见。尽管它无法利用多线程多核处理的优势，但是对于 IO 密集型的业务来说，它避免了多线程不停切换对性能的损耗，并且克服了多线程编程 `Bug` 比较难调试的缺点，也算是手游后端服务器开发中比较常见的架构模式了；
+
+下面是第二种实现思路的代码示例，整个手游后端服务器轮询获取客户端发来的请求，获取到请求之后，借助命令模式，把请求包含的数据和处理逻辑封装为命令对象，并存储在内存队列中。然后，再从队列中取出一定数量的命令来执行。执行完成之后，再重新开始新的一轮轮询。
+
+```java
+
+public interface Command {
+  void execute();
+}
+
+public class GotDiamondCommand implements Command {
+  // 省略成员变量
+
+  public GotDiamondCommand(/*数据*/) {
+    //...
+  }
+
+  @Override
+  public void execute() {
+    // 执行相应的逻辑
+  }
+}
+//GotStartCommand/HitObstacleCommand/ArchiveCommand类省略
+
+public class GameApplication {
+  private static final int MAX_HANDLED_REQ_COUNT_PER_LOOP = 100;
+  private Queue<Command> queue = new LinkedList<>();
+
+  public void mainloop() {
+    while (true) {
+      List<Request> requests = new ArrayList<>();
+      
+      //省略从epoll或者select中获取数据，并封装成Request的逻辑，
+      //注意设置超时时间，如果很长时间没有接收到请求，就继续下面的逻辑处理。
+      
+      for (Request request : requests) {
+        Event event = request.getEvent();
+        Command command = null;
+        if (event.equals(Event.GOT_DIAMOND)) {
+          command = new GotDiamondCommand(/*数据*/);
+        } else if (event.equals(Event.GOT_STAR)) {
+          command = new GotStartCommand(/*数据*/);
+        } else if (event.equals(Event.HIT_OBSTACLE)) {
+          command = new HitObstacleCommand(/*数据*/);
+        } else if (event.equals(Event.ARCHIVE)) {
+          command = new ArchiveCommand(/*数据*/);
+        } // ...一堆else if...
+
+        queue.add(command);
+      }
+
+      int handledCount = 0;
+      while (handledCount < MAX_HANDLED_REQ_COUNT_PER_LOOP) {
+        if (queue.isEmpty()) {
+          break;
+        }
+        Command command = queue.poll();
+        command.execute();
+      }
+    }
+  }
+}
+```
+
+策略模式和命令模式相比，在策略模式中，**不同的策略具有相同的目的、不同的实现、互相之间可以替换**。比如，`BubbleSort`、`SelectionSort` 都是为了实现排序的，只不过一个是用冒泡排序算法来实现的，另一个是用选择排序算法来实现的。而在命令模式中，**不同的命令具有不同的目的，对应不同的处理逻辑，并且互相之间不可替换**。
+
+#### 解释器模式
+
+解释器模式，英文是 `Interpreter Design Pattern`，定义是：解释器模式为某个语言定义它的语法（或者叫文法）表示，并定义一个解释器用来处理这个语法。
+
+解释器模式更加小众，只在一些特定的领域会被用到，比如编译器、规则引擎、正则表达式。
+
+定义很难理解，因为这里面有很多我们平时开发中很少接触的概念，比如语言，语法，解释器。实际上，这里的语言不仅仅指我们平时说的中、英、日、法等各种语言。从广义上来讲，只要是能承载信息的载体，我们都可以称之为语言，比如，古代的结绳记事、盲文、哑语、摩斯密码等。要想了解语言表达的信息，我们就必须定义相应的语法规则。这样，书写者就可以根据语法规则来书写句子，阅读者根据语法规则来阅读句子，这样才能做到信息的正确传递。而我们要讲的**解释器模式，其实就是用来实现根据语法规则解读句子的解释器**。
+
+我们看一个更加接近实战的例子：实现一个自定义接口告警规则功能。
+
+在我们平时的项目开发中，监控系统非常重要，它可以时刻监控业务系统的运行情况，及时将异常报告给开发者。比如，如果每分钟接口出错数超过 `100`，监控系统就通过短信、微信、邮件等方式发送告警给开发者。
+
+一般来讲，监控系统支持开发者自定义告警规则，比如我们可以用下面这样一个表达式，来表示一个告警规则，它表达的意思是：每分钟 API 总出错数超过 `100` 或者每分钟 `API` 总调用数超过 `10000` 就触发告警。
+
+```
+api_error_per_minute > 100 || api_count_per_minute > 10000
+```
+
+在监控系统中，告警模块只负责根据统计数据和告警规则，判断是否触发告警。至于每分钟 `API` 接口出错数、每分钟接口调用数等统计数据的计算，是由其他模块来负责的。其他模块将统计数据放到一个 `Map` 中（数据的格式如下所示），发送给告警模块。接下来，我们只关注告警模块。
+
+```java
+Map<String, Long> apiStat = new HashMap<>();
+apiStat.put("api_error_per_minute", 103);
+apiStat.put("api_count_per_minute", 987);
+```
+
+为了简化讲解和代码实现，我们假设自定义的告警规则只包含`||、&&、>、<、==`这五个运算符，其中，`>、<、==`运算符的优先级高于`||、&&`运算符，`&&`运算符优先级高于`||`。在表达式中，任意元素之间需要通过空格来分隔。除此之外，用户可以自定义要监控的 `key`，比如前面的 `api_error_per_minute、api_count_per_minute`。
+
+下面的代码的骨架：
+
+```java
+public class AlertRuleInterpreter {
+
+  // key1 > 100 && key2 < 1000 || key3 == 200
+  public AlertRuleInterpreter(String ruleExpression) {
+    //TODO:由你来完善
+  }
+
+  //<String, Long> apiStat = new HashMap<>();
+  //apiStat.put("key1", 103);
+  //apiStat.put("key2", 987);
+  public boolean interpret(Map<String, Long> stats) {
+    //TODO:由你来完善
+  }
+
+}
+
+public class DemoTest {
+  public static void main(String[] args) {
+    String rule = "key1 > 100 && key2 < 30 || key3 < 100 || key4 == 88";
+    AlertRuleInterpreter interpreter = new AlertRuleInterpreter(rule);
+    Map<String, Long> stats = new HashMap<>();
+    stats.put("key1", 101l);
+    stats.put("key3", 121l);
+    stats.put("key4", 88l);
+    boolean alert = interpreter.interpret(stats);
+    System.out.println(alert);
+  }
+}
+```
+
+实际上，我们可以把自定义的告警规则，看作一种特殊“语言”的语法规则。我们实现一个解释器，能够根据规则，针对用户输入的数据，判断是否触发告警。利用解释器模式，我们把解析表达式的逻辑拆分到各个小类中，避免大而复杂的大类的出现。按照这个实现思路，我把刚刚的代码补全，如下所示，你可以拿你写的代码跟我写的对比一下。
+
+```java
+
+public interface Expression {
+  boolean interpret(Map<String, Long> stats);
+}
+
+public class GreaterExpression implements Expression {
+  private String key;
+  private long value;
+
+  public GreaterExpression(String strExpression) {
+    String[] elements = strExpression.trim().split("\\s+");
+    if (elements.length != 3 || !elements[1].trim().equals(">")) {
+      throw new RuntimeException("Expression is invalid: " + strExpression);
+    }
+    this.key = elements[0].trim();
+    this.value = Long.parseLong(elements[2].trim());
+  }
+
+  public GreaterExpression(String key, long value) {
+    this.key = key;
+    this.value = value;
+  }
+
+  @Override
+  public boolean interpret(Map<String, Long> stats) {
+    if (!stats.containsKey(key)) {
+      return false;
+    }
+    long statValue = stats.get(key);
+    return statValue > value;
+  }
+}
+
+// LessExpression/EqualExpression跟GreaterExpression代码类似，这里就省略了
+
+public class AndExpression implements Expression {
+  private List<Expression> expressions = new ArrayList<>();
+
+  public AndExpression(String strAndExpression) {
+    String[] strExpressions = strAndExpression.split("&&");
+    for (String strExpr : strExpressions) {
+      if (strExpr.contains(">")) {
+        expressions.add(new GreaterExpression(strExpr));
+      } else if (strExpr.contains("<")) {
+        expressions.add(new LessExpression(strExpr));
+      } else if (strExpr.contains("==")) {
+        expressions.add(new EqualExpression(strExpr));
+      } else {
+        throw new RuntimeException("Expression is invalid: " + strAndExpression);
+      }
+    }
+  }
+
+  public AndExpression(List<Expression> expressions) {
+    this.expressions.addAll(expressions);
+  }
+
+  @Override
+  public boolean interpret(Map<String, Long> stats) {
+    for (Expression expr : expressions) {
+      if (!expr.interpret(stats)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+}
+
+public class OrExpression implements Expression {
+  private List<Expression> expressions = new ArrayList<>();
+
+  public OrExpression(String strOrExpression) {
+    String[] andExpressions = strOrExpression.split("\\|\\|");
+    for (String andExpr : andExpressions) {
+      expressions.add(new AndExpression(andExpr));
+    }
+  }
+
+  public OrExpression(List<Expression> expressions) {
+    this.expressions.addAll(expressions);
+  }
+
+  @Override
+  public boolean interpret(Map<String, Long> stats) {
+    for (Expression expr : expressions) {
+      if (expr.interpret(stats)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+public class AlertRuleInterpreter {
+  private Expression expression;
+
+  public AlertRuleInterpreter(String ruleExpression) {
+    this.expression = new OrExpression(ruleExpression);
+  }
+
+  public boolean interpret(Map<String, Long> stats) {
+    return expression.interpret(stats);
+  }
+} 
+```
+
+解释器模式的代码实现比较灵活，没有固定的模板。应用设计模式主要是应对代码的复杂性，解释器模式也不例外。它的代码实现的核心思想，就是将语法解析的工作拆分到各个小类中，以此来避免大而全的解析类。一般的做法是，将语法规则拆分一些小的独立的单元，然后对每个单元进行解析，最终合并为对整个语法规则的解析。
+
+#### 中介模式
+
+中介模式，英文是 `Mediator Design Pattern`，定义是：介模式定义了一个单独的（中介）对象，来封装一组对象之间的交互。将这组对象之间的交互委派给与中介对象交互，来避免对象之间的直接交互。
+
+中介模式的设计思想跟中间层很像，通过引入中介这个中间层，将一组对象之间的交互关系（或者说依赖关系）从多对多（网状关系）转换为一对多（星状关系）。原来一个对象要跟 `n` 个对象交互，现在只需要跟一个中介对象交互，从而最小化对象之间的交互关系，降低了代码的复杂度，提高了代码的可读性和可维护性。
+
+下面是一张对象交互关系的对比图。其中，右边的交互图是利用中介模式对左边交互关系优化之后的结果，从图中我们可以很直观地看出，右边的交互关系更加清晰、简洁。
+
+![](Mediator-Design-Pattern.webp)
+
+关于中介模式，有一个比较经典的例子不得不说，那就是航空管制。为了让飞机在飞行的时候互不干扰，每架飞机都需要知道其他飞机每时每刻的位置，这就需要时刻跟其他飞机通信。飞机通信形成的通信网络就会无比复杂。这个时候，我们通过引入“塔台”这样一个中介，让每架飞机只跟塔台来通信，发送自己的位置给塔台，由塔台来负责每架飞机的航线调度。这样就大大简化了通信网络。
+
+刚刚举的是生活中的例子，我们再举一个跟编程开发相关的例子。假设我们有一个比较复杂的对话框，对话框中有很多控件，比如按钮、文本框、下拉框等。当我们对某个控件进行操作的时候，其他控件会做出相应的反应，比如，我们在下拉框中选择“注册”，注册相关的控件就会显示在对话框中。如果我们在下拉框中选择“登陆”，登陆相关的控件就会显示在对话框中。
+
+{% tabs 中介模式 %}
+
+<!-- tab 普通实现 -->
+
+按照通常我们习惯的 `UI` 界面的开发方式，我们将刚刚的需求用代码实现出来，就是下面这个样子。在这种实现方式中，控件和控件之间互相操作、互相依赖。
+
+```java
+
+public class UIControl {
+  private static final String LOGIN_BTN_ID = "login_btn";
+  private static final String REG_BTN_ID = "reg_btn";
+  private static final String USERNAME_INPUT_ID = "username_input";
+  private static final String PASSWORD_INPUT_ID = "pswd_input";
+  private static final String REPEATED_PASSWORD_INPUT_ID = "repeated_pswd_input";
+  private static final String HINT_TEXT_ID = "hint_text";
+  private static final String SELECTION_ID = "selection";
+
+  public static void main(String[] args) {
+    Button loginButton = (Button)findViewById(LOGIN_BTN_ID);
+    Button regButton = (Button)findViewById(REG_BTN_ID);
+    Input usernameInput = (Input)findViewById(USERNAME_INPUT_ID);
+    Input passwordInput = (Input)findViewById(PASSWORD_INPUT_ID);
+    Input repeatedPswdInput = (Input)findViewById(REPEATED_PASSWORD_INPUT_ID);
+    Text hintText = (Text)findViewById(HINT_TEXT_ID);
+    Selection selection = (Selection)findViewById(SELECTION_ID);
+
+    loginButton.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        String username = usernameInput.text();
+        String password = passwordInput.text();
+        //校验数据...
+        //做业务处理...
+      }
+    });
+
+    regButton.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View v) {
+      //获取usernameInput、passwordInput、repeatedPswdInput数据...
+      //校验数据...
+      //做业务处理...
+      }
+    });
+
+    //...省略selection下拉选择框相关代码....
+  }
+}
+```
+<!-- endtab -->
+
+<!-- tab 中介模式 -->
+我们再按照中介模式，将上面的代码重新实现一下。在新的代码实现中，各个控件只跟中介对象交互，中介对象负责所有业务逻辑的处理。
+
+```java
+
+public interface Mediator {
+  void handleEvent(Component component, String event);
+}
+
+public class LandingPageDialog implements Mediator {
+  private Button loginButton;
+  private Button regButton;
+  private Selection selection;
+  private Input usernameInput;
+  private Input passwordInput;
+  private Input repeatedPswdInput;
+  private Text hintText;
+
+  @Override
+  public void handleEvent(Component component, String event) {
+    if (component.equals(loginButton)) {
+      String username = usernameInput.text();
+      String password = passwordInput.text();
+      //校验数据...
+      //做业务处理...
+    } else if (component.equals(regButton)) {
+      //获取usernameInput、passwordInput、repeatedPswdInput数据...
+      //校验数据...
+      //做业务处理...
+    } else if (component.equals(selection)) {
+      String selectedItem = selection.select();
+      if (selectedItem.equals("login")) {
+        usernameInput.show();
+        passwordInput.show();
+        repeatedPswdInput.hide();
+        hintText.hide();
+        //...省略其他代码
+      } else if (selectedItem.equals("register")) {
+        //....
+      }
+    }
+  }
+}
+
+public class UIControl {
+  private static final String LOGIN_BTN_ID = "login_btn";
+  private static final String REG_BTN_ID = "reg_btn";
+  private static final String USERNAME_INPUT_ID = "username_input";
+  private static final String PASSWORD_INPUT_ID = "pswd_input";
+  private static final String REPEATED_PASSWORD_INPUT_ID = "repeated_pswd_input";
+  private static final String HINT_TEXT_ID = "hint_text";
+  private static final String SELECTION_ID = "selection";
+
+  public static void main(String[] args) {
+    Button loginButton = (Button)findViewById(LOGIN_BTN_ID);
+    Button regButton = (Button)findViewById(REG_BTN_ID);
+    Input usernameInput = (Input)findViewById(USERNAME_INPUT_ID);
+    Input passwordInput = (Input)findViewById(PASSWORD_INPUT_ID);
+    Input repeatedPswdInput = (Input)findViewById(REPEATED_PASSWORD_INPUT_ID);
+    Text hintText = (Text)findViewById(HINT_TEXT_ID);
+    Selection selection = (Selection)findViewById(SELECTION_ID);
+
+    Mediator dialog = new LandingPageDialog();
+    dialog.setLoginButton(loginButton);
+    dialog.setRegButton(regButton);
+    dialog.setUsernameInput(usernameInput);
+    dialog.setPasswordInput(passwordInput);
+    dialog.setRepeatedPswdInput(repeatedPswdInput);
+    dialog.setHintText(hintText);
+    dialog.setSelection(selection);
+
+    loginButton.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        dialog.handleEvent(loginButton, "click");
+      }
+    });
+
+    regButton.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        dialog.handleEvent(regButton, "click");
+      }
+    });
+
+    //....
+  }
+}
+```
+
+从代码中我们可以看出，原本业务逻辑会分散在各个控件中，现在都集中到了中介类中。实际上，这样做既有好处，也有坏处。好处是简化了控件之间的交互，坏处是中介类有可能会变成大而复杂的“上帝类”（`God Class`）。所以，在使用中介模式的时候，我们要根据实际的情况，平衡对象之间交互的复杂度和中介类本身的复杂度。
+
+<!-- endtab -->
+
+{% endtabs %}
+
+
+
 ### 题外话
 
 #### 工厂模式和 `DI` 容器
@@ -2143,6 +5708,50 @@ public class BeansFactory {
 
 **适配器模式**：适配器模式是一种事后的补救策略。适配器提供跟原始类不同的接口，而代理模式、装饰器模式提供的都是跟原始类相同的接口。
 
+#### 享元模式 vs 单例、缓存、对象池
+
+##### 单例
+
+在单例模式中，一个类只能创建一个对象，而在享元模式中，一个类可以创建多个对象，每个对象被多处代码引用共享。实际上，享元模式有点类似于之前讲到的单例的变体：多例。
+
+我们前面也多次提到，区别两种设计模式，不能光看代码实现，而是要看设计意图，也就是要解决的问题。尽管从代码实现上来看，享元模式和多例有很多相似之处，但从设计意图上来看，它们是完全不同的。应用享元模式是为了对象复用，节省内存，而应用多例模式是为了限制对象的个数。
+
+##### 缓存
+
+在享元模式的实现中，我们通过工厂类来缓存已经创建好的对象。这里的缓存实际上是存储的意思，跟我们平时所说的数据库缓存 `CPU` 缓存  `MemCache` 缓存是两回事。我们平时所讲的缓存，主要是为了提高访问效率，而非复用。
+
+##### 对象池
+
+对象池、连接池（比如数据库连接池）、线程池等也是为了复用，像 `C++` 这样的编程语言，内存的管理是由程序员负责的。为了避免频繁地进行对象创建和释放导致内存碎片，我们可以预先申请一片连续的内存空间，也就是这里说的对象池。每次创建对象时，我们从对象池中直接取出一个空闲对象来使用，对象使用完成之后，再放回到对象池中以供后续复用，而非直接释放掉。
+
+虽然对象池、连接池、线程池、享元模式都是为了复用，但是，如果我们再细致地抠一抠“复用”这个字眼的话，对象池、连接池、线程池等池化技术中的“复用”和享元模式中的“复用”实际上是不同的概念。
+
+池化技术中的“复用”可以理解为“重复使用”，主要目的是节省时间（比如从数据库池中取一个连接，不需要重新创建）。在任意时刻，每一个对象、连接、线程，并不会被多处使用，而是被一个使用者独占，当使用完成之后，放回到池中，再由其他使用者重复利用。享元模式中的“复用”可以理解为“共享使用”，在整个生命周期中，都是被所有使用者共享的，主要目的是节省空间。
+
+#### 回调 VS 模板模式
+
+从应用场景上来看，同步回调跟模板模式几乎一致。它们都是在一个大的算法骨架中，自由替换其中的某个步骤，起到代码复用和扩展的目的。而异步回调跟模板模式有较大差别，更像是观察者模式。
+
+从代码实现上来看，回调和模板模式完全不同。回调基于组合关系来实现，把一个对象传递给另一个对象，是一种对象之间的关系；模板模式基于继承关系来实现，子类重写父类的抽象方法，是一种类之间的关系。
+
+前面讲到，组合优于继承。实际上，这里也不例外。在代码实现上，回调相对于模板模式会更加灵活，主要体现在下面几点。
+
+1. 像 Java 这种只支持单继承的语言，基于模板模式编写的子类，已经继承了一个父类，不再具有继承的能力。
+2. 回调可以使用匿名类来创建回调对象，可以不用事先定义类；而模板模式针对不同的实现都要定义不同的子类。
+3. 如果某个类中定义了多个模板方法，每个方法都有对应的抽象方法，那即便我们只用到其中的一个模板方法，子类也必须实现所有的抽象方法。而回调就更加灵活，我们只需要往用到的模板方法中注入回调对象即可。
+
+#### 中介模式 VS 观察者模式
+
+之前讲到观察者模式有多种实现方式。虽然经典的实现方式没法彻底解耦观察者和被观察者，观察者需要注册到被观察者中，被观察者状态更新需要调用观察者的 `update()` 方法。但是，在跨进程的实现方式中，我们可以利用消息队列实现彻底解耦，观察者和被观察者都只需要跟消息队列交互，观察者完全不知道被观察者的存在，被观察者也完全不知道观察者的存在。
+
+中介模式也是为了解耦对象之间的交互，所有的参与者都只与中介进行交互。而观察者模式中的消息队列，就有点类似中介模式中的“中介”，观察者模式的中观察者和被观察者，就有点类似中介模式中的“参与者”。那问题来了：中介模式和观察者模式的区别在哪里呢？什么时候选择使用中介模式？什么时候选择使用观察者模式呢？
+
+在观察者模式中，尽管一个参与者既可以是观察者，同时也可以是被观察者，但是，大部分情况下，交互关系往往都是单向的，一个参与者要么是观察者，要么是被观察者，不会兼具两种身份。也就是说，在观察者模式的应用场景中，参与者之间的交互关系比较有条理。
+
+而中介模式正好相反。只有当参与者之间的交互关系错综复杂，维护成本很高的时候，我们才考虑使用中介模式。毕竟，中介模式的应用会带来一定的副作用，前面也讲到，它有可能会产生大而复杂的上帝类。除此之外，如果一个参与者状态的改变，其他参与者执行的操作有一定先后顺序的要求，这个时候，中介模式就可以利用中介类，通过先后调用不同参与者的方法，来实现顺序的控制，而观察者模式是无法实现这样的顺序要求的。
+
+
 ### 参考链接
 
 1. [设计模式](https://refactoringguru.cn/design-patterns)
+2. [设计模式（极客时间）](https://time.geekbang.org/column/intro/100039001?tab=catalog)
