@@ -22,7 +22,7 @@ categories:
 
 {% asset_img install-success.png %}
 
-我们可以顺手配置以下 `cargo` 的镜像地址，参考自 [中科大 Rust Crates 镜像使用帮助](https://lug.ustc.edu.cn/wiki/mirrors/help/rust-crates/)
+我们可以顺手配置以下 `cargo` 的镜像地址，参考自 [中科大 `Rust Crates` 镜像使用帮助](https://lug.ustc.edu.cn/wiki/mirrors/help/rust-crates/)
 
 ```yaml ~/.cargo/config
 [source.crates-io]
@@ -32,6 +32,8 @@ replace-with = 'ustc'
 [source.ustc]
 registry = "git://mirrors.ustc.edu.cn/crates.io-index"
 ```
+
+也推荐的字节跳动的 `Rustup` 镜像和 `crates.io` 镜像，具体请看 [`https://rsproxy.cn/`](https://rsproxy.cn/)。
 
 <!-- more -->
 

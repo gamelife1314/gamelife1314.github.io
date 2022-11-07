@@ -92,7 +92,7 @@ menu:
   "Go &nbsp;&nbsp;&nbsp;编程": /Programming-Go/ || fa fa-hippo
   "家中小可爱": https://wshuhua.github.io/ || fa fa-sun
   "Leetcode-Rust": /Leetcode-Rust/ || fa fa-book
-  "卡拉云低代码工具": https://kalacloud.com/ || fa fa-horse-head
+  # "卡拉云低代码工具": https://kalacloud.com/ || fa fa-horse-head
 
 # Enable / Disable menu icons / item badges.
 menu_settings:
