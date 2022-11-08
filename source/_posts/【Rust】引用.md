@@ -75,7 +75,7 @@ assert_eq!(table["Gesualdo"][0], "many madrigals");
 
 - `shared reference`：可以读引用的值，但不能改变它。而且同时可以有多个`shared reference`。表达式 `&e` 会生成 `e` 的`shared reference`。如果 `e` 的类型是 `T`，那么 `&e` 的类型是 `&T`，读作 `ref T`，**`shared reference`是可以复制的**；共享引用借用的值是只读的，在共享引用的整个生命周期中，它的引用对象或从该引用对象可到达的任何东西都不能被改变，就像加了读锁，被冻结了；
 
-- `mutable reference`：可读可写所引用的值，也不能拥有其他任何 `shared reference` 或者 `mutable reference`。表达式 `&mut e` 生成 `e` 的 `mutable reference`。如果 `e` 的类型是 `T`，那么 `&mut e` 的类型是 `&mut T`，读作 `ref mute T`。 **`mutable reference`是不可以复制的**。可变引用借用的值只能通过该引用访问，在可变引用的整个生命周期中，没有其他可用路径可以到达其引用对象；
+- `mutable reference`：可读可写所引用的值，不能拥有其他任何 `shared reference` 或者 `mutable reference`。表达式 `&mut e` 生成 `e` 的 `mutable reference`。如果 `e` 的类型是 `T`，那么 `&mut e` 的类型是 `&mut T`，读作 `ref mute T`。 **`mutable reference`是不可以复制的**。可变引用借用的值只能通过该引用访问，在可变引用的整个生命周期中，没有其他可用路径可以到达其引用对象；
 
 因此，我们可以对上面的 `show` 函数作如下修改，就可以使得代码编译通过。在 `show` 函数中，`table` 的类型是 `&Table`，那么 `artist` 和 `works` 的类型就是 `&String` 和 `&Vec<String>`，内部的 `for` 循环中 `work` 的类型也就变成了 `&String`。
 
@@ -297,7 +297,7 @@ fn factorial(n: usize) -> usize {
 
 #### 引用局部变量
 
-如果我们引用的是一个局部变量，并且我们的引用比局部变量的作用域更大，也就是局部变量释放了之后，我们的音容会如何，来看下面的示例：
+如果我们引用的是一个局部变量，并且我们的引用比局部变量的作用域更大，也就是局部变量释放了之后，我们的程序会如何，来看下面的示例：
 
 {% note danger %}
 

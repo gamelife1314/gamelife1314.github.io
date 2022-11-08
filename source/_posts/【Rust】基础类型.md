@@ -50,7 +50,7 @@ mathjax: true
 |`32`|`u32`|`i32`|`f32`|
 |`64`|`u64`|`i64`|`f64`|
 |`128`|`u128`|`i128`||
-|Machine word|`usize`|`isize`||
+|`Machine word`|`usize`|`isize`||
 
 `Rust` 有符号数的范围如下：
 

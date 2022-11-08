@@ -209,3 +209,12 @@ date: 2022-05-05 09:54:08
 - [嵌入式手册](https://doc.rust-lang.org/embedded-book)
 - [`WEBASSEMBLY` 手册](https://rustwasm.github.io/docs/book/)
 - [`Rust` 参数手册](https://doc.rust-lang.org/reference/index.html)
+- [`rustlings`](https://github.com/rust-lang/rustlings)：`Rust` 知识检测；
+- [`rust-quiz`](https://github.com/dtolnay/rust-quiz)：`Rust` 知识检测；
+- [`spec.ferrocene.dev`](https://spec.ferrocene.dev/)
+
+### 在线工具
+
+- [`releases.rs`](https://releases.rs/)
+- [`Replit`](https://replit.com/languages/rust)：在线支持 `crate` 和 `cargo`；
+- [`Godbolt`](https://godbolt.org/)：支持在线查看 `Rust` 汇编生成；

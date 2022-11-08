@@ -271,6 +271,11 @@ info: installing component 'rust-std' for 'arm-linux-androideabi'
 `rustup toolchain help`                                     | Show the `help` page for a subcommand (like `toolchain`)
 `rustup man cargo`                                          | \(*Unix only*\) View the man page for a given command (like `cargo`)
 
+### `Cargo` 插件
+
+1. [`cargo-clippy`](https://rust-lang.github.io/rust-clippy/master/)：代码 `Lint` 工具；
+1. [`cargo-vet`](https://mozilla.github.io/cargo-vet/)：`crate` 供应链检查；
+
 ### 参考文章
 
 1. [Notes on cross-compiling Rust](https://john-millikin.com/notes-on-cross-compiling-rust)
