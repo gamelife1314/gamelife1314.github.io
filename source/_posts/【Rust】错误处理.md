@@ -88,7 +88,7 @@ match get_weather(hometown) {
 }
 ```
 
-`match` 可以处理，但看起来似乎有点冗长。因此 `Result<T, E>` 提供了很多方法使用，全部方法可以阅读 [https://doc.rust-lang.org/std/result/enum.Result.html](https://doc.rust-lang.org/std/result/enum.Result.html)，下面是一些常用的方法列表：
+`match` 可以处理，但看起来似乎有点冗长。因此 `Result<T, E>` 提供了很多方法使用，全部方法可以阅读 [`https://doc.rust-lang.org/std/result/enum.Result.html`](https://doc.rust-lang.org/std/result/enum.Result.html)，下面是一些常用的方法列表：
 
 - `result.is_ok(), result.is_err()`：返回一个 `bool` 表示执行成功还是遇到错误；
 
