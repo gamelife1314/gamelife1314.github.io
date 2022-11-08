@@ -26,7 +26,7 @@
     "hexo-renderer-markdown-it-plus": "^1.0.4",
     "hexo-renderer-stylus": "^2.0.0",
     "hexo-server": "^3.0.0",
-    "hexo-word-counter": "0.0.3",
+    "hexo-word-counter": "0.1.0",
     "prism-themes": "^1.9.0"
   }
 }
