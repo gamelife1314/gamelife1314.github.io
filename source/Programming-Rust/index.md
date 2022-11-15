@@ -178,6 +178,7 @@ date: 2022-05-05 09:54:08
 - [`thiserror`](https://crates.io/crates/thiserror)：自动派生标准库中的 `std::error::Error`；
 - [`anyhow`](https://crates.io/crates/anyhow)：提供了 `anyhow::Result<T>` 用于任何可能失败返回错误的函数；
 - [`lazy_static`](https://crates.io/crates/lazy_static)：可以用于初始化全局可变静态变量；
+- [`once_cell`](https://crates.io/crates/once_cell)：`once_cell`提供了`unsync::OnceCell`和`sync::OnceCell`这两种`Cell`，用来存储堆上的信息，并且具有最多只能赋值一次的特性；
 - [`unicode-width`](https://crates.io/crates/unicode-width)：获取 `Unicode` 字符宽度；
 - [`enum_primitive`](https://crates.io/crates/enum_primitive)：提供宏能自动从数字转换成枚举；
 - [`serde_json`](https://crates.io/crates/serde_json)：`json` 序列化；
