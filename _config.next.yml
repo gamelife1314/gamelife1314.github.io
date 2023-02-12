@@ -41,7 +41,7 @@ custom_file_path:
 scheme: Gemini
 
 # Dark Mode
-darkmode: true
+darkmode: false
 
 # ---------------------------------------------------------------
 # Site Information Settings
