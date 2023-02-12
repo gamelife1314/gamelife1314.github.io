@@ -57,7 +57,7 @@ primary                 Running           192.168.64.16    Ubuntu 20.04 LTS
 ubuntu2204              Running           192.168.64.17    Ubuntu 22.04 LTS
 ```
 
-### 目录挂在
+### 目录挂载
 
 使用 `multipass mount` 命令，可以挂在目录，例如：
 

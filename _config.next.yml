@@ -363,8 +363,8 @@ codeblock:
     dark: xcode
   prism:
     enable: true
-    light: prism-material-dark
-    dark: prism-material-dark
+    light: prism-material-light
+    dark: prism-material-light
   # Add copy button on codeblock
   copy_button:
     enable: true
