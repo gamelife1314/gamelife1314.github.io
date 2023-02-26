@@ -226,7 +226,7 @@ let suggested_pet =
     };
 ```
 
-更多关于 `match` 的用法可以看 [【Rust】实战突破](/2021/09/05/【Rust】实战突破/#match)或者 [模式匹配](/2022/04/25/【Rust】枚举和模式匹配/#模式匹配)。
+更多关于 `match` 的用法可以看 [【Rust】实战突破](/2021/09/05/【Rust】实战突破/#match) 或者 [模式匹配](/2022/04/25/【Rust】枚举和模式匹配/#模式匹配)。
 
 ### `if let`
 
@@ -240,7 +240,7 @@ if let pattern = expr {
 }
 ```
 
-如果给定的表达式 `expr` 匹配 `pattern`，那么 `block1` 将会运行；如果不匹配，`block2` 就会运行。这种一个比较好的方式从 `Option` 或者 `Result` 获取数据：
+如果给定的表达式 `expr` 匹配 `pattern`，那么 `block1` 将会运行；如果不匹配，`block2` 就会运行。这是一个从 `Option` 或者 `Result` 获取数据比较好的方式：
 
 ```rust
 if let Some(cookie) = request.session_cookie { 

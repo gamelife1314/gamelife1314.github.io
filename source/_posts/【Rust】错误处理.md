@@ -64,7 +64,7 @@ fn pirate_share(total: u64, crew_size: usize) -> u64 {
 
 ### `Result`
 
-`Rust` 中没有异常，而是再回出现错误的函数中会返回一个 `Result` 类型，它预示着函数会预期执行成功，也可能因异常执失败。当我们调用函数 `get_weather` 的时候，要么成功返回 `Ok(weather)`，`weather` 是 `WeatherReport` 的一个实例。或者出现错误时返回 `Err(error_value)`，其中 `error_value` 是 `io:Error` 类型。
+`Rust` 中没有异常，而是在会出现错误的函数中会返回一个 `Result` 类型，它预示着函数会预期执行成功，也可能因异常执失败。当我们调用函数 `get_weather` 的时候，要么成功返回 `Ok(weather)`，`weather` 是 `WeatherReport` 的一个实例。或者出现错误时返回 `Err(error_value)`，其中 `error_value` 是 `io:Error` 类型。
 
 ```rust
 fn get_weather(location: LatLng) -> Result<WeatherReport, io::Error>
