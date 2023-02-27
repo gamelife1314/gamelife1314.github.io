@@ -115,7 +115,7 @@ symbols_count_time:
   total_time: true
 
 search:
-  path: search.xml
+  path: local-search.xml
   field: all
   content: true
   format: striptagscode
