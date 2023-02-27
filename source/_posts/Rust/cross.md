@@ -87,7 +87,7 @@ RUN printf '#!/bin/sh\nexport CARGO_HOME=/opt/cargo\nexec /bin/sh "$@"\n' >/usr/
 RUN chmod +x /usr/local/bin/sh
 ```
 
-构建命令为，默认的 `Dockerfile` 文件名为 `Dockerfile`：
+构建命令为：
 
 ```
 docker build -t gamelife1314/aarch64-unknown-linux-gnu .
@@ -126,7 +126,7 @@ RUN printf '#!/bin/sh\nexport CARGO_HOME=/opt/cargo\nexec /bin/sh "$@"\n' >/usr/
 RUN chmod +x /usr/local/bin/sh
 ```
 
-构建镜像的命令为：
+如果自定义了 `Dockerfile`文件名，需要使用 `-f` 指定，构建镜像的命令为：
 
 ```
 docker build -t gamelife1314/x86_64-pc-windows-gnu -f Dockerfile.x86_64-pc-windows-gnu .
