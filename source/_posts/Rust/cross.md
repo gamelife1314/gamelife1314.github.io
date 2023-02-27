@@ -41,7 +41,7 @@ cross build  --target aarch64-unknown-linux-gnu
 
 所有可用的 `target` 可以在[这里](https://github.com/cross-rs/cross/blob/main/docker/Dockerfile.x86_64-pc-windows-gnu)找到。
 
-加速这些镜像的方法就是我们把他下载下来然后传到 `Doclerhub`，然后我们通过国内的公共镜像加速服务器就可以快速下载。当然自己搞这些太麻烦了，已经有大神做好了自动化，只需要在这里创建个 `issue`，就可自动帮我们完成，例如，这是我创建的两个：[`https://github.com/togettoyou/hub-mirror/issues`](https://github.com/togettoyou/hub-mirror/issues/created_by/gamelife1314)，执行完成之后，会在 `Dockerhub` 创建一个新的 `Repo`，例如：
+加速这些镜像的方法就是我们把他下载下来然后传到 `Doclerhub`，然后我们通过国内的公共镜像加速服务器就可以快速下载。当然自己搞这些太麻烦了，已经有大神做好了自动化，只需要在这里创建个`issue`，就可自动帮我们完成，例如，这是我创建的两个：[`https://github.com/togettoyou/hub-mirror/issues`](https://github.com/togettoyou/hub-mirror/issues/created_by/gamelife1314)，执行完成之后，会在 `Dockerhub` 创建一个新的 `Repo`，例如：
 
 ![](hub-mirror.png)
 
