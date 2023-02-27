@@ -474,7 +474,7 @@ struct Point {
 
 ### 内部可变性
 
-内不可变性，简单说就是我们想改变一个不可变的数据，常规做法肯定是行不通的，但是在我们引入两个：[`Cell<T>`](https://doc.rust-lang.org/std/cell/struct.Cell.html) 和 [`RefCell<T>`](https://doc.rust-lang.org/std/cell/struct.RefCell.html) 之后就能解决了。
+内部可变性，简单说就是我们想改变一个不可变的数据，常规做法肯定是行不通的，但是在我们引入两个：[`Cell<T>`](https://doc.rust-lang.org/std/cell/struct.Cell.html) 和 [`RefCell<T>`](https://doc.rust-lang.org/std/cell/struct.RefCell.html) 之后就能解决了。
 
 我们来看一个例子，假设我们要做一个数据采集系统，采集不同类型的站点，但是它们都有一个共同的配置以及某些文件操作句柄用于处理日志等，我们在程序启动的时候，可能就初始化它了：
 
