@@ -36,9 +36,9 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: npm install
 
-      - name: install minify
-        run: |
-          npm install hexo-minify --save
+      # - name: install minify
+      #   run: |
+      #     npm install hexo-minify --save
 
       # Deploy hexo blog website.
       - name: Deploy
