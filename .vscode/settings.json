@@ -1,0 +1,5 @@
+{
+    "yaml.schemas": {
+        "https://json.schemastore.org/github-workflow.json": "file:///Users/fudenglong/WORKDIR/gamelife1314.github.io/.github/workflows/deploy.yml"
+    }
+}
