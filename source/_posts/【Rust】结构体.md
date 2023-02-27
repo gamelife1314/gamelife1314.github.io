@@ -611,7 +611,6 @@ impl SpiderRobot {
 
 `Cell` 易于使用， 必须调用 `.get()` 和 `.set()` 或 `.borrow()` 和 `.borrow_mut()` 有点尴尬，但这只是我们为违反规则而付出的代价。 另一个缺点不太明显但更严重：`Cell` 以及包含它们的任何类型都不是线程安全的，因此，`Rust` 不允许多个线程同时访问它们。这种情况应该使用 [`Mutex`](https://doc.rust-lang.org/std/sync/struct.Mutex.html)。
 
-
 ### 参考文章
 
 1. [Models of Generics and Metaprogramming: Go, Rust, Swift, D and More](https://thume.ca/2019/07/14/a-tour-of-metaprogramming-models-for-generics/)
