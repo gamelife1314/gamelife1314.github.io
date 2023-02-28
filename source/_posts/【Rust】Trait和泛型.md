@@ -126,7 +126,7 @@ let writer: &mut dyn Write = &mut buf; // ok
 ```
 {% endnote %}
 
-对 `Trait` 类型的引用，如 `writer`，称为 {% label @Trait 对象 %}。 `Trait` 对象指向某个值，它有生命周期，可以是可变引用或共享引用。`Trait` 对象的不同之处在于，它包含了一些关于所指对象类型的额外信息，当你调用 `writer.write(data)` 时，`Rust` 需要根据 `*writer` 的类型动态调用正确的 `write` 方法。`Rust` 不允许直接查询类型信息，也不支持从 `Trait` 对象向下转换，`&mut dyn` 不能转换为 `Vec<u8> `这样的具体类型。
+`Trait` 类型的引用，如 `writer`，称为 {% label @Trait 对象 %}。 `Trait` 对象指向某个值，它有生命周期，可以是可变引用或共享引用。`Trait` 对象的不同之处在于，它包含了一些关于所指对象类型的额外信息，当你调用 `writer.write(data)` 时，`Rust` 需要根据 `*writer` 的类型动态调用正确的 `write` 方法。`Rust` 不允许直接查询类型信息，也不支持从 `Trait` 对象向下转换，`&mut dyn` 不能转换为 `Vec<u8> `这样的具体类型。
 
 在内存中，`Trait` 对象是一个胖指针，由一个指向值的指针和一个指向拥有该值类型方法表的指针组成，因此，每个`Trait`对象占用两个机器字，下图所示：
 
@@ -154,8 +154,8 @@ let w: Box<dyn Write> = Box::new(local_file);
 首先来看一个普通函数和泛型函数的例子：
 
 ```rust
-fn say_hello(out: &mut dyn Write) // plain function
-fn say_hello<W: Write>(out: &mut W) // generic function
+fn say_hello(out: &mut dyn Write) // 普通函数
+fn say_hello<W: Write>(out: &mut W) // 泛型函数
 ```
 
 `<W: Write>` 预示着这个函数是泛型的，`W` 是一个类型参数，意味着在整个函数体中，类型 `W` 是实现了 `Write` 的类型。约定上，类型参数使用单个大写字母表示，而 `W` 实际代表哪种类型取决于泛型函数的使用方式：
@@ -235,7 +235,7 @@ where
 
 生命周期参数不会影响函数的机器代码生成，只有不同的类型 `P` 才会导致编译器生成不同的 `nearest` 版本。
 
-即使结构=体不是泛型，它的类型也可以是泛型的：
+即使结构体不是泛型，它的方法也可以是泛型的：
 
 ```rust
 impl PancakeStack {
@@ -246,13 +246,13 @@ impl PancakeStack {
 }
 ```
 
-也有泛型类型：
+类型别名也可以是泛型：
 
 ```rust
 type PancakeResult<T> = Result<T, PancakeError>;
 ```
 
-### 泛型 or `Trait`
+### 泛型 `or Trait`
 
 `Trait` 解决的问题是像什么，它能代表一类对象，这一类对象都有相同的行为；而泛型解决的问题是解决重复编码，更像是一个代码模板，泛型类型可以使用 `Trait` 作为边界。
 
@@ -446,7 +446,7 @@ trait Creature where Self: Visible {
 
 ### `Trait` 的关联函数
 
-`Rust` 的 `Trait` 是可以包含静态类型方法的：
+大多数面向对象语言中，接口是不可以包含静态方法或者构造函数的，但是 `Rust` 的 `Trait` 可以包含静态类型方法：
 
 ```rust
 trait StringSet {
@@ -464,10 +464,30 @@ trait StringSet {
 }
 ```
 
-`new` 和 `from_slice` 没有将 `self` 作为第一个参数，每个实现 `StringSet` 的类型必须实现关联的静态方法。
+`new` 和 `from_slice` 没有将 `self` 作为第一个参数，它们就像构造函数。每个实现 `StringSet` 的类型必须实现关联的静态方法。在非泛型代码中，这些函数可以使用 `::` 调用=类型关联函数：
 
-`Trait` 对象不支持类型关联的函数，如果你想使用 `&dyn StringSet`，即 `Trait` 对象，你必须改变 `Trait`，给每个接受 `self` 参数的关联函数添加边界 `where Self: Sized`：
+```rust
+// Create sets of two hypothetical types that impl StringSet:
+let set1 = SortedStringSet::new();
+let set2 = HashedStringSet::new();
+```
 
+在泛型代码中也是一样的，有区别的是，类型通常是一个类型变量，例如，`S::new()`：
+
+```rust
+/// Return the set of words in `document` that aren't in `wordlist`.
+fn unknown_words<S: StringSet>(document: &[String], wordlist: &S) -> S {
+    let mut unknowns = S::new();
+    for word in document {
+        if !wordlist.contains(word) {
+            unknowns.add(word);
+        }
+    }
+    unknowns
+}
+```
+
+`Trait` 对象不支持类型关联的函数，如果你想使用 `&dyn StringSet`，即 `Trait` 对象，你必须改变 `Trait`，给那些没有将 `self` 作为参数的关联函数添加边界 `where Self: Sized`：
 
 ```rust
 trait StringSet {
