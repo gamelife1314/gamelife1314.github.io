@@ -98,7 +98,7 @@ struct RcBox<T: ?Sized> {
 }
 ```
 
-我们可以将 `RcBox` 用于 `Sized` 类型，如：`RcBox<String>`，也可以用于 `unszied` 类型，例如：`RcBox<dyn std::fmt::Display>`，但是我们不能直接创建 `RcBox<dyn std::fmt::Display>`，而是先要创建一个实现了 `Display` 的类型，例如 `RcBox<String>`，然后再将 `&RcBox<String>` 它转换成 `&RcBox<dyn Display>`，这个转换在传递给函数的时候还会隐式进行：
+我们可以将 `RcBox` 用于 `Sized` 类型，如：`RcBox<String>`，也可以用于 `unszied` 类型，例如：`RcBox<dyn std::fmt::Display>`，但是我们不能直接创建 `RcBox<dyn std::fmt::Display>`，而是先要创建一个实现了 `Display` 的类型，例如 `RcBox<String>`，然后再将 `&RcBox<String>` 转换成 `&RcBox<dyn Display>`，这个转换在传递给函数的时候还会隐式进行：
 
 ```rust
 #![allow(dead_code)]
@@ -263,7 +263,7 @@ fn main() {
 
 `Deref` 和 `DerefMut` 被设计用于实现智能指针类型，如 `Box`、`Rc` 和 `Arc` 以及 `Vec<T>` 和 `Stirng` 这种，不能仅仅为了这种隐式的自动转换而实现它。
 
-`deref` 转换可能引起一些混乱，可以用来解决类型冲突，但是不能满足变量的边界。例如，下面的函数调用是可以进行的，`&Selector<&str>` 会转换成 `&str`： 
+`deref` 转换可能引起一些混乱，可以用来解决类型冲突，但是不能满足变量的边界。例如，下面的函数调用是可以进行的，`&Selector<&str>` 会转换成 `&str`，`Rust` 发现传入的是 `Selector<&str>`，但是要求的是 `&str`，同时该类型实现了 `Deref<Target=str>`，所以就会将函数调用重写成 `show_it(s.deref())`：
 
 {% note success %}
 ```rust
@@ -298,7 +298,7 @@ fn main() {
 }
 ```
 
-`Rust` 提示我们的 `Selector<&str>` 没有实现 `Display`，但我们的 `&str` 确实可以。实际上因为传递了一个 `&Selector<&str>` 类型的参数，而函数的参数类型是 `&T`，所以类型变量 `T` 必须是 `Selector<&str>`。 然后，`Rust` 检查边界 `T: Display` 是否满足：因为它没有应用 `deref` 强制来满足类型变量的边界，所以这个检查失败。
+`Rust` 提示我们的 `Selector<&str>` 没有实现 `Display`，但我们的 `&str` 确实可以。实际上因为传递了一个 `&Selector<&str>` 类型的参数，而函数的参数类型是 `&T`，所以类型变量 `T` 必须是 `Selector<&str>`。 然后，`Rust` 检查边界 `T: Display` 是否满足，因为它没有应用 `deref` 强制来满足类型变量的边界，所以这个检查失败。
 
         Compiling crosscompile v0.1.0 (/Users/fudenglong/WORKDIR/rust/crosscompile)
         error[E0277]: `Selector<&str>` doesn't implement `std::fmt::Display`
@@ -359,7 +359,7 @@ impl Default for String {
 
 ### `AsRef`、`AsMut`
 
-当一个类型实现 [`AsRef<T>`](https://doc.rust-lang.org/stable/std/convert/trait.AsRef.html) 时，这意味着可以从中借用 `&T`，s实现[`AsMut<T>`](https://doc.rust-lang.org/stable/std/convert/trait.AsMut.html) 可以借用 `&mut T`，它们可以实现引用到引用之间的转换，不像 [`From` 和 `Into`](#from-into) 用于值到值之间的转移，它们的定义如下：
+当一个类型实现 [`AsRef<T>`](https://doc.rust-lang.org/stable/std/convert/trait.AsRef.html) 时，这意味着可以从中借用 `&T`，实现[`AsMut<T>`](https://doc.rust-lang.org/stable/std/convert/trait.AsMut.html) 可以借用 `&mut T`，它们可以实现引用到引用之间的转换，不像 [`From` 和 `Into`](#from-into) 用于值到值之间的转移，它们的定义如下：
 
 ```rust
 pub trait AsRef<T> 
