@@ -251,9 +251,14 @@ fn main() {
     c();
 
     // c 不是 FnOnce，虽然它拥有 data 和 name 的所有权
-    // 但是它并没有转移或者消费所有权，因此 name 和 data
-    // 在这里是不能访问的
+    // 但是它并没有转移或者消费所有权。但是 name 接下来
+    // 是不能被继续使用的，因为它的所有权转移到了闭包中，
+    // 会随着闭包的消失而被释放。不过 data 可以被继续使用
+    // ，因为 data 支持 Copy，所以对于 move 而言，实际上
+    // 闭包中的 data 是一个副本。
     println!("{}", std::mem::size_of_val(&c));
+    println!("{:?}", data);  // ok
+    // println!("{:?}", data); // failed
 }
 ```
 
