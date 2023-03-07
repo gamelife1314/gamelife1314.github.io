@@ -277,13 +277,13 @@ let incr = || {
 call_twice(incr);
 ```
 
-总结一下你对三类 Rust 闭包的了解：
+总结一下对三类 Rust 闭包的了解：
 
 - `Fn` 是一系列闭包和函数，可以不受限制地多次调用它们，还包括所有 `fn` 函数；
 
 - `FnMut` 指哪些需要 `mut` 访问捕获变量，并且可多次访问的闭包；
 
-- `FnMut` 指哪些消耗值所有权，并且仅可以被调用一次的闭包；
+- `FnOnce` 指哪些消耗值所有权，并且仅可以被调用一次的闭包；
 
 从实现上来看，[`Fn`](https://doc.rust-lang.org/stable/std/ops/trait.Fn.html) 是 [`FnMut`](https://doc.rust-lang.org/stable/std/ops/trait.Fn.html) 的子 `Trait`，而 `FnMut` 又是 [`FnOnce`](https://doc.rust-lang.org/stable/std/ops/trait.FnOnce.html) 的子`Trait`：
  
