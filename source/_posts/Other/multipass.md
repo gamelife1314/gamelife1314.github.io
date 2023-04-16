@@ -172,6 +172,22 @@ Mounts:         /Users/fudenglong/WORKDIR => /Workdir
                     GID map: 20:default
 ```
 
+### 扩容虚拟机
+
+虚拟机的磁盘大小在创建的时候就固定了，目前 `multipass` 没有提供扩容虚拟机磁盘的直接命令，但是总有大神会给出方案，例如这里的：[https://github.com/canonical/multipass/issues/62#issuecomment-1093179387](https://github.com/canonical/multipass/issues/62#issuecomment-1093179387)。
+
+但是参考这个方案之前，要查看自己本地的驱动是什么：
+
+> multipass get local.driver
+
+然后安装 `qemu`：
+
+> brew install  qemu
+
+安装之后，使用下面的命令进行 `resize`：
+
+![](resize.png)
+
 ### 参考文章
 
 1. [`Rust Aya` 开发 `eBPF` 程序](https://mp.weixin.qq.com/s/HuTISol9ucqo7EQAVS8h6g)
