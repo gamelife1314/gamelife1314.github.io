@@ -39,6 +39,7 @@ jobs:
       - name: Generate and deploy
         run: |
           npm install -g hexo-cli
-          rm -f themes/next/_vendors.yml
+          sed -ie  's/integrity/#integrity/g' 'themes/next/_vendors.yml'
+          rm -f themes/next/_vendors.ymle
           hexo g
           hexo d
