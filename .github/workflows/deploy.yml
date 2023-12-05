@@ -24,7 +24,7 @@ jobs:
 
       - name: Install Dependencies
         run: npm i
-      
+
       - name: Github token install
         run: |
           mkdir -p ~/.ssh
@@ -39,6 +39,6 @@ jobs:
       - name: Generate and deploy
         run: |
           npm install -g hexo-cli
+          rm -f themes/next/_vendors.yml
           hexo g
           hexo d
-

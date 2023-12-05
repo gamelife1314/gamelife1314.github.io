@@ -48,11 +48,11 @@ fn print2(param: &dyn Display) {
 7. 设置 [`lto`](https://doc.rust-lang.org/cargo/reference/profiles.html#lto) 为 `fat`，不能和第5点同时使用；
 
 
-我们以 [`rsb`](https://github.com/gamelife1314/rsb) 的代码为例，通过不同的方式来比较输出二进制的大小。
+
+常用的命令，去除`debug`信息，以及加回的操作：
 
 ```
 objcopy --only-keep-debug  rsb rsb.debug
 objcopy --strip-all
 objcopy --add-gnu-debuglink=rsb.debug rsb
 ```
-
