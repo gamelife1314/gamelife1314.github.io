@@ -8,49 +8,38 @@ on:
     - cron: "30 17 * * *"
 
 jobs:
-  build:
+  build-and-run:
     runs-on: ubuntu-latest
     name: deploy gamelife1314.github.io
 
     strategy:
       matrix:
-        node-version: [12.x]
+        node-version: [14.x]
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
         with:
           submodules: true # Checkout private submodules(themes or something else).
 
-      # Caching dependencies to speed up workflows. (GitHub will remove any cache entries that have not been accessed in over 7 days.)
-      - name: Cache node modules
-        uses: actions/cache@v1
-        id: cache
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-blog
-
       - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: npm install
-
-      # - name: install minify
-      #   run: |
-      #     npm install hexo-minify --save
-
-      # Deploy hexo blog website.
-      - name: Deploy
-        id: deploy
-        uses: sma11black/hexo-action@v1.0.4
-        with:
-          deploy_key: ${{ secrets.GH_DEPLOY_PRI }}
-          user_name: MichaelFu
-          user_email: 1185694600@qq.com
-          commit_msg: ${{ github.event.head_commit.message }}
-
-      # Use the output from the `deploy` step(use for test action)
-      - name: Get the output
+        run: npm i
+      
+      - name: Github token install
         run: |
-          echo "${{ steps.deploy.outputs.notify }}"
+          mkdir -p ~/.ssh
+          echo "${{secrets.GH_DEPLOY_PRI}}" >  ~/.ssh/id_rsa
+          cat ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Git config
+        run: |
+          git config --global user.name gamelife1314
+          git config --global user.email 1185694600@qq.com
+
+      - name: Generate and deploy
+        run: |
+          npm install -g hexo-cli
+          hexo g
+          hexo d
+
