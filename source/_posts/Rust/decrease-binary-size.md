@@ -48,8 +48,19 @@ fn print2(param: &dyn Display) {
 7. 设置 [`lto`](https://doc.rust-lang.org/cargo/reference/profiles.html#lto) 为 `fat`，不能和第5点同时使用；
 
 
+常规 `release` 模式下的编译设置：
 
-常用的命令，去除`debug`信息，以及加回的操作：
+```
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+```
+
+
+常用的命令，手动去除`debug`信息，以及加回的操作：
 
 ```
 objcopy --only-keep-debug  rsb rsb.debug
