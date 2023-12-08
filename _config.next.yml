@@ -370,6 +370,9 @@ codeblock:
     enable: true
     # Available values: default | flat | mac
     style: flat
+  fold:
+    enable: false
+    height: 500
 
 back2top:
   enable: true

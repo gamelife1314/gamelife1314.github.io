@@ -134,7 +134,7 @@ import (
 
 上面生成的 `pb` 代码都是在当前目录下，包名都是 `hello`。有时候我们想指定新的包名，例如：`example.com/hello/proto/types`，这种该如何处理呢？`proto` 的 `package` 声明的包名和 `Go` 语言不能很好的兼容，`protobuf` 对于语言的差别提供了自定义选项，对于 `Go` 是通过 `option go_package = "example.com/hello/proto/types";` 这样的语法声明，如下新增包名声明：
 
-```proto heelo.proto
+```proto hello.proto
 // version of protocol buffer used
 syntax = "proto3";
 
