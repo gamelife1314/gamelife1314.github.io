@@ -52,3 +52,23 @@ Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
 对于中间三条路由，`Gateway` 都是 `0.0.0.0`，表示本条路由不经网关，网关是从一个网络进入另一个网络的边缘设备。换句话说，命中网关是 `0.0.0.0` 的报文，它的目标是可能是同一网络下的其它目标地址。这时候走的是二层直连，需要发起 `ARP` 请求换取 `MAC` 地址进行发送。这条路由通常是在网卡上配置 `IP` 时候自动生成的。在网卡上每绑定一个 `IP`，就相应地生成一条这样的记录。可以看到本条路由的 `Flags` 并没有 `G` 标志。
 
 第五条路由，标志为 `H`，掩码是 `255.255.255.255`，表示目标地址是 `10.244.186.193`，直接发往 `cali687d9beb32a`，而这个设备的另一端是容器内的 `eth0`。这种情况也不需要网关，网关为 `0.0.0.0`。
+
+<!-- more -->
+
+启用或者禁用 Linux 路由转发的方式如下：
+
+> sysctl -w net.ipv4.ip_forward=1
+> sysctl -w net.ipv4.ip_forward=0
+
+或者 
+
+> echo 1 > /proc/sys/net/ipv4/ip_forward
+> echo 0 > /proc/sys/net/ipv4/ip_forward
+
+查看方式：
+
+> sysctl net.ipv4.ip_forward
+
+或者
+
+> cat /proc/sys/net/ipv4/ip_forward
