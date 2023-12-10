@@ -1,5 +1,5 @@
 ---
-title: 【multipass】一个好用的跨平台虚拟机
+title: 【multipass】跨平台虚拟机
 date: 2022-11-13 19:20:41
 tags:
   - multipass

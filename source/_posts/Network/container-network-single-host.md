@@ -278,6 +278,8 @@ ip netns delete ns1 ns2
 
 通过以下脚本创建两个命名空间，两对 `Veth Pair` 设备，以及网桥设备，模拟两个命名空间之内的通信：
 
+{% note success 示例脚本 %}
+
 ```bash bridge.sh
 #!/bin/bash
 
@@ -388,6 +390,8 @@ ip link delete br00
 
 fi
 ```
+
+{% endnote %}
 
 保存并且执行之后，将会输出如下的结果：
 
