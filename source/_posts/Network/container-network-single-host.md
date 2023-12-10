@@ -33,7 +33,9 @@ docker0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
 
 <!-- more -->
 
-接下来我们创建两个容器，来验证这种通信的流程。
+接下来我们创建两个容器，来验证这种通信的流程，整个通信流程如下图所示：
+
+![单机容器通信](./single-host-contianer.png)
 
 
 ### 创建容器
