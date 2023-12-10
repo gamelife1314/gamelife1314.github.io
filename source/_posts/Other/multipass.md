@@ -188,6 +188,20 @@ Mounts:         /Users/fudenglong/WORKDIR => /Workdir
 
 ![](resize.png)
 
+新版本可以用下面的命令：
+
+> multipass stop ${name}
+> multipass set local.${name}.cpus=4
+> multipass set local.${name}.disk=60G
+> multipass set local.${name}.memory=7G
+
+### 卸载虚拟机
+
+MacOS:
+
+>  sudo sh "/Library/Application Support/com.canonical.multipass/uninstall.sh"
+
+
 ### 参考文章
 
 1. [`Rust Aya` 开发 `eBPF` 程序](https://mp.weixin.qq.com/s/HuTISol9ucqo7EQAVS8h6g)
