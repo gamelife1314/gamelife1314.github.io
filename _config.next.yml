@@ -452,13 +452,14 @@ font:
   posts:
     external: true
     # family: "Ma Shan Zheng, Long Cang, cursive"
-    family: "cursive"
+    # family: "cursive"
+    family: "Lato,Noto Sans Simplified Chinese,SimHei,cursive"
 
   # Font settings for <code> and code blocks.
   codes:
     external: true
-    # family: "Source Code Pro"
-    family: "SimHei"
+    family: "Source Code Pro"
+    # family: "SimHei"
 
 # ---------------------------------------------------------------
 # SEO Settings
