@@ -15,3 +15,7 @@ categories:
 4. 对端 `flannel` 进程在收到报文后，会通过路由匹配，发送给 `docker0`，然后再进一步发送给对应的容器；
 
 `flannel` 还有多种后端实现，本篇文章以 `UDP` 和 `VXLAN` 为例，动手实践。
+
+### 参考链接
+
+1. [weave net](https://cloud.tencent.com/developer/article/1027318)
