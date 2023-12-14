@@ -184,8 +184,8 @@ TriggeredBy: ● syslog.socket
 一切就绪之后，再次从 `ubuntu-1` 之内发起 `ping` 请求，同时观察 `/var/log/iptables.log` 打印出来的日志消息：
 
 ```
-Dec  9 19:27:59 michael-host kernel: [296914.161779] IN=docker0 OUT= PHYSIN=vethb2e6fb3 MAC=02:42:ac:11:00:02:02:42:ac:11:00:03:08:00 SRC=172.17.0.3 DST=172.17.0.2 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=56385 DF PROTO=ICMP TYPE=8 CODE=0 ID=53101 SEQ=1
-Dec  9 19:27:59 michael-host kernel: [296914.161810] IN=docker0 OUT= PHYSIN=vethd08a547 MAC=02:42:ac:11:00:03:02:42:ac:11:00:02:08:00 SRC=172.17.0.2 DST=172.17.0.3 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54866 PROTO=ICMP TYPE=0 CODE=0 ID=53101 SEQ=1
+Dec  9 19:27:59 michael-host kernel: [296914.161779] IN=docker0 OUT= PHYSIN=vethb2e6fb3 MAC=02:42:ac:11:00:02:02:42:ac:11:00:03:08:00 SRC=172.17.0.2 DST=172.17.0.3 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=56385 DF PROTO=ICMP TYPE=8 CODE=0 ID=53101 SEQ=1
+Dec  9 19:27:59 michael-host kernel: [296914.161810] IN=docker0 OUT= PHYSIN=vethd08a547 MAC=02:42:ac:11:00:03:02:42:ac:11:00:02:08:00 SRC=172.17.0.3 DST=172.17.0.2 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=54866 PROTO=ICMP TYPE=0 CODE=0 ID=53101 SEQ=1
 ```
 
 `ping` 报文从 `ubuntu-1` 的 `eth0` 发出去之后，从 `vethb2e6fb3` 流入，被 `docker0` 处理然后经 `vethd08a547` 到达 `ubuntu-2` 的 `eth0`，应答消息按照相反的路径返回。
