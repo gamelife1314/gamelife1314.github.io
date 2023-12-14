@@ -7,9 +7,11 @@ categories:
     - Linux
 ---
 
-单机场景下，相同主机上的容器会通过 `Docker` 默认创建的 `docker0` 网桥以及在启动容器时创建的 `veth pair` 设备实现互通。而对于跨主机容器通信，社区提供了很多种不同的方案，例如 [`weave`](https://github.com/weaveworks/weave)、[`flannel`](https://github.com/flannel-io/flannel)，本篇文章将以 `flannel` 为例，实现跨主机容器通信，`flannel` 有多种后端实现，本文以 `VXLAN` 为例，动手实践。
+单机场景下，相同主机上的容器会通过 `Docker` 默认创建的 `docker0` 网桥以及在启动容器时创建的 `veth pair` 设备实现互通。而对于跨主机容器通信，社区提供了很多种不同的方案，例如 [`weave`](https://github.com/weaveworks/weave)、[`flannel`](https://github.com/flannel-io/flannel)，本篇文章将以 `flannel` 为例，实现跨主机容器通信，`flannel` 有多种后端实现，本文以 `VXLAN` 为例，动手实践，最终达到的效果如下图所示：
 
-{% label @原理图 %} 
+{% asset_img 跨主机容器网络.png %}
+
+<!-- more -->
 
 ### 创建 node
 
@@ -108,9 +110,9 @@ FLANNEL_IPMASQ=false
 
 并且创建 `vetp` 设备以及监听 `4789` 端口：
 
-{% label @缺4789 %} 
-
 ```
+root@docker1:/home/ubuntu# netstat -tualnp | grep 4789
+udp        0      0 0.0.0.0:4789            0.0.0.0:*                           -
 root@docker1:/home/ubuntu# ifconfig flannel.88
 flannel.88: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1450
         inet 188.172.50.0  netmask 255.255.255.255  broadcast 0.0.0.0
@@ -163,6 +165,8 @@ I1213 21:32:07.386248   10352 registry.go:291] registry: watching subnets starti
 这同样在 `docker2` 节点上生成 `flannel.88` 配置文件以及 `/run/flannel/subnet.env`：
 
 ```
+root@docker2:/home/ubuntu# netstat -tualnp | grep 4789
+udp        0      0 0.0.0.0:4789            0.0.0.0:*                           -
 root@docker2:/home/ubuntu# ifconfig flannel.88
 flannel.88: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1450
         inet 188.172.87.0  netmask 255.255.255.255  broadcast 0.0.0.0
@@ -196,6 +200,7 @@ root@docker1:/home/ubuntu# route -n
 Kernel IP routing table
 Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
 0.0.0.0         192.168.65.1    0.0.0.0         UG    100    0        0 enp0s1
+188.172.50.0    0.0.0.0         255.255.255.0   U     0      0        0 docker0
 188.172.87.0    188.172.87.0    255.255.255.0   UG    0      0        0 flannel.88
 ...
 ```
@@ -227,6 +232,7 @@ Kernel IP routing table
 Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
 0.0.0.0         192.168.65.1    0.0.0.0         UG    100    0        0 enp0s1
 188.172.50.0    188.172.50.0    255.255.255.0   UG    0      0        0 flannel.88
+188.172.87.0    0.0.0.0         255.255.255.0   U     0      0        0 docker0
 ....
 ```
 
@@ -379,9 +385,12 @@ PING 188.172.87.3 (188.172.87.3) 56(84) bytes of data.
 3 packets transmitted, 3 received, 0% packet loss, time 2029ms
 rtt min/avg/max/mdev = 3.796/5.767/9.009/2.310 ms
 root@35014b140eef:/#
+root@35014b140eef:/# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         188.172.50.1    0.0.0.0         UG    0      0        0 eth0
+188.172.50.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
 ```
-
-{% label @容器内的路由信息 %} 
 
 <!-- endtab -->
 
@@ -411,6 +420,11 @@ PING 188.172.50.3 (188.172.50.3) 56(84) bytes of data.
 3 packets transmitted, 3 received, 0% packet loss, time 2078ms
 rtt min/avg/max/mdev = 3.185/3.683/4.527/0.599 ms
 root@60bfc895f7d3:/#
+root@60bfc895f7d3:/# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         188.172.87.1    0.0.0.0         UG    0      0        0 eth0
+188.172.87.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
 ```
 
 <!-- endtab -->
@@ -446,9 +460,9 @@ root@docker1:/home/ubuntu# ip neigh show dev flannel.88
 188.172.87.0 lladdr 0a:2e:d0:15:07:4e PERMANENT
 ```
 
-这个目的 `veth` 设备的 `IP` 地址以及 `MAC` 地址了，现在就可以进行二层封包工作了。这个二层的数据帧格式如下：
+这个目的 `veth` 设备的 `IP` 地址以及 `MAC` 地址都有了，现在就可以进行二层封包工作了。这个二层的数据帧格式如下：
 
-{% label @缺个图 %} 
+![内部数据帧](内部数据帧.png)
 
 可以看到，Linux内核会把目的VTEP设备的`MAC`地址，填写在图中的`Inner Ethernet Header`字段，得到一个二层数据帧。需要注意的是，上述封包过程只是加一个二层头，不会改变原始IP包的内容。所以图中的`Inner IP Header`字段，依然是`ubuntu2`的`IP`地址，即`188.172.87.3`。
 
@@ -466,16 +480,28 @@ root@docker1:/home/ubuntu#
 
 `UDP`包是一个四层数据包，所以`Linux`内核会在它前面加上一个`IP`头，即下图中的`Outer IP Header`，组成一个`IP`包。并且，在这个`IP`头里，会填上前面通过`FDB`查询出来的目的主机的`IP`地址，即`docker2`的`IP`地址`192.168.65.4`。然后，`Linux`内核再在这个`IP`包前面加上二层数据帧头，即下图中的`Outer Ethernet Header`，并把`docker2`节点`公网IP`的`MAC`地址填进去。这个`MAC`地址本身，是`docker1`的`ARP`自学习的内容，无需`flnnael`维护，如下是 `docker1` 节点上的 `arp` 记录信息：
 
-{% label @缺个信息 %} 
+```
+root@docker1:/home/ubuntu# arp -n
+Address                  HWtype  HWaddress           Flags Mask            Iface
+192.168.65.4             ether   52:54:00:8b:81:1b   C                     enp0s1
+....
+```
 
 至此，封装出来的通过底层网络传递的数据帧如下所示：
 
-{% label @缺个图 %} 
+![三层网络数据帧](三层网络数据帧.png)
 
 到现在为止，`docker1` 节点上的 `flannel.88` 设备就可以通过节点上的 `enp0s1` 网口将这个数据包发出去。显然，这个帧会经过宿主机网络来到`docker2`的`enp0s1`网卡。这时候，`docker2`的内核网络栈会发现这个数据帧里有`VXLAN Header`，并且`VNI=88`。所以`Linux`内核会对它进行拆包，拿到里面的内部数据帧，然后根据`VNI`的值，把它交给`docker2`上的`flannel.88`设备，而`flannel.88` 设备则会进一步拆包，取出目的容器的 `IP` 地址，根据这个目的容器的IP的地址，路由给 `docker2` 节点上的 `docker0` 网桥，这就到了节点上的容器网络了。
 
-{% label @抓包 %} 
+在 `ubuntu1` 容器中发起 `ping` 时，我们可以在 `docker2` 节点上使用如下的命令进行抓包：
 
+> tcpdump -i enp0s1 -w enp0s1.pcap src host 192.168.65.3
+
+然后使用 `Wireshark` 打开该文件，如下图所示：
+
+![tcpdump](tcpdump.png)
+
+每次 `ping` 请求封装的包可以分为上下两部分，一部分是底层网络的 `UDP` 报文，一部分构建于二层网络之上的 `vxlan` 报文。 在 `UDP` 报文中，我们可以看到该请求从 `192.168.65.3(52:54:00:ec:05:3f)` 发往 `192.168.65.4(52:54:00:8b:81:1b)`，`UDP` 监听的端口是 `4789`。在 `vxlan` 报文中，可以看到内部数据帧是从 `docker1` 上的 `flannel.88(ba:a9:8c:00:1a:69)` 发往 `docker2` 上的 `flannel.88(0a:2e:d0:15:07:4e)`，`VNI` 设备标识是 `88`，内部数据帧的源IP是 `ubuntu1` 的 `188.172.50.3`，目的地址是 `ubuntu2` 的 `188.172.87.3`。
 
 ### 参考链接
 
