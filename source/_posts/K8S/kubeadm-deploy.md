@@ -295,6 +295,8 @@ ea8e91242d453       73ab68401f869       5 minutes ago       Running             
 
 可以编辑 `nginx-deployment`，修改副本数量为 `3`，在 `ctrlnode` 上也创建 `pod`：
 
+> kubectl edit deploy nginx-deployment
+
 ![编辑 nginx deployment](edit-nginx-deploy.png)
 
 等待部署成功，查看：
