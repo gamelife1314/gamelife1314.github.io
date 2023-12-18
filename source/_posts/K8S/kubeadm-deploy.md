@@ -14,7 +14,7 @@ categories:
 > multipass launch --name node1 -d 40G docker
 > multipass launch --name node2 -d 40G docker
 
-创建成功之后，如下所示：
+每个节点至少`2GB`内存，`2`个CPU，具体要求请看[这里](https://kubernetes.io/zh-cn/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#%E5%87%86%E5%A4%87%E5%BC%80%E5%A7%8B)。创建成功之后，如下所示：
 
 ```
 $ multipass list
@@ -112,7 +112,7 @@ lsmod | grep overlay
 
 ### containerd
 
-在使用 `multipass`的`docker`模板创建的节点中，`Docker` 默认安装，作为 `Docker` 提供的容器运行时，`continaerd` 也会被安装。不过不管以哪种方式安装 `containerd` 之后，需要进行配置，首先生成默认配置：
+在使用 `multipass` 的 `docker` 模板创建的节点中，`Docker` 默认安装，作为 `Docker` 提供的容器运行时，`continaerd` 也会被安装。不过不管以哪种方式安装 `containerd` 之后，需要进行配置，首先生成默认配置：
 
 ```
 sudo mkdir -p /etc/containerd
@@ -148,7 +148,7 @@ sudo systemctl daemon-reload
 sudo systemctl restart containerd
 ```
 
-设置 `crictl` 的运行时，使用 `containerd`，这部分内容请看[这里](https://github.com/kubernetes-sigs/cri-tools/blob/master/docs/crictl.md)：
+设置 `crictl` 的运行时，使用 `containerd`，官方文档请看[这里](https://github.com/kubernetes-sigs/cri-tools/blob/master/docs/crictl.md)：
 
 ```text /etc/crictl.yaml
 runtime-endpoint: unix:///var/run/containerd/containerd.sock
@@ -164,7 +164,7 @@ pull-image-on-create: false
 
 <!-- tab 官方 -->
 
-这部分的内容来自于[这里](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/#install-using-native-package-management)：
+官方安装请看[这里](https://kubernetes.io/zh-cn/docs/tasks/tools/install-kubectl-linux/#install-using-native-package-management)：
 
 ```shell
 # 安装一些必要的工具
@@ -182,12 +182,11 @@ sudo apt update
 sudo apt install -y kubeadm kubelet kubectl
 ```
 
-
 <!-- endtab -->
 
 <!-- tab 阿里云 -->
 
-这部分内容来自[这里](https://developer.aliyun.com/mirror/kubernetes?spm=a2c6h.13651102.0.0.70be1b11x53i7b)：
+国内安装请看[这里](https://developer.aliyun.com/mirror/kubernetes?spm=a2c6h.13651102.0.0.70be1b11x53i7b)：
 
 ```
 apt-get update && apt-get install -y apt-transport-https
@@ -205,17 +204,17 @@ apt-get install -y kubelet kubeadm kubectl
 
 ### 集群初始化
 
-在控制节点上执行下面的命令：
+在控制节点上执行下面的命令，`kubeadm` 的使用文档请看[这里](https://kubernetes.io/zh-cn/docs/reference/setup-tools/kubeadm/)：
 
 ```
 sudo kubeadm init --control-plane-endpoint "ctrlnode:6443" --upload-certs --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16
 ```
 
-执行成功之后，将会得到下面这样的输出：
+`init` 会执行一系列的检查，例如内核版本版本是否满足要求（3.10及以上），Cgroups模块是否启用，是否安装容器运行时，`ip`、`mount` 这样的工具是否安装，`Kubernetes`的工作端口`10250/10251/10252`端口是不是已经被占用等等，完整的工作流程请看[这里](https://kubernetes.io/zh-cn/docs/reference/setup-tools/kubeadm/kubeadm-init/#init-workflow)。执行成功之后，将会得到下面这样的输出：
 
 ![kubeadm-success](kubeadm-success.png)
 
-如果要使用普通用户管理集群，可以执行下面的命令：
+如果要使用普通用户管理集群，需要执行下面的命令为普通用户创建`kubectl`命令运行所需要的配置：
 
 ```shell
 mkdir -p $HOME/.kube
@@ -254,7 +253,7 @@ node1      Ready    <none>          5m53s   v1.29.0
 node2      Ready    <none>          5m43s   v1.29.0
 ```
 
-如果节点 `NotReady` 可能是由于网络插件或者 `kuube-proxy` 未启动，等它们就绪之后再去查看节点就 `Ready` 了。在节点上使用 `crictl ps` 查看相关容器是否启动：
+如果节点 `NotReady` 可能是由于网络插件或者 `kube-proxy` 未启动，等它们就绪之后再去查看节点就 `Ready` 了。在节点上使用 `crictl ps` 查看相关容器是否启动：
 
 ```
 root@node1:/home/ubuntu# crictl ps
@@ -263,7 +262,57 @@ CONTAINER           IMAGE               CREATED             STATE               
 ea8e91242d453       73ab68401f869       5 minutes ago       Running             kube-proxy          0                   e533b68847e99       kube-proxy-97tn4
 ```
 
+默认情况下，`control-plane` 所在节点被设置成了[污点（Taint）](https://kubernetes.io/zh-cn/docs/concepts/scheduling-eviction/taint-and-toleration/)，不允许 `Pod` 调度到这类节点，例如:
+
+> kubectl describe  node ctrlnode
+
+![污点node](taint-node.png)
+
+测试环境中，可以使用下面的[命令](https://kubernetes.io/zh-cn/docs/reference/labels-annotations-taints/#node-role-kubernetes-io-control-plane-taint)清除污点，以便让 `Pod` 被允许调度到此类节点：
+
+> kubectl taint nodes ctrlnode node-role.kubernetes.io/control-plane:NoSchedule-
+
+![删除污点](unset-taint.png)
+
+可以通过下面的命令给节点设置角色，例如，给 `node1` 和 `node2` 设置 `worker` 角色：
+
+> kubectl label node node1 node-role.kubernetes.io/worker=worker
+> kubectl label node node2 node-role.kubernetes.io/worker=worker
+
+![worker节点](worke-node.png)
+
+### 部署应用
+
+为了测试集群的可用性，部署一个 `Deployment` 测试，这里使用官方的[无状态应用示例](https://kubernetes.io/zh-cn/docs/tasks/run-application/run-stateless-application-deployment/)：
+
+> kubectl apply -f https://k8s.io/examples/application/deployment-update.yaml
+
+等待一会儿，`pod` 创建成功之后，查看创建的 `pod`：
+
+> kubectl get pods -l app=nginx -owide
+
+![nginx pod](nginx-pod-2.png)
+
+可以编辑 `nginx-deployment`，修改副本数量为 `3`，在 `ctrlnode` 上也创建 `pod`：
+
+![编辑 nginx deployment](edit-nginx-deploy.png)
+
+等待部署成功，查看：
+
+![nginx pod](nginx-pod-3.png)
+
+可以使用如下的命令查看 `pod` 中有哪些容器：
+
+> kubectl get pods nginx-deployment-848dd6cfb5-2gvg9 -o jsonpath={.spec.containers[*].name}
+
+使用如下的命令进入 `pod` 的人容器中：
+
+> kubectl exec nginx-deployment-848dd6cfb5-2gvg9 -n default  -it -c nginx -- /bin/bash
+
+![进入pod中的容器](exec-container.png)
+
 ### 参考文章
 
 1. [使用kubeadm部署一套高可用k8s集群 for Ubuntu](https://zahui.fan/posts/526ffc9a/)
 2. [Deploy Kubernetes Cluster on Ubuntu 20.04 with Containerd](https://www.hostafrica.ng/blog/kubernetes/kubernetes-ubuntu-20-containerd/)
+3. [Kubernetes Service Discovery](https://www.densify.com/kubernetes-autoscaling/kubernetes-service-discovery/)
