@@ -262,16 +262,54 @@ CONTAINER           IMAGE               CREATED             STATE               
 ea8e91242d453       73ab68401f869       5 minutes ago       Running             kube-proxy          0                   e533b68847e99       kube-proxy-97tn4
 ```
 
-默认情况下，`control-plane` 所在节点被添加了[污点（Taint）](https://kubernetes.io/zh-cn/docs/concepts/scheduling-eviction/taint-and-toleration/)，不允许 `Pod` 调度到这类节点，例如:
+默认情况下，`control-plane` 所在节点被设置成了[污点（Taint）](https://kubernetes.io/zh-cn/docs/concepts/scheduling-eviction/taint-and-toleration/)，不允许 `Pod` 调度到这类节点，例如:
+
+> kubectl describe  node ctrlnode
+
+![污点node](taint-node.png)
 
 测试环境中，可以使用下面的[命令](https://kubernetes.io/zh-cn/docs/reference/labels-annotations-taints/#node-role-kubernetes-io-control-plane-taint)清除污点，以便让 `Pod` 被允许调度到此类节点：
+
+> kubectl taint nodes ctrlnode node-role.kubernetes.io/control-plane:NoSchedule-
+
+![删除污点](unset-taint.png)
+
+可以通过下面的命令给节点设置角色，例如，给 `node1` 和 `node2` 设置 `worker` 角色：
+
+> kubectl label node node1 node-role.kubernetes.io/worker=worker
+> kubectl label node node2 node-role.kubernetes.io/worker=worker
+
+![worker节点](worke-node.png)
 
 ### 部署应用
 
 为了测试集群的可用性，部署一个 `Deployment` 测试，这里使用官方的[无状态应用示例](https://kubernetes.io/zh-cn/docs/tasks/run-application/run-stateless-application-deployment/)：
 
-### Dashboard
+> kubectl apply -f https://k8s.io/examples/application/deployment-update.yaml
 
+等待一会儿，`pod` 创建成功之后，查看创建的 `pod`：
+
+> kubectl get pods -l app=nginx -owide
+
+![nginx pod](nginx-pod-2.png)
+
+可以编辑 `nginx-deployment`，修改副本数量为 `3`，在 `ctrlnode` 上也创建 `pod`：
+
+![编辑 nginx deployment](edit-nginx-deploy.png)
+
+等待部署成功，查看：
+
+![nginx pod](nginx-pod-3.png)
+
+可以使用如下的命令查看 `pod` 中有哪些容器：
+
+> kubectl get pods nginx-deployment-848dd6cfb5-2gvg9 -o jsonpath={.spec.containers[*].name}
+
+使用如下的命令进入 `pod` 的人容器中：
+
+> kubectl exec nginx-deployment-848dd6cfb5-2gvg9 -n default  -it -c nginx -- /bin/bash
+
+![进入pod中的容器](exec-container.png)
 
 ### 参考文章
 
