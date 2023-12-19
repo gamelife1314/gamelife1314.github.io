@@ -403,3 +403,8 @@ kubectl create clusterrolebinding cluster-admin-dashboard --clusterrole=cluster-
 1. [使用kubeadm部署一套高可用k8s集群 for Ubuntu](https://zahui.fan/posts/526ffc9a/)
 2. [Deploy Kubernetes Cluster on Ubuntu 20.04 with Containerd](https://www.hostafrica.ng/blog/kubernetes/kubernetes-ubuntu-20-containerd/)
 3. [Kubernetes Service Discovery](https://www.densify.com/kubernetes-autoscaling/kubernetes-service-discovery/)
+4. [iptables — a comprehensive guide](https://sudamtm.medium.com/iptables-a-comprehensive-guide-276b8604eff1)
+5. [A Deep Dive into Iptables and Netfilter Architecture](https://www.digitalocean.com/community/tutorials/a-deep-dive-into-iptables-and-netfilter-architecture)
+6. [Kubernetes Service iptables 网络通信验证](https://lotabout.me/2022/Kubernetes-Service-Model-Verification/)
+7. [Docker Overlay2 Cleanup: 5 Ways to Reclaim Disk Space](https://www.virtualizationhowto.com/2023/11/docker-overlay2-cleanup-5-ways-to-reclaim-disk-space/)
+8. [Use the OverlayFS storage driver](https://docs.docker.com/storage/storagedriver/overlayfs-driver/)
