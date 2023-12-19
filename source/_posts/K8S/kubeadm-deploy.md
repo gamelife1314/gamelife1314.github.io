@@ -307,11 +307,96 @@ ea8e91242d453       73ab68401f869       5 minutes ago       Running             
 
 > kubectl get pods nginx-deployment-848dd6cfb5-2gvg9 -o jsonpath={.spec.containers[*].name}
 
-使用如下的命令进入 `pod` 的人容器中：
+使用如下的命令进入 `pod` 的容器中：
 
 > kubectl exec nginx-deployment-848dd6cfb5-2gvg9 -n default  -it -c nginx -- /bin/bash
 
 ![进入pod中的容器](exec-container.png)
+
+### Dashboard
+
+[`Dashboard`](https://kubernetes.io/zh-cn/docs/tasks/access-application-cluster/web-ui-dashboard/) 是基于网页的 `Kubernetes` 用户界面，可以使用 `Dashboard` 将容器应用部署到 `Kubernetes` 集群中，也可以对容器应用排错，还能管理集群资源，同时也展示了 `Kubernetes` 集群中的资源状态信息和所有报错信息。
+
+执行下面的命令安装 `Dashboard`：
+
+> kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+
+执行成功之后，你将会看到如下的输出：
+
+```text
+root@ctrlnode:/home/ubuntu# kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+namespace/kubernetes-dashboard created
+serviceaccount/kubernetes-dashboard created
+service/kubernetes-dashboard created
+secret/kubernetes-dashboard-certs created
+secret/kubernetes-dashboard-csrf created
+secret/kubernetes-dashboard-key-holder created
+configmap/kubernetes-dashboard-settings created
+role.rbac.authorization.k8s.io/kubernetes-dashboard created
+clusterrole.rbac.authorization.k8s.io/kubernetes-dashboard created
+rolebinding.rbac.authorization.k8s.io/kubernetes-dashboard created
+clusterrolebinding.rbac.authorization.k8s.io/kubernetes-dashboard created
+deployment.apps/kubernetes-dashboard created
+service/dashboard-metrics-scraper created
+deployment.apps/dashboard-metrics-scraper created
+```
+
+等待`pod` 启动成功之后，执行如下命令，将会看到创建成功的服务：
+
+> kubectl get svc -n kubernetes-dashboard
+
+```
+root@ctrlnode:/home/ubuntu# kubectl get svc -n kubernetes-dashboard
+NAME                        TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+dashboard-metrics-scraper   ClusterIP   10.43.185.254   <none>        8000/TCP   24m
+kubernetes-dashboard        ClusterIP   10.43.167.161   <none>        443/TCP    24m
+```
+
+默认创建的服务是 `ClusterIP` 类型，没法通过集群外部进行访问，通过相面的命令将它修改为 `NodePort` 类型的：
+
+> kubectl edit svc -n kubernetes-dashboard kubernetes-dashboard
+
+修改内容为，将 `spec.type` 从 `ClusterIP` 修改为 `NodePort`。修改成功之后，再次查看服务，类型更新为 `NodePort`，也分配了随机的节点端口 `32688`：
+
+```
+root@ctrlnode:/home/ubuntu# kubectl get svc -n kubernetes-dashboard
+NAME                        TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)         AGE
+dashboard-metrics-scraper   ClusterIP   10.43.185.254   <none>        8000/TCP        28m
+kubernetes-dashboard        NodePort    10.43.167.161   <none>        443:32688/TCP   28m
+```
+
+使用 `ctrlnode` 的节点访问 `https://192.168.67.6:32688`，登录页面打开，我们使用 `Token` 进行访问，使用下面的命令生成 `Token`：
+
+>  kubectl create token kubernetes-dashboard -n kubernetes-dashboard
+
+但是默认创建的 `kubernetes-dashboard` 只能访问 `default` 命名空间的服务，权限太小了。我们可以手创建新的 `ServiceAccount`，并且给它绑定 `cluster-admin` 这个角色：
+
+> kubectl create serviceaccount cluster-admin-dashboard -n kubernetes-dashboard
+
+创建成功之后，使用如下的命令查看创建的 `ServiceAccount`：
+
+```
+root@ctrlnode:/home/ubuntu# kubectl get serviceaccount -n kubernetes-dashboard
+NAME                      SECRETS   AGE
+default                   0         63m
+kubernetes-dashboard      0         15m
+cluster-admin-dashboard   0         7m12s
+root@ctrlnode:/home/ubuntu#
+```
+
+然后给它绑定 `cluster-admin` 这个角色:
+
+```
+kubectl create clusterrolebinding cluster-admin-dashboard --clusterrole=cluster-admin \
+    --serviceaccount=kubernetes-dashboard:cluster-admin-dashboard \
+    -n kubernetes-dashboard
+```
+
+使用下面的命令重新生成 `Token`：
+
+>  kubectl create token cluster-admin-dashboard -n kubernetes-dashboard
+
+
 
 ### 参考文章
 
