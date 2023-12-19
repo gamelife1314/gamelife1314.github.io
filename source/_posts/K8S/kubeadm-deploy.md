@@ -408,3 +408,4 @@ kubectl create clusterrolebinding cluster-admin-dashboard --clusterrole=cluster-
 6. [Kubernetes Service iptables 网络通信验证](https://lotabout.me/2022/Kubernetes-Service-Model-Verification/)
 7. [Docker Overlay2 Cleanup: 5 Ways to Reclaim Disk Space](https://www.virtualizationhowto.com/2023/11/docker-overlay2-cleanup-5-ways-to-reclaim-disk-space/)
 8. [Use the OverlayFS storage driver](https://docs.docker.com/storage/storagedriver/overlayfs-driver/)
+9. [Details of the Kubernetes Cluster Network](https://www.alibabacloud.com/blog/from-confused-to-proficient-details-of-the-kubernetes-cluster-network_595656)
