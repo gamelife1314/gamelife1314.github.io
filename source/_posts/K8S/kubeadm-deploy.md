@@ -112,14 +112,14 @@ lsmod | grep overlay
 
 ### containerd
 
-在使用 `multipass` 的 `docker` 模板创建的节点中，`Docker` 默认安装，作为 `Docker` 提供的容器运行时，`continaerd` 也会被安装。不过不管以哪种方式安装 `containerd` 之后，需要进行配置，首先生成默认配置：
+这里选用 `containerd` 作为容器运行时，更多的容器运行看[这里](https://kubernetes.io/zh-cn/docs/setup/production-environment/container-runtimes/)。在使用 `multipass` 的 `docker` 模板创建的节点中，`Docker` 默认安装，作为 `Docker` 的一部分，`continaerd` 也会被安装。不过不管以哪种方式安装 `containerd` 之后，需要稍作配置，第一步生成默认配置：
 
 ```
 sudo mkdir -p /etc/containerd
 containerd config default | sudo tee /etc/containerd/config.toml
 ```
 
-[配置 `systemd cgroup`](https://kubernetes.io/zh-cn/docs/setup/production-environment/container-runtimes/#containerd-systemd) 驱动，在 /`etc/containerd/config.toml` 中设置：
+[配置cgroup驱动](https://kubernetes.io/zh-cn/docs/setup/production-environment/container-runtimes/#containerd-systemd) 驱动，在 `/etc/containerd/config.toml` 中设置：
 
 ```
 [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
@@ -133,7 +133,7 @@ containerd config default | sudo tee /etc/containerd/config.toml
 sudo systemctl restart containerd
 ```
 
-如果需要给 `containerd` 设置代理，用于拉取镜像。可以编辑文件 `/etc/systemd/system/containerd.service.d/http-proxy.conf`，加入：
+如果需要给 `containerd` 设置代理，用于拉取镜像。可以编辑文件 `/etc/systemd/system/containerd.service.d/http-proxy.conf`，加入自己的代理信息：
 
 ```text
 [Service]
