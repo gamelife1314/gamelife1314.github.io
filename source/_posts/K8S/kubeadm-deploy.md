@@ -3,9 +3,9 @@ title: 使用kubeadm创建多节点集群
 date: 2023-12-17 18:44:12
 tags:
     - kubeadm
-    - k8s
+    - 集群部署
 categories:
-    - K8S
+    - k8s
 ---
 
 本篇文章介绍使用 `kubeadm` 创建一个多节点的 `K8S`，使用 `containerd` 作为容器运行时，第一步，首先是准备 `3` 个虚拟机节点，使用 [`multipass`](https://multipass.run/) 创建`3`台虚拟机，该镜像中自带 `docker`，无需再安装，使用如下命令创建：
@@ -109,10 +109,9 @@ lsmod | grep overlay
 192.168.67.5 node2
 ```
 
-
 ### containerd
 
-这里选用 `containerd` 作为容器运行时，更多的容器运行看[这里](https://kubernetes.io/zh-cn/docs/setup/production-environment/container-runtimes/)。在使用 `multipass` 的 `docker` 模板创建的节点中，`Docker` 默认安装，作为 `Docker` 的一部分，`continaerd` 也会被安装。不过不管以哪种方式安装 `containerd` 之后，需要稍作配置，第一步生成默认配置：
+这里选用 `containerd` 作为容器运行时，更多的容器运行时看[这里](https://kubernetes.io/zh-cn/docs/setup/production-environment/container-runtimes/)。在使用 `multipass` 的 `docker` 模板创建的节点中，`Docker` 默认安装，作为 `Docker` 的一部分，`continaerd` 也会被安装。不过不管以哪种方式安装 `containerd` 之后，需要稍作配置，第一步生成默认配置：
 
 ```
 sudo mkdir -p /etc/containerd
