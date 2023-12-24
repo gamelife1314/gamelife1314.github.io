@@ -613,8 +613,57 @@ let pid = libc::clone(container_main, stack_top, flags, ptr::null_mut());
 
 ![容器内没有网络设备](rust-net-no-net.png)
 
-这样的话，我们的容器是没法直接跟外部通信的，我们需要给我们新建的容器添加网卡，设置IP，参考单机容器通信网络，通过下面的方式给我们的容器添加网络设备：
+这样的话，我们的容器是没法直接跟外部通信的，我们需要给我们新建的容器添加网卡，设置IP，参考单机容器通信网络，我们给我们的容器赋予和外界通信的能力。首先在宿主机上，查看我们容器的PID，根据父进程 `pid：13607` 进行查看：
 
+> pstree -a -p 13607
+
+```
+root@docker1:/home/ubuntu# pstree -a -p 13607
+container-creat,13607
+  └─bash,13609
+```
+
+在宿主机上执行下面的命令，创建一对 `veth` 设备：
+
+> ip link add veth-host type veth peer name ceth-container
+
+将 `ceth-container` 添加到我们的容器中：
+
+> ip link set ceth-container netns 13609
+
+执行下面的命令，启用 `veth-host`：
+
+> ip link set veth-host up
+
+执行下面的命令给 `veth-host` 添加IP：
+
+> ip addr add 172.17.0.11/16 dev veth-host
+
+将 `veth-host` 添加到我们的 `docker0` 网桥上，这样它和我们通过 `docker` 创建的容器就可以互通了：
+
+> ip link set veth-host master docker0
+
+所有上面在主机上的操作如下如所示：
+
+![主机上操作添加网络设备](host-add-container-link-dev.png)
+
+然后我们在我们的容器中执行下面的命令，启用`lo`，`ceth-container`，以及为 `ceth-container` 设置IP：
+
+> ip link set lo up
+> ip link set ceth-container up
+> ip addr add 172.17.0.12/16 dev ceth-container
+
+所有在容器中的操作如下图所示：
+
+![容器添加网络设备](container-add-container-link-dev.png)
+
+这个时候，假如我们在宿主机有这样一个通过 `docker` 启动的容器：
+
+![Docker Ubuntu容器](host-docker-container.png)
+
+然后在我们手动创建的容器中使用`ping`命令测试连通性，它肯定是联通的：
+
+![和docker创建的容器联通](container-add-link.png)
 
 ### 参考链接
 
@@ -626,3 +675,5 @@ let pid = libc::clone(container_main, stack_top, flags, ptr::null_mut());
 6. [Building a container by hand using namespaces: The mount namespace](https://www.redhat.com/sysadmin/mount-namespaces)
 7. [容器工作原理简述](https://www.rondochen.com/how-containers-work/#pivot-root)
 8. [Container Runtime in Rust — Part I](https://itnext.io/container-runtime-in-rust-part-i-7bd9a434c50a)
+9. [How Container Networking Works - Building a Linux Bridge Network From Scratch](https://labs.iximiuz.com/tutorials/container-networking-from-scratch)
+10. [Linux setup default gateway with route command](https://www.cyberciti.biz/faq/linux-setup-default-gateway-with-route-command/)
