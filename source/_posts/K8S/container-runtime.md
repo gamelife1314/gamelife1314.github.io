@@ -47,7 +47,9 @@ func NewKubeletFlags() *KubeletFlags {
 }
 ```
 
-代码仓中也能发现 [dockershim](https://github.com/kubernetes/kubernetes/tree/v1.23.12/pkg/kubelet/dockershim) 的实现，但是自[`v1.24.0`](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.24.md#dockershim-removed-from-kubelet) 以来，`dockershim` 相关的代码彻底从 `kubelet` 的主干中移除，`k8s` 适配 `docker` 从此成为历史。
+代码仓中也能发现 [dockershim](https://github.com/kubernetes/kubernetes/tree/v1.23.12/pkg/kubelet/dockershim) 的实现，但是自[`v1.24.0`](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.24.md#dockershim-removed-from-kubelet) 以来，`dockershim` 相关的代码彻底从 `kubelet` 的主干中移除，`k8s` 适配 `docker` 从此成为历史，因为通过 `dockershim` 创建容器的调用链实在太长了：
+
+![容器运行时](容器运行时.png)
 
 ### cri-dockerd
 
@@ -175,70 +177,70 @@ systemd+ 4021768 4021721  0 16:03 ?        00:00:00 nginx: worker process
 
 1. 创建一个包含 `roots` 的空目录，例如：
 
-> mkdir -p tutorial/rootfs
+    > mkdir -p tutorial/rootfs
 
 2. 进入到 `tutorial` 目录，借助 `docker` 构建一个完整的容器文件系统：
 
-> cd tutorial
-> docker export $(docker create busybox) | tar -C rootfs -xvf -
+    > cd tutorial
+    > docker export $(docker create busybox) | tar -C rootfs -xvf -
 
 3. 现在需要一个 `config.json` 文件来描述进程的权限、配置和约束信息，下面的命令将生成一个默认的配置：
 
-> youki spec
+    > youki spec
 
-4. 之后，就可以手动这个文件定义容器进程的行为；
+4. 然后就可以手动修改这个文件定义容器进程的行为，如果不想修改保持默认也行；
 
 5. 接下来可以创建容器，`-b` 参数指向包含 `config.json` 的目录：
 
-> youki create -b tutorial busybox_with_youki
+    > youki create -b tutorial busybox_with_youki
 
 6. 查看容器状态，现在是 `created`：
 
-> youki state busybox_with_youki
+    > youki state busybox_with_youki
 
-```
-root@ctrlnode:/home/ubuntu# youki state busybox_with_youki
-{
-  "ociVersion": "v1.0.2",
-  "id": "busybox_with_youki",
-  "status": "created",
-  "pid": 67532,
-  "bundle": "/home/michael/tutorial",
-  "annotations": {},
-  "created": "2023-12-21T12:57:42.295654400Z",
-  "creator": 0,
-  "useSystemd": false,
-  "cleanUpIntelRdtSubdirectory": false
-}
-```
+    ```
+    root@ctrlnode:/home/ubuntu# youki state busybox_with_youki
+    {
+      "ociVersion": "v1.0.2",
+      "id": "busybox_with_youki",
+      "status": "created",
+      "pid": 67532,
+      "bundle": "/home/michael/tutorial",
+      "annotations": {},
+      "created": "2023-12-21T12:57:42.295654400Z",
+      "creator": 0,
+      "useSystemd": false,
+      "cleanUpIntelRdtSubdirectory": false
+    }
+    ```
 
 7. 启动容器：
 
->  youki start busybox_with_youki
+    >  youki start busybox_with_youki
 
-7. 列出容器：
+8. 列出容器：
 
-> youki list
+    > youki list
 
-```
-root@ctrlnode:/home/ubuntu# youki list
-ID                  PID    STATUS   BUNDLE                  CREATED                    CREATOR
-busybox_with_youki  81153  Created  /home/michael/tutorial  2023-12-21T21:17:24+08:00  root
-```
+    ```
+    root@ctrlnode:/home/ubuntu# youki list
+    ID                  PID    STATUS   BUNDLE                  CREATED                    CREATOR
+    busybox_with_youki  81153  Created  /home/michael/tutorial  2023-12-21T21:17:24+08:00  root
+    ```
 
-8. 查看容器进程：
+9. 查看容器进程：
 
-> youki ps busybox_with_youki
+    > youki ps busybox_with_youki
 
-```
-root@ctrlnode:/home/ubuntu# youki ps busybox_with_youki
-UID          PID    PPID  C STIME TTY          TIME CMD
-root       81153       1  0 21:17 ?        00:00:00 youki create -b tutorial busybox_with_youki
-```
+    ```
+    root@ctrlnode:/home/ubuntu# youki ps busybox_with_youki
+    UID          PID    PPID  C STIME TTY          TIME CMD
+    root       81153       1  0 21:17 ?        00:00:00 youki create -b tutorial busybox_with_youki
+    ```
 
-9. 删除容器：
+10. 删除容器：
 
-> youki delete busybox_with_youki
+    > youki delete busybox_with_youki
 
 其实上面从第三步开始可以将 `youki` 换成 `runc` 执行，完全兼容，都实现的相同的标准。
 
