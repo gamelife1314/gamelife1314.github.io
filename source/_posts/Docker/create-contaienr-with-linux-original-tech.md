@@ -20,7 +20,7 @@ categories:
 
 #### UnionFS
 
-为了减少镜像占用的磁盘空间大小，也为了简化镜像制作的难度，Docker在镜像的设计中引入了分层的设计，将用户制作镜像的每一步操作，都生成一个层，也就是一个增量rootfs，最后将这些不同的层通过联合挂载生成最终的文件系统。举个例子，就像我们利用Ubuntu的基础镜像运行一个Python应用，首先安装好python的环境，最后部署我们的应用，我们可以将在安装好的python的环境打包成一个的新的层，这样不同的人都可以在这个层上构建自己的应用，当在相同主机上跑多个不同应用的时候大家的基础镜像一致，也不会造成额外的空间浪费，带有python环境的rootfs都是相同的，只是最后联合挂载了不同的应用层而已。
+为了减少镜像占用的磁盘空间大小，也为了简化镜像制作的难度，Docker在镜像的设计中引入了分层的设计，将用户制作镜像的每一步操作，都生成一个层，也就是一个增量rootfs，最后将这些不同的层通过联合挂载生成最终的文件系统。举个例子，就像我们利用Ubuntu的基础镜像运行一个Python应用，首先安装好Python的环境，最后部署我们的应用，我们可以将在安装好的Python的环境打包成一个的新的层，这样不同的人都可以在这个层上构建自己的应用，当在相同主机上跑多个不同应用的时候大家的基础镜像一致，也不会造成额外的空间浪费，带有Python环境的rootfs都是相同的，只是最后联合挂载了不同的应用层而已。
 
 `Docekr` 目前使用[overlay2存储驱动](https://www.cnblogs.com/FengZeng666/p/14173906.html)作为它的联合文件系统实现，当然可以更换，使用下面的命令可以查看`Docker`当前使用的文件系统是什么：
 
@@ -186,7 +186,7 @@ root@ctrlnode:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455
 
 然后查看容器运行时的联合目录挂载在哪里，我们可以使用[docker inspect](https://docs.docker.com/engine/reference/commandline/inspect/)命令进行查看：
 
-> docker inspect --format '{{json .GraphDriver.Data }}'  ubuntu1604
+> `docker inspect --format '{{json .GraphDriver.Data }}'  ubuntu1604`
 
 ```
 root@ctrlnode:/home/michael# docker inspect --format '{{json .GraphDriver.Data }}'  ubuntu1604 | python3 -m json.tool
@@ -201,8 +201,10 @@ root@ctrlnode:/home/michael# docker inspect --format '{{json .GraphDriver.Data }
 从这里我们可以看到这个容器在启动的时候增加了两层，分别是`init`层和当前的`UpperDir`，其他的四层都是我们镜像中的，这些层可以分为3类：
 
 1. 镜像层，镜像层的内容是原始镜像中，我们不可以对这些文件进行修改，即使看起来在修改可读镜像中的文件，只不过是在 `UpperDir` 中生成了同样的文件而已，而且将镜像层的文件进行覆盖了；
+
 2. `init`层：`Init`层是`Docker`项目单独生成的一个内部层，专门用来存放`/etc/hosts`、`/etc/resolv.conf`等信息。需要这样一层的原因是，这些文件本来属于只读的`Ubuntu`镜像的一部分，但是用户往往需要在启动容器时写入一些指定的值比如`hostname`，所以就需要在可读写层对它们进行修改。可是，这些修改往往只对当前的容器有效，我们并不希望执行`docker commit`时，把这些信息连同可读写层一起提交掉。所以，`Docker`做法是，在修改了这些文件之后，以一个单独的层挂载了出来。而用户执行`docker commit`只会提交可读写层，所以是不包含这些内容的；
-3. `UpperDir`，这个目录是 `Docekr` 在启动容器的时候自动帮我们生成，当我们在容器里面修改或者创建文件的时候，都会体现在这个层。进入容器，创建一个文件：
+
+3. `UpperDir`，这个目录是 `Docekr` 在启动容器的时候自动帮我们生成，当我们在容器里面修改或者创建文件的时候，都会体现在这个层，`docker commit` 会提交这个层的内容。例如，进入容器，创建一个文件：
 
     ```
     root@ctrlnode:/home/michael# docker exec -itu root ubuntu1604 bash
@@ -246,6 +248,10 @@ root@ctrlnode:/home/michael# docker inspect --format '{{json .GraphDriver.Data }
     ```
 
     这里的`c`代表字符设备，[设备编号](https://linux-kernel-labs.github.io/refs/heads/master/labs/device_drivers.html#majors-and-minors) 是 `0/0`，这是 [`overlay`](https://docs.kernel.org/filesystems/overlayfs.html#whiteouts-and-opaque-directories) 文件系统的处理方式，当我们删除了一个 `lower` 中的文件时，会在 `Upper` 中生成一个特殊的编号 `0/0` 的字符设备文件，这样在最终的 `merged` 目录中，发现这个文件和某个 `lower` 中的文件匹配时就不显示了。
+
+整个容器运行时的 `RootFS` 可以用如下的图描述：
+
+![容器RootFS](container-rootfs.png)
 
 ### Cgroup
 
@@ -397,6 +403,219 @@ root@ctrlnode:/sys/fs/cgroup/cpu/container#
 
 这就意味着这个`ubuntu1604-cgroup`容器，只能使用到`20%`的`CPU`。
 
+### Namespace
+
+`Cgroups` 用来限制进程使用资源的上限，而`Namespace`技术则是用来修改进程动态视图的主要方法，它对内核资源进行隔离，让一组进程只看到与自己相关的一部分资源。Linux一共为我们提供了7种`Namespace`，它们分别是：
+
+- `Mount`，系统调用参数：`CLONE_NEWNS`，用于隔离挂载点；
+- `User`，系统调用参数：`CLONE_NEWUSER`，隔离用户和用户组；
+- `PID`，系统调用参数：`CLONE_NEWPID`，隔离进程ID；
+- `IPC`，系统调用参数：`CLONE_NEWIPC`，用于隔离信号量、消息队列和共享内存；
+- `Network`，系统调用参数：`CLONE_NEWNET`，隔离网络设备，网络栈、端口等；
+- `UTS`，系统调用参数：`CLONE_NEWUTS`，隔离主机名和域名；
+- `Time`，系统调用参数：`CLONE_NEWTIME`，允许进城看到不同的系统时间；
+- `Cgroup`，系统调用参数：`CLONE_NEWCGROUP`，隔离Cgroup根目录；
+
+`Namespace` 可能未来还会增加，不过当前使用这些构建容器已经足够了，接下来我们使用不同的方式来创建一个隔离的进程。
+
+#### Rust
+
+我们首先使用代码调用`Linux`的系统调用创建容器，这是最直接的方式，其他方式也都是构建于这个基础之上，这里我们使用`Rust`编程语言，调用`C`接口，`Rust`安装方式可以使用国内镜像[rsproxy](https://rsproxy.cn/)。
+
+测试环境信息：
+
+```
+root@docker1:/Users/fudenglong/WORKDIR/rust/container-create# lsb_release -a
+No LSB modules are available.
+Distributor ID:	Ubuntu
+Description:	Ubuntu 22.04.3 LTS
+Release:	22.04
+Codename:	jammy
+```
+
+安装必要的构建工具：
+
+> apt install build-essential
+
+本地首先调用下面的方式创建工程和添加依赖：
+
+```
+cargo new container-create --vcs none
+cd container-create
+cargo add libc
+```
+
+在正式开始之前，我们先准备一个完整的 `rootfs` 供我们使用，依次执行下面的命令：
+
+```shell
+# 拉取ubuntu镜像
+docker pull ubuntu
+
+# 运行容器并且安装必要的一些软件
+docker run --name ubuntu -it --rm -d ubuntu
+docker exec -itu root ubuntu bash
+apt update
+apt install -y iproute2 net-tools iputils-ping bridge-utils
+
+# 将容器的RootFS导出备用
+mkdir rootfs
+docker export ubuntu | tar -C rootfs -xvf -
+
+# 最终，我们的目录呈现出如下的结构
+root@docker1:/Users/fudenglong/WORKDIR/rust# tree -L 2 container-create/
+container-create/
+├── Cargo.lock
+├── Cargo.toml
+├── rootfs
+│   ├── bin -> usr/bin
+│   ├── boot
+│   ├── dev
+│   ├── etc
+│   ├── home
+│   ├── lib -> usr/lib
+│   ├── media
+│   ├── mnt
+│   ├── opt
+│   ├── proc
+│   ├── root
+│   ├── run
+│   ├── sbin -> usr/sbin
+│   ├── srv
+│   ├── sys
+│   ├── tmp
+│   ├── usr
+│   └── var
+└── src
+    └── main.rs
+```
+
+##### Mount
+
+我们先来隔离容器的挂载点，让它有自己的系统目录，看起来是在独立的环境中运行：
+
+```rust src/main.rs
+use std::env;
+use std::ffi::CString;
+use std::process;
+use std::os::unix::fs;
+#[cfg(target_os = "linux")]
+use std::ptr;
+
+extern "C" fn container_main(_args: *mut libc::c_void) -> libc::c_int {
+    println!("Container - inside the container, pid: {}", process::id());
+
+    // 切换进程的根目录
+    fs::chroot("./rootfs").expect("chroot failed");
+    env::set_current_dir("/").expect("set current work directory failed");
+
+    // 打印当前目录
+    println!("current dir: {:?}", env::current_dir().unwrap());
+
+    #[cfg(target_os = "linux")]
+    unsafe {
+        // 运行进程
+        let program = CString::new("/bin/bash").unwrap();
+        let args = [program.as_ptr(), ptr::null()];
+        libc::execvp(program.as_ptr(), args.as_ptr());
+    }
+    println!("Container - Something Wrong");
+    return 1;
+}
+
+fn main() {
+    println!("Parent - start a container, pid: {}", process::id());
+    let mut stack = vec![0u8; 4096 * 1024];
+    #[cfg(target_os= "linux")]
+    unsafe {
+        let stack_top = stack.as_mut_ptr().add(stack.len()) as *mut libc::c_void;
+        let pid = libc::clone(container_main, stack_top, libc::CLONE_NEWNS | libc::SIGCHLD, ptr::null_mut());
+        libc::waitpid(pid, ptr::null::<libc::c_int>() as *mut libc::c_int, 0);
+    }
+    println!("Parent - container stopped!");
+}
+```
+
+使用如下的命令运行：
+
+> `cargo +nightly run`
+
+![给容器设置新的根目录](rust-mout-ns.png)
+
+##### PID
+
+从上面的打印的日志来看，在容器启动的第一个进程PID不是1，因为我们还没有对PID进程隔离，接下来我们隔离PID，做出如下改动，增加 `libc::CLONE_NEWPID`：
+
+```rust src/main.rs
+let pid = libc::clone(container_main, stack_top, libc::CLONE_NEWPID | libc::CLONE_NEWNS | libc::SIGCHLD, ptr::null_mut());
+```
+
+再次运行，看到容器中的首进程`PID`已经变成1了：
+
+![PID隔离](rust-pid-ns.png)
+
+但是运行 `ps`失败了，提示我们挂载 `proc`，`proc` 是Linux运行中内核的一些信息，我们在容器进程中使用下面的代码进行挂载：
+
+```rust
+extern "C" fn container_main(_args: *mut libc::c_void) -> libc::c_int {
+    println!("Container - inside the container, pid: {}", process::id());
+
+    // 切换进程的根目录
+    fs::chroot("./rootfs").expect("chroot failed");
+    env::set_current_dir("/").expect("set current work directory failed");
+
+    // 打印当前目录
+    println!("current dir: {:?}", env::current_dir().unwrap());
+
+    #[cfg(target_os = "linux")]
+    unsafe {
+        // 挂载 proc
+        let source = CString::new("none").unwrap();
+        let target = CString::new("/proc").unwrap();
+        let fstype = CString::new("proc").unwrap();
+        let flags = 0 as libc::c_ulong;
+        let data = CString::new("").unwrap();
+        let result = libc::mount(
+            source.as_ptr(),
+            target.as_ptr(),
+            fstype.as_ptr(),
+            flags,
+            data.as_ptr() as *const libc::c_void);
+        println!("mount result: {}", result);
+
+        // 运行进程
+        let program = CString::new("/bin/bash").unwrap();
+        let args = [program.as_ptr(), ptr::null()];
+        libc::execvp(program.as_ptr(), args.as_ptr());
+    }
+    println!("Container - Something Wrong");
+    return 1;
+}
+```
+
+再次编译运行，执行`ps`命令可以看到当前进程中的`pid`是从`1`开始的：
+
+![挂载proc目录](rust-pid-ns-with-proc.png)
+
+##### NET
+
+但是如果这个时候查看网络设备，发现很多宿主机上的设备：
+
+![宿主机网络设备](rust-net-host.png)
+
+这是因为没有为容器隔离网络设备，需要作如下的改动，在启动容器进程的时候，增加 `libc::CLONE_NEWNET`：
+
+```rust
+let flags = libc::CLONE_NEWNET | libc::CLONE_NEWPID | libc::CLONE_NEWNS | libc::SIGCHLD;
+let pid = libc::clone(container_main, stack_top, flags, ptr::null_mut());
+```
+
+这个时候查看，发现看不到宿主机上的网络设备，只有一个 `lo`：
+
+![容器内没有网络设备](rust-net-no-net.png)
+
+这样的话，我们的容器是没法直接跟外部通信的，我们需要给我们新建的容器添加网卡，设置IP，参考单机容器通信网络，通过下面的方式给我们的容器添加网络设备：
+
+
 ### 参考链接
 
 1. [Creating Your Own Containers](https://cesarvr.io/post/2018-05-22-create-containers/)
@@ -406,3 +625,4 @@ root@ctrlnode:/sys/fs/cgroup/cpu/container#
 5. [Separation Anxiety: A Tutorial for Isolating Your System with Linux Namespaces](https://www.toptal.com/linux/separation-anxiety-isolating-your-system-with-linux-namespaces)
 6. [Building a container by hand using namespaces: The mount namespace](https://www.redhat.com/sysadmin/mount-namespaces)
 7. [容器工作原理简述](https://www.rondochen.com/how-containers-work/#pivot-root)
+8. [Container Runtime in Rust — Part I](https://itnext.io/container-runtime-in-rust-part-i-7bd9a434c50a)
