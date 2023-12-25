@@ -5,6 +5,7 @@ tags:
     - 路由表
 categories:
     - Linux
+    - Network
 ---
 
 在学习 Linux 网络相关的知识时或者在定位网络相关的问题中，经常需要使用 `route` 命令查看路由表，本节主要记录该命令的输出及其含义。Linux 系统上一般有3张路由表，可以通过 `ip rule` 命令查看：
