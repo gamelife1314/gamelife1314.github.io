@@ -785,56 +785,17 @@ root@mycontainer:/#
 
 > `cargo +nightly run -- mycontainer`
 
-```
-root@docker1:/Users/fudenglong/WORKDIR/rust/container-create# cargo +nightly run -- mycontainer
-    Finished dev [unoptimized + debuginfo] target(s) in 0.18s
-     Running `target/debug/container-create mycontainer`
-Parent - start a container, pid: 3480819, hostname: "docker1"
-Container - inside the container, pid: 1
-current dir: "/"
-current container hostname: "mycontainer"
-mount result: 0
-nobody@mycontainer:/$
-nobody@mycontainer:/$ id
-uid=65534(nobody) gid=65534(nogroup) groups=65534(nogroup)
-nobody@mycontainer:/$
-nobody@mycontainer:/$ cat /etc/passwd | grep nobody
-nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
-nobody@mycontainer:/$
-nobody@mycontainer:/$ cat /proc/sys/kernel/overflowuid
-65534
-nobody@mycontainer:/$
-```
+![User命名空间](rust-user-ns.png)
 
-在容器内运行`id`命令以查看当前进程的`UID`、`GID`和组时。在新的命名空间中，该进程属于`nobody`用户，其`UID`和`GI`D为`65534`，该用户是系统中的默认用户。当用户`ID`在命名空间内没有映射时，返回用户`ID`的系统调用将返回文件`/proc/sys/kernel/overflowuid`中定义的值。
+在容器内运行`id`命令以查看当前进程的`UID`、`GID`和组时。在新的命名空间中，该进程属于`nobody`用户，其`UID`和`GID`为`65534`，该用户是系统中的默认用户。当用户`ID`在命名空间内没有映射时，返回用户`ID`的系统调用将返回文件`/proc/sys/kernel/overflowuid`中定义的值。
 
 #### unshare
 
 所有上面通过代码做的这些操作，我们可以使用一句 `unshare` 命令完成：
 
-> `unshare -m -n -p -U --user --root ./rootfs/ --wd=/home --fork --mount-proc /bin/bash`
+> `uunshare --mount --net --pid --user --uts --root ./rootfs/ --wd=/home --fork --mount-proc --map-root-user /bin/bash`
 
-```
-root@docker1:/Users/fudenglong/WORKDIR/rust/container-create#  unshare -m -n -p -U --user --root ./rootfs/ --wd=/home --fork --mount-proc /bin/bash
-nobody@F00596107-PX:/home$
-nobody@F00596107-PX:/home$ id
-uid=65534(nobody) gid=65534(nogroup) groups=65534(nogroup)
-nobody@F00596107-PX:/home$
-nobody@F00596107-PX:/home$ ps -ef
-UID          PID    PPID  C STIME TTY          TIME CMD
-nobody         1       0  1 03:01 ?        00:00:00 /bin/bash
-nobody         5       1  0 03:01 ?        00:00:00 ps -ef
-nobody@F00596107-PX:/home$ ifconfig
-nobody@F00596107-PX:/home$
-nobody@F00596107-PX:/home$ ip link
-1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
-    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-2: tunl0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN mode DEFAULT group default qlen 1000
-    link/ipip 0.0.0.0 brd 0.0.0.0
-3: sit0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN mode DEFAULT group default qlen 1000
-    link/sit 0.0.0.0 brd 0.0.0.0
-nobody@F00596107-PX:/home$
-```
+![unshare创建命名空间](unshare-ns.png)
 
 ### 参考链接
 
