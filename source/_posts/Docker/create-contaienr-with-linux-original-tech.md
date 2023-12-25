@@ -816,24 +816,24 @@ nobody@mycontainer:/$
 
 ```
 root@docker1:/Users/fudenglong/WORKDIR/rust/container-create#  unshare -m -n -p -U --user --root ./rootfs/ --wd=/home --fork --mount-proc /bin/bash
-nobody@F00596107-PX:/home$
-nobody@F00596107-PX:/home$ id
+nobody@docker1:/home$
+nobody@docker1:/home$ id
 uid=65534(nobody) gid=65534(nogroup) groups=65534(nogroup)
-nobody@F00596107-PX:/home$
-nobody@F00596107-PX:/home$ ps -ef
+nobody@docker1:/home$
+nobody@docker1:/home$ ps -ef
 UID          PID    PPID  C STIME TTY          TIME CMD
 nobody         1       0  1 03:01 ?        00:00:00 /bin/bash
 nobody         5       1  0 03:01 ?        00:00:00 ps -ef
-nobody@F00596107-PX:/home$ ifconfig
-nobody@F00596107-PX:/home$
-nobody@F00596107-PX:/home$ ip link
+nobody@docker1:/home$ ifconfig
+nobody@docker1:/home$
+nobody@docker1:/home$ ip link
 1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
 2: tunl0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN mode DEFAULT group default qlen 1000
     link/ipip 0.0.0.0 brd 0.0.0.0
 3: sit0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN mode DEFAULT group default qlen 1000
     link/sit 0.0.0.0 brd 0.0.0.0
-nobody@F00596107-PX:/home$
+nobody@docker1:/home$
 ```
 
 ### 参考链接
