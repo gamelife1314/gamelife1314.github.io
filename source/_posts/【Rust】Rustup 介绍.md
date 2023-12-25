@@ -16,7 +16,7 @@ categories:
 
 `rustup` 的安装我们依然使用官方的方式：
 
-> curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+> `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
 执行结束之后，应该能看到下面这样的信息，而且会默认安装 `nightly`（每日构建）版本：
 

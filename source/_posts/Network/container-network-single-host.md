@@ -43,10 +43,10 @@ root@michael-host:/home/michael#
 
 > apt install -y iproute2 net-tools iputils-ping
 
-创建容器可以使用如下命令进行，`sleep 14400` 相当于启动后台程序，目的是为了容器不退出：
+创建容器可以使用如下命令进行：
 
-> docker run -d --name ubuntu-1 ubuntu:22.04 sleep 14400
-> docker run -d --name ubuntu-2 ubuntu:22.04 sleep 14400
+> docker run  --rm -it -d --name ubuntu-1 ubuntu:22.04 
+> docker run  --rm -it -d --name ubuntu-2 ubuntu:22.04
 
 {% tabs 容器网络信息 %}
 
@@ -86,18 +86,18 @@ root@8228a27f2052:/#
 上面的第二条路由信息表明凡是发往 `172.17.0.0/16` 网络的数据包都经过 `eth0` 网卡发送，通过二层网络直达目的主机。这个 `eth0` 也正是 `Veth Pair` 设备的一端，它的另一端在主机上，对应 `ifindex` 是 `10972`，这样就可以找到在主机上对应的 `veth` 设备了：
 
 ```
-root@F00596107-PX:/home/michael# ip addr show type veth | grep 10792
+root@ctrlnode:/home/michael# ip addr show type veth | grep 10792
 10792: vethb2e6fb3@if10791: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default
-root@F00596107-PX:/home/michael#
-root@F00596107-PX:/home/michael# ip addr show type veth | grep 10794
+root@ctrlnode:/home/michael#
+root@ctrlnode:/home/michael# ip addr show type veth | grep 10794
 10794: vethd08a547@if10793: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default
-root@F00596107-PX:/home/michael#
-root@F00596107-PX:/home/michael# ip addr show  vethb2e6fb3
+root@ctrlnode:/home/michael#
+root@ctrlnode:/home/michael# ip addr show  vethb2e6fb3
 10792: vethb2e6fb3@if10791: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default
     link/ether fe:58:fc:10:a9:27 brd ff:ff:ff:ff:ff:ff link-netnsid 0
     inet6 fe80::fc58:fcff:fe10:a927/64 scope link
        valid_lft forever preferred_lft forever
-root@F00596107-PX:/home/michael# ip addr show  vethd08a547
+root@ctrlnode:/home/michael# ip addr show  vethd08a547
 10794: vethd08a547@if10793: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default
     link/ether c6:3d:7c:33:5d:02 brd ff:ff:ff:ff:ff:ff link-netnsid 3
     inet6 fe80::c43d:7cff:fe33:5d02/64 scope link
