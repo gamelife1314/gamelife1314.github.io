@@ -1,5 +1,5 @@
 ---
-title: 使用Linux原生技术创建容器
+title: 容器技术探索及实践
 date: 2023-12-22 14:48:48
 tags:
     - Container
@@ -17,6 +17,9 @@ categories:
 这就意味着，如果我们的应用程序需要配置内核参数、加载额外的内核模块，以及跟内核进行直接的交互，就需要注意了：这些操作和依赖的对象，都是宿主机操作系统的内核，它对于该机器上的所有容器来说是一个“全局变量”，牵一发而动全身。这也是容器相比于虚拟机的主要缺陷之一：毕竟后者不仅有模拟出来的硬件机器充当沙盒，而且每个沙盒里还运行着一个完整的`Guest OS`给应用随便折腾。
 
 所以，容器启动快是因为本质上就是宿主机上的一个进程而已，启动一个进程的速度当然比启动一个虚拟机的速度快。不过，正是由于`rootfs`的存在，容器才有了一个被反复宣传至今的重要特性：一致性，`rootfs`里打包的不只是应用，而是整个操作系统的文件和目录，也就意味着，应用以及它运行所需要的所有依赖，都被封装在了一起。无论在本地、云端，还是在一台任何地方的机器上，用户只需要解压打包好的容器镜像，那么这个应用运行所需要的完整的执行环境就被重现出来了。这种深入到操作系统级别的运行环境一致性，打通了应用在本地开发和远端执行环境之间难以逾越的鸿沟。
+
+
+<!-- more -->
 
 #### UnionFS
 
@@ -420,7 +423,7 @@ root@ctrlnode:/sys/fs/cgroup/cpu/container#
 
 #### Rust
 
-我们首先使用代码调用`Linux`的系统调用创建容器，这是最直接的方式，其他方式也都是构建于这个基础之上，这里我们使用`Rust`编程语言，调用`C`接口，`Rust`安装方式可以使用国内镜像[rsproxy](https://rsproxy.cn/)。
+我们首先使用代码调用`Linux`的系统调用创建容器，这是最直接的方式，其他方式也都是构建于这个基础之上，这里我们使用`Rust`编程语言，调用`C`接口，`Rust`安装方式可以使用国内镜像[rsproxy](https://rsproxy.cn/)，完成示例请见[container-create](https://github.com/gamelife1314/container-create)。
 
 测试环境信息：
 
@@ -442,7 +445,8 @@ Codename:	jammy
 ```
 cargo new container-create --vcs none
 cd container-create
-cargo add libc
+cargo add libc once_cell
+cargo add hostname --features set
 ```
 
 在正式开始之前，我们先准备一个完整的 `rootfs` 供我们使用，依次执行下面的命令：
@@ -455,7 +459,7 @@ docker pull ubuntu
 docker run --name ubuntu -it --rm -d ubuntu
 docker exec -itu root ubuntu bash
 apt update
-apt install -y iproute2 net-tools iputils-ping bridge-utils
+apt install -y iproute2 net-tools iputils-ping bridge-utils systemd
 
 # 将容器的RootFS导出备用
 mkdir rootfs
@@ -497,6 +501,7 @@ container-create/
 use std::env;
 use std::ffi::CString;
 use std::process;
+#[cfg(target_os = "linux")]
 use std::os::unix::fs;
 #[cfg(target_os = "linux")]
 use std::ptr;
@@ -505,6 +510,7 @@ extern "C" fn container_main(_args: *mut libc::c_void) -> libc::c_int {
     println!("Container - inside the container, pid: {}", process::id());
 
     // 切换进程的根目录
+    #[cfg(target_os = "linux")]
     fs::chroot("./rootfs").expect("chroot failed");
     env::set_current_dir("/").expect("set current work directory failed");
 
@@ -609,7 +615,7 @@ let flags = libc::CLONE_NEWNET | libc::CLONE_NEWPID | libc::CLONE_NEWNS | libc::
 let pid = libc::clone(container_main, stack_top, flags, ptr::null_mut());
 ```
 
-这个时候查看，发现看不到宿主机上的网络设备，只有一个 `lo`：
+再次查看，发现看不到宿主机上的网络设备，只有一个 `lo`，而且还没启用：
 
 ![容器内没有网络设备](rust-net-no-net.png)
 
@@ -665,6 +671,171 @@ container-creat,13607
 
 ![和docker创建的容器联通](container-add-link.png)
 
+##### UTS
+
+`UTS` 命名空间允许单个系统对不同进程显示不同的主机名和域名，在没有设置容器名称的时候，和宿主机名称是一致的，例如上面的`docker1`，我们在创建我们的容器的时候启用 `libc::CLONE_NEWUTS`，然后给容器设置自定义的名称，全量代码如下：
+
+{% note success 完整代码 %}
+```rust
+use once_cell::sync::OnceCell;
+use std::env;
+use std::ffi::CString;
+#[cfg(target_os = "linux")]
+use std::os::unix::fs;
+use std::process;
+#[cfg(target_os = "linux")]
+use std::ptr;
+
+static HOSTNAME: OnceCell<String> = OnceCell::new();
+
+extern "C" fn container_main(_args: *mut libc::c_void) -> libc::c_int {
+    println!("Container - inside the container, pid: {}", process::id());
+
+    // 切换进程的根目录
+    #[cfg(target_os = "linux")]
+    fs::chroot("./rootfs").expect("chroot failed");
+    env::set_current_dir("/").expect("set current work directory failed");
+    println!("current dir: {:?}", env::current_dir().unwrap());
+
+    // 设置hostname
+    hostname::set(HOSTNAME.get().unwrap()).expect("set container hostname failed");
+    println!("current container hostname: {:?}", hostname::get().unwrap());
+
+    #[cfg(target_os = "linux")]
+    unsafe {
+        // 挂载 proc
+        let source = CString::new("none").unwrap();
+        let target = CString::new("/proc").unwrap();
+        let fstype = CString::new("proc").unwrap();
+        let flags = 0 as libc::c_ulong;
+        let data = CString::new("").unwrap();
+        let result = libc::mount(
+            source.as_ptr(),
+            target.as_ptr(),
+            fstype.as_ptr(),
+            flags,
+            data.as_ptr() as *const libc::c_void,
+        );
+        println!("mount result: {}", result);
+
+        // 运行进程
+        let program = CString::new("/bin/bash").unwrap();
+        let args = [program.as_ptr(), ptr::null()];
+        libc::execvp(program.as_ptr(), args.as_ptr());
+    }
+    println!("Container - Something Wrong");
+    return 1;
+}
+
+fn main() {
+    println!(
+        "Parent - start a container, pid: {}, hostname: {:?}",
+        process::id(),
+        hostname::get().expect("get parent hostname failed")
+    );
+    let mut stack = vec![0u8; 4096 * 1024];
+    let args = env::args().collect::<Vec<String>>();
+    let mut hostname = "container-default";
+    if args.len() > 1 {
+        hostname = &args[1];
+    }
+    HOSTNAME
+        .set(hostname.to_string())
+        .expect("init global var hostname failed");
+
+    #[cfg(target_os = "linux")]
+    unsafe {
+        let stack_top = stack.as_mut_ptr().add(stack.len()) as *mut libc::c_void;
+        let flags = libc::CLONE_NEWUTS
+            | libc::CLONE_NEWNET
+            | libc::CLONE_NEWPID
+            | libc::CLONE_NEWNS
+            | libc::SIGCHLD;
+        let pid = libc::clone(container_main, stack_top, flags, ptr::null_mut());
+        libc::waitpid(pid, ptr::null::<libc::c_int>() as *mut libc::c_int, 0);
+    }
+    println!("Parent - container stopped!");
+}
+
+```
+{% endnote %}
+
+使用如下的命令运行，可以看到的容器名称已经更新成 `mycontainer` ：
+
+> `cargo +nightly run -- mycontainer`
+
+```
+root@docker1:/Users/fudenglong/WORKDIR/rust/container-create# cargo +nightly run -- mycontainer
+   Compiling container-create v0.1.0 (/mnt/e/rust/container-create)
+    Finished dev [unoptimized + debuginfo] target(s) in 3.53s
+     Running `target/debug/container-create mycontainer`
+Parent - start a container, pid: 3451321, hostname: "docker1"
+Container - inside the container, pid: 1
+current dir: "/"
+current container hostname: "mycontainer"
+mount result: 0
+root@mycontainer:/# hostname
+mycontainer
+root@mycontainer:/#
+```
+
+##### User
+
+到目前为止，我们自己创建的容器中的用户名还是 `root`，还没有和宿主机隔离开，在 `clone` 容器的时候添加 `libc::CLONE_NEWUSER`，重新创建容器：
+
+> `cargo +nightly run -- mycontainer`
+
+```
+root@docker1:/Users/fudenglong/WORKDIR/rust/container-create# cargo +nightly run -- mycontainer
+    Finished dev [unoptimized + debuginfo] target(s) in 0.18s
+     Running `target/debug/container-create mycontainer`
+Parent - start a container, pid: 3480819, hostname: "docker1"
+Container - inside the container, pid: 1
+current dir: "/"
+current container hostname: "mycontainer"
+mount result: 0
+nobody@mycontainer:/$
+nobody@mycontainer:/$ id
+uid=65534(nobody) gid=65534(nogroup) groups=65534(nogroup)
+nobody@mycontainer:/$
+nobody@mycontainer:/$ cat /etc/passwd | grep nobody
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+nobody@mycontainer:/$
+nobody@mycontainer:/$ cat /proc/sys/kernel/overflowuid
+65534
+nobody@mycontainer:/$
+```
+
+在容器内运行`id`命令以查看当前进程的`UID`、`GID`和组时。在新的命名空间中，该进程属于`nobody`用户，其`UID`和`GI`D为`65534`，该用户是系统中的默认用户。当用户`ID`在命名空间内没有映射时，返回用户`ID`的系统调用将返回文件`/proc/sys/kernel/overflowuid`中定义的值。
+
+#### unshare
+
+所有上面通过代码做的这些操作，我们可以使用一句 `unshare` 命令完成：
+
+> `unshare -m -n -p -U --user --root ./rootfs/ --wd=/home --fork --mount-proc /bin/bash`
+
+```
+root@docker1:/Users/fudenglong/WORKDIR/rust/container-create#  unshare -m -n -p -U --user --root ./rootfs/ --wd=/home --fork --mount-proc /bin/bash
+nobody@F00596107-PX:/home$
+nobody@F00596107-PX:/home$ id
+uid=65534(nobody) gid=65534(nogroup) groups=65534(nogroup)
+nobody@F00596107-PX:/home$
+nobody@F00596107-PX:/home$ ps -ef
+UID          PID    PPID  C STIME TTY          TIME CMD
+nobody         1       0  1 03:01 ?        00:00:00 /bin/bash
+nobody         5       1  0 03:01 ?        00:00:00 ps -ef
+nobody@F00596107-PX:/home$ ifconfig
+nobody@F00596107-PX:/home$
+nobody@F00596107-PX:/home$ ip link
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: tunl0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+3: sit0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN mode DEFAULT group default qlen 1000
+    link/sit 0.0.0.0 brd 0.0.0.0
+nobody@F00596107-PX:/home$
+```
+
 ### 参考链接
 
 1. [Creating Your Own Containers](https://cesarvr.io/post/2018-05-22-create-containers/)
@@ -677,3 +848,4 @@ container-creat,13607
 8. [Container Runtime in Rust — Part I](https://itnext.io/container-runtime-in-rust-part-i-7bd9a434c50a)
 9. [How Container Networking Works - Building a Linux Bridge Network From Scratch](https://labs.iximiuz.com/tutorials/container-networking-from-scratch)
 10. [Linux setup default gateway with route command](https://www.cyberciti.biz/faq/linux-setup-default-gateway-with-route-command/)
+11. [Diving into Linux Namespaces: Understanding User Namespaces in Docker](https://abdelouahabmbarki.com/linux-user-namespaces/)
