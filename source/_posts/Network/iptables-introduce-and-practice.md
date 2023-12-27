@@ -22,7 +22,7 @@ categories:
 
 Netfilter框架在Linux内核中提供了一堆钩子，当网络数据包通过内核中的协议栈时，它会遍历这些钩子。Netfilter允许使用这些钩子编写模块并注册回调函数，当钩子被触发时，回调函数将被调用。这些钩子被用在包处理的以下5个阶段：
 
-![netfilter架构图](https://miro.medium.com/v2/resize:fit:720/format:webp/0*4K-8qo1ro6CDNWms.png)
+![netfilter架构图](netfilter-arch.png)
 
 - `NF_INET_PRE_ROUTING`：当数据包从网卡上收到还有路由之前，这类钩子函数就会被触发，然后内核判断这个数据包是否是发往当前主机的，根据条件，将触发以下两个钩子；
 - `NF_INET_LOCAL_IN`：当数据包决定路由到本机上的时候，就会触发这类钩子；
@@ -128,9 +128,13 @@ $ iptables-translate -A INPUT -s 192.168.01/16 -p TCP -j DROP
 nft add rule ip filter INPUT ip protocol tcp ip saddr 192.168.0.0/16 counter drop
 ```
 
+`iptables` 的处理流程图如下所示：
+
+![](iptables-architectire.png)
+
 #### table
 
-`iptables`定义了 `filter`、`nat`、`raw`、`mangle`以及`security`5张表，每张表生效的 `netfilter` 阶段不同，`iptables` 将对应于 `netfilter` 不同阶段的规则保存在不同的链中。这5张表生效的阶段如下表所示：
+`iptables`定义了 `filter`、`nat`、`raw`、`mangle`以及`security`5张表，每张表生效的 `netfilter` 阶段不同，`iptables` 将对应于 `netfilter` 不同阶段的规则保存在不同的链中。这`5`张表生效的阶段如下表所示：
 
 |表生效阶段以及对应的链|[filter](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_filter.c#L19)|[nat](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_nat.c#L22)|[mangle](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_mangle.c#L22)|[raw](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_raw.c#L13)|[security](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_security.c#L24)|
 |:--:|:--:|:--:|:--:|:--:|:--:|
@@ -161,9 +165,9 @@ filter
 
 可以继续从内核代码中寻找这些表创建的逻辑，关于内核代码可以不用继续追究，我们只需要知道内核会在启动过程中把这些表创建好，如果感兴趣的可以继续阅读相关代码，[security](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_security.c#L38)，[filter](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_filter.c#L37C12-L37C37)，[mangle](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_mangle.c#L83)，[nat](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_nat.c#L106) 以及 [raw](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_raw.c#L37C12-L37C34)。
 
-### chains
+#### chains
 
-链是规则的集合，当一个数据到达的时候，就会触发注册对应`netfilter`阶段中不同表的钩子，然后遍历对应的链中的规则，直到找到一条匹配的规则。规则是告诉系统如何处理数据包的语句，可以用规则阻止一种类型的数据包，或转发另一种类型的数据包，规则的结果或数据包的发送位置称为 `Target`，例如，对于下面这条规则：
+链是规则的集合，当一个数据到达的时候，就会触发注册对应`netfilter`阶段中不同表的钩子，然后遍历对应的链中的规则，直到找到一条匹配的规则。规则是告诉系统如何处理数据包的语句，可以用规则阻止一种类型的数据包，或转发另一种类型的数据包，规则的结果或数据包的发送位置称为`Target`，例如，对于下面这条规则：
 
 > iptables -A INPUT -s 192.168.01 -p TCP -j DROP
 
@@ -176,6 +180,38 @@ filter
 - `OUTPUT`：这里的规则适用于刚刚由某个本地进程生成的数据包；
 - `FORWARD`：此处的规则适用于通过当前主机路由的任何数据包；
 - `POSTROUTING`：该链中的规则适用于即将通过网络接口发出去的数据包；
+
+#### targets
+
+`target`指定数据包应该去哪里，常用的有`ACCEPT`、`DROP`或`RETURN`，以及来自它的扩展包中定义的`DNAT`、`LOG`、`MASQUERADE`、`REJECT`、`SNAT`、`TRACE`和`TTL`。
+
+- `ACCEPT`：这意味着 `iptables` 接受该数据包；
+- `DROP`：`iptables`会丢弃这个数据包，对于任何尝试连接到系统的人来说，看起来就好像这个系统根本不存在一样；
+- `REJECT`：iptables“拒绝”该数据包。对于`TCP`，它发送一个`connection reset`数据包，对于UDP或ICMP，它发送一个`destination host unreachable`数据包；
+
+`iptables`可以用扩展的`target`模块，它们已经被包含在标准的发布包中。如果要看当前系统已经加载了哪些 `target`，可以查看内核文件 `/proc/net/ip_tables_targets`，例如：
+
+![](iptables-targets.png)
+
+我们还可以手动加载内核模块，例如，这里加载 `xt_AUDIT` 扩展：
+
+![](mod_probe_kernel_module.png)
+
+`iptables` 的扩展信息可以通过 `man iptables-extensions` 查看，也可以通过查看[在线文档](https://manpages.ubuntu.com/manpages/xenial/man8/iptables-extensions.8.html#target%20extensions)。
+
+#### extensions
+
+`iptables`可以使用扩展的数据包匹配模块，使用`-m`或`--match`选项，然后跟上匹配模块的名称，在这之后，根据具体模块的不同，会有各种额外的命令行选项可用。可以在一行中指定多个扩展匹配模块，并且在指定了模块后，可以使用`-h`或`--help`选项来获得该模块的特定帮助信息，扩展匹配模块按照规则中指定的顺序运行。
+
+如果指定了`-p`或`--protocol`，当遇到未知选项时，`iptables` 将尝试加载与协议同名的模块，例如，如果指定了 `--protocol icmp`，当遇到选项 `--icmp-type`，就会自动加载 `icmp` 模块，相当于使用了 `-p icmp -m icmp`。
+
+同样，扩展文档可以使用 `man iptables-extensions` 来查看，或者查看[在线文档](https://manpages.ubuntu.com/manpages/xenial/man8/iptables-extensions.8.html#match%20extensions)。
+
+查看具体模块的帮助文档，可以在指定模块名称的情况下，使用 `-h` 查看，例如：`iptables -m icmp --help`。
+
+内核已经加载的匹配模块我们可以查看 `/proc/net/ip_tables_matches` 文件，如果发现哪些没有加载，可以手动加载。和`target`不同的是，匹配模块的名称是小写，而`target`是大写。
+
+![](iptable-load-mac-module.png)
 
 
 ### 参考链接
