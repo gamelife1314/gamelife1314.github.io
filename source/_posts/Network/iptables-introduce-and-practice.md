@@ -450,13 +450,7 @@ iptables --append INPUT --protocol tcp \
 例如，我们可以将访问本地`80`端口的包转发到`8080端口`：
 
 ```
-iptables \
---table nat \
---append PREROUTING \
---protocol tcp \
-— dport 80 \
---jump REDIRECT \
---to 8080
+iptables --table nat --append PREROUTING --protocol tcp — dport 80 --jump REDIRECT --to 8080
 ```
 
 
