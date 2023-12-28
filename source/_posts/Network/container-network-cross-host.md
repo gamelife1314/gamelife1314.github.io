@@ -5,6 +5,7 @@ tags:
     - 容器网络
 categories:
     - Linux
+    - Network
 ---
 
 单机场景下，相同主机上的容器会通过 `Docker` 默认创建的 `docker0` 网桥以及在启动容器时创建的 `veth pair` 设备实现互通。而对于跨主机容器通信，社区提供了很多种不同的方案，例如 [`weave`](https://github.com/weaveworks/weave)、[`flannel`](https://github.com/flannel-io/flannel)，本篇文章将以 `flannel` 为例，实现跨主机容器通信，`flannel` 有多种后端实现，本文以 `VXLAN` 为例，动手实践，最终达到的效果如下图所示：
