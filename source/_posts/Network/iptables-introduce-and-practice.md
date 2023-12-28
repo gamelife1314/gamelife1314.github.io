@@ -181,13 +181,30 @@ filter
 - `FORWARD`：此处的规则适用于通过当前主机路由的任何数据包；
 - `POSTROUTING`：该链中的规则适用于即将通过网络接口发出去的数据包；
 
+用户可以基于自己的需要新创建链，使用 `iptables -N 链名称`。
+
 #### targets
 
-`target`指定数据包应该去哪里，常用的有`ACCEPT`、`DROP`或`RETURN`，以及来自它的扩展包中定义的`DNAT`、`LOG`、`MASQUERADE`、`REJECT`、`SNAT`、`TRACE`和`TTL`。
+`target`指定数据包应该被如何处理，常用的有`ACCEPT`、`DROP`或`RETURN`，以及来自它的扩展包中定义的`DNAT`、`LOG`、`MASQUERADE`、`REJECT`、`SNAT`、`TRACE`和`TTL`等一大堆。
 
 - `ACCEPT`：这意味着 `iptables` 接受该数据包；
 - `DROP`：`iptables`会丢弃这个数据包，对于任何尝试连接到系统的人来说，看起来就好像这个系统根本不存在一样；
 - `REJECT`：iptables“拒绝”该数据包。对于`TCP`，它发送一个`connection reset`数据包，对于UDP或ICMP，它发送一个`destination host unreachable`数据包；
+
+每条连应该有默认的`Target`，可以使用如下的方式查看或者更新链的默认 `Target`：
+
+```
+# 查看默认策略
+$ sudo iptables --list-rules  # or -S
+-P INPUT ACCEPT
+-P FORWARD ACCEPT
+-P OUTPUT ACCEPT
+
+# 将 filter 表中 FORWARD 链的默认策略修改为 DROP
+iptables --policy FORWARD DROP  # or -P
+```
+
+`Target` 还分为终止型和非终止型，`ACCEPT, REJECT, DROP` 都是终止类型的，意味着在处理完匹配的包之后，后面的规则将不会被执行。而向 `LOG`、`Mark` 它们是非终止的，它们对匹配的包做一些体日志记录或者添加标记之后，继续执行下一条规则。
 
 `iptables`可以用扩展的`target`模块，它们已经被包含在标准的发布包中。如果要看当前系统已经加载了哪些 `target`，可以查看内核文件 `/proc/net/ip_tables_targets`，例如：
 
@@ -199,7 +216,7 @@ filter
 
 `iptables` 的扩展信息可以通过 `man iptables-extensions` 查看，也可以通过查看[在线文档](https://manpages.ubuntu.com/manpages/xenial/man8/iptables-extensions.8.html#target%20extensions)。
 
-#### extensions
+#### module
 
 `iptables`可以使用扩展的数据包匹配模块，使用`-m`或`--match`选项，然后跟上匹配模块的名称，在这之后，根据具体模块的不同，会有各种额外的命令行选项可用。可以在一行中指定多个扩展匹配模块，并且在指定了模块后，可以使用`-h`或`--help`选项来获得该模块的特定帮助信息，扩展匹配模块按照规则中指定的顺序运行。
 
@@ -209,9 +226,361 @@ filter
 
 查看具体模块的帮助文档，可以在指定模块名称的情况下，使用 `-h` 查看，例如：`iptables -m icmp --help`。
 
-内核已经加载的匹配模块我们可以查看 `/proc/net/ip_tables_matches` 文件，如果发现哪些没有加载，可以手动加载。和`target`不同的是，匹配模块的名称是小写，而`target`是大写。
+内核已经加载的匹配模块我们可以查看 `/proc/net/ip_tables_matches` 文件，如果发现哪些没有加载，可以手动加载，也可以在使用时自动加载。和`target`不同的是，匹配模块的名称是小写，而`target`是大写。
 
 ![](iptable-load-mac-module.png)
+
+#### rules
+
+一条规则表达了匹配具有什么特征的包做什么动作，使用 `iptables` 命令创建规则的格式如下所示：
+
+> `sudo iptables [option] CHAIN_rule [-j target]`
+
+下面是一个示例，表示接受来自`192.168.0.27`包：
+
+> sudo iptables –A INPUT –s 192.168.0.27 –j ACCEPT
+> sudo iptables --append INPUT –-source 192.168.0.27 –-jump DROP
+
+根据日常的使用场景，举一些比较常用的例子。
+
+##### 禁止来自某个IP的报文
+
+`REJECT` 来自某个`IP`地址的报文：
+
+```
+iptables \
+--table filter \             # Use the filter table
+--append INPUT \             # Append to the INPUT chain
+--source 59.45.175.62 \      # This source address
+--jump REJECT                # Use the target Reject
+```
+
+精确删除这条规则：
+
+```
+iptables \
+--table filter \             # Use the filter table
+--delete INPUT \             # Delete from the INPUT chain
+--source 59.45.175.62 \      # This source address
+--jump REJECT                # Use the target Reject
+```
+
+可以更新这条规则，更换里面的 `IP`：
+
+```
+iptables \
+--table filter \             # Use the filter table
+--replace INPUT \            # Replace from the INPUT chain
+--source 59.45.175.62 \      # This source address
+--jump REJECT                # Use the target Reject
+```
+
+`-t filter` 我们可以不用声明，默认就是这张表。
+
+##### 添加规则到具体位置
+
+首先需要需要打印出当前表中的规则序号，然后才能精准插入到某个位置：
+
+> iptables --list --line-numbers
+
+这个命令会把规则的顺序打印出来：
+
+```
+Chain INPUT (policy ACCEPT)
+num target prot opt source destination
+1 DROP all -- 59.45.175.0/24 anywhere
+2 DROP all -- 221.194.47.0/24 anywhere
+3 DROP all -- 91.197.232.104/29 anywhere
+
+Chain FORWARD (policy ACCEPT)
+num target prot opt source destination
+
+Chain OUTPUT (policy ACCEPT)
+num target prot opt source destination
+1 DROP all -- anywhere 31.13.78.0/24
+```
+
+假设我们要组织除了其中一个地址`59.45.175.10`之外的整个`IP`块`59.45.175.0/24`，由于`iptables`按序遍历规则并且处理，所以我们在最开始的位置将`59.45.175.10`加入白名单即可：
+
+```
+iptables --table filter --insert INPUT 1 --source 59.45.175.10 --jump ACCEPT
+```
+
+现在 `INPUT` 链中的规则应该如下所示：
+
+```
+Chain INPUT (policy ACCEPT)
+num target prot opt source destination
+1 ACCEPT all -- 59.45.175.10 0.0.0.0/0
+2 DROP all -- 59.45.175.0/24 0.0.0.0/0
+3 DROP all -- 221.192.0.0/20 0.0.0.0/0
+4 DROP all -- 91.197.232.104/29 0.0.0.0/0
+```
+
+##### 修改链的默认策略
+
+如果链中没有任何规则匹配时对数据包执行的操作，默认链默认有一个接受策略，可以使用下面的方式更改默认策略：
+
+> iptables --policy INPUT DROP
+
+##### 禁止访问某个端口
+
+例如，我们可以禁止某个访问的`IP`登录我们的主机：
+
+```
+iptables \
+--append INPUT \
+--protocol tcp \             # Specify TCP protocol
+--match tcp \                # Load the TCP module
+--dport 22 \                 # Destination port 
+--source 59.45.175.0/24 \
+--jump DROP
+```
+
+可以使用`multiport`模块提供的匹配功能，禁止访问多个端口：
+
+```
+iptables \
+--append INPUT \
+--protocol tcp \
+--match multiport \         # Load multiport module
+--dports 22,5901 \
+--source 59.45.175.0/24 \
+--jump DROP
+```
+
+可以使用如下的语法提供反向匹配，`!`表示除什么之外，这里表示除了`22,80,443`这几个端口，都禁止访问：
+
+```
+iptables --append INPUT --protocol tcp --match multiport ! --dports 22,80,443 --jump DROP
+```
+
+禁止`icmp`请求：
+
+```
+iptables --append INPUT --jump REJECT --protocol icmp --icmp-type echo-request
+```
+
+`REJECT`表现出来的就像这个主机存在但是回复了错误，但`DROP`表现的就像这个目的主机不存在一样，没有任何错误信息：
+
+```
+iptables --append INPUT --protocol icmp --jump DROP --icmp-type echo-request
+
+iptables --append OUTPUT --protocol icmp --jump DROP --icmp-type echo-reply
+```
+
+##### TCP连接状态跟踪
+
+如果我们通过`INPUT`链禁止了某个`IP`访问本机，那我们同样也访问了这个`IP`，因为即使我们的请求到达了对端，但是对端的响应在到达本机的途中，经过`iptables`时被丢掉了。但是我们可以通过`conntrack`模块解决这个问题，因为`iptables`是一个有状态的防火墙，我们可以使用这个模块跟踪一下任意状态：
+
+- `NEW`：该状态表示连接的第一个数据包；
+- `ESTABLISHED`：此状态表示属于现有连接一部分的数据包，对于处于这种状态的连接，它应该已经收到来自其他主机的答复；
+- `RELATED`：此状态表示与另一个`ESTABLISHED`连接相关的连接。`FTP`数据连接就是一个例子——它们与已经建立的控制连接相关；
+- `INVALID`：这表示数据包没有正确的状态。这可能是由于多种原因造成的，例如系统内存不足或由于某些类型的`ICMP`流量所致；
+- `UNTRACKED`：`raw`表中具有`NOTRACK`目标的任何免于连接跟踪的数据包最终都会处于此状态；
+- `DNAT`：这是一个虚拟状态，表示包的目的地址已经被`nat`表中的规则更改；
+- `SNAT`：和 `DNAT` 一样，表示包的源地址已经被更改；
+
+因为，为了达到本节开始的目的，允许`RELATED`和`ESTABLISHED`状态的包到达本机：
+
+```
+iptables \
+--append INPUT
+--match conntrack 
+--ctstate RELATED,ESTABLISHED \
+--jump ACCEPT       # Accept packets in above connection states
+```
+
+##### 常用防安全攻击规则
+
+如果要阻止圣诞树攻击（TCP所有标志位被设置为1的数据包被称为圣诞树数据包（XMas Tree packet），之所以叫这个名是因为这些标志位就像圣诞树上灯一样全部被点亮），可以用下面这样的命令：
+
+```
+iptables --append INPUT --protocol tcp --match tcp --tcp-flags ALL FIN,PSH,URG --jump DROP
+```
+
+为了阻止常见的无效数据包，例如同时设置了`SYN`和`FIN`的数据包，我们可以简单地查找同时设置了这两个数据包的数据包。执行此操作：
+
+```
+iptables --append INPUT --protocol tcp --match tcp --tcp-flags SYN,FIN SYN,FIN --jump DROP
+```
+
+还有阻止不以 `SYN`开头的新连接数据包：
+
+```
+iptables --append INPUT --protocol tcp --match conntrack --ctstate NEW --match tcp ! --tcp-flags FIN,SYN,RST,ACK SYN --jump DROP
+```
+
+##### 速率限制
+
+`limit` 通过令牌桶实现速率限制，它有两个主要参数，`--limit-burst` 充当缓冲区，是缓冲区大小，如果超过此缓冲区大小，则所有数据包都会被丢弃，但可以以`--limit`往这个桶里面放入令牌：
+
+```
+ --limit rate[/second|/minute|/hour|/day]
+    Maximum  average  matching rate: specified as a number, with an optional `/second',
+    `/minute', `/hour', or `/day' suffix; the default is 3/hour.
+
+--limit-burst number
+    Maximum initial number of packets to match: this number gets recharged by one every
+    time the limit specified above is not reached, up to this number; the default is 5.
+```
+
+例如限制每秒只能处理一个`ICMP`请求：
+
+> iptables --append INPUT --protocol icmp --match limit --limit 1/sec --limit-burst 1 --jump ACCEPT
+
+我们可以使用`recent`模块实现一个动态限制，例如，我们可以限制某个IP在过去的`180s`内最多`5`次连接到本机，不过这通常需要两个命令配合完成：
+
+```
+# 将访问22端口的IP都放在一个名为SSHLIMIT的列表中
+iptables --append INPUT --protocol tcp \
+--match tcp --dport 22 \
+--match conntrack --ctstate NEW \
+--match recent --set --name SSHLIMIT --rsource
+
+# 匹配180s内访问22端口5次的报文丢掉
+iptables --append INPUT --protocol tcp \
+--match tcp --dport 22 \
+--match conntrack --ctstate NEW \
+--match recent --set --name SSHLIMIT --update --seconds 180 --hitcount 5 --name SSH --rsource --jump DROP
+```
+
+##### 本地端口重定向
+
+例如，我们可以将访问本地`80`端口的包转发到`8080端口`：
+
+```
+iptables \
+--table nat \
+--append PREROUTING \
+--protocol tcp \
+— dport 80 \
+--jump REDIRECT \
+--to 8080
+```
+
+
+#### 规则持久化
+
+通过用户空间的 `iptables` 命令创建的规则或者链默认只存在于内存中，当系统重新启动就会丢失，如果要对已经创建的规则进行保存，首先可以手动调用 `iptables-save` 命令：
+
+> sudo iptables-save > /etc/iptables/rules.v4
+> sudo ip6tables-save > /etc/iptables/rules.v6
+
+在想要恢复的时候，调用 `iptables-restore` 命令进行恢复：
+
+> sudo iptables-restore < /etc/iptables/rules.v4
+> sudo ip6tables-restore < /etc/iptables/rules.v6
+
+如果想要自动进行 `iptables` 规则保存，需要安装 `iptables-persistent` 服务：
+
+> sudo apt-get install iptables-persistent
+
+```
+$> apt-get install iptables-persistent
+....
+Created symlink /etc/systemd/system/multi-user.target.wants/netfilter-persistent.service → /lib/systemd/system/netfilter-persistent.service.
+Setting up iptables-persistent (1.0.16) ...
+update-alternatives: using /lib/systemd/system/netfilter-persistent.service to provide /lib/systemd/system/iptables.service (iptables.service) in auto mode
+```
+
+这将安装 `netfilter-persistent.service` 和 `iptables.service` 两个系统服务，他们之间是冲突的，只能启动一个：
+
+```
+$> systemctl start netfilter-persistent.service
+$> systemctl status netfilter-persistent.service
+● netfilter-persistent.service - netfilter persistent configuration
+     Loaded: loaded (/lib/systemd/system/netfilter-persistent.service; enabled; vendor preset: enabled)
+    Drop-In: /etc/systemd/system/netfilter-persistent.service.d
+             └─iptables.conf
+     Active: active (exited) since Tue 2023-12-26 20:47:40 CST; 17s ago
+       Docs: man:netfilter-persistent(8)
+   Main PID: 1281646 (code=exited, status=0/SUCCESS)
+
+Dec 26 20:47:40 michael systemd[1]: Starting netfilter persistent configuration...
+Dec 26 20:47:40 michael netfilter-persistent[1281648]: run-parts: executing /usr/share/netfilter-persistent/plugins.d/15-ip4tables start
+Dec 26 20:47:40 michael netfilter-persistent[1281648]: run-parts: executing /usr/share/netfilter-persistent/plugins.d/25-ip6tables start
+Dec 26 20:47:40 michael systemd[1]: Finished netfilter persistent configuration.
+$>
+$> cat /etc/systemd/system/netfilter-persistent.service.d/iptables.conf
+[Unit]
+Conflicts=iptables.service ip6tables.service
+```
+
+`netfilter-persistent.service` 会自动将最新的规则刷新到 `/etc/iptables/rules.v4` 文件，并且在系统启动时自动恢复。
+
+#### 日志记录
+
+如果希望将某些匹配的包记录到日志文件中，可以使用`LOG`这个`Target`，正好使用`LOG`验证下之前说明的`iptables`在不同阶段不同表的顺序。在使用之前，我们先需要开启`rsyslog`服务，并且将`iptables`的日志单独输出到一个文件中：
+
+```
+# 编辑文件，/etc/rsyslog.conf，增加下面一行
+kern.* /var/log/iptables.log
+```
+
+然后重启`rsyslog`服务：
+
+> systemctl restart rsyslog
+
+然后写入下面的规则，下面这些规则正好是本机产生的数据包发送出去的流程，其中的`172.23.32.1`是本次测试的目的地：
+
+```shell
+# OUTPUT
+iptables -t raw -A OUTPUT -d 172.23.32.1 -j LOG --log-prefix "DEBUG_RAW_OUTPUT "
+iptables -t mangle -A OUTPUT -d 172.23.32.1 -j LOG --log-prefix "DEBUG_MANGLE_OUTPUT "
+iptables -t nat  -A OUTPUT -d 172.23.32.1 -j LOG --log-prefix "DEBUG_NAT_OUTPUT "
+iptables -t filter  -A OUTPUT -d 172.23.32.1 -j LOG --log-prefix "DEBUG_FILTER_OUTPUT "
+iptables -t security  -A OUTPUT -d 172.23.32.1 -j LOG --log-prefix "DEBUG_SECURITY_OUTPUT "
+
+# POSTROUTING
+iptables -t mangle -A POSTROUTING -d 172.23.32.1 -j LOG --log-prefix "DEBUG_MANGLE_POSTROUTE "
+iptables -t nat -A POSTROUTING -d 172.23.32.1 -j LOG --log-prefix "DEBUG_NAT_POSTROUTE "
+```
+
+然后发送一个`icmp`报文到达目的地：
+
+> ping -c 1  172.23.32.1
+
+此时可以从日志文件`/var/log/iptables.lo`中获取到如下的信息，正好是`iptables`处理发包经过的表和链：
+
+```
+$> grep 172.23.32.1 /var/log/iptables.log |grep 64425
+Dec 28 14:43:23 docker1 kernel: [259986.509060] DEBUG_RAW_OUTPUT IN= OUT=eth0 SRC=172.23.44.230 DST=172.23.32.1 LEN=62 TOS=0x00 PREC=0x00 TTL=64 ID=64425 DF PROTO=UDP SPT=52967 DPT=53 LEN=42
+Dec 28 14:43:23 docker1 kernel: [259986.509066] DEBUG_MANGLE_OUTPUT IN= OUT=eth0 SRC=172.23.44.230 DST=172.23.32.1 LEN=62 TOS=0x00 PREC=0x00 TTL=64 ID=64425 DF PROTO=UDP SPT=52967 DPT=53 LEN=42
+Dec 28 14:43:23 docker1 kernel: [259986.509071] DEBUG_NAT_OUTPUT IN= OUT=eth0 SRC=172.23.44.230 DST=172.23.32.1 LEN=62 TOS=0x00 PREC=0x00 TTL=64 ID=64425 DF PROTO=UDP SPT=52967 DPT=53 LEN=42
+Dec 28 14:43:23 docker1 kernel: [259986.509076] DEBUG_FILTER_OUTPUT IN= OUT=eth0 SRC=172.23.44.230 DST=172.23.32.1 LEN=62 TOS=0x00 PREC=0x00 TTL=64 ID=64425 DF PROTO=UDP SPT=52967 DPT=53 LEN=42
+Dec 28 14:43:23 docker1 kernel: [259986.509078] DEBUG_SECURITY_OUTPUT IN= OUT=eth0 SRC=172.23.44.230 DST=172.23.32.1 LEN=62 TOS=0x00 PREC=0x00 TTL=64 ID=64425 DF PROTO=UDP SPT=52967 DPT=53 LEN=42
+Dec 28 14:43:23 docker1 kernel: [259986.509080] DEBUG_MANGLE_POSTROUTE IN= OUT=eth0 SRC=172.23.44.230 DST=172.23.32.1 LEN=62 TOS=0x00 PREC=0x00 TTL=64 ID=64425 DF PROTO=UDP SPT=52967 DPT=53 LEN=42
+Dec 28 14:43:23 docker1 kernel: [259986.509082] DEBUG_NAT_POSTROUTE IN= OUT=eth0 SRC=172.23.44.230 DST=172.23.32.1 LEN=62 TOS=0x00 PREC=0x00 TTL=64 ID=64425 DF PROTO=UDP SPT=52967 DPT=53 LEN=42
+```
+
+同理，我们也可以使用如下的规则验证收报的的流程：
+
+```shell
+# PREROUTING
+iptables -t raw -s 172.23.32.1 -A PREROUTING -j LOG --log-level "warning" --log-prefix "RAW_PREROUTE "
+iptables -t mangle -s 172.23.32.1 -A PREROUTING -j LOG --log-level "warning" --log-prefix "MANGLE_PREROUTE "
+iptables -t nat -s 172.23.32.1 -A PREROUTING -j LOG --log-level "warning" --log-prefix "NAT_PREROUTE "
+
+# INPUT
+iptables -t mangle -s 172.23.32.1 -A INPUT -j LOG --log-level "warning" --log-prefix "MANGLE_INPUT "
+iptables -t filter -s 172.23.32.1 -A INPUT -j LOG --log-level "warning" --log-prefix "FILTER_INPUT "
+iptables -t security -s 172.23.32.1 -A INPUT -j LOG --log-level "warning" --log-prefix "SECURITY_INPUT "
+iptables -t nat -s 172.23.32.1 -A INPUT -j LOG --log-level "warning" --log-prefix "NAT_INPUT "
+```
+
+`ping`之后会得到如下的日志信息，和我们的收报流程正好相符：
+
+```
+$> grep 172.23.32.1 /var/log/iptables.log |grep 21931
+Dec 28 15:11:29 docker1 kernel: [261673.089976] RAW_PREROUTE IN=eth0 OUT= MAC=ff:ff:ff:ff:ff:ff:00:15:5d:7c:72:a1:08:00 SRC=172.23.32.1 DST=172.23.47.255 LEN=229 TOS=0x00 PREC=0x00 TTL=128 ID=21931 PROTO=UDP SPT=138 DPT=138 LEN=209
+Dec 28 15:11:29 docker1 kernel: [261673.090111] MANGLE_PREROUTE IN=eth0 OUT= MAC=ff:ff:ff:ff:ff:ff:00:15:5d:7c:72:a1:08:00 SRC=172.23.32.1 DST=172.23.47.255 LEN=229 TOS=0x00 PREC=0x00 TTL=128 ID=21931 PROTO=UDP SPT=138 DPT=138 LEN=209
+Dec 28 15:11:29 docker1 kernel: [261673.090198] NAT_PREROUTE IN=eth0 OUT= MAC=ff:ff:ff:ff:ff:ff:00:15:5d:7c:72:a1:08:00 SRC=172.23.32.1 DST=172.23.47.255 LEN=229 TOS=0x00 PREC=0x00 TTL=128 ID=21931 PROTO=UDP SPT=138 DPT=138 LEN=209
+Dec 28 15:11:29 docker1 kernel: [261673.090215] MANGLE_INPUT IN=eth0 OUT= MAC=ff:ff:ff:ff:ff:ff:00:15:5d:7c:72:a1:08:00 SRC=172.23.32.1 DST=172.23.47.255 LEN=229 TOS=0x00 PREC=0x00 TTL=128 ID=21931 PROTO=UDP SPT=138 DPT=138 LEN=209
+Dec 28 15:11:29 docker1 kernel: [261673.090226] FILTER_INPUT IN=eth0 OUT= MAC=ff:ff:ff:ff:ff:ff:00:15:5d:7c:72:a1:08:00 SRC=172.23.32.1 DST=172.23.47.255 LEN=229 TOS=0x00 PREC=0x00 TTL=128 ID=21931 PROTO=UDP SPT=138 DPT=138 LEN=209
+Dec 28 15:11:29 docker1 kernel: [261673.090234] SECURITY_INPUT IN=eth0 OUT= MAC=ff:ff:ff:ff:ff:ff:00:15:5d:7c:72:a1:08:00 SRC=172.23.32.1 DST=172.23.47.255 LEN=229 TOS=0x00 PREC=0x00 TTL=128 ID=21931 PROTO=UDP SPT=138 DPT=138 LEN=209
+Dec 28 15:11:29 docker1 kernel: [261673.090262] NAT_INPUT IN=eth0 OUT= MAC=ff:ff:ff:ff:ff:ff:00:15:5d:7c:72:a1:08:00 SRC=172.23.32.1 DST=172.23.47.255 LEN=229 TOS=0x00 PREC=0x00 TTL=128 ID=21931 PROTO=UDP SPT=138 DPT=138 LEN=209
+```
 
 
 ### 参考链接

@@ -152,7 +152,7 @@ target     prot opt source               destination
 LOG        icmp --  anywhere             anywhere             LOG level warning
 ```
 
-如果要设置日志前缀，可以通过 `--log-prefix 'xx prefix'` 进行设置。 默认情况下，`iptables` 日志被发送到内核的消息缓冲区。要查看这些日志，需要配置 `syslog` 以读取消息缓冲区并将日志写入文件。可以通过编辑 `syslog` 配置文件来完成，该文件通常位于 `/etc/syslog.conf` 或 `/etc/rsyslog.conf`（Ubuntu），打开该文件添加如下配置：
+如果要设置日志前缀，可以通过 `--log-prefix 'xx prefix'` 进行设置。 默认情况下，`iptables` 日志被发送到内核的消息缓冲区。要查看这些日志，需要配置 `rsyslog` 以读取消息缓冲区并将日志写入文件。可以通过编辑 `syslog` 配置文件来完成，该文件通常位于 `/etc/syslog.conf` 或 `/etc/rsyslog.conf`（Ubuntu），打开该文件添加如下配置：
 
 ```text /etc/rsyslog.conf
 ...
