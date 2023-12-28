@@ -22,13 +22,15 @@ categories:
 
 Netfilter框架在Linux内核中提供了一堆钩子，当网络数据包通过内核中的协议栈时，它会遍历这些钩子。Netfilter允许使用这些钩子编写模块并注册回调函数，当钩子被触发时，回调函数将被调用。这些钩子被用在包处理的以下5个阶段：
 
-![netfilter架构图](netfilter-arch.png)
+{% asset_img netfilter-arch.png %}
 
 - `NF_INET_PRE_ROUTING`：当数据包从网卡上收到还有路由之前，这类钩子函数就会被触发，然后内核判断这个数据包是否是发往当前主机的，根据条件，将触发以下两个钩子；
 - `NF_INET_LOCAL_IN`：当数据包决定路由到本机上的时候，就会触发这类钩子；
 - `NF_INET_FORWARD`：当数据包决定要继续转发的时候，这类钩子会被触发；
 - `NF_INET_LOCAL_OUT`：这类钩子函数会在本机生成数据包，发出去之前被调用；
 - `NF_INET_POST_ROUTING`：这类钩子函数主要用于从本机发出去的数据包，但是在发到网卡之前；
+
+<!-- more -->
 
 为了清楚地了解Netfilter框架在协议栈内部是如何实现的，我们来看看内核源代码中是如何实现的，我们以`NF_INET_PRE_ROUTING` 阶段的钩子函数为例，下面的代码以 `linux v6.6` 版本为例。我们先看下一个`ipv4`的包到达的时候，它的处理函数[ip_rcv](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/ip_input.c#L560)的实现逻辑：
 
