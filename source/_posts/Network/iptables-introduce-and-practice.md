@@ -32,7 +32,7 @@ Netfilter框架在Linux内核中提供了一堆钩子，当网络数据包通过
 
 <!-- more -->
 
-为了清楚地了解Netfilter框架在协议栈内部是如何实现的，我们来看看内核源代码中是如何实现的，我们以`NF_INET_PRE_ROUTING` 阶段的钩子函数为例，下面的代码以 `linux v6.6` 版本为例。我们先看下一个`ipv4`的包到达的时候，它的处理函数[ip_rcv](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/ip_input.c#L560)的实现逻辑：
+为了清楚地了解Netfilter框架在协议栈内部是如何实现的，我们来看看内核源代码中是如何实现的，我们以`linux v6.6`版本`NF_INET_PRE_ROUTING` 阶段的钩子函数为例，了解下它的生效机制。当一个`ipv4`的包到达的时候，它的处理函数[ip_rcv](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/ip_input.c#L560)的实现逻辑如下：
 
 ```c
 int ip_rcv(struct sk_buff *skb, struct net_device *dev, struct packet_type *pt,
@@ -97,7 +97,7 @@ struct nf_hook_ops {
 };
 ```
 
-其中[nf_hookfn](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/include/linux/netfilter.h#L78C2-L78C2)表示一个钩子函数，[hooknum](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/include/uapi/linux/netfilter.h#L42C13-L42C13) 表示这个钩子函数生效的阶段：
+其中[nf_hookfn](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/include/linux/netfilter.h#L78C2-L78C2)表示一个钩子函数，[hooknum](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/include/uapi/linux/netfilter.h#L42C13-L42C13) 表示这个钩子函数生效的阶段，它是一个枚举值`nf_inet_hooks`：
 
 ```c
 // linux/include/linux/netfilter.h
@@ -121,9 +121,9 @@ enum nf_inet_hooks {
 
 `netfilter` 提供了其他程序介入到内核数据包处理流程的框架，`iptables`提供了一种数据包过滤的方案实现，和 `iptables` 同类的还有 `ip6tables` 以及 `arptables` 用于不同的协议。最新的[nftables](https://netfilter.org/projects/nftables/) 也是一个基于`netfilter`开发的包过滤系统，用于替换替换现有的 `{ip,ip6,arp,eb}tables` 命令，使用用户态的[nft](https://manpages.debian.org/testing/nftables/nft.8.en.html) 命令作为其配置入口，虽然早在Linux kernel 3.13已经加入内核，但是到目前为止仍然不是很普及。
 
-常听到的防火墙工具还有`Deb`发行版的[UFW](https://help.ubuntu.com/community/UFW)，旨在简化`iptables`防火墙配置，提供了一种用户友好的方式来创建基于`IPv4`或`IPv6`主机的防火墙，默认情况下，UFW处于禁用状态。以及Red Hat发行版本默认的[firewalld](https://firewalld.org/)，使用 `nftables` 作为其后端实现。
+常听到的防火墙工具还有`Deb`发行版的[UFW](https://help.ubuntu.com/community/UFW)，旨在简化`iptables`防火墙配置，提供了一种用户友好的方式来创建基于`IPv4`或`IPv6`主机的防火墙，默认情况下，`UFW`处于禁用状态。以及`Red Hat`发行版本默认的[firewalld](https://firewalld.org/)，使用 `nftables` 作为其后端实现。
 
-不过，到目前位置，最广泛使用的还是 `iptables`，`iptables` 命令可以使用 `iptables-translate` 转换为 `nft` 命令：
+不过，到目前位置，最广泛使用的还是 `iptables`，可以使用 `iptables-translate` 将`iptables` 命令转换为 `nft` 命令：
 
 ```
 $ iptables-translate -A INPUT -s 192.168.01/16 -p TCP -j DROP
@@ -146,7 +146,7 @@ nft add rule ip filter INPUT ip protocol tcp ip saddr 192.168.0.0/16 counter dro
 |`NF_INET_LOCAL_OUT` <-> `OUTPUT `|`0`|`-100`|`-150`|`-300`|`50`|
 |`NF_INET_POST_ROUTING` <-> `POSTROUTING `||`100`|`-150`|||
 
-上面横向看表示表示在netfilter对应的阶段，有哪些表里面的规则会生效，表里面的数字表示优先级，优先级较低的最先执行，纵向看表示表在哪些阶段生效。这些表我们也可以通过查看内核信息文件 `/proc/net/ip_tables_names`：
+上面横向看表示表示在`netfilter`对应的阶段，有哪些表里面的规则会生效，表里面的数字表示优先级，优先级较低的最先执行，纵向看表示表在哪些阶段生效，空值表示该表在当前阶段不生效。注册的表会写入内核文件 `/proc/net/ip_tables_names`：
 
 ```
 $ cat /proc/net/ip_tables_names
@@ -157,19 +157,19 @@ mangle
 filter
 ```
 
-这些表他们的作用分别是：
+它们的作用分别是：
 
 - `filter`：该表包含提供实际防火墙功能的规则，它允许用户决定是否允许数据包到达其目的地；
 - `nat `：此表包含允许用户通过更改数据包的源地址和目标地址将数据包路由到NAT网络上的不同主机的规则，它通常用于允许访问无法直接访问的服务；
 - `mangle`：该表包含允许用户更改数据包标头和其他形式数据包更改的规则；
-- `raw`：该允许用户在内核开始跟踪其状态之前处理数据包，因为它的优先级最高；
+- `raw`：该允许用户在内核开始跟踪其状态之前处理数据包，因此它一般最先被执行；
 - `security`：在`filter`表之后访问该表以实施强制访问控制网络规则，SELinux使用它在数据包上设置SELinux上下文标记；
 
 可以继续从内核代码中寻找这些表创建的逻辑，关于内核代码可以不用继续追究，我们只需要知道内核会在启动过程中把这些表创建好，如果感兴趣的可以继续阅读相关代码，[security](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_security.c#L38)，[filter](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_filter.c#L37C12-L37C37)，[mangle](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_mangle.c#L83)，[nat](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_nat.c#L106) 以及 [raw](https://github.com/torvalds/linux/blob/ffc253263a1375a65fa6c9f62a893e9767fbebfa/net/ipv4/netfilter/iptable_raw.c#L37C12-L37C34)。
 
 #### chains
 
-链是规则的集合，当一个数据到达的时候，就会触发注册对应`netfilter`阶段中不同表的钩子，然后遍历对应的链中的规则，直到找到一条匹配的规则。规则是告诉系统如何处理数据包的语句，可以用规则阻止一种类型的数据包，或转发另一种类型的数据包，规则的结果或数据包的发送位置称为`Target`，例如，对于下面这条规则：
+链是规则的集合，当一个数据到达的时候，就会触发注册对应`netfilter`阶段中不同表的钩子，然后遍历对应的链中的规则执行。规则是告诉系统如何处理数据包的语句，可以用规则阻止一种类型的数据包，或转发另一种类型的数据包，规则对应的处理动作称为`Target`。例如，对于下面这条规则：
 
 > iptables -A INPUT -s 192.168.01 -p TCP -j DROP
 
@@ -187,11 +187,11 @@ filter
 
 #### targets
 
-`target`指定数据包应该被如何处理，常用的有`ACCEPT`、`DROP`或`RETURN`，以及来自它的扩展包中定义的`DNAT`、`LOG`、`MASQUERADE`、`REJECT`、`SNAT`、`TRACE`和`TTL`等一大堆。
+`target`指定数据包应该被如何处理，常用的有`ACCEPT`、`DROP`或`RETURN`，以及来自它的扩展包中定义的`DNAT`、`LOG`、`MASQUERADE`、`REJECT`、`SNAT`、`TRACE`和`TTL`等等。
 
 - `ACCEPT`：这意味着 `iptables` 接受该数据包；
 - `DROP`：`iptables`会丢弃这个数据包，对于任何尝试连接到系统的人来说，看起来就好像这个系统根本不存在一样；
-- `REJECT`：iptables“拒绝”该数据包。对于`TCP`，它发送一个`connection reset`数据包，对于UDP或ICMP，它发送一个`destination host unreachable`数据包；
+- `REJECT`：`iptables`拒绝该数据包。对于`TCP`，它发送一个`connection reset`数据包，对于`UDP`或`ICMP`，它发送一个`destination host unreachable`数据包，对于发送者来说目的地存在但是出错了；
 
 每条连应该有默认的`Target`，可以使用如下的方式查看或者更新链的默认 `Target`：
 
@@ -206,7 +206,7 @@ $ sudo iptables --list-rules  # or -S
 iptables --policy FORWARD DROP  # or -P
 ```
 
-`Target` 还分为终止型和非终止型，`ACCEPT, REJECT, DROP` 都是终止类型的，意味着在处理完匹配的包之后，后面的规则将不会被执行。而向 `LOG`、`Mark` 它们是非终止的，它们对匹配的包做一些体日志记录或者添加标记之后，继续执行下一条规则。
+`Target` 还分为终止型和非终止型，`ACCEPT, REJECT, DROP` 都是终止类型的，意味着在处理完匹配的包之后，后面的规则将不会被执行。而像 `LOG`、`Mark` 它们是非终止的，它们对匹配的包做一些体日志记录或者添加标记之后，继续执行下一条规则。
 
 `iptables`可以用扩展的`target`模块，它们已经被包含在标准的发布包中。如果要看当前系统已经加载了哪些 `target`，可以查看内核文件 `/proc/net/ip_tables_targets`，例如：
 
