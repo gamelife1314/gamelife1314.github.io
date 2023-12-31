@@ -201,6 +201,10 @@ apt-get install -y kubelet kubeadm kubectl
 
 {% endtabs %}
 
+`kubelet` 默认使用会选择 `containerd` 作为容器运行时，配置文件在 `/var/lib/kubelet/kubeadm-flags.env`。
+
+![kubelet配置](kubelet-status.png)
+
 ### 集群初始化
 
 在控制节点上执行下面的命令，`kubeadm` 的使用文档请看[这里](https://kubernetes.io/zh-cn/docs/reference/setup-tools/kubeadm/)：
@@ -229,7 +233,7 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 
 在加入新的节点之前，我们需要安装网络插件，这里以 `flannel` 为例：
 
-> kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+> `kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml`
 
 在控制面节点初始化之后输出了其他 `worker` 节点加入的命令。如果忘记了，可以使用 `kubeadm token create --print-join-command` 重新生成加入命令：
 
@@ -294,9 +298,7 @@ ea8e91242d453       73ab68401f869       5 minutes ago       Running             
 
 可以编辑 `nginx-deployment`，修改副本数量为 `3`，在 `ctrlnode` 上也创建 `pod`：
 
-> kubectl edit deploy nginx-deployment
-
-![编辑 nginx deployment](edit-nginx-deploy.png)
+> kubectl scale --current-replicas=2 --replicas=3 deployment/nginx-deployment
 
 等待部署成功，查看：
 
