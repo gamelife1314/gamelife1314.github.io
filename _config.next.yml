@@ -88,6 +88,7 @@ menu:
   # sitemap: /sitemap.xml || fa fa-sitemap
   # commonweal: /404/ || fa fa-heartbeat
   # "剑指offer": /剑指offer/ || fa fa-book
+  "云 &nbsp;&nbsp;原 &nbsp;&nbsp;生": /云原生/ || fa fa-cloud
   "Rust 编程": /Programming-Rust/ || fa fa-cat
   "Go &nbsp;&nbsp;&nbsp;编程": /Programming-Go/ || fa fa-hippo
   "家中小可爱": https://wshuhua.github.io/ || fa fa-sun

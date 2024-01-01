@@ -40,6 +40,7 @@ date: 2022-05-05 09:54:08
 - [Rustup 介绍](/2022/04/07/【Rust】Rustup%20介绍/)
 - [Rust 交叉编译](/2022/04/08/【Rust】交叉编译/)
 - [Rust 二进制文件体积减小](https://github.com/johnthagen/min-sized-rust)
+- [【Rust】二进制体积减小](/2023/12/05/Rust/decrease-binary-size/)
 - [Rust 格式化](/2022/05/01/【Rust】字符串和文本/#格式化)
 - [Rust 正则表达式](/2022/05/01/【Rust】字符串和文本/#正则表达式)
 - [文件和目录](/2022/05/02/【Rust】输入输出/#文件和目录)

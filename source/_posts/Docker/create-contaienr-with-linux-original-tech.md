@@ -459,7 +459,7 @@ docker pull ubuntu
 docker run --name ubuntu -it --rm -d ubuntu
 docker exec -itu root ubuntu bash
 apt update
-apt install -y iproute2 net-tools iputils-ping bridge-utils systemd
+apt install -y iproute2 net-tools iputils-ping bridge-utils
 
 # 将容器的RootFS导出备用
 mkdir rootfs
@@ -796,6 +796,14 @@ root@mycontainer:/#
 > `uunshare --mount --net --pid --user --uts --root ./rootfs/ --wd=/home --fork --mount-proc --map-root-user /bin/bash`
 
 ![unshare创建命名空间](unshare-ns.png)
+
+#### nsenter
+
+可以通过`nsenter`进入到容器进程的命名空间中去执行命令，这在容器中没有某些工具，而`Host`上有的时候比较方便。例如，下面`k8s`集群中的`nginx`容器，没有`ifconfig`命令，我们可以进入到他的网络空间在主机上执行而查看它的网络配置：
+
+![](nsenter-example.png)
+
+`crictl`是用于`CRI`容器运行时的工具，更多的可以看[这里](/2023/12/20/K8S/container-runtime/#crictl)。
 
 ### 参考链接
 
