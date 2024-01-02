@@ -19,11 +19,11 @@ categories:
 ```
 $ multipass list
 Name                    State             IPv4             Image
-ctrlnode                Running           192.168.67.6     Ubuntu 22.04 LTS
+ctrlnode                Running           192.168.67.8     Ubuntu 22.04 LTS
                                           172.17.0.1
-node1                   Running           192.168.67.4     Ubuntu 22.04 LTS
+node1                   Running           192.168.67.10    Ubuntu 22.04 LTS
                                           172.17.0.1
-node2                   Running           192.168.67.5     Ubuntu 22.04 LTS
+node2                   Running           192.168.67.9     Ubuntu 22.04 LTS
                                           172.17.0.1
 ```
 
@@ -48,7 +48,7 @@ Codename:	jammy
 首先，禁止 `swap`：
 
 > sudo swapoff -a  
-> sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+> `sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab`
 
 #### 防火墙
 
@@ -104,9 +104,9 @@ lsmod | grep overlay
 在`3`个节点的 `/etc/hosts` 文件中加入下面的解析条目：
 
 ```text /etc/hosts
-192.168.67.6 ctrlnode
-192.168.67.4 node1
-192.168.67.5 node2
+192.168.67.8 ctrlnode
+192.168.67.10 node1
+192.168.67.9 node2
 ```
 
 ### containerd
@@ -136,8 +136,8 @@ sudo systemctl restart containerd
 
 ```text
 [Service]
-Environment="HTTP_PROXY=http://127.0.0.1:65001"
-Environment="HTTPS_PROXY=http://127.0.0.1:65001"
+Environment="HTTP_PROXY=http://192.168.3.119:1087"
+Environment="HTTPS_PROXY=http://192.168.3.119:1087"
 ```
 
 然后重启：
@@ -171,15 +171,36 @@ sudo apt update
 sudo apt-get install -y apt-transport-https ca-certificates curl
 
 # 下载Kubernetes包存储库的公共签名密钥。
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
-# 添加某个版本的 `Kubernetes api` 仓库。如果要使用不同于 `v1.29` 的 `Kubernetes` 版本，请将下面的命令中的 `v1.29` 替换为所需的次要版本。
-echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+# 添加某个版本的 `Kubernetes api` 仓库。如果要使用不同于 `v1.28` 的 `Kubernetes` 版本，请将下面的命令中的 `v1.28` 替换为所需的次要版本。
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
-# 更新包索引，然后安装
+# 更新包索引
 sudo apt update
-sudo apt install -y kubeadm kubelet kubectl
 ```
+
+查看`k8s`可用版本：
+
+> sudo apt-cache madison kubeadm
+
+```
+root@ctrlnode:/home/ubuntu# sudo apt-cache madison kubeadm
+   kubeadm | 1.28.5-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages
+   kubeadm | 1.28.4-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages
+   kubeadm | 1.28.3-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages
+   kubeadm | 1.28.2-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages
+   kubeadm | 1.28.1-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages
+   kubeadm | 1.28.0-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages
+```
+
+安装指定版本：
+
+> sudo apt install -y kubeadm=1.28.5-1.1 kubelet=1.28.5-1.1 kubectl=1.28.5-1.1
+
+锁定版本，不随 `apt upgrade` 更新：
+
+> sudo apt-mark hold kubelet kubeadm kubectl
 
 <!-- endtab -->
 
@@ -207,10 +228,25 @@ apt-get install -y kubelet kubeadm kubectl
 
 ### 集群初始化
 
+在集群初始化之前，我们可以先使用下面的命令在控制节点预先拉取镜像：
+
+> `kubeadm config images pull --kubernetes-version 1.28.5`
+
+```
+root@ctrlnode:/home/ubuntu# kubeadm config images pull --kubernetes-version 1.28.5
+[config/images] Pulled registry.k8s.io/kube-apiserver:v1.28.5
+[config/images] Pulled registry.k8s.io/kube-controller-manager:v1.28.5
+[config/images] Pulled registry.k8s.io/kube-scheduler:v1.28.5
+[config/images] Pulled registry.k8s.io/kube-proxy:v1.28.5
+[config/images] Pulled registry.k8s.io/pause:3.9
+[config/images] Pulled registry.k8s.io/etcd:3.5.9-0
+[config/images] Pulled registry.k8s.io/coredns/coredns:v1.10.1
+```
+
 在控制节点上执行下面的命令，`kubeadm` 的使用文档请看[这里](https://kubernetes.io/zh-cn/docs/reference/setup-tools/kubeadm/)：
 
 ```
-sudo kubeadm init --control-plane-endpoint "ctrlnode:6443" --upload-certs --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16
+sudo kubeadm init --control-plane-endpoint "ctrlnode:6443" --upload-certs --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16 --kubernetes-version 1.28.5 
 ```
 
 `init` 会执行一系列的检查，例如内核版本版本是否满足要求（3.10及以上），Cgroups模块是否启用，是否安装容器运行时，`ip`、`mount` 这样的工具是否安装，`Kubernetes`的工作端口`10250/10251/10252`端口是不是已经被占用等等，完整的工作流程请看[这里](https://kubernetes.io/zh-cn/docs/reference/setup-tools/kubeadm/kubeadm-init/#init-workflow)。执行成功之后，将会得到下面这样的输出：
@@ -249,11 +285,11 @@ kubeadm join ctrlnode:6443 --token sm2nmt.8u2z4yqov1w9i8a1 --discovery-token-ca-
 使用 `kubectl get node` 命令在控制节点上查看节点列表：
 
 ```
-root@ctrlnode:/home/ubuntu# kubectl get node
-NAME       STATUS   ROLES           AGE     VERSION
-ctrlnode   Ready    control-plane   56m     v1.29.0
-node1      Ready    <none>          5m53s   v1.29.0
-node2      Ready    <none>          5m43s   v1.29.0
+root@ctrlnode:/home/ubuntu# kubectl get nodes -owide
+NAME       STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+ctrlnode   Ready    control-plane   12m     v1.28.5   192.168.67.8    <none>        Ubuntu 22.04.3 LTS   5.15.0-91-generic   containerd://1.6.26
+node1      Ready    <none>          5m49s   v1.28.5   192.168.67.10   <none>        Ubuntu 22.04.3 LTS   5.15.0-91-generic   containerd://1.6.26
+node2      Ready    <none>          5m38s   v1.28.5   192.168.67.9    <none>        Ubuntu 22.04.3 LTS   5.15.0-91-generic   containerd://1.6.26
 ```
 
 如果节点 `NotReady` 可能是由于网络插件或者 `kube-proxy` 未启动，等它们就绪之后再去查看节点就 `Ready` 了。在节点上使用 `crictl ps` 查看相关容器是否启动：
