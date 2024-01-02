@@ -12,6 +12,7 @@ date: 2024-01-01 14:07:02
 5. [使用 kubeadm 创建多节点集群](/2023/12/17/K8S/kubeadm-deploy/)
 6. [Kubernetes CNI 网络](/2023/12/29/K8S/k8s-cni-network/)
 7. [深入理解 iptables](/2023/12/25/Network/iptables-introduce-and-practice/)
+8. [Kubernetes Service](/2024/01/02/K8S/k8s-service/)
 
 ### 常用命令
 
