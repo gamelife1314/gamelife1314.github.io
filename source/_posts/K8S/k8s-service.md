@@ -14,6 +14,10 @@ categories:
 
 `k8s` 集群中的每个节点都是运行一个[kube-proxy](https://kubernetes.io/zh-cn/docs/reference/networking/virtual-ips/)，它用于实现流量从`Service`到`Pod`之间的转发。默认在 `Linux` 平台下，它使用 `iptables` 作为后端实现，通过监听`Kubernetes`控制平面，获知对 `Service`和`EndpointSlice`对象的添加和删除操作，对于每个`Service`，`kube-proxy` 会添加 `iptables` 规则，在这些这些规则的加持下，流向`Service`的流量会被重新路由到`Service`后端集合中的其中之一。
 
+四种模式的基本工作原理如下图所示：
+
+{% asset_img k8s-four-services.png %}
+
 <!-- more -->
 
 ### 准备工作
@@ -65,7 +69,7 @@ root@ctrlnode:/home/ubuntu#
 
 ### ClusterIP
 
-我们来看当我们从`mytools`这个`Pod`访问我们的`nginx-deploy-clusterip-svc`时，它是怎么样一个过程：
+`ClusterIP`是`K8S`中最基础的服务，只能用于集群内访问。我们来看当我们从`mytools`这个`Pod`访问我们的`nginx-deploy-clusterip-svc`时，它是怎么样一个过程：
 
 ![](mytools-curl-clusterip-svc.png)
 
@@ -179,7 +183,7 @@ root@node2:/home/ubuntu#
 
  ### NodePort
 
-对于`NodePort`类型的`Service`，我们是可以通过每个节点的“公网”`IP`进行访问的，例如控制节点的`IP`是`192.168.67.8`，那么我们可以通过`192.168.67.8:30673`访问我们的服务：
+`ClusterIP`类型的服务只能在集群内访问，如果要在集群外访问我们的服务，最简单是创建一个对于`NodePort`类型的`Service`，这样我们就可以通过每个节点的“公网”`IP`进行访问，例如控制节点的`IP`是`192.168.67.8`，那么我们可以通过`192.168.67.8:30673`访问我们的服务：
 
 ![](ctrlnode-nodeport-svc.png)
 
@@ -240,7 +244,64 @@ KUBE-SEP-NVYXSNHSAWUISCCT  all                        --   anywhere        anywh
 root@ctrlnode:/home/ubuntu#
 ```
 
-所以说`NodePort`类型的`Service`让集群中的服务可以从外部网络进行访问。
+### LoadBalancer
+
+`ClusterIP`类型的`Service`在`Pod`间实现了负载均衡，`NodePort`提供了通过每个节点的公网IP访问集群服务的可能性，但是又带来了一个新的问题，这些服务没法在节点之间进行负载均衡，所以就出现了叫做`LoadBalancer`类型的服务，对`NodePort`类型的服务进行负载均衡，我们可以使用如下的命令创建一个该类型的服务：
+
+> `kubectl expose deploy nginx-deployment --port=8082 --target-port=80 --type=LoadBalancer --name=nginx-deploy-lb-svc`
+
+但是这个时候查看新建的服务`nginx-deploy-lb-svc`，它的`EXTERNAL-IP`显示`<pengding>`，是因为我们现在还没有一个`LoadBalancer`提供服务：
+
+![](lb-service-pending.png)
+
+我们安装[METALLB](https://metallb.universe.tf/)来我们提供服务：
+
+> kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
+
+然后使用如下命令为`METALLB`生成配置，下面的配置让它工作在二层协议，为其分配的地址和我们三个节点处在相同的网段，关于它更多的原理可以看[这里](https://atbug.com/load-balancer-service-with-metallb/)：
+
+```
+kubectl apply -f - <<EOF
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: mylocal-net-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.67.240-192.168.67.250
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: example
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - mylocal-net-pool
+EOF
+```
+
+这个时候再去查看我们的`Service`，它的`EXTERNAL-IP`已经被分配成了`192.168.67.240`：
+
+![](lb-service-ip-allocate.png)
+
+此时如果我们访问`http://192.168.67.240:8082/`是可以访问通的，因为`LoadBlancer`服务将这个`IP`地址的`MAC`信息通过`ARP`协议添加到了我们的`Host`上，而且这个地址对应的`MAC`信息和我们`ctrlnode`的公网`IP`的`MAC`地址完全一样，所以当从`Host`或者集群中的其他节点上进行访问的时候其实直接到了我们的`ctrlnode`进行处理：
+
+{% grouppicture 2-2 %}
+![](lb-service-mac-same.png)
+![](lb-service-ctrlnode-mac.png)
+{% endgrouppicture %}
+
+我们依然来看当这个请求到达了我们的`ctrlnode`上的时候，它是如何被处理的。毫无疑问，它肯定会从`nat`表中的`KUBE-SERVICES`进入然后被处理：
+
+![](lb-service-kubeservice-chain.png)
+
+可以看到的是，`LoadBlancer` 类型的服务既可以从集群内部通过`ClusterIP`访问，也可以从外部通过`ExternalIP`进行访问，当通过`192.168.67.240`这个`IP`进行访问的时候，这个请求下一步会进入到`KUBE-EXT-BKP5P6G6IWL6KD3D`这个链中进行处理：
+
+![](lb-service-ext-chain.png)
+
+然后就开始在我们三个节点之间进行路由，和`ClusterIP`的处理方式一样了。
 
 ### 参考链接
 
