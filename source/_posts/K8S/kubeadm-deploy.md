@@ -322,18 +322,10 @@ ea8e91242d453       73ab68401f869       5 minutes ago       Running             
 
 ### 部署应用
 
-为了测试集群的可用性，部署一个 `Deployment` 测试，这里使用官方的[无状态应用示例](https://kubernetes.io/zh-cn/docs/tasks/run-application/run-stateless-application-deployment/)：
+为了测试集群的可用性，部署一个 `Deployment` 测试，这里使用官方的[无状态应用示例](https://kubernetes.io/zh-cn/docs/tasks/run-application/run-stateless-application-deployment/)，并且将其扩展为`3`个`Pod`：
 
 > kubectl apply -f https://k8s.io/examples/application/deployment-update.yaml
-
-等待一会儿，`pod` 创建成功之后，查看创建的 `pod`：
-
-> kubectl get pods -l app=nginx -owide
-
-![nginx pod](nginx-pod-2.png)
-
-可以编辑 `nginx-deployment`，修改副本数量为 `3`，在 `ctrlnode` 上也创建 `pod`：
-
+> 
 > kubectl scale --current-replicas=2 --replicas=3 deployment/nginx-deployment
 
 等待部署成功，查看：
