@@ -312,19 +312,21 @@ EOF
 对于有选择符的无头服务，`K8S`还是会创建对应的`EndpointSlice`对象，并且修改`DNS`记录，在查询对应的服务名称时，直接返回后端的`EndpointSlice`中的`IP`地址，而不是`Service`的`ClusterIP`。举个例子，我们有如下所示的`Pod`：
 
 ```
-$ kubectl get pods -l app=nginx -owide
-NAME                                READY   STATUS    RESTARTS     AGE   IP            NODE           NOMINATED NODE   READINESS GATES
-nginx-deployment-848dd6cfb5-vdxzs   1/1     Running   1 (8h ago)   32h   10.42.0.166   ctrlnode       <none>           <none>
+root@ctrlnode:/home/ubuntu# kubectl get pods -l app=nginx -owide
+NAME                                READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+nginx-deployment-848dd6cfb5-c9cm6   1/1     Running   0          47h   10.244.1.2   node1      <none>           <none>
+nginx-deployment-848dd6cfb5-h48dk   1/1     Running   0          47h   10.244.2.2   node2      <none>           <none>
+nginx-deployment-848dd6cfb5-zbvj5   1/1     Running   0          47h   10.244.0.4   ctrlnode   <none>           <none>
 ```
 
 我们使用如下的方式创建一个带选择符的无头服务：
 
-> `kubectl expose deploy nginx-deployment --port=8085 --target-port=80 --type=ClusterIP  --cluster-ip=None --name=nginx-deploy-headless-svc`
+> `kubectl expose deploy nginx-deployment --target-port=80 --type=ClusterIP  --cluster-ip=None --name=nginx-deploy-headless-svc`
 
 查看该服务详情，它的`EndpointSlice`集合中存在对应的`Pod`地址：
 
 ```
-$ kubectl describe svc/nginx-deploy-headless-svc
+root@ctrlnode:/home/ubuntu# kubectl describe svc/nginx-deploy-headless-svc
 Name:              nginx-deploy-headless-svc
 Namespace:         default
 Labels:            <none>
@@ -335,22 +337,26 @@ IP Family Policy:  SingleStack
 IP Families:       IPv4
 IP:                None
 IPs:               None
-Port:              <unset>  8085/TCP
+Port:              <unset>  80/TCP
 TargetPort:        80/TCP
-Endpoints:         10.42.0.166:80
+Endpoints:         10.244.0.4:80,10.244.1.2:80,10.244.2.2:80
 Session Affinity:  None
 Events:            <none>
 ```
 
-如果此时使用`DNS`解析`nginx-deploy-headless-svc`，它返回的也是`Pod`的地址`10.42.0.166`，使用`nginx-deploy-headless-svc`访问服务，就如同使用`Pod`的`IP`地址直接访问一样，不会通过`iptables`进行负载均衡：
+如果此时使用`DNS`解析`nginx-deploy-headless-svc`，它返回的也是三个`Pod`的地址，使用`nginx-deploy-headless-svc`访问服务，就如同使用`Pod`的`IP`地址直接访问一样，不会通过`iptables`进行负载均衡：
 
 ```
 bash-5.1# nslookup nginx-deploy-headless-svc
-Server:         10.43.0.10
-Address:        10.43.0.10#53
+Server:		10.96.0.10
+Address:	10.96.0.10#53
 
-Name:   nginx-deploy-headless-svc.default.svc.cluster.local
-Address: 10.42.0.166
+Name:	nginx-deploy-headless-svc.default.svc.cluster.local
+Address: 10.244.0.4
+Name:	nginx-deploy-headless-svc.default.svc.cluster.local
+Address: 10.244.1.2
+Name:	nginx-deploy-headless-svc.default.svc.cluster.local
+Address: 10.244.2.2
 ```
 
 #### 没有选择符
