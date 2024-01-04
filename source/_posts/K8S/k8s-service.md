@@ -36,7 +36,7 @@ categories:
 
 ![](nginx-service-create.png)
 
-这两个两服务对应的后端`Pod`集合是完全相同的：
+在创建`Service`的时候，如果带了选择符，还会创建一个`EndpointSlice`集合，这个集合指向的是选择符选中的`Pod`集合，例如：：
 
 ```
 root@ctrlnode:/home/ubuntu# kubectl get ep
@@ -302,6 +302,119 @@ EOF
 ![](lb-service-ext-chain.png)
 
 然后就开始在我们三个节点之间进行路由，和`ClusterIP`的处理方式一样了。
+
+### 无头服务
+
+按照[官方文档](https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#headless-services)描述的，`Headless Service` 好像没什么用，无头服务本质上`ClusterIP`类型的，只是他的`ClusterIP`是`None`，所以它没有集群`IP`，因此`kube-proxy`是不会处理这里服务的。从类型上分，无头服务分为有选择符的和没有选择符的。
+
+#### 带有选择符
+
+对于有选择符的无头服务，`K8S`还是会创建对应的`EndpointSlice`对象，并且修改`DNS`记录，在查询对应的服务名称时，直接返回后端的`EndpointSlice`中的`IP`地址，而不是`Service`的`ClusterIP`。举个例子，我们有如下所示的`Pod`：
+
+```
+$ kubectl get pods -l app=nginx -owide
+NAME                                READY   STATUS    RESTARTS     AGE   IP            NODE           NOMINATED NODE   READINESS GATES
+nginx-deployment-848dd6cfb5-vdxzs   1/1     Running   1 (8h ago)   32h   10.42.0.166   ctrlnode       <none>           <none>
+```
+
+我们使用如下的方式创建一个带选择符的无头服务：
+
+> `kubectl expose deploy nginx-deployment --port=8085 --target-port=80 --type=ClusterIP  --cluster-ip=None --name=nginx-deploy-headless-svc`
+
+查看该服务详情，它的`EndpointSlice`集合中存在对应的`Pod`地址：
+
+```
+$ kubectl describe svc/nginx-deploy-headless-svc
+Name:              nginx-deploy-headless-svc
+Namespace:         default
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=nginx
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                None
+IPs:               None
+Port:              <unset>  8085/TCP
+TargetPort:        80/TCP
+Endpoints:         10.42.0.166:80
+Session Affinity:  None
+Events:            <none>
+```
+
+如果此时使用`DNS`解析`nginx-deploy-headless-svc`，它返回的也是`Pod`的地址`10.42.0.166`，使用`nginx-deploy-headless-svc`访问服务，就如同使用`Pod`的`IP`地址直接访问一样，不会通过`iptables`进行负载均衡：
+
+```
+bash-5.1# nslookup nginx-deploy-headless-svc
+Server:         10.43.0.10
+Address:        10.43.0.10#53
+
+Name:   nginx-deploy-headless-svc.default.svc.cluster.local
+Address: 10.42.0.166
+```
+
+#### 没有选择符
+
+对于没有选择服务的无头服务，常用于去访问外部服务，因为它没有选择符，所以不会自动创建`EndpointSlice`集合，需要手动创建，否则它没有实际的意义。假如我们现在像访问集群外部的服务，又不想在代码中硬编码该服务的地址，就可以创建一个没有选择符的无头服务，然后手动创建该服务指向的`IP`地址，在代码中使用服务名称进行访问。
+
+例如，我们在主机上通过`docker`启动一个`whoami`服务：
+
+> `docker run -d -P --name whoami traefik/whoami`
+
+启动之后可以通过下面的命令得到它在主机上发布的端口:
+
+```
+$ docker inspect --format '{{json .NetworkSettings.Ports }}'  whoami
+{"80/tcp":[{"HostIp":"0.0.0.0","HostPort":"32768"}]}
+```
+
+现在我们使用下面的命令在`k8s`集群中创建一个名叫`whoami`的无头服务，以及一个同名的`EndpointSlice`集合，这里要注意的是，对于没有选择符的无头服务，它的`port`和`targetPort`必须相同，`172.31.205.142` 是我这个服务所在的公网地址：
+
+```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: whoami
+subsets:
+  - addresses:
+      - ip: 172.31.205.142
+    ports:
+      - port: 32768
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami
+spec:
+  clusterIP: None
+  type: ClusterIP
+  ports:
+  - port: 32768
+    targetPort: 32768
+EOF
+```
+
+创建成功之后，我们就可以在`k8s`集群中实现通过名称放我们的`whoami`服务了：
+
+```
+bash-5.1# curl whoami:32768
+Hostname: 4c3d750bd70c
+IP: 127.0.0.1
+IP: 172.17.0.2
+RemoteAddr: 172.17.0.1:22447
+GET / HTTP/1.1
+Host: whoami:32768
+User-Agent: curl/7.79.1
+Accept: */*
+
+bash-5.1# nslookup whoami
+Server:         10.43.0.10
+Address:        10.43.0.10#53
+
+Name:   whoami.default.svc.cluster.local
+Address: 172.31.205.142
+```
 
 ### 参考链接
 
