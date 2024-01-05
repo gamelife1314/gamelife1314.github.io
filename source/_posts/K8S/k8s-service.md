@@ -422,6 +422,48 @@ Name:   whoami.default.svc.cluster.local
 Address: 172.31.205.142
 ```
 
+### ExternalName
+
+如果外部服务是通过`IP`访问的，我们可以使用不带选择符的无头服务在集群内配置名称进行访问。如果外部服务是以域名进行访问的，我们就可以创建`ExternalName`类型的`Service`仅进行访问外部服务。`ExternalName`本质上是在`k8s`集群内部的`DNS`中添加一条`CNAME`解析记录，`CNAME`可以把它看作是域名到域名的映射。
+
+例如，对于我的博客，它的域名是`blog.fudenglong.site`，它本质上也是一个`CNAME`解析，它的值是`gamelife1314.github.io`，使用`dig`命令查询能得到下面的解析记录：
+
+```
+bash-5.1# dig blog.fudenglong.site
+...
+;; ANSWER SECTION:
+blog.fudenglong.site.   5       IN      CNAME   gamelife1314.github.io.
+gamelife1314.github.io. 5       IN      A       185.199.111.153
+...
+```
+
+现在我们在集群内部创建一个`myblog`服务，指向`blog.fudenglong.site`：
+
+```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: myblog
+spec:
+  type: ExternalName
+  externalName: blog.fudenglong.site
+EOF
+```
+
+然后使用 `dig` 命令在集群内部查询，可以看到`myblog`解析到了`blog.fudenglong.site`：
+
+```
+bash-5.1# dig +showsearch myblog
+....
+;; ANSWER SECTION:
+myblog.default.svc.cluster.local. 5 IN  CNAME   blog.fudenglong.site.
+blog.fudenglong.site.   5       IN      CNAME   gamelife1314.github.io.
+gamelife1314.github.io. 5       IN      A       185.199.111.153
+...
+```
+
+
 ### 参考链接
 
 1. [Understanding networking in Kubernetes](https://learncloudnative.com/blog/2023-05-31-kubeproxy-iptables)
