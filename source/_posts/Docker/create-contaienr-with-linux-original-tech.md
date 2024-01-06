@@ -324,7 +324,7 @@ root@ctrlnode:/sys/fs/cgroup/cpu/container# while : ; do : ; done &
 [1] 1904248
 ```
 
-这里得到这个后台进程的`PID`是`1904248`，使用 `top` 命令可以看到它吧1个CPU给干到100%了：
+这里得到这个后台进程的`PID`是`1904248`，使用 `top` 命令可以看到它把1个CPU给干到100%了：
 
 > top -p 1904248
 
@@ -342,7 +342,7 @@ root@ctrlnode:/sys/fs/cgroup/cpu/container# cat cpu.cfs_period_us
 100000
 ```
 
-如果此时想限制它只能使用`20%`的`CPU`，只需要往`cpu.cfs_quota_us`写入`20000`，表示在`100ms`的时间里，只能使用`20ms`的`CPU`时间：
+如果想限制它只能使用`20%`的`CPU`，只需要往`cpu.cfs_quota_us`写入`20000`，表示在`100ms`的时间里，只能使用`20ms`的`CPU`时间：
 
 > echo 20000 > /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us
 
@@ -350,7 +350,7 @@ root@ctrlnode:/sys/fs/cgroup/cpu/container# cat cpu.cfs_period_us
 
 > echo 1904248 > /sys/fs/cgroup/cpu/container/tasks 
 
-此时再去查看该进程的CPU使用率已经降到20%了：
+再去查看该进程的CPU使用率已经降到20%了：
 
 ```
     PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
@@ -408,7 +408,7 @@ root@ctrlnode:/sys/fs/cgroup/cpu/container#
 
 ### Namespace
 
-`Cgroups` 用来限制进程使用资源的上限，而`Namespace`技术则是用来修改进程动态视图的主要方法，它对内核资源进行隔离，让一组进程只看到与自己相关的一部分资源。Linux一共为我们提供了7种`Namespace`，它们分别是：
+`Cgroups` 用来限制进程使用资源的上限，而`Namespace`技术则是用来修改进程动态视图的主要方法，它对内核资源进行隔离，让一组进程只看到与自己相关的一部分资源。Linux一共为我们提供了8种`Namespace`，它们分别是：
 
 - `Mount`，系统调用参数：`CLONE_NEWNS`，用于隔离挂载点；
 - `User`，系统调用参数：`CLONE_NEWUSER`，隔离用户和用户组；
