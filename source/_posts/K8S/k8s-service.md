@@ -463,6 +463,129 @@ gamelife1314.github.io. 5       IN      A       185.199.111.153
 ...
 ```
 
+### Ingress
+
+`Loadbalancer`类型的服务为每个`Service`都创建了一个负载均衡服务，这种做法成本高，实现麻烦，作为普通用户，我们应该更应该希望k8s能提供像nginx这样的反向代理功能，基于不同的`Host`，或者`url`规则，把我们的请求转发到不同的后端服务中去，[Ingress](https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/service-resources/ingress-v1/#Ingress) 就是用来提供这样的服务，我们可以把它看做是`Service`的`Service`，因为一个`Ingress`的后端对象是`Service`，不像`Service`，它的后端是`Pod`。
+
+为了演示，除了本篇开始创建的`nginx-deploy-clusterip-svc`，我们再创建一个`Service`，使用如下的命令：
+
+> kubectl create deployment whoami --image=traefik/whoami -r 3 --port=80
+> kubectl expose deployment whoami --port=8080 --target-port=80 --type=ClusterIP --name=whoami
+
+创建成功之后，我们使用如下的命令进行验证：
+
+```
+root@ctrlnode:/home/ubuntu# kubectl describe svc whoami
+Name:              whoami
+Namespace:         default
+Labels:            app=whoami
+Annotations:       <none>
+Selector:          app=whoami
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.108.154.253
+IPs:               10.108.154.253
+Port:              <unset>  8080/TCP
+TargetPort:        80/TCP
+Endpoints:         10.244.0.5:80,10.244.1.5:80,10.244.2.4:80
+Session Affinity:  None
+Events:            <none>
+```
+
+接下来，我们使用如下的命令创建一个`Ingress`，需要注意的`Ingress`和`Service`必须在同名的命名空间内：
+
+```
+kubectl apply -f - <<EOF
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: default-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "nginx.svc.local"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: nginx-deploy-clusterip-svc
+            port:
+              number: 8080
+  - host: "whoami.svc.local"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: whoami
+            port:
+              number: 8080
+EOF
+```
+
+上面的`ingressClassName`指得是这个`Ingress`使用哪个`IngressController`，因为`Ingress`对象只是一份描述文件，它并没有实际的意义，需要`IngressController`对它解释并提供服务，而`IngressController`需要额外安装的，这里我们使用[NginxIngress](https://kubernetes.github.io/ingress-nginx/deploy/#quick-start)，安装如下所示：
+
+> `kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/cloud/deploy.yaml`
+
+```
+root@ctrlnode:/home/ubuntu# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/cloud/deploy.yaml
+namespace/ingress-nginx created
+serviceaccount/ingress-nginx created
+serviceaccount/ingress-nginx-admission created
+role.rbac.authorization.k8s.io/ingress-nginx created
+role.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+configmap/ingress-nginx-controller created
+service/ingress-nginx-controller created
+service/ingress-nginx-controller-admission created
+deployment.apps/ingress-nginx-controller created
+job.batch/ingress-nginx-admission-create created
+job.batch/ingress-nginx-admission-patch created
+ingressclass.networking.k8s.io/nginx created
+validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
+root@ctrlnode:/home/ubuntu#
+```
+
+等一切就绪的时候，我们去查看创建的`default-ingress`，它已经被分配了从集群外访问的外部地址`192.168.67.241`：
+
+![](defualt-ingress.png)
+
+现在，就可以使用我们自定义的域名访问服务了，只是要把自定义的域名解析到`192.168.67.241`，例如：
+
+> curl --resolve nginx.svc.local:80:192.168.67.241 http://nginx.svc.local/
+> curl --resolve whoami.svc.local:80:192.168.67.241 http://whoami.svc.local/
+
+![](curl-ingress-svc.png)
+
+那这个`192.168.67.241`到底是谁分配的呢？在安装`NginxIngress`的时候，它其实还创建了一个`LoadBalancer`类型的`service/ingress-nginx-controller`，所以这个IP地址是我们集群内安装的负载均衡服务分配的，它就成了集群中`NginxIngress`的入口：
+
+![](ingress-nginx-svc.png)
+
+到这里这个流程现在变得清楚了，通过`192.168.67.241`这个外部`IP`到达我们集群中之后，流程首先到`ingress-nginx-controller`这个`Pod`：
+
+```
+root@ctrlnode:/home/ubuntu# kubectl get pods -n ingress-nginx -owide
+NAME                                        READY   STATUS      RESTARTS   AGE    IP           NODE    NOMINATED NODE   READINESS GATES
+ingress-nginx-admission-create-dxbwq        0/1     Completed   0          119m   10.244.1.6   node1   <none>           <none>
+ingress-nginx-admission-patch-7hsfx         0/1     Completed   2          119m   10.244.2.5   node2   <none>           <none>
+ingress-nginx-controller-8558859656-bwkj7   1/1     Running     0          119m   10.244.2.6   node2   <none>           <none>
+```
+
+这个`Pod`会将对`Ingress`对象的描述翻译成它能理解的`/etc/nginx/nginx.conf`：
+
+![](nginx-ingress-controller-conf.png)
+
+然后内部再将流量路由到我们的`nginx-deploy-clusterip-svc`和`whoami`这两个`Service`。
+
 
 ### 参考链接
 
