@@ -584,7 +584,9 @@ ingress-nginx-controller-8558859656-bwkj7   1/1     Running     0          119m 
 
 ![](nginx-ingress-controller-conf.png)
 
-然后内部再将流量路由到我们的`nginx-deploy-clusterip-svc`和`whoami`这两个`Service`。
+然后内部再将流量路由到我们的`nginx-deploy-clusterip-svc`和`whoami`这两个`Service`，整个过程如下图所示：
+
+![](nginx-ingress-arch.png)
 
 
 ### 参考链接
