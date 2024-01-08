@@ -1,11 +1,12 @@
 ---
-title: Kubernetes Service
+title: Kubernetes Service & Ingress
 date: 2024-01-02 16:34:43
 tags:
     - Service
     - NodePort
     - Loadblance
     - ExternalName
+    - Ingress
 categories:
     - k8s
 ---
@@ -472,7 +473,7 @@ gamelife1314.github.io. 5       IN      A       185.199.111.153
 > kubectl create deployment whoami --image=traefik/whoami -r 3 --port=80
 > kubectl expose deployment whoami --port=8080 --target-port=80 --type=ClusterIP --name=whoami
 
-创建成功之后，我们使用如下的命令进行验证：
+创建成功之后，使用如下的命令查看已创建的`whoami`：
 
 ```
 root@ctrlnode:/home/ubuntu# kubectl describe svc whoami
@@ -493,7 +494,7 @@ Session Affinity:  None
 Events:            <none>
 ```
 
-接下来，我们使用如下的命令创建一个`Ingress`，需要注意的`Ingress`和`Service`必须在同名的命名空间内：
+接下来，创建一个`Ingress`，需要注意的`Ingress`和`Service`必须在相同的命名空间内，默认是`default`：
 
 ```
 kubectl apply -f - <<EOF
@@ -584,7 +585,7 @@ ingress-nginx-controller-8558859656-bwkj7   1/1     Running     0          119m 
 
 ![](nginx-ingress-controller-conf.png)
 
-然后内部再将流量路由到我们的`nginx-deploy-clusterip-svc`和`whoami`这两个`Service`，整个过程如下图所示：
+然后内部再将流量路由到`nginx-deploy-clusterip-svc`和`whoami`，整个过程如下图所示：
 
 ![](nginx-ingress-arch.png)
 
