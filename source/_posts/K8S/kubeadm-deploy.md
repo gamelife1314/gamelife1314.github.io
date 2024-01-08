@@ -222,9 +222,9 @@ apt-get install -y kubelet kubeadm kubectl
 
 {% endtabs %}
 
-`kubelet` 默认使用会选择 `containerd` 作为容器运行时，配置文件在 `/var/lib/kubelet/kubeadm-flags.env`。
+每个节点上的`kubelet`会选择一个容器运行时用于`Pod`管理，可以使用下面的命令进行查看：
 
-![kubelet配置](kubelet-status.png)
+![](kubelet-status.png)
 
 ### 集群初始化
 
