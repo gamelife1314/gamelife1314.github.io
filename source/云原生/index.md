@@ -29,7 +29,7 @@ date: 2024-01-01 14:07:02
 5. `Pod`中容器：
     > `kubectl get pods nginx-deployment-848dd6cfb5-2gvg9 -o jsonpath={.spec.containers[*].name}`
 6. 进入`Pod`中的容器：
-    > `kubectl exec nginx-deployment-848dd6cfb5-2gvg9 -n default -it -c nginx – /bin/bash`
+    > `kubectl exec nginx-deployment-848dd6cfb5-2gvg9 -n default -it -c nginx -- /bin/bash`
 7. `Pod`服务创建：
     > `kubectl expose deploy nginx-deployment --port=8080 --target-port=80 --type=ClusterIP --name=nginx-deploy-clusterip-svc`
 8. 创建`Pod`：
