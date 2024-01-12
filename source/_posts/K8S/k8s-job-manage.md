@@ -136,7 +136,7 @@ lrwxrwxrwx 1 65535 65535 0 Jan 11 20:41 uts -> 'uts:[4026533553]'
 
 清理现场使用下面的命令：
 
->  kubectl delete ns --cascade whoami
+>  `kubectl delete ns --cascade whoami`
 
 ### ReplicaSet
 
@@ -208,7 +208,7 @@ replicaset.apps/nginx-rs   3         3         3       11m   nginx,nettool   ngi
 
 在 `rs` 的输出中，`DESIRED` 表示期望的副本数量，`CURRENT` 表示当前处于 `Running` 状态的数量，`READY` 表示既是 `Running` 又健康检查ok的数量，关于健康检查请看[这里](https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)。清理现场使用下面的命令：
 
->  kubectl delete ns --cascade rs
+>  `kubectl delete ns --cascade rs`
 
 ### Deployment
 
@@ -216,7 +216,7 @@ replicaset.apps/nginx-rs   3         3         3       11m   nginx,nettool   ngi
 
 {% note success 点击展开 %}
 ```shell
-kubectl apply -f - <<EOF
+kubectl apply --record -f - <<EOF
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -275,19 +275,7 @@ EOF
 
 > `kubectl get pod,rs,deploy -n deploy-test -owide`
 
-```
-$ kubectl get pod,rs,deploy -n deploy-test -owide
-NAME                                READY   STATUS    RESTARTS   AGE   IP            NODE           NOMINATED NODE   READINESS GATES
-pod/nginx-deploy-6b5d947665-7hjsk   2/2     Running   0          7s    10.42.0.233   node           <none>           <none>
-pod/nginx-deploy-6b5d947665-xlz2q   2/2     Running   0          7s    10.42.0.232   node           <none>           <none>
-pod/nginx-deploy-6b5d947665-nqmwq   2/2     Running   0          7s    10.42.0.231   node           <none>           <none>
-
-NAME                                      DESIRED   CURRENT   READY   AGE   CONTAINERS      IMAGES                                  SELECTOR
-replicaset.apps/nginx-deploy-6b5d947665   3         3         3       7s    nginx,nettool   nginx:1.14.1,praqma/network-multitool   app=nginx,pod-template-hash=6b5d947665
-
-NAME                           READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS      IMAGES                                  SELECTOR
-deployment.apps/nginx-deploy   3/3     3            3           7s    nginx,nettool   nginx:1.14.1,praqma/network-multitool   app=nginx
-```
+![](deploy-example.png)
 
 从这可以看到，`Deployment` 通过控制 `ReplicaSet`来满足`Pod` 数量的要求，相比`ReplicaSet`增加了以下字段：
 
@@ -298,62 +286,50 @@ deployment.apps/nginx-deploy   3/3     3            3           7s    nginx,nett
 
 使用下面的命令更新`Pod`：
 
-> `kubectl set image -n deploy-test deployment/nginx-deploy nginx=nginx:1.16.1`
+> `kubectl set image -n deploy-test deployment/nginx-deploy nginx=nginx:1.16.1 --record`
 
 执行结束之后，查询`pod`、`rs`以及`deployment`的状态如下所示：
 
-```
-$ kubectl get pod,rs,deploy -n deploy-test -owide
-NAME                                READY   STATUS    RESTARTS   AGE    IP            NODE           NOMINATED NODE   READINESS GATES
-pod/nginx-deploy-5dd86f689f-xnlqr   2/2     Running   0          107s   10.42.0.235   node                 <none>           <none>
-pod/nginx-deploy-5dd86f689f-9ksq8   2/2     Running   0          106s   10.42.0.236   node                 <none>           <none>
-pod/nginx-deploy-5dd86f689f-97x22   2/2     Running   0          107s   10.42.0.234   node                 <none>           <none>
-
-NAME                                      DESIRED   CURRENT   READY   AGE     CONTAINERS      IMAGES                                  SELECTOR
-replicaset.apps/nginx-deploy-5dd86f689f   3         3         3       107s    nginx,nettool   nginx:1.16.1,praqma/network-multitool   app=nginx,pod-template-hash=5dd86f689f
-replicaset.apps/nginx-deploy-6b5d947665   0         0         0       5m39s   nginx,nettool   nginx:1.14.1,praqma/network-multitool   app=nginx,pod-template-hash=6b5d947665
-
-NAME                           READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS      IMAGES                                  SELECTOR
-deployment.apps/nginx-deploy   3/3     3            3           5m39s   nginx,nettool   nginx:1.16.1,praqma/network-multitool   app=nginx
-```
+![](deploy-example-update.png)
 
 可以看到旧的`nginx-deploy-6b5d947665`已经被缩容至`0`个`Pod`，新建的`nginx-deploy-5dd86f689f`被扩容至`3`个`Pod`。通过查看`nginx-deploy`的详情，可以看到滚动更新的过程：
 
->  kubectl describe deploy -n deploy-test nginx-deploy
+> `kubectl describe deploy -n deploy-test nginx-deploy`
 
 ```
-# kubectl describe deploy -n deploy-test nginx-deploy
+root@ctrlnode:/home/ubuntu# kubectl describe deploy -n deploy-test nginx-deploy
 Name:                   nginx-deploy
 Namespace:              deploy-test
-CreationTimestamp:      Fri, 12 Jan 2024 15:49:26 +0800
+CreationTimestamp:      Fri, 12 Jan 2024 23:18:16 +0800
 Labels:                 app=nginx
                         app.kubernetes.io/name=nginx-deploy
                         app.kubernetes.io/part-of=nginx-deploy
 Annotations:            deployment.kubernetes.io/revision: 2
+                        kubernetes.io/change-cause: kubectl set image deployment/nginx-deploy nginx=nginx:1.16.1 --namespace=deploy-test --record=true
 Selector:               app=nginx
 Replicas:               3 desired | 3 updated | 3 total | 3 available | 0 unavailable
 StrategyType:           RollingUpdate
 MinReadySeconds:        0
 RollingUpdateStrategy:  1 max unavailable, 1 max surge
 Pod Template:
-   ....
+  ...
 OldReplicaSets:  nginx-deploy-6b5d947665 (0/0 replicas created)
 NewReplicaSet:   nginx-deploy-5dd86f689f (3/3 replicas created)
 Events:
-  Type    Reason             Age    From                   Message
-  ----    ------             ----   ----                   -------
-  Normal  ScalingReplicaSet  9m26s  deployment-controller  Scaled up replica set nginx-deploy-6b5d947665 to 3
-  Normal  ScalingReplicaSet  5m34s  deployment-controller  Scaled up replica set nginx-deploy-5dd86f689f to 1
-  Normal  ScalingReplicaSet  5m34s  deployment-controller  Scaled down replica set nginx-deploy-6b5d947665 to 2 from 3
-  Normal  ScalingReplicaSet  5m34s  deployment-controller  Scaled up replica set nginx-deploy-5dd86f689f to 2 from 1
-  Normal  ScalingReplicaSet  5m33s  deployment-controller  Scaled down replica set nginx-deploy-6b5d947665 to 1 from 2
-  Normal  ScalingReplicaSet  5m33s  deployment-controller  Scaled up replica set nginx-deploy-5dd86f689f to 3 from 2
-  Normal  ScalingReplicaSet  5m32s  deployment-controller  Scaled down replica set nginx-deploy-6b5d947665 to 0 from 1
+  Type    Reason             Age   From                   Message
+  ----    ------             ----  ----                   -------
+  Normal  ScalingReplicaSet  9m6s  deployment-controller  Scaled up replica set nginx-deploy-6b5d947665 to 3
+  Normal  ScalingReplicaSet  8m9s  deployment-controller  Scaled up replica set nginx-deploy-5dd86f689f to 1
+  Normal  ScalingReplicaSet  8m9s  deployment-controller  Scaled down replica set nginx-deploy-6b5d947665 to 2 from 3
+  Normal  ScalingReplicaSet  8m9s  deployment-controller  Scaled up replica set nginx-deploy-5dd86f689f to 2 from 1
+  Normal  ScalingReplicaSet  8m8s  deployment-controller  Scaled down replica set nginx-deploy-6b5d947665 to 1 from 2
+  Normal  ScalingReplicaSet  8m8s  deployment-controller  Scaled up replica set nginx-deploy-5dd86f689f to 3 from 2
+  Normal  ScalingReplicaSet  8m8s  deployment-controller  Scaled down replica set nginx-deploy-6b5d947665 to 0 from 1
 ```
 
 滚动更新过程中可以使用下面的命令查看滚动更新的过程：
 
-> kubectl rollout status -n deploy-test deployment/nginx-deploy
+> `kubectl rollout status -n deploy-test deployment/nginx-deploy`
 
 ```
 $ kubectl rollout status -n deploy-test deployment/nginx-deploy
@@ -362,21 +338,21 @@ deployment "nginx-deploy" successfully rolled out
 
 滚动更新的历史可以使用下面的命令查看：
 
-> ` kubectl rollout history -n deploy-test deployment/nginx-deploy`
+> `kubectl rollout history -n deploy-test deployment/nginx-deploy`
 
 ```
-$ kubectl rollout history -n deploy-test deployment/nginx-deploy
+root@ctrlnode:/home/ubuntu# kubectl rollout history -n deploy-test deployment/nginx-deploy
 deployment.apps/nginx-deploy
 REVISION  CHANGE-CAUSE
-1         <none>
-2         <none>
+1         kubectl apply --record=true --filename=-
+2         kubectl set image deployment/nginx-deploy nginx=nginx:1.16.1 --namespace=deploy-test --record=true
 ```
 
 #### 回滚
 
 当更新出错，或者需要回滚到历史版本的时候，可以使用下面的命令进行操作，`--to-revision`指定目标历史版本：
 
-> kubectl rollout undo -n deploy-test deployment/nginx-deploy --to-revision=1
+> `kubectl rollout undo -n deploy-test deployment/nginx-deploy --to-revision=1`
 
 ```
 $ kubectl rollout undo -n deploy-test deployment/nginx-deploy --to-revision=1
@@ -387,37 +363,20 @@ deployment.apps/nginx-deploy rolled back
 
 可以使用下面的命令对`Deployment` 进行扩缩容：
 
-> kubectl scale deployment/nginx-deploy -n deploy-test --replicas=5
+> `kubectl scale deployment/nginx-deploy -n deploy-test --replicas=5`
 
-```
-$ kubectl scale deployment/nginx-deploy -n deploy-test --replicas=5
-deployment.apps/nginx-deploy scaled
-$ kubectl get pod,rs,deploy -n deploy-test -owide
-NAME                                READY   STATUS    RESTARTS   AGE     IP            NODE           NOMINATED NODE   READINESS GATES
-pod/nginx-deploy-6b5d947665-kw88l   2/2     Running   0          7m21s   10.42.0.237   node                 <none>           <none>
-pod/nginx-deploy-6b5d947665-69gvd   2/2     Running   0          7m21s   10.42.0.238   node                 <none>           <none>
-pod/nginx-deploy-6b5d947665-m4lkz   2/2     Running   0          7m19s   10.42.0.239   node                 <none>           <none>
-pod/nginx-deploy-6b5d947665-bwf5k   2/2     Running   0          18s     10.42.0.241   node                 <none>           <none>
-pod/nginx-deploy-6b5d947665-snpzr   2/2     Running   0          18s     10.42.0.240   node                 <none>           <none>
-
-NAME                                      DESIRED   CURRENT   READY   AGE   CONTAINERS      IMAGES                                  SELECTOR
-replicaset.apps/nginx-deploy-5dd86f689f   0         0         0       23m   nginx,nettool   nginx:1.16.1,praqma/network-multitool   app=nginx,pod-template-hash=5dd86f689f
-replicaset.apps/nginx-deploy-6b5d947665   5         5         5       27m   nginx,nettool   nginx:1.14.1,praqma/network-multitool   app=nginx,pod-template-hash=6b5d947665
-
-NAME                           READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS      IMAGES                                  SELECTOR
-deployment.apps/nginx-deploy   5/5     5            5           27m   nginx,nettool   nginx:1.14.1,praqma/network-multitool   app=nginx
-```
+![](deploy-example-scale.png)
 
 ### StatefulSet
 
-在`Deployment`中，我们认为所有`Pod`是完全一样的。所以，它们互相之间没有顺序，也无所谓运行在哪台宿主机上。需要的时候，`Deployment`就可以通过`Pod`模板创建新的`Pod`；不需要的时候，`Deployment`就可以杀掉任意一个`Pod`。但是，在实际的场景中，并不是所有的应用都可以满足这样的要求。尤其是分布式应用，它的多个实例之间，往往有依赖关系，比如：主从关系、主备关系。还有就是数据存储类应用，它的多个实例，往往都会在本地磁盘上保存一份数据。而这些实例一旦被杀掉，即便重建出来，实例与数据之间的对应关系也已经丢失，从而导致应用失败。所以，这种实例之间有不对等关系，以及实例对外部数据有依赖关系的应用，就被称为有状态应用（Stateful Application）。`Kubernetes`项目很早就在`Deployment`的基础上，扩展出了对有状态应用的初步支持，这个编排功能，就是：[StatefulSet](https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/statefulset/)，它给我们提供了：稳定的、唯一的网络标识符，稳定的、持久的存储，有序的、优雅的部署和扩缩，有序的、自动的滚动更新。
+在`Deployment`中，所有`Pod`是完全一样的。所以，它们互相之间没有顺序，也无所谓运行在哪台宿主机上。需要的时候，`Deployment`就可以通过`Pod`模板创建新的`Pod`，不需要的时候，`Deployment`就可以杀掉任意一个`Pod`。但是，在实际的场景中，并不是所有的应用都可以满足这样的要求。尤其是分布式应用，它的多个实例之间，往往有依赖关系，比如：主从关系、主备关系。还有就是数据存储类应用，它的多个实例，往往都会在本地磁盘上保存一份数据。而这些实例一旦被杀掉，即便重建出来，实例与数据之间的对应关系也已经丢失，从而导致应用失败。所以，这种实例之间有不对等关系，以及实例对外部数据有依赖关系的应用，就被称为有状态应用（`Stateful Application`）。`Kubernetes`项目很早就在`Deployment`的基础上，扩展出了对有状态应用的初步支持，这个编排功能，就是：[StatefulSet](https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/statefulset/)，它给我们提供了：稳定的、唯一的网络标识符，稳定的、持久的存储，有序的、优雅的部署和扩缩，有序的、自动的滚动更新。
 
-#### 网络持久化
+#### 网络
 
 先来看下网络持久化是怎么做到的，下面是用来验证的示例：
 
 {% note success 点击展开 %}
-```
+```shell
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Namespace
@@ -476,6 +435,27 @@ spec:
 EOF
 ```
 {% endnote %}
+
+当执行上面的命令之后，除了创建 `StatefulSet` 对象之外，还会创建一个`nginx`无头服务：
+
+> `kubectl get pods,sts,svc -n sts-test -owide`
+
+![](sts-network-info.png)
+
+这个`nginx`无头服务创建之后，它所代理的`Pod`都会被分配一个固定的`DNS`记录，如下面的格式：
+
+> `<pod-name>.<svc-name>.<namespace>.svc.cluster.local`
+
+使用下面的命令进入`nettool`这个工具容器进行验证，可以看到每个`Pod`的地址都被正确解析，`StatefulSet`中的`.spec.serviceName`字段就是告诉`StatefulSet`控制器，在创建这写`Pod`的时候，使用`nginx`这个无头服务来保证`Pod`的网络身份稳定：
+
+> `kubectl exec nginx-sts-0 -n sts-test -it -c nettool -- /bin/bash`
+
+![](sts-network-nslookup-pod.png)
+
+从上面的`Pod`的名字也可以看出和`Deployment`的区别，`StatefulSet`使用固定了的编号，`<sts-name>-<index>`，这些编号从`0`开始累加，而且这些`Pod`的创建也是严格按照编号顺序进行的，在`nginx-sts-0`进入`Ready`之前，`nginx-sts-1`会一直`Pending`。而且即使我们将`nginx-sts-0`删除之后，创建出来的`Pod`名称依然是`nginx-sts-0`，这就是所谓的网络持久化，网络身份固定，当我们使用 `nginx-sts-0.nginx` 这个域名访问时，依然可以解析到正确的`Pod`，但是`IP`发生了变化，所以对于有状态的实例进行访问，应该使用域名：
+
+![](sts-network-delete-pod.png)
+
 
 ### 参考链接
 
