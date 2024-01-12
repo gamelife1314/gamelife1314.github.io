@@ -5,14 +5,14 @@ date: 2024-01-01 14:07:02
 
 ### 系列文章
 
-1. [容器技术探索及实践](/2023/12/22/Docker/create-contaienr-with-linux-original-tech/)
-2. [容器网络 - 单机容器通信](/2023/12/09/Network/container-network-single-host/)
-3. [容器网络 - 跨主机容器通信](/2023/12/12/Network/container-network-cross-host/)
-4. [容器运行时](/2023/12/20/K8S/container-runtime/)
-5. [使用 kubeadm 创建多节点集群](/2023/12/17/K8S/kubeadm-deploy/)
-6. [Kubernetes CNI 网络](/2023/12/29/K8S/k8s-cni-network/)
-7. [深入理解 iptables](/2023/12/25/Network/iptables-introduce-and-practice/)
-8. [Kubernetes Service](/2024/01/02/K8S/k8s-service/)
+1. [容器技术探索](/2023/12/22/Docker/create-contaienr-with-linux-original-tech/)
+2. [容器网络（一）](/2023/12/09/Network/container-network-single-host/)
+3. [容器网络（二）](/2023/12/12/Network/container-network-cross-host/)
+4. [容器运行时介绍](/2023/12/20/K8S/container-runtime/)
+5. [K8S 集群部署](/2023/12/17/K8S/kubeadm-deploy/)
+6. [K8S CNI 网络](/2023/12/29/K8S/k8s-cni-network/)
+7. [Iptables 介绍](/2023/12/25/Network/iptables-introduce-and-practice/)
+8. [K8S 服务&Ingress](/2024/01/02/K8S/k8s-service/)
 
 ### 常用命令
 
