@@ -19,7 +19,7 @@ categories:
 
 [Pod](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/) 这个看似复杂的API对象，实际上就是对容器的进一步抽象和封装而已，`Pod`对象，其实就是容器的升级版，它对容器进行了组合，添加了更多的属性和字段。依据[PodAPI](https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/workload-resources/pod-v1/) 编写一个`Pod`模板，然后使用`kubectl`提交到集群中，这个`Pod`里面包含两个容器，`whoami`监听`80`端口，提供一个简单的服务返回主机名，`nettool` 是一个工具容器，提供了很多可用的网络工具供测试使用：
 
-{% note success 点击查看命令 %}
+{% note success 点击查看 %}
 ```shell
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -411,6 +411,71 @@ deployment.apps/nginx-deploy   5/5     5            5           27m   nginx,nett
 ### StatefulSet
 
 在`Deployment`中，我们认为所有`Pod`是完全一样的。所以，它们互相之间没有顺序，也无所谓运行在哪台宿主机上。需要的时候，`Deployment`就可以通过`Pod`模板创建新的`Pod`；不需要的时候，`Deployment`就可以杀掉任意一个`Pod`。但是，在实际的场景中，并不是所有的应用都可以满足这样的要求。尤其是分布式应用，它的多个实例之间，往往有依赖关系，比如：主从关系、主备关系。还有就是数据存储类应用，它的多个实例，往往都会在本地磁盘上保存一份数据。而这些实例一旦被杀掉，即便重建出来，实例与数据之间的对应关系也已经丢失，从而导致应用失败。所以，这种实例之间有不对等关系，以及实例对外部数据有依赖关系的应用，就被称为有状态应用（Stateful Application）。`Kubernetes`项目很早就在`Deployment`的基础上，扩展出了对有状态应用的初步支持，这个编排功能，就是：[StatefulSet](https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/statefulset/)，它给我们提供了：稳定的、唯一的网络标识符，稳定的、持久的存储，有序的、优雅的部署和扩缩，有序的、自动的滚动更新。
+
+#### 网络持久化
+
+先来看下网络持久化是怎么做到的，下面是用来验证的示例：
+
+{% note success 点击展开 %}
+```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sts-test
+  labels:
+    app.kubernetes.io/part-of: nginx-sts
+    app.kubernetes.io/name: nginx-sts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: sts-test
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: nginx
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-sts
+  namespace: sts-test
+  labels:
+    app: nginx
+    app.kubernetes.io/part-of: nginx-sts
+    app.kubernetes.io/name: nginx-sts
+spec:
+  replicas: 3
+  serviceName: "nginx"
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+      - name: nettool
+        image: praqma/network-multitool
+        imagePullPolicy: IfNotPresent
+        command: ["sleep"]
+        args: ["86400"]
+EOF
+```
+{% endnote %}
 
 ### 参考链接
 
