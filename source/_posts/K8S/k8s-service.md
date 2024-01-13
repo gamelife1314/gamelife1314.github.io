@@ -251,11 +251,11 @@ root@ctrlnode:/home/ubuntu#
 
 > `kubectl expose deploy nginx-deployment --port=8082 --target-port=80 --type=LoadBalancer --name=nginx-deploy-lb-svc`
 
-但是这个时候查看新建的服务`nginx-deploy-lb-svc`，它的`EXTERNAL-IP`显示`<pengding>`，是因为我们现在还没有一个`LoadBalancer`提供服务：
+但是这个时候查看新建的服务`nginx-deploy-lb-svc`，它的`EXTERNAL-IP`显示`<pengding>`，是因为集群中还没有一个`LoadBalancer`提供服务：
 
 ![](lb-service-pending.png)
 
-我们安装[METALLB](https://metallb.universe.tf/)来我们提供服务：
+安装[METALLB](https://metallb.universe.tf/)作为`LoadBalancer`：
 
 > kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
 
@@ -283,7 +283,7 @@ spec:
 EOF
 ```
 
-这个时候再去查看我们的`Service`，它的`EXTERNAL-IP`已经被分配成了`192.168.67.240`：
+这个时候再去查看`Service`，它的`EXTERNAL-IP`已经被分配成了`192.168.67.240`：
 
 ![](lb-service-ip-allocate.png)
 
@@ -294,7 +294,7 @@ EOF
 ![](lb-service-ctrlnode-mac.png)
 {% endgrouppicture %}
 
-我们依然来看当这个请求到达了我们的`ctrlnode`上的时候，它是如何被处理的。毫无疑问，它肯定会从`nat`表中的`KUBE-SERVICES`进入然后被处理：
+依然来看当这个请求到达了`ctrlnode`上的时候，它是如何被处理的。毫无疑问，它肯定会从`nat`表中的`KUBE-SERVICES`进入然后被处理：
 
 ![](lb-service-kubeservice-chain.png)
 

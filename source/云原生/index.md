@@ -5,14 +5,15 @@ date: 2024-01-01 14:07:02
 
 ### 系列文章
 
-1. [容器技术探索及实践](/2023/12/22/Docker/create-contaienr-with-linux-original-tech/)
-2. [容器网络 - 单机容器通信](/2023/12/09/Network/container-network-single-host/)
-3. [容器网络 - 跨主机容器通信](/2023/12/12/Network/container-network-cross-host/)
-4. [容器运行时](/2023/12/20/K8S/container-runtime/)
-5. [使用 kubeadm 创建多节点集群](/2023/12/17/K8S/kubeadm-deploy/)
-6. [Kubernetes CNI 网络](/2023/12/29/K8S/k8s-cni-network/)
-7. [深入理解 iptables](/2023/12/25/Network/iptables-introduce-and-practice/)
-8. [Kubernetes Service](/2024/01/02/K8S/k8s-service/)
+1. [容器技术探索](/2023/12/22/Docker/create-contaienr-with-linux-original-tech/)
+2. [容器网络（一）](/2023/12/09/Network/container-network-single-host/)
+3. [容器网络（二）](/2023/12/12/Network/container-network-cross-host/)
+4. [容器运行时介绍](/2023/12/20/K8S/container-runtime/)
+5. [Iptables 介绍](/2023/12/25/Network/iptables-introduce-and-practice/)
+6. [K8S 集群部署](/2023/12/17/K8S/kubeadm-deploy/)
+7. [K8S CNI 网络](/2023/12/29/K8S/k8s-cni-network/)
+8. [K8S 服务&Ingress](/2024/01/02/K8S/k8s-service/)
+9. [K8S 作业管理](/2024/01/10/K8S/k8s-job-manage/)
 
 ### 常用命令
 
@@ -29,14 +30,26 @@ date: 2024-01-01 14:07:02
 5. `Pod`中容器：
     > `kubectl get pods nginx-deployment-848dd6cfb5-2gvg9 -o jsonpath={.spec.containers[*].name}`
 6. 进入`Pod`中的容器：
-    > `kubectl exec nginx-deployment-848dd6cfb5-2gvg9 -n default -it -c nginx – /bin/bash`
+    > `kubectl exec nginx-deployment-848dd6cfb5-2gvg9 -n default -it -c nginx -- /bin/bash`
 7. `Pod`服务创建：
     > `kubectl expose deploy nginx-deployment --port=8080 --target-port=80 --type=ClusterIP --name=nginx-deploy-clusterip-svc`
 8. 创建`Pod`：
     > `kubectl run mytools -it --rm --image=praqma/network-multitool --image-pull-policy=IfNotPresent --command -- /bin/bash`
+9. 更新镜像：
+    > `kubectl set image -n deploy-test deployment/nginx-deploy nginx=nginx:1.16.1 --record`
+    > `kubectl patch statefulset nginx-sts --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value":"nginx:1.16.1"}]'`
+10. 滚动更新历史：
+    > `kubectl rollout history -n deploy-test deployment/nginx-deploy`
+11. 回滚:
+    > `kubectl rollout undo -n deploy-test deployment/nginx-deploy --to-revision=1`
 
 
 #### crictl
 
 1. 查询容器`PID`：
     > `crictl inspect -o go-template --template "{{ .info.pid }}" 15f86364ed865`
+
+#### docker
+
+1. 查询容器`PID`：
+    > `docker inspect --format "{{ .State.Pid }}" 52d2b3478c88`
