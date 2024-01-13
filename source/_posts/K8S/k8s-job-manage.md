@@ -19,7 +19,6 @@ categories:
 
 [Pod](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/) 这个看似复杂的API对象，实际上就是对容器的进一步抽象和封装而已，`Pod`对象，其实就是容器的升级版，它对容器进行了组合，添加了更多的属性和字段。依据[PodAPI](https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/workload-resources/pod-v1/) 编写一个`Pod`模板，然后使用`kubectl`提交到集群中，这个`Pod`里面包含两个容器，`whoami`监听`80`端口，提供一个简单的服务返回主机名，`nettool` 是一个工具容器，提供了很多可用的网络工具供测试使用：
 
-{% note success 点击查看 %}
 ```shell
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -52,7 +51,8 @@ spec:
     args: ["86400"]
 EOF
 ```
-{% endnote %}
+
+<!-- more -->
 
 执行之后，使用下面的命令查看创建成功的`Pod`：
 
@@ -142,7 +142,6 @@ lrwxrwxrwx 1 65535 65535 0 Jan 11 20:41 uts -> 'uts:[4026533553]'
 
 `Pod` 将具有亲密关系的容器部署在同一个盒子中，统一对外提供服务，但是当流量较多的时候，单个`Pod`就无法支撑，这个时候就需要多个实例，这正是`ReplicaSet`的意义，为`Pod`提供多实例部署，根据需要实现水平扩缩容。下面是一个`ReplicaSet`对象的示例：
 
-{% note success 点击展开 %}
 ```shell
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -185,7 +184,6 @@ spec:
         args: ["86400"]
 EOF
 ```
-{% endnote %}
 
 相较于`Pod`，`ReplicaSet` 增加了一些字段：
 
@@ -214,7 +212,6 @@ replicaset.apps/nginx-rs   3         3         3       11m   nginx,nettool   ngi
 
 通常情况下，我们在生产环境不会直接使用 `ReplicaSet`，因为它不支持滚动更新，所谓的滚动更新就是当我们升级`Pod`的时候，可以在不中断服务的情况下，通过交替升级的方式，让所有的`Pod`都达到最新的状态，除此之外还可以实现版本控制，根据需要回滚到具体的版本，这些操作对于 `ReplicaSet` 就得手动操作。下面是一个[Deployment](https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/deployment/)的示例：
 
-{% note success 点击展开 %}
 ```shell
 kubectl apply --record -f - <<EOF
 apiVersion: v1
@@ -262,7 +259,6 @@ spec:
         args: ["86400"]
 EOF
 ```
-{% endnote %}
 
 相比 `ReplicaSet`，主要增加了 `.spec.strategy` 字段，其中：
 
@@ -369,13 +365,12 @@ deployment.apps/nginx-deploy rolled back
 
 ### StatefulSet
 
-在`Deployment`中，所有`Pod`是完全一样的。所以，它们互相之间没有顺序，也无所谓运行在哪台宿主机上。需要的时候，`Deployment`就可以通过`Pod`模板创建新的`Pod`，不需要的时候，`Deployment`就可以杀掉任意一个`Pod`。但是，在实际的场景中，并不是所有的应用都可以满足这样的要求。尤其是分布式应用，它的多个实例之间，往往有依赖关系，比如：主从关系、主备关系。还有就是数据存储类应用，它的多个实例，往往都会在本地磁盘上保存一份数据。而这些实例一旦被杀掉，即便重建出来，实例与数据之间的对应关系也已经丢失，从而导致应用失败。所以，这种实例之间有不对等关系，以及实例对外部数据有依赖关系的应用，就被称为有状态应用（`Stateful Application`）。`Kubernetes`项目很早就在`Deployment`的基础上，扩展出了对有状态应用的初步支持，这个编排功能，就是：[StatefulSet](https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/statefulset/)，它给我们提供了：稳定的、唯一的网络标识符，稳定的、持久的存储，有序的、优雅的部署和扩缩，有序的、自动的滚动更新。
+在`Deployment`中，所有`Pod`是完全一样的，它们互相之间没有顺序，也无所谓运行在哪台宿主机上。需要的时候，`Deployment`就可以通过`Pod`模板创建新的`Pod`，不需要的时候，`Deployment`就可以杀掉任意一个`Pod`。但是，在实际的场景中，并不是所有的应用都可以满足这样的要求。尤其是分布式应用，它的多个实例之间，往往有依赖关系，比如：主从关系、主备关系。还有就是数据存储类应用，它的多个实例，往往都会在本地磁盘上保存一份数据。而这些实例一旦被杀掉，即便重建出来，实例与数据之间的对应关系也已经丢失，从而导致应用失败。所以，这种实例之间有不对等关系，以及实例对外部数据有依赖关系的应用，就被称为有状态应用（`Stateful Application`）。`Kubernetes`项目很早就在`Deployment`的基础上，扩展出了对有状态应用的初步支持，这个编排功能，就是：[StatefulSet](https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/statefulset/)，它提供了：稳定的、唯一的网络标识符，持久的数据存储，相较于 `Deployment`，`StatefulSet`直接管理的是`Pod`，而不是`ReplicaSet`，这是因为，`StatefulSet`里的不同Pod实例，不再像`ReplicaSet`中那样都是完全一样的，而是有了细微区别的。比如，每个`Pod`的`hostname`、名字等都是不同的、携带了编号的。而`StatefulSet`区分这些实例的方式，就是通过在`Pod`的名字里加上事先约定好的编号。
 
-#### 网络
+#### 网络持久化
 
 先来看下网络持久化是怎么做到的，下面是用来验证的示例：
 
-{% note success 点击展开 %}
 ```shell
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -434,7 +429,6 @@ spec:
         args: ["86400"]
 EOF
 ```
-{% endnote %}
 
 当执行上面的命令之后，除了创建 `StatefulSet` 对象之外，还会创建一个`nginx`无头服务：
 
@@ -452,9 +446,430 @@ EOF
 
 ![](sts-network-nslookup-pod.png)
 
-从上面的`Pod`的名字也可以看出和`Deployment`的区别，`StatefulSet`使用固定了的编号，`<sts-name>-<index>`，这些编号从`0`开始累加，而且这些`Pod`的创建也是严格按照编号顺序进行的，在`nginx-sts-0`进入`Ready`之前，`nginx-sts-1`会一直`Pending`。而且即使我们将`nginx-sts-0`删除之后，创建出来的`Pod`名称依然是`nginx-sts-0`，这就是所谓的网络持久化，网络身份固定，当我们使用 `nginx-sts-0.nginx` 这个域名访问时，依然可以解析到正确的`Pod`，但是`IP`发生了变化，所以对于有状态的实例进行访问，应该使用域名：
+从上面的`Pod`的名字也可以看出和`Deployment`的区别，`StatefulSet`使用固定了的编号，`<sts-name>-<index>`，这些编号从`0`开始累加，而且这些`Pod`的创建也是严格按照编号顺序进行的，在`nginx-sts-0`进入`Ready`之前，`nginx-sts-1`会一直`Pending`。而且即使将`nginx-sts-0`删除之后，创建出来的`Pod`名称依然是`nginx-sts-0`，这就是所谓的网络持久化，网络身份固定，当我们使用 `nginx-sts-0.nginx` 这个域名访问时，依然可以解析到正确的`Pod`，但是`IP`发生了变化，所以对于有状态的实例进行访问，应该使用域名：
 
 ![](sts-network-delete-pod.png)
+
+#### 存储持久化
+
+有状态`Pod`除了网络身份持久化之外，就是存储状态持久化了，希望在`Pod`重启或者重建之后，依然保证数据库不丢失。在开始之后，需要先制作`PV`供有状态的`Pod`使用，本地测试为了简单，直接使用`hostpath`来制作。选定`k8s`中的某个节点，例如，`ctrlnode`，执行下面的命令：
+
+```
+$ kubectl label nodes ctrlnode pvtype=hostpath
+$ mkdir -p /mnt/k8s/hostpath/
+$ cd /mnt/k8s/hostpath/
+$ mkdir v1 v2 v3
+$ echo "hello from hostpath v1" >> v1/index.html
+$ echo "hello from hostpath v2" >> v2/index.html
+$ echo "hello from hostpath v3" >> v3/index.html
+```
+
+给`ctrlnode`打上标签是为了后面在创建`StatefulSet`的时候，让`Pod`都调度到`ctrlnode`上。接下来创建`PV`以及`Pod`：
+
+
+```shell
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-hostpath-v1
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/k8s/hostpath/v1"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-hostpath-v2
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/k8s/hostpath/v2"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-hostpath-v3
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/k8s/hostpath/v3"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sts-test
+  labels:
+    app.kubernetes.io/part-of: nginx-sts
+    app.kubernetes.io/name: nginx-sts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: sts-test
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: nginx
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-sts
+  namespace: sts-test
+  labels:
+    app: nginx
+    app.kubernetes.io/part-of: nginx-sts
+    app.kubernetes.io/name: nginx-sts
+spec:
+  replicas: 3
+  serviceName: "nginx"
+  selector:
+    matchLabels:
+      app: nginx
+  volumeClaimTemplates:
+    - metadata:
+        name: www
+      spec:
+        storageClassName: manual
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: pvtype
+                  operator: In
+                  values:
+                    - hostpath
+      containers:
+        - name: nginx
+          image: nginx:1.14.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: www
+              mountPath: "/usr/share/nginx/html"
+        - name: nettool
+          image: praqma/network-multitool
+          imagePullPolicy: IfNotPresent
+          command: ["sleep"]
+          args: ["86400"]
+EOF
+```
+
+
+创建成功之后，可以使用下面的命令进行验证：
+
+> `kubectl get pv,pvc,svc,sts,pod -n sts-test -owide`
+
+```
+$ kubectl get pv,pvc,svc,sts,pod -n sts-test -owide
+NAME                                                        CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                      STORAGECLASS   REASON   AGE    VOLUMEMODE
+...
+persistentvolume/pv-hostpath-v1                             1Gi        RWO            Retain           Bound    sts-test/www-nginx-sts-0   manual                  16s    Filesystem
+persistentvolume/pv-hostpath-v2                             1Gi        RWO            Retain           Bound    sts-test/www-nginx-sts-1   manual                  16s    Filesystem
+persistentvolume/pv-hostpath-v3                             1Gi        RWO            Retain           Bound    sts-test/www-nginx-sts-2   manual                  16s    Filesystem
+
+NAME                                    STATUS   VOLUME           CAPACITY   ACCESS MODES   STORAGECLASS   AGE   VOLUMEMODE
+persistentvolumeclaim/www-nginx-sts-0   Bound    pv-hostpath-v1   1Gi        RWO            manual         16s   Filesystem
+persistentvolumeclaim/www-nginx-sts-1   Bound    pv-hostpath-v2   1Gi        RWO            manual         13s   Filesystem
+persistentvolumeclaim/www-nginx-sts-2   Bound    pv-hostpath-v3   1Gi        RWO            manual         10s   Filesystem
+
+NAME            TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE   SELECTOR
+service/nginx   ClusterIP   None         <none>        80/TCP    16s   app=nginx
+
+NAME                         READY   AGE   CONTAINERS      IMAGES
+statefulset.apps/nginx-sts   3/3     16s   nginx,nettool   nginx:1.14.1,praqma/network-multitool
+
+NAME              READY   STATUS    RESTARTS   AGE   IP          NODE           NOMINATED NODE   READINESS GATES
+pod/nginx-sts-0   2/2     Running   0          16s   10.42.0.6   ctrlnode       <none>           <none>
+pod/nginx-sts-1   2/2     Running   0          13s   10.42.0.7   ctrlnode       <none>           <none>
+pod/nginx-sts-2   2/2     Running   0          10s   10.42.0.8   ctrlnode       <none>           <none>
+```
+
+可以看到的是`3`个`Pod`都绑定到了不同的`PV`，可以使用下面的命令进行验证：
+
+> `for i in 0 1 2; do kubectl exec nginx-sts-$i -n sts-test -c nettool -- curl localhost; done`
+
+```
+# for i in 0 1 2; do kubectl exec nginx-sts-$i -n sts-test -c nettool -- curl localhost; done
+hello from hostpath v1
+hello from hostpath v2
+hello from hostpath v3
+```
+
+有状态的`Pod`会有数据数据写入到`Pod`挂载的`Volume`中，模拟这个写入，可以使用下面的命令将主机明写入到`index.html`中：
+
+> `for i in 0 1 2; do kubectl exec nginx-sts-$i -n sts-test -c nginx -- sh -c 'echo hello $(hostname) > /usr/share/nginx/html/index.html'; done`
+
+```
+$ for i in 0 1 2; do kubectl exec nginx-sts-$i -n sts-test -c nginx -- sh -c 'echo hello $(hostname) > /usr/share/nginx/html/index.html'; done
+$ for i in 0 1 2; do kubectl exec nginx-sts-$i -n sts-test -c nettool -- curl localhost; done
+hello nginx-sts-0
+hello nginx-sts-1
+hello nginx-sts-2
+```
+
+此时查看`ctrlnode`上的`/mnt/k8s/hostpath/`中的内容，也会被相应的修改。有状态的`Pod`重点在于`Pod`重建数据不丢失，所以即使现在删除`3`个`Pod`之后，重建出来的`Pod`还是会挂载原来的数据卷，也就是从`nginx-sts-0`中访问到的依然是`hello nginx-sts-0`：
+
+```
+$ kubectl delete pod -n sts-test nginx-sts-0 nginx-sts-1 nginx-sts-2
+pod "nginx-sts-0" deleted
+pod "nginx-sts-1" deleted
+pod "nginx-sts-2" deleted
+$ for i in 0 1 2; do kubectl exec nginx-sts-$i -n sts-test -c nettool -- curl localhost; done
+hello nginx-sts-0
+hello nginx-sts-1
+hello nginx-sts-2
+```
+
+这是因为当把一个`Pod`，比如`nginx-sts-0`，删除之后，这个`Pod`对应的`PVC`和`PV`，并不会被删除，而这个`Volume`里已经写入的数据，也依然会保存在`ctrlnode`的`/mnt/k8s/hostpath/`下。`Pod`重建的时候，`StatefulSet`还为每一个`Pod`分配并创建一个同样编号的`PVC`，所以还是会使用`www-nginx-sts-0`这个`PVC`去申请存储并且和`nginx-sts-0`绑定，由于这个`PVC`并未被删除，所以直接绑定即可，数据还是原来的。通过这种方式，`Kubernetes`的`StatefulSet`就实现了对应用存储状态的管理，实现了存储持久化。
+
+#### 滚动更新
+
+如果我们指定`StatefulSet`的[更新策略](https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/statefulset/#update-strategies)，默认就是：`RollingUpdate`，在发生更新时，它会以`Pod`编号相反的顺序进行，从最后一个`Pod`开始，逐一更新这个`StatefulSet`管理的每个`Pod`，而如果更新发生了错误，这次“滚动更新”就会停止。
+
+例如，使用下面的命令更新`nginx`容器的镜像版本，命令的意思是，以补丁的方式（`JSON`格式的）修改一个`API`对象的指定字段，也就是在后面指定的`spec/template/spec/containers/0/image`：
+
+> `kubectl patch statefulset nginx-sts --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value":"nginx:1.16.1"}]'`
+
+从`Pod`的启动时间就可以看出谁时最后一个启动的：
+
+```
+$ kubectl get pod -n sts-test -owide
+NAME          READY   STATUS    RESTARTS   AGE     IP           NODE           NOMINATED NODE   READINESS GATES
+nginx-sts-2   2/2     Running   0          6m16s   10.42.0.15   ctrlnode       <none>           <none>
+nginx-sts-1   2/2     Running   0          5m44s   10.42.0.16   ctrlnode       <none>           <none>
+nginx-sts-0   2/2     Running   0          5m11s   10.42.0.17   ctrlnode       <none>           <none>
+```
+
+#### 现场清理
+
+清理测试环境执行以下命令：
+
+> `kubectl delete ns --cascade sts-test`
+> `kubectl delete pv pv-hostpath-v1 pv-hostpath-v2 pv-hostpath-v3`
+
+### DaemonSet
+
+[DaemonSet](https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/daemonset/)的主要作用在集群中的每个节点上都运行一个`Pod`，而且只有一个，当有新的节点加入`Kubernetes`集群后，该`Pod`会自动地在新节点上被创建出来；而当旧节点被删除后，它上面的Pod也相应地会被回收掉，通常用于网络插件的`Agent`组件、日志组件以及监控组件等。
+
+下面是一个`DS`的示例，区别比较大的是它不用声明副本的数量，`spec.template.spec.tolerations` 是为了让它能够在控制节点上也运行：
+
+```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ds-test
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-elasticsearch
+  namespace: ds-test
+  labels:
+    k8s-app: fluentd-logging
+spec:
+  selector:
+    matchLabels:
+      name: fluentd-elasticsearch
+  template:
+    metadata:
+      labels:
+        name: fluentd-elasticsearch
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: fluentd-elasticsearch
+        image: quay.io/fluentd_elasticsearch/fluentd:v2.5.2
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+EOF
+```
+
+由于本地只有`1`个节点，运行成功之后，可以在本地看到如下的`Pod`：
+
+```
+$ kubectl get ds,pod -n ds-test -owide
+NAME                                   DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE   CONTAINERS              IMAGES                                         SELECTOR
+daemonset.apps/fluentd-elasticsearch   1         1         1       1            1           <none>          15s   fluentd-elasticsearch   quay.io/fluentd_elasticsearch/fluentd:v2.5.2   name=fluentd-elasticsearch
+
+NAME                              READY   STATUS    RESTARTS   AGE   IP           NODE           NOMINATED NODE   READINESS GATES
+pod/fluentd-elasticsearch-hrhn4   1/1     Running   0          15s   10.42.0.19   f00596107-px   <none>           <none>
+```
+
+现场清理使用：
+
+> `kubectl delete ns ds-test --cascade`
+
+### Job
+
+相较于`Deployment`，`StatefulSet`，`DaemonSet`处理在线任务的编排，[Job](https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/job/) 主要是处理离线任务，这种业务在计算完成后就直接退出了，而此时如果你依然用`Deployment`来管理这种业务的话，就会发现`Pod`会在计算结束后退出，然后被`Deployment Controller`不断地重启。
+
+`Job` 中有几个比较重要的概念：
+
+- `restartPolicy`，在`Deployment`中，`restartPolicy`只允许被设置为`Always`，在`Job`中只能被设置为`Never`或者`OnFailure`，因为离线计算的`Pod`永远都不应该被重启，否则又得重跑一边；
+- `parallelism`，用于控制一个`Job`在任意时间最多可以启动多少个`Pod`同时运行；
+- `completions`，定义的是`Job`至少要完成的`Pod`数目，即`Job`的最小完成数；
+- `backoffLimit`，在`restartPolicy=Never`时，如果`Pod`失败，会不断地有容器创建出来，在`restartPolicy=OnFailure`时，如果容器出错退出，`Job Controller`会不断滴重启`Pod`中的容器，那么这个重试不能一直进行，需要上限，这就是`backoffLimit`的意义；
+- `activeDeadlineSeconds`，用于设置`Job`的执行时间，一旦`Job`执行时间达到指定时间，其所有运行中的`Pod`都会被终止， 并且`Job`的状态更新为`type: Failed`及`reason: DeadlineExceeded`；
+- `ttlSecondsAfterFinished`，已完成`Job`（状态为 `Complete` 或 `Failed`）的清理使用该字段控制；
+
+下面是一个计算`π`值的`Job`：
+
+```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: job-test
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi
+  namespace: job-test
+spec:
+  template:
+    spec:
+      containers:
+      - name: pi
+        image: perl:5.34.0
+        command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+      restartPolicy: Never
+  backoffLimit: 4
+  parallelism: 2
+  completions: 4
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 720
+EOF
+```
+
+执行成功之后，可以通过下面的命令验证：
+
+> `kubectl get pod,job -n job-test -owide`
+
+```
+$ kubectl get pod,job -n job-test -owide
+NAME           READY   STATUS      RESTARTS   AGE     IP           NODE           NOMINATED NODE   READINESS GATES
+pod/pi-nn9c7   0/1     Completed   0          9m55s   10.42.0.20   f00596107-px   <none>           <none>
+pod/pi-52w8z   0/1     Completed   0          9m55s   10.42.0.21   f00596107-px   <none>           <none>
+pod/pi-2xwt8   0/1     Completed   0          8m6s    10.42.0.22   f00596107-px   <none>           <none>
+pod/pi-x2hrh   0/1     Completed   0          8m6s    10.42.0.23   f00596107-px   <none>           <none>
+
+NAME           COMPLETIONS   DURATION   AGE     CONTAINERS   IMAGES        SELECTOR
+job.batch/pi   4/4           116s       9m55s   pi           perl:5.34.0   batch.kubernetes.io/controller-uid=8d6c866d-ef96-4152-bc69-09010e705d84
+root@F00596107-PX:/mnt/e/rust/hello#
+```
+
+### CronJob
+
+`CronJob`相较于`Job`，就相当于 `Deployment`之于`ReplicaSet`，它是一个`Job`的控制器，使用类`Unix Cron`的格式定时创建`Job`，如下所示的例子：
+
+```shell
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cronjob-test
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pi
+  namespace: cronjob-test
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: pi
+            image: perl:5.34.0
+            command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+          restartPolicy: Never
+      backoffLimit: 4
+      parallelism: 2
+      completions: 4
+      activeDeadlineSeconds: 200
+      ttlSecondsAfterFinished: 240
+EOF
+```
+
+表示每`5`分钟创建一个`Job`执行，如下所示：
+
+> `kubectl get cronjob,job,pod -n cronjob-test -owide`
+
+```
+$ kubectl get cronjob,job,pod -n cronjob-test -owide
+NAME               SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE     CONTAINERS   IMAGES        SELECTOR
+cronjob.batch/pi   */5 * * * *   False     1        13s             5m43s   pi           perl:5.34.0   <none>
+
+NAME                    COMPLETIONS   DURATION   AGE   CONTAINERS   IMAGES        SELECTOR
+job.batch/pi-28418940   2/4           13s        13s   pi           perl:5.34.0   batch.kubernetes.io/controller-uid=ee359b6e-a7d1-44fe-b722-18f1992b42a9
+
+NAME                    READY   STATUS      RESTARTS   AGE   IP           NODE           NOMINATED NODE   READINESS GATES
+pod/pi-28418940-wspx6   0/1     Completed   0          13s   10.42.0.24   f00596107-px   <none>           <none>
+pod/pi-28418940-gmzp6   0/1     Completed   0          13s   10.42.0.25   f00596107-px   <none>           <none>
+pod/pi-28418940-vkrzk   0/1     Completed   0          6s    <none>       f00596107-px   <none>           <none>
+pod/pi-28418940-m9h4p   0/1     Completed   0          6s    <none>       f00596107-px   <none>           <none>
+```
 
 
 ### 参考链接
