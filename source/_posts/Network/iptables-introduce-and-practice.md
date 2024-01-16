@@ -451,8 +451,16 @@ iptables --append INPUT --protocol tcp \
 
 例如，我们可以将访问本地`80`端口的包转发到`8080端口`：
 
+```shell
+iptables -t nat -A PREROUTING -p tcp --dport 12000 --jump REDIRECT --to-ports 12000
 ```
-iptables --table nat --append PREROUTING --protocol tcp — dport 80 --jump REDIRECT --to 8080
+
+##### DNAT转换
+
+例如，对于只监听了本地地址的服务，想通过本机公网地址访问，可以使用`DNAT`进行转换：
+
+```shell
+iptables -t nat -I PREROUTING 1 -p tcp --dport 12000 --jump DNAT --to-destination 127.0.0.1:12000
 ```
 
 
