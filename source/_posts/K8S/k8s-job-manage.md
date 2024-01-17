@@ -15,6 +15,12 @@ categories:
 
 `Pod` 是`K8S`中的调度单位，它是一个逻辑概念，用于将一些关系密切的容器部署在一起提供对外服务，这些容器互相之间会发生直接的文件交换、使用`localhost`或者`Socket`文件进行本地通信、会发生非常频繁的远程调用、需要共享某些Linux Namespace等等，`Pod` 中的所有容器都共享同一个`Network Namespace`。`K8S` 中为了实现不同的目的，在`Pod`基础之上衍生出了不同的部署模型，例如，常见的 `Deployment`、`Replicaset`、以及`StatefulSet`等等，本文就来举例并且说明它们之间的区别。
 
+这些对象之间的关系如下图所示：
+
+{% asset_img k8s-schedule-objects.png %}
+
+<!-- more -->
+
 ### Pod
 
 [Pod](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/) 这个看似复杂的API对象，实际上就是对容器的进一步抽象和封装而已，`Pod`对象，其实就是容器的升级版，它对容器进行了组合，添加了更多的属性和字段。依据[PodAPI](https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/workload-resources/pod-v1/) 编写一个`Pod`模板，然后使用`kubectl`提交到集群中，这个`Pod`里面包含两个容器，`whoami`监听`80`端口，提供一个简单的服务返回主机名，`nettool` 是一个工具容器，提供了很多可用的网络工具供测试使用：
@@ -51,8 +57,6 @@ spec:
     args: ["86400"]
 EOF
 ```
-
-<!-- more -->
 
 执行之后，使用下面的命令查看创建成功的`Pod`：
 
