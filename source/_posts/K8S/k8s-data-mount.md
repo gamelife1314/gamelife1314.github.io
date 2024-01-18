@@ -99,7 +99,7 @@ db-user-pass-v2   Opaque   2      5m50s
 db-user-pass-v3   Opaque   2      57s
 ```
 
-然后将创建的`Secret`挂载到`Pod`中：
+然后将创建的`Secret`挂载到`Pod`中，`Secret`不仅可以挂载到容器中的目录，还可以绑定到环境变量中：
 
 ```
 kubectl apply -f - <<EOF
@@ -122,6 +122,17 @@ spec:
         - name: db-user-pass-v1-to-v3
           mountPath: "/run/db-user-pass-v1-to-v3"
           readOnly: true
+      env:
+        - name: DB_USER_NAME
+          valueFrom:
+            secretKeyRef:
+              name: db-user-pass-v3
+              key: user
+        - name: DB_USER_PASS
+          valueFrom:
+            secretKeyRef:
+              name: db-user-pass-v3
+              key: pass
   volumes:
     - name: db-user-pass
       secret:
@@ -166,6 +177,9 @@ bash-5.1# cat /run/db-user-pass-v1-to-v3/v3/user
 admin
 bash-5.1# cat /run/db-user-pass-v1-to-v3/v3/pass
 123456
+bash-5.1# env | grep DB_USER
+DB_USER_NAME=admin
+DB_USER_PASS=123456
 ```
 
 #### 基本身份认证
@@ -301,3 +315,172 @@ tls.crt:  1505 bytes
 清理现场使用如下命令：
 
 > `kubectl delete ns --cascade secret-test`
+
+### ConfigMap
+
+[ConfigMap](https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-pod-configmap/)与 `Secret` 类似，区别是不需要加密，常用于应用的配置，可以从文件或者`yaml`对象文件进行创建。
+
+首先，创建命名空间用于测试，方便后续清理现场：
+
+> `kubectl create ns configmap-test`
+
+准备`2`个配置文件，存放于`properties`目录下：
+
+```
+$ cat properties/ui1.properties
+color.good=purple
+color.bad=yellow
+allow.textmode=true
+how.nice.to.look=fairlyNice
+$ cat properties/ui2.properties
+color.good=purple
+color.bad=yellow
+allow.textmode=true
+how.nice.to.look=fairlyNice
+```
+
+从目录创建`ConfigMap`，目录下的所有文件都将创建到`ConfigMap`中：
+
+> `kubectl -n configmap-test create configmap game-config1 --from-file=properties/`
+
+从具体的文件创建`ConfigMap`，如果需要指定建明，则需要使用 `--from-file=<我的键名>=<文件路径>` 格式:
+
+> `kubectl -n configmap-test create configmap game-config2 --from-file=properties/ui1.properties`
+
+可以同时从多个数据源创建`ConfigMap`：
+
+> `kubectl -n configmap-test create configmap game-config3 --from-file=properties/ui1.properties --from-file=properties/ui2.properties`
+
+```
+$ kubectl -n configmap-test get configmap game-config3 -o yaml
+apiVersion: v1
+data:
+  ui1.properties: |
+    color.good=purple
+    color.bad=yellow
+    allow.textmode=true
+    how.nice.to.look=fairlyNice
+  ui2.properties: |
+    color.good=purple
+    color.bad=yellow
+    allow.textmode=true
+    how.nice.to.look=fairlyNice
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2024-01-18T02:29:01Z"
+  name: game-config3
+  namespace: configmap-test
+  resourceVersion: "63813"
+  uid: b5336f08-c63a-4aae-8f41-6d29b7d4a740
+root@F00596107-PX:/home/michael#
+```
+
+也可以使用 `--from-env-file` 从 `env` 文件进行创建，`env`文件是每行都是`key=val`的格式，而且注释和空行都将被忽略，上面的`ui1.properties`也是正确的`env`文件，但是每条配置多作为一个`key`：
+
+> `kubectl -n configmap-test create configmap game-config4 --from-env-file=properties/ui1.properties`
+
+```
+$ kubectl -n configmap-test get configmap game-config4 -o yaml
+apiVersion: v1
+data:
+  allow.textmode: "true"
+  color.bad: yellow
+  color.good: purple
+  how.nice.to.look: fairlyNice
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2024-01-18T02:31:45Z"
+  name: game-config4
+  namespace: configmap-test
+  resourceVersion: "63864"
+  uid: 18e207c5-6844-499b-a760-0051a63af500
+```
+
+也可以从字面量进行创建：
+
+> `kubectl -n configmap-test create configmap game-config5 --from-literal=special.how=very --from-literal=special.type=charm`
+
+创建`Pod`并且挂载上面创建的`ConfigMap`：
+
+```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nettool
+  namespace: configmap-test
+spec:
+  containers:
+    - name: nettool
+      image: praqma/network-multitool
+      imagePullPolicy: IfNotPresent
+      command: ["sleep"]
+      args: ["86400"]
+      volumeMounts:
+        - name: game-config1
+          mountPath: "/etc/game/game-config1"
+          readOnly: true
+        - name: all-in-one
+          mountPath: "/etc/all-in-one"
+          readOnly: true
+      env:
+        - name: SPECIAL_HOW
+          valueFrom:
+            configMapKeyRef:
+              name: game-config5
+              key: special.how
+        - name: ALLOW_TEXTMODE
+          valueFrom:
+            configMapKeyRef:
+              name: game-config4
+              key:  allow.textmode
+  volumes:
+    - name: game-config1
+      configMap:
+        name: game-config1
+    - name: all-in-one
+      projected:
+        sources:
+          - configMap:
+             name: game-config2
+             items:
+               - key: ui1.properties
+                 path: game-config2/ui1.properties
+          - configMap:
+             name: game-config3
+             items:
+               - key: ui2.properties
+                 path: game-config3/ui2.properties
+EOF
+```
+
+进入到容器中进行验证：
+
+> `kubectl exec nettool -n configmap-test -it -c nettool -- /bin/bash`
+
+```
+$ kubectl exec nettool -n configmap-test -it -c nettool -- /bin/bash
+bash-5.1# cat /etc/game/game-config1/ui1.properties
+color.good=purple
+color.bad=yellow
+allow.textmode=true
+how.nice.to.look=fairlyNice
+bash-5.1# cat /etc/game/game-config1/ui2.properties
+color.good=purple
+color.bad=yellow
+allow.textmode=true
+how.nice.to.look=fairlyNice
+bash-5.1# cat /etc/all-in-one/game-config2/ui1.properties
+color.good=purple
+color.bad=yellow
+allow.textmode=true
+how.nice.to.look=fairlyNice
+bash-5.1# cat /etc/all-in-one/game-config3/ui2.properties
+color.good=purple
+color.bad=yellow
+allow.textmode=true
+how.nice.to.look=fairlyNice
+bash-5.1# env | grep -E "SPECIAL_HOW|ALLOW_TEXTMODE"
+ALLOW_TEXTMODE=true
+SPECIAL_HOW=very
+```
