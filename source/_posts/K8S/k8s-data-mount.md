@@ -484,3 +484,7 @@ bash-5.1# env | grep -E "SPECIAL_HOW|ALLOW_TEXTMODE"
 ALLOW_TEXTMODE=true
 SPECIAL_HOW=very
 ```
+
+清理现场：
+
+> `kubectl delete ns configmap-test --cascade`
