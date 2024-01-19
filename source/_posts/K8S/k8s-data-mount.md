@@ -488,3 +488,10 @@ SPECIAL_HOW=very
 清理现场：
 
 > `kubectl delete ns configmap-test --cascade`
+
+### DownwardAPI
+
+通过 [DownwardAPI](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/) 可以将`Pod`对象本身的信息传递给容器中，主要可以通过[fieldRef](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef) 以及 [resourceFieldRef](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-resourceFieldRef) 进行获取，请看如下示例：
+
+```
+```
