@@ -466,9 +466,9 @@ gamelife1314.github.io. 5       IN      A       185.199.111.153
 
 ### Ingress
 
-`Loadbalancer`类型的服务为每个`Service`都创建了一个负载均衡服务，这种做法成本高，实现麻烦，作为普通用户，我们应该更应该希望k8s能提供像nginx这样的反向代理功能，基于不同的`Host`，或者`url`规则，把我们的请求转发到不同的后端服务中去，[Ingress](https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/service-resources/ingress-v1/#Ingress) 就是用来提供这样的服务，我们可以把它看做是`Service`的`Service`，因为一个`Ingress`的后端对象是`Service`，不像`Service`，它的后端是`Pod`。
+`Loadbalancer`类型的服务为每个`Service`都创建了一个负载均衡服务，这种做法成本高，实现麻烦，作为普通用户，应该更应该希望k8s能提供像nginx这样的反向代理功能，基于不同的`Host`，或者`url`规则，把请求转发到不同的后端服务中去，[Ingress](https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/service-resources/ingress-v1/#Ingress) 就是用来提供这样的服务，可以把它看做是`Service`的`Service`，因为一个`Ingress`的后端对象是`Service`，不像`Service`，它的后端是`Pod`。
 
-为了演示，除了本篇开始创建的`nginx-deploy-clusterip-svc`，我们再创建一个`Service`，使用如下的命令：
+为了演示，除了本篇开始创建的`nginx-deploy-clusterip-svc`，再创建一个`Service`，使用如下的命令：
 
 > kubectl create deployment whoami --image=traefik/whoami -r 3 --port=80
 > kubectl expose deployment whoami --port=8080 --target-port=80 --type=ClusterIP --name=whoami
@@ -528,7 +528,7 @@ spec:
 EOF
 ```
 
-上面的`ingressClassName`指得是这个`Ingress`使用哪个`IngressController`，因为`Ingress`对象只是一份描述文件，它并没有实际的意义，需要`IngressController`对它解释并提供服务，而`IngressController`需要额外安装的，这里我们使用[NginxIngress](https://kubernetes.github.io/ingress-nginx/deploy/#quick-start)，安装如下所示：
+上面的`ingressClassName`指得是这个`Ingress`使用哪个`IngressController`，因为`Ingress`对象只是一份描述文件，它并没有实际的意义，需要`IngressController`对它解释并提供服务，而`IngressController`需要额外安装的，这里使用[NginxIngress](https://kubernetes.github.io/ingress-nginx/deploy/#quick-start)，安装如下所示：
 
 > `kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/cloud/deploy.yaml`
 
@@ -556,7 +556,7 @@ validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admiss
 root@ctrlnode:/home/ubuntu#
 ```
 
-等一切就绪的时候，我们去查看创建的`default-ingress`，它已经被分配了从集群外访问的外部地址`192.168.67.241`：
+等一切就绪的时候，去查看创建的`default-ingress`，它已经被分配了从集群外访问的外部地址`192.168.67.241`：
 
 ![](defualt-ingress.png)
 
