@@ -491,7 +491,133 @@ SPECIAL_HOW=very
 
 ### DownwardAPI
 
-通过 [DownwardAPI](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/) 可以将`Pod`对象本身的信息传递给容器中，主要可以通过[fieldRef](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef) 以及 [resourceFieldRef](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-resourceFieldRef) 进行获取，请看如下示例：
+通过 [DownwardAPI](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/) 可以将`Pod`对象本身的信息传递给容器中的环境变量或者挂载到容器中的文件，主要可以通过[fieldRef](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef) 以及 [resourceFieldRef](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-resourceFieldRef) 进行获取，请看如下示例：
 
 ```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: downwardapi-test
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nettool
+  namespace: downwardapi-test
+  annotations:
+    key1: value1
+  labels:
+    label1: value1
+spec:
+  containers:
+    - name: nettool
+      image: praqma/network-multitool
+      imagePullPolicy: IfNotPresent
+      command: ["sleep"]
+      args: ["86400"]
+      volumeMounts:
+        - name: poduid
+          mountPath: "/etc/podinfo/uid"
+          readOnly: true
+        - name: podinfo
+          mountPath: "/etc/podinfo"
+          readOnly: true
+      resources:
+        limits:
+          memory: 50Mi
+          cpu: 0.5
+        requests:
+          memory: 50Mi
+          cpu: 0.5
+      env:
+        - name: SVC_ACCOUNT_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: POD_IPS
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIPs
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: LIMITS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
+        - name: REQUESTS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              resource: requests.memory
+  volumes:
+    - name: poduid
+      downwardAPI:
+        items:
+          - path: "poduid"
+            fieldRef:
+              fieldPath: metadata.uid
+    - name: podinfo
+      projected:
+        sources:
+          - downwardAPI:
+             items:
+              - path: "name"
+                fieldRef:
+                  fieldPath: metadata.name
+              - path: "namespace"
+                fieldRef:
+                  fieldPath: metadata.namespace
+              - path: "annotations"
+                fieldRef:
+                  fieldPath: metadata.annotations
+              - path: "labels"
+                fieldRef:
+                  fieldPath: metadata.labels
+              - path: "limits_cpu"
+                resourceFieldRef:
+                  resource: limits.cpu
+                  containerName: nettool
+              - path: "requests_cpu"
+                resourceFieldRef:
+                  resource: requests.cpu
+                  containerName: nettool
+EOF
 ```
+
+提交成功之后，可以使用下面的命令进入容器进行验证：
+
+> `kubectl exec -n  downwardapi-test nettool -it -c nettool -- /bin/bash`
+
+现场清理使用如下的命令：
+
+> `kubectl delete ns downwardapi-test --cascade`
+
+本节参考链接：
+
+1. [为 Pod 和容器管理资源](https://kubernetes.io/zh-cn/docs/concepts/configuration/manage-resources-containers/)
+2. [Pod容器资源API](https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/workload-resources/pod-v1/#%E8%B5%84%E6%BA%90)
+3. [数据卷描述](https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume)
+4. [DownwardAPI](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-resourceFieldRef)
+
