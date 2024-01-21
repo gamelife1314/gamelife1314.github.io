@@ -23,18 +23,20 @@ date: 2024-01-01 14:07:02
     > `kubectl taint nodes ctrlnode node-role.kubernetes.io/control-plane:NoSchedule-`
 2. 节点标签：
     > `kubectl label node node1 node-role.kubernetes.io/worker=worker`
+    > `kubectl label nodes ctrlnode pvtype-`
 3. 根据标签查询`Pod`：
     > `kubectl get pods -l app=nginx -owide`
 4. `Pod`扩缩容：
     > `kubectl scale --current-replicas=2 --replicas=3 deployment/nginx-deployment`
-5. `Pod`中容器：
+5. 查询`Pod`中的容器：
     > `kubectl get pods nginx-deployment-848dd6cfb5-2gvg9 -o jsonpath={.spec.containers[*].name}`
 6. 进入`Pod`中的容器：
     > `kubectl exec nginx-deployment-848dd6cfb5-2gvg9 -n default -it -c nginx -- /bin/bash`
     > `kubectl -n kube-system exec ds/cilium -- cilium status`
-7. `Pod`服务创建：
+7. `Service`创建：
+    > 从`deploy`创建服务
     > `kubectl expose deploy nginx-deployment --port=8080 --target-port=80 --type=ClusterIP --name=nginx-deploy-clusterip-svc`
-8. 创建`Pod`：
+8. 创建`Pod`并执行命令：
     > `kubectl run mytools -it --rm --image=praqma/network-multitool --image-pull-policy=IfNotPresent --command -- /bin/bash`
 9. 更新镜像：
     > `kubectl set image -n deploy-test deployment/nginx-deploy nginx=nginx:1.16.1 --record`
