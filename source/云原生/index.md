@@ -6,14 +6,15 @@ date: 2024-01-01 14:07:02
 ### 系列文章
 
 1. [容器技术探索](/2023/12/22/Docker/create-contaienr-with-linux-original-tech/)
-2. [容器网络（一）](/2023/12/09/Network/container-network-single-host/)
-3. [容器网络（二）](/2023/12/12/Network/container-network-cross-host/)
+2. [单机容器网络](/2023/12/09/Network/container-network-single-host/)
+3. [跨主机容器网络](/2023/12/12/Network/container-network-cross-host/)
 4. [容器运行时介绍](/2023/12/20/K8S/container-runtime/)
 5. [Iptables 介绍](/2023/12/25/Network/iptables-introduce-and-practice/)
 6. [K8S 集群部署](/2023/12/17/K8S/kubeadm-deploy/)
 7. [K8S CNI 网络](/2023/12/29/K8S/k8s-cni-network/)
 8. [K8S 服务&Ingress](/2024/01/02/K8S/k8s-service/)
 9. [K8S 作业管理](/2024/01/10/K8S/k8s-job-manage/)
+10. [K8S 持久化与数据挂载](/2024/01/17/K8S/k8s-data-mount/)
 
 ### 常用命令
 
@@ -45,7 +46,6 @@ date: 2024-01-01 14:07:02
     > `kubectl rollout history -n deploy-test deployment/nginx-deploy`
 11. 回滚:
     > `kubectl rollout undo -n deploy-test deployment/nginx-deploy --to-revision=1`
-
 
 #### crictl
 
