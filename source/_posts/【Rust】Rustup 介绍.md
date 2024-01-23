@@ -11,8 +11,10 @@ categories:
 
 可以将 `rustup` 看做 `rust` 的版本管理器，方便我们在不同的 `channel` 之间进行切换。 在国内 `rust` 的相关网站是没有被 `GFW` 屏蔽的，但是访问速度还是很慢。好在国内有很多镜像源，例如，我这里使用的是中国科学技术大学的镜像，配置的话只需要添加两个环境变量：
 
-- `export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static`
-- `export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup`
+```shell
+export RUSTUP_DIST_SERVER="https://rsproxy.cn"
+export RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
+```
 
 `rustup` 的安装我们依然使用官方的方式：
 
