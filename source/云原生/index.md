@@ -37,8 +37,11 @@ date: 2024-01-01 14:07:02
 7. `Service`创建：
     > 从`deploy`创建服务
     > `kubectl expose deploy nginx-deployment --port=8080 --target-port=80 --type=ClusterIP --name=nginx-deploy-clusterip-svc`
-8. 创建`Pod`并执行命令：
+8. 创建`Pod`：
+    > 创建并且Attach
     > `kubectl run mytools -it --rm --image=praqma/network-multitool --image-pull-policy=IfNotPresent --command -- /bin/bash`
+    > 仅创建
+    > `kubectl run mytools --image=praqma/network-multitool --image-pull-policy=IfNotPresent`
 9. 更新镜像：
     > `kubectl set image -n deploy-test deployment/nginx-deploy nginx=nginx:1.16.1 --record`
     > `kubectl patch statefulset nginx-sts --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value":"nginx:1.16.1"}]'`

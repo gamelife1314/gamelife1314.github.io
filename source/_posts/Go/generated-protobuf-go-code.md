@@ -23,7 +23,7 @@ categories:
 
 ### 准备工作
 
-在本地创建一个目录 `proto`，下载 [`protoc`](https://github.com/protocolbuffers/protobuf/releases) 对应平台的版本到本地目录，然后创建一个 `hello.proto` 文件，内容如下：
+在本地创建一个目录 `proto`，下载 [protoc](https://github.com/protocolbuffers/protobuf/releases) 对应平台的版本到本地目录，然后创建一个 `hello.proto` 文件，内容如下：
 
 ```proto
 // version of protocol buffer used
