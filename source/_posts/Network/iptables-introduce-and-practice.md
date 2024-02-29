@@ -277,7 +277,7 @@ iptables \
 --jump REJECT                # Use the target Reject
 ```
 
-`-t filter` 我们可以不用声明，默认就是这张表。
+`-t filter` 可以不用声明，默认就是这张表。
 
 ##### 添加规则到具体位置
 
@@ -302,7 +302,7 @@ num target prot opt source destination
 1 DROP all -- anywhere 31.13.78.0/24
 ```
 
-假设我们要阻止除了其中一个地址`59.45.175.10`之外的整个`IP`块`59.45.175.0/24`，由于`iptables`按序遍历规则并且处理，所以我们在最开始的位置将`59.45.175.10`加入白名单即可：
+假设要阻止除了其中一个地址`59.45.175.10`之外的整个`IP`块`59.45.175.0/24`，由于`iptables`按序遍历规则并且处理，所以在最开始的位置将`59.45.175.10`加入白名单即可：
 
 ```
 iptables --table filter --insert INPUT 1 --source 59.45.175.10 --jump ACCEPT
@@ -327,7 +327,7 @@ num target prot opt source destination
 
 ##### 禁止访问某个端口
 
-例如，我们可以禁止某个访问的`IP`登录我们的主机：
+例如，可以禁止某个访问的`IP`登录我们的主机：
 
 ```
 iptables \
@@ -373,7 +373,7 @@ iptables --append OUTPUT --protocol icmp --jump DROP --icmp-type echo-reply
 
 ##### TCP连接状态跟踪
 
-如果我们通过`INPUT`链禁止了某个`IP`访问本机，那我们同样也访问了这个`IP`，因为即使我们的请求到达了对端，但是对端的响应在到达本机的途中，经过`iptables`时被丢掉了。但是我们可以通过`conntrack`模块解决这个问题，因为`iptables`是一个有状态的防火墙，我们可以使用这个模块跟踪一下任意状态：
+如果通过`INPUT`链禁止了某个`IP`访问本机，那我们同样也访问了这个`IP`，因为即使我们的请求到达了对端，但是对端的响应在到达本机的途中，经过`iptables`时被丢掉了。但是可以通过`conntrack`模块解决这个问题，因为`iptables`是一个有状态的防火墙，可以使用这个模块跟踪一下任意状态：
 
 - `NEW`：该状态表示连接的第一个数据包；
 - `ESTABLISHED`：此状态表示属于现有连接一部分的数据包，对于处于这种状态的连接，它应该已经收到来自其他主机的答复；
@@ -431,7 +431,7 @@ iptables --append INPUT --protocol tcp --match conntrack --ctstate NEW --match t
 
 > iptables --append INPUT --protocol icmp --match limit --limit 1/sec --limit-burst 1 --jump ACCEPT
 
-我们可以使用`recent`模块实现一个动态限制，例如，我们可以限制某个IP在过去的`180s`内最多`5`次连接到本机，不过这通常需要两个命令配合完成：
+可以使用`recent`模块实现一个动态限制，例如，我们可以限制某个IP在过去的`180s`内最多`5`次连接到本机，不过这通常需要两个命令配合完成：
 
 ```
 # 将访问22端口的IP都放在一个名为SSHLIMIT的列表中
@@ -449,7 +449,7 @@ iptables --append INPUT --protocol tcp \
 
 ##### 本地端口重定向
 
-例如，我们可以将访问本地`80`端口的包转发到`8080端口`：
+例如，可以将访问本地`80`端口的包转发到`8080端口`：
 
 ```shell
 iptables -t nat -A PREROUTING -p tcp --dport 12000 --jump REDIRECT --to-ports 12000
