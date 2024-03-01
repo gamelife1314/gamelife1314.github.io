@@ -152,7 +152,7 @@ Hello World!
 
 #### mkcert
 
-除了使用 `openssl` 工具进行证书的创建，还可以使用[mkcert](https://github.com/FiloSottile/mkcert)这个开源工具进行证书的创建，可以下载预编译的二进制文件进行使用。安装好之后，首先安装根证书到系统的证书链中，执行下面的命令：
+除了使用 `openssl` 工具进行证书的创建，还可以使用[mkcert](https://github.com/FiloSottile/mkcert)这个开源工具进行证书的创建，下载之后，首先安装根证书到系统的证书链中，执行下面的命令：
 
 > `mkcert -install`
 
@@ -425,7 +425,7 @@ cert-manager-webhook-787858fcdb-nlzsq      1/1     Running   0          2m
 
 ##### 自签名证书
 
-使用 `cert-manaer` 最简单的是先要配置`Issuer`或者`ClusterIssuer`，前者属于命名空间资源，后者属于集群资源，为了简单测试，这里先试用自签名证书进行演示：
+使用 `cert-manaer` 前提是先要配置`Issuer`或者`ClusterIssuer`，前者属于命名空间资源，后者属于集群资源，为了简单测试，这里先试用自签名证书进行演示：
 
 ```
 kubectl apply -f - <<EOF
@@ -512,7 +512,7 @@ how to fix it, please visit the web page mentioned above.
 
 ##### CA Issuer
 
-可以将外部创建的已经受信任的`ca`证书上传到`k8s`中，然后使用该`CA`证书签名生成新的证书。例如，在上面的实验中，已经将 `mkcert` 的根证书安装到了系统中，现在将它也上传到`cert-manager`中，用于签发新的证书，也可以使用 `openssl` 创建的根证书。首先使用下面的命令查看根证书和私钥的位置：
+可以将外部创建的已经受信任的`CA`根证书上传到`k8s`中，然后使用该`CA`证书签名生成新的证书。例如，在上面的实验中，已经将 `mkcert` 的根证书安装到了系统中，现在将它也上传到`cert-manager`中，用于签发新的证书，也可以使用 `openssl` 创建的根证书。首先使用下面的命令查看根证书和私钥的位置：
 
 ```
 $ mkcert -CAROOT
@@ -608,8 +608,6 @@ X-Real-Ip: 10.42.0.1
 X-Request-Id: a742955026ebfb51842b59f13c5c310b
 X-Scheme: https
 ```
-
-
 
 ### 参考链接
 
