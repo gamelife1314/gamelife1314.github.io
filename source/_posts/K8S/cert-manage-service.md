@@ -4,6 +4,8 @@ date: 2024-02-29 09:35:32
 tags:
     - 证书
     - cert-manager
+    - mkcert
+    - openssl
 categories:
     - k8s
 ---
