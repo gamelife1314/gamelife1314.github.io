@@ -17,7 +17,7 @@ categories:
 
 在这些问题的促使下，社区又提出了新的概念：[Gateway](https://gateway-api.sigs.k8s.io/)，明确定义并划分不同角色的职责范围有助于简化管理，对三个主要的 `Gateway API` 资源（`GatewayClass`、`Gateway` 和 `Route`）进行了标准化。具体来说，基础架构提供商负责为 `Kubernetes` 集群定义 `GatewayClasses`，集群运维人员则负责在集群中部署和配置 `Gateway`（包括策略），而应用开发人员可以自由地将 `Route` 附加到 `Gateway`，以对外暴露应用。
 
-{% asset_img ttps://www.nginx-cn.net/wp-content/uploads/2022/06/5-things-NGINX-Kubernetes-Gateway_RBAC.png %}
+{% asset_img cover.png %}
 
 <!-- more -->
 
