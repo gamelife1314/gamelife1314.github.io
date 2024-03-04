@@ -7,6 +7,7 @@ tags:
     - Loadblance
     - ExternalName
     - Ingress
+    - MetaLB
 categories:
     - k8s
 ---
@@ -257,7 +258,7 @@ root@ctrlnode:/home/ubuntu#
 
 安装[METALLB](https://metallb.universe.tf/)作为`LoadBalancer`：
 
-> kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
+> `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.3/config/manifests/metallb-native.yaml`
 
 然后使用如下命令为`METALLB`生成配置，下面的配置让它工作在二层协议，为其分配的地址和我们三个节点处在相同的网段，关于它更多的原理可以看[这里](https://atbug.com/load-balancer-service-with-metallb/)：
 
@@ -283,11 +284,11 @@ spec:
 EOF
 ```
 
-这个时候再去查看`Service`，它的`EXTERNAL-IP`已经被分配成了`192.168.67.240`：
+`192.168.67.240-192.168.67.250` 要和节点的公网`IP`处于同一个地址段，查看`Service`，它的`EXTERNAL-IP`已经被分配成了`192.168.67.240`：
 
 ![](lb-service-ip-allocate.png)
 
-此时如果我们访问`http://192.168.67.240:8082/`是可以访问通的，因为`LoadBlancer`服务将这个`IP`地址的`MAC`信息通过`ARP`协议添加到了我们的`Host`上，而且这个地址对应的`MAC`信息和我们`ctrlnode`的公网`IP`的`MAC`地址完全一样，所以当从`Host`或者集群中的其他节点上进行访问的时候其实直接到了我们的`ctrlnode`进行处理：
+此时如果访问`http://192.168.67.240:8082/`是可以访问通的，因为`LoadBlancer`服务将这个`IP`地址的`MAC`信息通过`ARP`协议添加到了我们的`Host`上，而且这个地址对应的`MAC`信息和我们`ctrlnode`的公网`IP`的`MAC`地址完全一样，所以当从`Host`或者集群中的其他节点上进行访问的时候其实直接到了我们的`ctrlnode`进行处理：
 
 {% grouppicture 2-2 %}
 ![](lb-service-mac-same.png)
@@ -298,7 +299,7 @@ EOF
 
 ![](lb-service-kubeservice-chain.png)
 
-可以看到的是，`LoadBlancer` 类型的服务既可以从集群内部通过`ClusterIP`访问，也可以从外部通过`ExternalIP`进行访问，当通过`192.168.67.240`这个`IP`进行访问的时候，这个请求下一步会进入到`KUBE-EXT-BKP5P6G6IWL6KD3D`这个链中进行处理：
+可以看到的是，`LoadBlancer`类型的服务既可以从集群内部通过`ClusterIP`访问，也可以从外部通过`ExternalIP`进行访问，当通过`192.168.67.240`这个`IP`进行访问的时候，这个请求下一步会进入到`KUBE-EXT-BKP5P6G6IWL6KD3D`这个链中进行处理：
 
 ![](lb-service-ext-chain.png)
 
