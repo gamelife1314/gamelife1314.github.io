@@ -49,6 +49,8 @@ date: 2024-01-01 14:07:02
     > `kubectl rollout history -n deploy-test deployment/nginx-deploy`
 11. 回滚:
     > `kubectl rollout undo -n deploy-test deployment/nginx-deploy --to-revision=1`
+12. 重启 `Deploy`：
+    > `kubectl rollout restart deployment cert-manager -n cert-manager`
 
 #### crictl
 

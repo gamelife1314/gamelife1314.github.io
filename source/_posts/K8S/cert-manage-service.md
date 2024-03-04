@@ -510,7 +510,28 @@ establish a secure connection to it. To learn more about this situation and
 how to fix it, please visit the web page mentioned above.
 ```
 
-有两种解决方案，一种是在访问的时候添加`-k`参数，表示忽略证书验证，一种是将`selfsigned-issuer-secret`中的`ca.crt`保存到系统的证书链中。
+有两种解决方案，一种是在访问的时候添加`-k`参数，表示忽略证书验证，一种是将`selfsigned-issuer-secret`中的`ca.crt`保存到系统的证书链中。可以使用下面的命令到处 `ca.crt`：
+
+```
+$ kubectl get -n ingress-tls secret selfsigned-issuer-secret -ogo-template='{{index .data "ca.crt"}}' | base64 -d
+-----BEGIN CERTIFICATE-----
+MIICyjCCAbKgAwIBAgIQC79gWN0bpVcxv/KP4po1hzANBgkqhkiG9w0BAQsFADAA
+MB4XDTI0MDIyOTA4MTUxNVoXDTI0MDUyOTA4MTUxNVowADCCASIwDQYJKoZIhvcN
+AQEBBQADggEPADCCAQoCggEBAKPb+/si9W8FslMfopaqNi8vyNi/cQNJiXw5cTEC
+0wsC0jZsOnGH3FHYSgEGyQYbpwi0TVzghsHfBvjUIPDS047YtJF0T1KscI1XE+sk
+NizDqXHFW+Hw4mvLo2RUhS0N5SBTPJ29Fcwm0BzwQvokYF7tDcI3ibGrHrTVMLXi
+wI1P3h43zElQD+Mz45eh+4oJqwGauJ1KnZoeuXVILcTG53izh12YkGahNtKg69Xp
+id+/YhEnFAKahT4eovhHROgXbz0A34uFm5o/m7vg9VNzT+tvf8NCyHXw2+gbMhKN
+rE++Lgr4fl+e/CDEiaHFPF4NGIYRyYeKmVKXREImLXbYcIUCAwEAAaNAMD4wDgYD
+VR0PAQH/BAQDAgWgMAwGA1UdEwEB/wQCMAAwHgYDVR0RAQH/BBQwEoIQd2hvYW1p
+LnN2Yy5sb2NhbDANBgkqhkiG9w0BAQsFAAOCAQEAH4ZVh58vRKSVpXwjbzVxy8d0
+qr3oyqVeVwhkefaRhcbposVzHFRxa8UPvFePSWXAR1ciYs4EPTeE9Y8l0//fS+MJ
+bHUduup6qpKyv7Q/H3J9B9wr3KKncufZe5tY1an2rlc3RIK85GrORs160Gfrw90d
+HvbdyXlQQmwpgGo6D77EMb/F8Zip5t2sE09uMsHnMx9rlfitq7wbbcFSXRtDieXF
+XOT6HDNA+VJywfKsC1WNq+BEVLdVBEpcdW31bNR7TjxdSh063icRDy1Z2F9IgmC1
+Buf3gcTzcpEQeHqkF+eLTvZdcRn67dExhn9NPZhj1JkJzKw4fztTiIaqdasQgA==
+-----END CERTIFICATE-----
+```
 
 ##### CA Issuer
 
@@ -611,8 +632,317 @@ X-Request-Id: a742955026ebfb51842b59f13c5c310b
 X-Scheme: https
 ```
 
+#### Gateway
+
+前面的测试都是为 `Ingress` 增加 `tls` 证书，接下来示例为 `Gateway` 增加 `tls` 证书。首先创建一个 `ClusterIssuer`，使用 `mkcert` 的 `CA` 证书：
+
+> `kubectl create -n cert-manager secret tls mkcert-ca-secret --cert=/root/.local/share/mkcert/rootCA.pem --key=/root/.local/share/mkcert/rootCA-key.pem`
+
+然后创建 `ClusterIssuer`，`ClusterIssuer` 资源的默认命名空间其实就是 `cert-manager`，这也是为何上面的根证书要放在 `cert-manager` 之内：
+
+```
+kubectl apply -f - <<EOF
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: mkcert-ca-cluster-issuer
+spec:
+  ca:
+    secretName: mkcert-ca-secret
+EOF
+```
+
+除此之外，`cert-manager` 对 `Gateway` 的支持还处于实验性阶段，需要安装 `Gateway CRDs`，以及更新 `cert-manager` 的启动参数：
+
+```
+$ kubectl apply -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml"
+$ kubectl edit deploy -n cert-manager cert-manager
+args:
+  - --feature-gates=ExperimentalGatewayAPISupport=true
+$ kubectl rollout restart deployment cert-manager -n cert-manager
+```
+
+接下来创建应用、路由、网关以及命名空间这些资源：
+
+```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-auto-tls
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: gateway
+  namespace: gateway-auto-tls
+  annotations:
+    cert-manager.io/cluster-issuer: mkcert-ca-cluster-issuer
+spec:
+  gatewayClassName: istio
+  listeners:
+    - protocol: HTTPS
+      port: 9443
+      name: web-gw
+      hostname: gateway-auto-tls.local.dev
+      allowedRoutes:
+        kinds:
+          - kind: HTTPRoute
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate 
+        certificateRefs:
+          - name: gateway-auto-tls.local.dev-crt 
+            kind: Secret  
+            group: ""
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: whoami
+  namespace: gateway-auto-tls
+  labels:
+    app: whoami
+spec:
+  containers:
+  - name: whoami
+    image: traefik/whoami
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami-svc
+  namespace: gateway-auto-tls
+spec:
+  ports:
+    - port: 8080
+      name: http
+      targetPort: 80
+  selector:
+    app: whoami
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: whoami-http-route
+  namespace: gateway-auto-tls
+spec:
+  parentRefs:
+    - name: gateway
+      namespace: gateway-auto-tls
+  hostnames:
+    - "gateway-auto-tls.local.dev"
+  rules:
+    - matches:
+      - path:
+          type: PathPrefix
+          value: /whoami
+      backendRefs:
+        - name: whoami-svc
+          port: 8080
+EOF
+```
+
+有几个比较重要的地方需要额外说明：
+
+1. `gateway` 中指定使用 `cert-manager.io/cluster-issuer: mkcert-ca-cluster-issuer` 这个 `ClusterIssuer` 为生成的证书进行签名；
+2. `gateway` 中的 `listener` 指定了 `gateway-auto-tls.local.dev` 这个域名，并且采用 `HTTPS` 协议，在 `tls` 块中制定了使用的证书的 `Secret` 名称：`gateway-auto-tls.local.dev-crt`，它会被自动创建出来的；
+3. `whoami-http-route` 这个路由中，通过域名 `gateway-auto-tls.local.dev` 要使用哪个 `listener`；
+
+执行成功之后会看到如下的资源信息，包括 `Service`、`Pod`、`Certificate`、`Secret`、`HTTPRoute`、`Gateway`：
+
+```
+$ kubectl get svc,pod,httproute,certificate,secret,gateway -n gateway-auto-tls -owide
+NAME                    TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)                          AGE   SELECTOR
+service/whoami-svc      ClusterIP      10.43.28.118    <none>           8080/TCP                         39m   app=whoami
+service/gateway-istio   LoadBalancer   10.43.242.255   172.19.106.245   15021:32704/TCP,9443:32301/TCP   39m   istio.io/gateway-name=gateway
+
+NAME                                READY   STATUS    RESTARTS   AGE   IP            NODE           NOMINATED NODE   READINESS GATES
+pod/gateway-istio-9b68d7c77-rnqjx   1/1     Running   0          39m   10.42.0.122   f00596107-px   <none>           <none>
+pod/whoami                          1/1     Running   0          39m   10.42.0.121   f00596107-px   <none>           <none>
+
+NAME                                                    HOSTNAMES                        AGE
+httproute.gateway.networking.k8s.io/whoami-http-route   ["gateway-auto-tls.local.dev"]   39m
+
+NAME                                                         READY   SECRET                           ISSUER                     STATUS                                          AGE
+certificate.cert-manager.io/gateway-auto-tls.local.dev-crt   True    gateway-auto-tls.local.dev-crt   mkcert-ca-cluster-issuer   Certificate is up to date and has not expired   39m
+
+NAME                                    TYPE                DATA   AGE
+secret/gateway-auto-tls.local.dev-crt   kubernetes.io/tls   3      39m
+
+NAME                                        CLASS   ADDRESS          PROGRAMMED   AGE
+gateway.gateway.networking.k8s.io/gateway   istio   172.19.106.245   True         39m
+```
+
+使用 `curl` 命令进行测试：
+
+```
+$ curl -i --resolve gateway-auto-tls.local.dev:9443:172.19.106.245 https://gateway-auto-tls.local.dev:9443/whoami
+HTTP/2 200
+date: Mon, 04 Mar 2024 02:21:52 GMT
+content-length: 1370
+content-type: text/plain; charset=utf-8
+x-envoy-upstream-service-time: 0
+server: istio-envoy
+
+Hostname: whoami
+IP: 127.0.0.1
+IP: 10.42.0.121
+RemoteAddr: 10.42.0.122:47628
+GET /whoami HTTP/1.1
+Host: gateway-auto-tls.local.dev:9443
+User-Agent: curl/7.81.0
+Accept: */*
+X-B3-Sampled: 1
+X-B3-Spanid: 944db0a38d86f82d
+X-B3-Traceid: 8ca64ce6ed4051d4944db0a38d86f82d
+X-Envoy-Attempt-Count: 1
+X-Envoy-Decorator-Operation: whoami-svc.gateway-auto-tls.svc.cluster.local:8080/*
+X-Envoy-Internal: true
+X-Envoy-Peer-Metadata: ChQKDkFQUF9DT05UQUlORVJTEgIaAAoaCgpDTFVTVEVSX0lEEgwaCkt1YmVybmV0ZXMKHQoMSU5TVEFOQ0VfSVBTEg0aCzEwLjQyLjAuMTIyChkKDUlTVElPX1ZFUlNJT04SCBoGMS4yMC4zCrsBCgZMQUJFTFMSsAEqrQEKIgoVaXN0aW8uaW8vZ2F0ZXdheS1uYW1lEgkaB2dhdGV3YXkKMgofc2VydmljZS5pc3Rpby5pby9jYW5vbmljYWwtbmFtZRIPGg1nYXRld2F5LWlzdGlvCi8KI3NlcnZpY2UuaXN0aW8uaW8vY2Fub25pY2FsLXJldmlzaW9uEggaBmxhdGVzdAoiChdzaWRlY2FyLmlzdGlvLmlvL2luamVjdBIHGgVmYWxzZQoaCgdNRVNIX0lEEg8aDWNsdXN0ZXIubG9jYWwKJwoETkFNRRIfGh1nYXRld2F5LWlzdGlvLTliNjhkN2M3Ny1ybnFqeAofCglOQU1FU1BBQ0USEhoQZ2F0ZXdheS1hdXRvLXRscwpaCgVPV05FUhJRGk9rdWJlcm5ldGVzOi8vYXBpcy9hcHBzL3YxL25hbWVzcGFjZXMvZ2F0ZXdheS1hdXRvLXRscy9kZXBsb3ltZW50cy9nYXRld2F5LWlzdGlvCiAKDVdPUktMT0FEX05BTUUSDxoNZ2F0ZXdheS1pc3Rpbw==
+X-Envoy-Peer-Metadata-Id: router~10.42.0.122~gateway-istio-9b68d7c77-rnqjx.gateway-auto-tls~gateway-auto-tls.svc.cluster.local
+X-Forwarded-For: 10.42.0.1
+X-Forwarded-Proto: https
+X-Request-Id: 7d4a7ace-3036-9182-908c-1392e5e98eae
+```
+
+#### Certificate
+
+如果想直接生成一个证书，而不是随 `Ingress` 或者 `Gateway` 自动生成，可以通过创建 `Certificate` 这么一个资源，`Certificate` 以人类可读的方式描述了一个证书，然后被 `cert-manager` 处理签发。为了演示生成更多证书格式的功能，这里需要对 `cert-manager` 和 `cert-manager-webhook` 进行更新：
+
+> `kubectl edit deploy -n cert-manager cert-manager`
+> `kubectl edit deploy -n cert-manager cert-manager-webhook`
+
+添加如下的参数：
+
+> `--feature-gates=AdditionalCertificateOutputFormats=true`
+
+然后创建下面的资源：
+
+```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: example-crt
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: example-crt
+  namespace: example-crt
+spec:
+  secretName: example-crt
+  additionalOutputFormats:
+    - type: CombinedPEM
+    - type: DER
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations:
+      - jetstack
+  commonName: example.dev.local
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - server auth
+    - client auth
+  dnsNames:
+    - example.dev.local
+    - www.example.dev.local
+  ipAddresses:
+    - 192.168.0.5
+  issuerRef:
+    name: mkcert-ca-cluster-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+EOF
+```
+
+这里会使用上一节创建的 `mkcert-ca-cluster-issuer` 签发证书，执行成功之后会创建如下的资源：
+
+```
+$ kubectl get certificate,certificaterequest,secret -n example-crt -o wide
+NAME                                      READY   SECRET        ISSUER                     STATUS                                          AGE
+certificate.cert-manager.io/example-crt   True    example-crt   mkcert-ca-cluster-issuer   Certificate is up to date and has not expired   10m
+
+NAME                                               APPROVED   DENIED   READY   ISSUER                     REQUESTOR                                         STATUS                                         AGE
+certificaterequest.cert-manager.io/example-crt-1   True                True    mkcert-ca-cluster-issuer   system:serviceaccount:cert-manager:cert-manager   Certificate fetched from issuer successfully   10m
+
+NAME                 TYPE                DATA   AGE
+secret/example-crt   kubernetes.io/tls   5      10m
+$ kubectl describe secret example-crt -n example-crt
+Name:         example-crt
+Namespace:    example-crt
+Labels:       controller.cert-manager.io/fao=true
+Annotations:  cert-manager.io/alt-names: example.dev.local,www.example.dev.local
+              cert-manager.io/certificate-name: example-crt
+              cert-manager.io/common-name: example.dev.local
+              cert-manager.io/ip-sans: 192.168.0.5
+              cert-manager.io/issuer-group: cert-manager.io
+              cert-manager.io/issuer-kind: ClusterIssuer
+              cert-manager.io/issuer-name: mkcert-ca-cluster-issuer
+              cert-manager.io/subject-organizations: jetstack
+              cert-manager.io/uri-sans:
+
+Type:  kubernetes.io/tls
+
+Data
+====
+ca.crt:            1639 bytes
+key.der:           1192 bytes
+tls-combined.pem:  3177 bytes
+tls.crt:           1497 bytes
+tls.key:           1679 bytes
+```
+
+将 `tls.crt` 导出进行查看：
+
+```
+$ kubectl get -n example-crt secret example-crt -ogo-template='{{index .data "tls.crt"}}' | base64 -d > example-crt-tls.crt
+$ openssl x509 -in example-crt-tls.crt -noout -text
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            7e:20:cf:4f:9b:7e:cc:46:25:74:af:1a:2c:1d:76:0d
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: O = mkcert development CA, OU = root@F00596107-PX, CN = mkcert root@F00596107-PX
+        Validity
+            Not Before: Mar  4 03:25:59 2024 GMT
+            Not After : Jun  2 03:25:59 2024 GMT
+        Subject: O = jetstack, CN = example.dev.local
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    ...
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Extended Key Usage:
+                TLS Web Server Authentication, TLS Web Client Authentication
+            X509v3 Basic Constraints: critical
+                CA:FALSE
+            X509v3 Authority Key Identifier:
+                68:7C:66:79:31:AC:0C:88:BA:5D:58:86:BD:94:A3:89:95:D3:B2:2F
+            X509v3 Subject Alternative Name:
+                DNS:example.dev.local, DNS:www.example.dev.local, IP Address:192.168.0.5
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        ...
+```
+
+
 ### 参考链接
 
 1. https://www.bastionxp.com/blog/how-to-create-self-signed-ssl-tls-x.509-certificates-using-openssl/
 2. https://www.cnblogs.com/linianhui/p/security-x509.html
 3. https://ubuntu.com/server/docs/security-trust-store
+4. https://www.jokerbai.com/archives/kubernetes-shi-yong-cert-manager-qian-fa-zheng-shu
