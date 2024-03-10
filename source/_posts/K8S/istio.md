@@ -31,7 +31,7 @@ categories:
 
 架构图如下图所示：
 
-![](https://istio.io/latest/zh/docs/ops/deployment/architecture/arch.svg)
+{% asset_img arch.svg %}
 
 `Envoy`：是用 `C++` 开发的高性能代理，用于协调服务网格中所有服务的入站和出站流量。`Envoy` 代理是唯一与数据平面流量交互的 `Istio` 组件。`Envoy` 被部署为服务的 `Sidecar`，在逻辑上为服务增加了 `Envoy` 的许多内置特性，例如：动态服务发现，负载均衡，`TLS` 终端，`HTTP/2` 与 `gRPC` 代理，熔断器，健康检查，基于百分比流量分割的分阶段发布，故障注入，丰富的指标；
 
@@ -71,78 +71,13 @@ Made this installation the default for injection and validation.
 
 > `./bin/istioctl verify-install --revision default`
 
-```
-$ ./bin/istioctl verify-install --revision default
-✔ ServiceAccount: istio-reader-service-account.istio-system checked successfully
-✔ CustomResourceDefinition: wasmplugins.extensions.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: destinationrules.networking.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: envoyfilters.networking.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: gateways.networking.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: proxyconfigs.networking.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: serviceentries.networking.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: sidecars.networking.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: virtualservices.networking.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: workloadentries.networking.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: workloadgroups.networking.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: authorizationpolicies.security.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: peerauthentications.security.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: requestauthentications.security.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: telemetries.telemetry.istio.io.istio-system checked successfully
-✔ CustomResourceDefinition: istiooperators.install.istio.io.istio-system checked successfully
-✔ ClusterRole: istiod-clusterrole-istio-system.istio-system checked successfully
-✔ ClusterRole: istiod-gateway-controller-istio-system.istio-system checked successfully
-✔ ClusterRoleBinding: istiod-clusterrole-istio-system.istio-system checked successfully
-✔ ClusterRoleBinding: istiod-gateway-controller-istio-system.istio-system checked successfully
-✔ ConfigMap: istio.istio-system checked successfully
-✔ Deployment: istiod.istio-system checked successfully
-✔ ConfigMap: istio-sidecar-injector.istio-system checked successfully
-✔ MutatingWebhookConfiguration: istio-sidecar-injector.istio-system checked successfully
-✔ PodDisruptionBudget: istiod.istio-system checked successfully
-✔ ClusterRole: istio-reader-clusterrole-istio-system.istio-system checked successfully
-✔ ClusterRoleBinding: istio-reader-clusterrole-istio-system.istio-system checked successfully
-✔ Role: istiod.istio-system checked successfully
-✔ RoleBinding: istiod.istio-system checked successfully
-✔ Service: istiod.istio-system checked successfully
-✔ ServiceAccount: istiod.istio-system checked successfully
-✔ ValidatingWebhookConfiguration: istio-validator-istio-system.istio-system checked successfully
-✔ Deployment: istio-ingressgateway.istio-system checked successfully
-✔ PodDisruptionBudget: istio-ingressgateway.istio-system checked successfully
-✔ Role: istio-ingressgateway-sds.istio-system checked successfully
-✔ RoleBinding: istio-ingressgateway-sds.istio-system checked successfully
-✔ Service: istio-ingressgateway.istio-system checked successfully
-✔ ServiceAccount: istio-ingressgateway-service-account.istio-system checked successfully
-✔ Deployment: istio-egressgateway.istio-system checked successfully
-✔ PodDisruptionBudget: istio-egressgateway.istio-system checked successfully
-✔ Role: istio-egressgateway-sds.istio-system checked successfully
-✔ RoleBinding: istio-egressgateway-sds.istio-system checked successfully
-✔ Service: istio-egressgateway.istio-system checked successfully
-✔ ServiceAccount: istio-egressgateway-service-account.istio-system checked successfully
-Checked 15 custom resource definitions
-Checked 3 Istio Deployments
-✔ Istio is installed and verified successfully
-```
+![](istio-install-verify.png)
 
 查看安装的 `Pod`、`SVC` 以及 `Deploy` 这些关键资源：
 
 > `kubectl get svc,pod,deploy -n istio-system -owide`
 
-```
-$ kubectl get svc,pod,deploy -n istio-system -owide
-NAME                           TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)                                                                      AGE     SELECTOR
-service/istiod                 ClusterIP      10.43.68.92     <none>           15010/TCP,15012/TCP,443/TCP,15014/TCP                                        9m35s   app=istiod,istio=pilot
-service/istio-egressgateway    ClusterIP      10.43.78.245    <none>           80/TCP,443/TCP                                                               9m33s   app=istio-egressgateway,istio=egressgateway
-service/istio-ingressgateway   LoadBalancer   10.43.114.120   172.19.106.241   15021:32695/TCP,80:31783/TCP,443:30165/TCP,31400:32067/TCP,15443:31202/TCP   9m33s   app=istio-ingressgateway,istio=ingressgateway
-
-NAME                                        READY   STATUS    RESTARTS   AGE     IP           NODE           NOMINATED NODE   READINESS GATES
-pod/istiod-75d8d56b68-tr97k                 1/1     Running   0          9m35s   10.42.0.10   ctrlnode       <none>           <none>
-pod/istio-ingressgateway-86446666f9-qn4f2   1/1     Running   0          9m33s   10.42.0.12   ctrlnode       <none>           <none>
-pod/istio-egressgateway-c878fd6c5-4m6ds     1/1     Running   0          9m33s   10.42.0.11   ctrlnode       <none>           <none>
-
-NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS    IMAGES                           SELECTOR
-deployment.apps/istiod                 1/1     1            1           9m35s   discovery     docker.io/istio/pilot:1.20.3     istio=pilot
-deployment.apps/istio-ingressgateway   1/1     1            1           9m33s   istio-proxy   docker.io/istio/proxyv2:1.20.3   app=istio-ingressgateway,istio=ingressgateway
-deployment.apps/istio-egressgateway    1/1     1            1           9m33s   istio-proxy   docker.io/istio/proxyv2:1.20.3   app=istio-egressgateway,istio=egressgateway
-```
+![](istio-install-result.png)
 
 ### 功能介绍
 
@@ -225,94 +160,20 @@ spec:
 
 上面的 `yaml` 中，`Gateway` 的 `API` 版本是 `networking.istio.io/v1alpha3`，这和 `K8S Gateway` 是完全不一样的，所以他们是两个完全不一样的资源。`Gateway` 中的 `spec.selector` 使用选择使用哪个 `Pod` 来处理该网关的请求，这里选择的是安装章节中在 `istio-system` 命名空间中创建的 `pod/istio-ingressgateway-86446666f9-qn4f2`，该 `Pod` 具有标签 `istio=ingressgateway`：
 
-```
-$ kubectl describe pod -n istio-system istio-ingressgateway-86446666f9-qn4f2
-Name:             istio-ingressgateway-86446666f9-qn4f2
-Namespace:        istio-system
-Priority:         0
-Service Account:  istio-ingressgateway-service-account
-Node:             ctrlnode/172.19.106.26
-Start Time:       Tue, 05 Mar 2024 11:37:41 +0800
-Labels:           app=istio-ingressgateway
-                  chart=gateways
-                  heritage=Tiller
-                  install.operator.istio.io/owning-resource=unknown
-                  istio=ingressgateway
-                  istio.io/rev=default
-                  operator.istio.io/component=IngressGateways
-                  pod-template-hash=86446666f9
-                  release=istio
-                  service.istio.io/canonical-name=istio-ingressgateway
-                  service.istio.io/canonical-revision=latest
-                  sidecar.istio.io/inject=false
-Annotations:      istio.io/rev: default
-                  ...
-Status:           Running
-IP:               10.42.0.12
-IPs:
-  IP:           10.42.0.12
-Controlled By:  ReplicaSet/istio-ingressgateway-86446666f9
-Containers:
-  istio-proxy:
-    Container ID:  docker://0f67dc1e5cdef226d6802679b8574d1f482d5bcd16bbdbafdef58604b80f7d05
-    Image:         docker.io/istio/proxyv2:1.20.3
-    Image ID:      docker-pullable://istio/proxyv2@sha256:18163bd4fdb641bdff1489e124a0b9f1059bb2cec9c8229161b73517db97c05a
-    Ports:         15021/TCP, 8080/TCP, 8443/TCP, 31400/TCP, 15443/TCP, 15090/TCP
-    Host Ports:    0/TCP, 0/TCP, 0/TCP, 0/TCP, 0/TCP, 0/TCP
-    Args:
-    ...
-```
+> `kubectl describe pod -n istio-system stio-ingressgateway-86446666f9-tgmrp`
+
+![](desc-ingressgateway-pod.png)
 
 而 `Gateway` 中的端口 `8080` 匹配的到 `pod/istio-ingressgateway-86446666f9-qn4f2` 中暴露的端口 `8080`。集群的流量入口是从绑定到`pod/istio-ingressgateway-86446666f9-qn4f2`的`service/istio-ingressgateway`流入，然后根据 `Gateway` 所绑定的端口和配置将流量导入到最终的业务 `Pod` 中：
 
-```
-$  kubectl describe svc -n istio-system istio-ingressgateway
-Name:                     istio-ingressgateway
-Namespace:                istio-system
-Labels:                   app=istio-ingressgateway
-                          install.operator.istio.io/owning-resource=installed-state
-                          install.operator.istio.io/owning-resource-namespace=istio-system
-                          istio=ingressgateway
-                          istio.io/rev=default
-                          operator.istio.io/component=IngressGateways
-                          operator.istio.io/managed=Reconcile
-                          operator.istio.io/version=1.20.3
-                          release=istio
-Annotations:              metallb.universe.tf/ip-allocated-from-pool: mylocal-net-pool
-Selector:                 app=istio-ingressgateway,istio=ingressgateway
-Type:                     LoadBalancer
-IP Family Policy:         SingleStack
-IP Families:              IPv4
-IP:                       10.43.114.120
-IPs:                      10.43.114.120
-LoadBalancer Ingress:     172.19.106.241
-Port:                     status-port  15021/TCP
-TargetPort:               15021/TCP
-NodePort:                 status-port  32695/TCP
-Endpoints:                10.42.0.12:15021
-Port:                     http2  80/TCP
-TargetPort:               8080/TCP
-NodePort:                 http2  31783/TCP
-Endpoints:                10.42.0.12:8080
-Port:                     https  443/TCP
-TargetPort:               8443/TCP
-NodePort:                 https  30165/TCP
-Endpoints:                10.42.0.12:8443
-Port:                     tcp  31400/TCP
-TargetPort:               31400/TCP
-NodePort:                 tcp  32067/TCP
-Endpoints:                10.42.0.12:31400
-Port:                     tls  15443/TCP
-TargetPort:               15443/TCP
-NodePort:                 tls  31202/TCP
-Endpoints:                10.42.0.12:15443
-...
-```
+> `kubectl describe svc -n istio-system istio-ingressgateway`
 
-`istio-ingressgateway` 的外部IP是 `172.19.106.241`，对于 `bookinfo-gateway` 流量从 `172.19.106.241:80` 进入，然后转发到 `10.42.0.12:8080`，再根据 `Gateway` 和 `VirtualService` 的配置分发流量，`VirtualService` 就像 `K8S Gateway` 中的路由，可以根据具体的匹配条件将流量分发到不同的应用。上面简单介绍了网关的概念和入口流量的处理流程，创建成功之后能够得到下面的资源：
+![](desc-ingressgateway-svc.png)
+
+`istio-ingressgateway` 的外部IP是 `192.168.67.241`，对于 `bookinfo-gateway` 流量从 `192.168.67.241:80` 进入，然后转发到 `10.244.2.19:8080`，再根据 `Gateway` 和 `VirtualService` 的配置分发流量，`VirtualService` 就像 `K8S Gateway` 中的路由，可以根据具体的匹配条件将流量分发到不同的应用。上面简单介绍了网关的概念和入口流量的处理流程，创建成功之后能够得到下面的资源：
 
 ```
-$  kubectl get gateway,virtualservice -n bookinfo-test -owide
+$ kubectl get gateway,virtualservice -n bookinfo-test -owide
 NAME                                           AGE
 gateway.networking.istio.io/bookinfo-gateway   23s
 
@@ -324,26 +185,29 @@ virtualservice.networking.istio.io/bookinfo   ["bookinfo-gateway"]   ["*"]   22s
 
 ```
 $ kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-172.19.106.241
+192.168.67.241
 $ kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}'
 80
 ```
 
-所以可以使用 `http://172.19.106.241/productpage` 访问应用。如果没有安装 `MetaLB`，也可以使用节点的公网IP和`service/istio-ingressgateway`的`NodePort`进行访问，如下也可以使用 `http://172.19.106.26:31783/productpage` 端口进行访问：
+所以可以使用 `http://192.168.67.241/productpage` 访问应用。如果没有安装 `MetaLB`，也可以使用节点的公网IP和`service/istio-ingressgateway`的`NodePort`进行访问，如下也可以使用 `http://192.168.67.8:30298/productpage` 端口进行访问：
 
 ```
-$ ifconfig eth0
-eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
-    inet 172.19.106.26  netmask 255.255.240.0  broadcast 172.19.111.255
-    inet6 fe80::215:5dff:fe21:66be  prefixlen 64  scopeid 0x20<link>
-    ether 00:15:5d:21:66:be  txqueuelen 1000  (Ethernet)
-    RX packets 644597  bytes 334969222 (334.9 MB)
-    RX errors 0  dropped 0  overruns 0  frame 0
-    TX packets 434839  bytes 54777350 (54.7 MB)
-    TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+$ ifconfig enp0s1
+enp0s1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+  inet 192.168.67.8  netmask 255.255.255.0  broadcast 192.168.67.255
+  inet6 fd96:5cad:8347:c4a6:5054:ff:feec:4669  prefixlen 64  scopeid 0x0<global>
+  inet6 fe80::5054:ff:feec:4669  prefixlen 64  scopeid 0x20<link>
+  ether 52:54:00:ec:46:69  txqueuelen 1000  (Ethernet)
+  RX packets 381476  bytes 423297341 (423.2 MB)
+  RX errors 0  dropped 0  overruns 0  frame 0
+  TX packets 182480  bytes 121536035 (121.5 MB)
+  TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
 $ kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}'
-31783
+30298
 ```
+
+![](product-page.png)
 
 #### 流量观测
 
@@ -354,12 +218,7 @@ $ kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.p
 
 安装成功之后，可以看到如下的 `Service`：
 
-```
-$ kubectl get svc -n istio-system
-...
-kiali                  ClusterIP      10.43.79.213    <none>           20001/TCP,9090/TCP                                                           3m18s
-prometheus             ClusterIP      10.43.164.98    <none>           9090/TCP                                                                     6s
-```
+![](istio-kiali-prometheus.png)
 
 `kiali` 默认是 `ClusterIP` 类型的，没法直接从外部进行访问，实验环境下可以将它改成`NodePort`或者`LoadBlancer`类型，这样就获得了从外部访问的入口。也可以通过下面的命令临时获得公网入口，`172.19.106.26` 是节点公网地址：
 
@@ -370,29 +229,13 @@ http://172.19.106.26:20001/kiali
 
 刷新 `productpage` 页面几次，然后在 `kiali` 页面看到如下的请求示意图：
 
-![kaili流量转发示意图]()
-
+![](istio-kiali-web-page.png)
 
 #### 目标规则
 
 在刷新产品页面的时候，会发现书籍的星级评分有时候有，有时候是红色的，有时候是黑色的，是因为服务的 `reviews` 的版本有三个，请求到不同的 `pod` 就会出现不同的结果：
 
-```
-$ kubectl get svc,pod -n bookinfo-test -owide
-NAME                  TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE   SELECTOR
-service/details       ClusterIP   10.43.161.132   <none>        9080/TCP   75m   app=details
-service/ratings       ClusterIP   10.43.227.93    <none>        9080/TCP   75m   app=ratings
-service/reviews       ClusterIP   10.43.234.246   <none>        9080/TCP   75m   app=reviews
-service/productpage   ClusterIP   10.43.239.249   <none>        9080/TCP   75m   app=productpage
-
-NAME                                 READY   STATUS    RESTARTS   AGE   IP           NODE           NOMINATED NODE   READINESS GATES
-pod/details-v1-698d88b-rbmpg         2/2     Running   0          75m   10.42.0.19   ctrlnode       <none>           <none>
-pod/reviews-v3-5b9bd44f4-bm2gr       2/2     Running   0          75m   10.42.0.23   ctrlnode       <none>           <none>
-pod/reviews-v1-5b5d6494f4-gbdln      2/2     Running   0          75m   10.42.0.20   ctrlnode       <none>           <none>
-pod/reviews-v2-5b667bcbf8-m78r7      2/2     Running   0          75m   10.42.0.22   ctrlnode       <none>           <none>
-pod/ratings-v1-6484c4d9bb-mpl8c      2/2     Running   0          75m   10.42.0.21   ctrlnode       <none>           <none>
-pod/productpage-v1-675fc69cf-248gs   2/2     Running   0          75m   10.42.0.24   ctrlnode       <none>           <none>
-```
+![](istio-bookinfo-svc-pod.png)
 
 目标规则的意思就是将这些相同服务但不同版本以显示的方式指定，然后可以供 `VirtualService` 在转发流量是进行选择，在继续后面的章节之前，先应用默认的路由规则：
 
@@ -999,11 +842,9 @@ two Tue Mar  5 12:17:10 UTC 2024
     cluster.outbound|80||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_total: 0
     ```
 
-
 8. 清理测试现场使用如下方式：
 
     > `kubectl delete ns --cascade circuit-breaking-test`
-
 
 #### 安全网关
 
@@ -1550,34 +1391,27 @@ Accept-Ranges: bytes
 > `kubectl label namespace bookinfo-test istio-injection=enabled`
 > `kubectl apply -n bookinfo-test -f samples/bookinfo/platform/kube/bookinfo.yaml`
 > `kubectl apply -n bookinfo-test -f samples/bookinfo/networking/bookinfo-gateway.yaml`
-> `kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/grafana.yaml`
-> `kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/prometheus.yaml`
+> `kubectl apply -f samples/addons/grafana.yaml`
+> `kubectl apply -f samples/addons/prometheus.yaml`
 
 等待所有的 `pod` 就绪之后，可以在 `istio-system` 命名空间中看到如下的服务：
 
-```
-$ kubectl get svc -n istio-system
-NAME                   TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)                                                                      AGE
-kiali                  ClusterIP      10.43.79.213    <none>           20001/TCP,9090/TCP                                                           43h
-prometheus             ClusterIP      10.43.164.98    <none>           9090/TCP                                                                     43h
-istiod                 ClusterIP      10.43.60.212    <none>           15010/TCP,15012/TCP,443/TCP,15014/TCP                                        17h
-istio-egressgateway    ClusterIP      10.43.98.212    <none>           80/TCP,443/TCP                                                               17h
-istio-ingressgateway   LoadBalancer   10.43.189.254   172.19.106.241   15021:31226/TCP,80:30136/TCP,443:32306/TCP,31400:30766/TCP,15443:31588/TCP   17h
-grafana                ClusterIP      10.43.160.149   <none>           3000/TCP                                                                     28m
-```
+![](data-view-svc.png)
 
 通过下面的方式获取网关的入口：
 
 ```
 $ kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-172.19.106.241
+192.168.67.241
 $ kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}'
 80
 ```
 
-请求 `http://172.19.106.241/productpage`，以获得数据，可以使用压测工具持续发送流量。打开 `prometheus` 查看指标：
+请求 `http://192.168.67.241/productpage`，以获得数据，可以使用压测工具持续发送流量。打开 `prometheus` 查看指标：
 
-> `istioctl dashboard prometheus --address 172.19.106.26`
+> `istioctl dashboard prometheus --address 192.168.67.241`
+
+![](data-view-promethus.png)
 
 输入查询语句以获得指标和图标可视化：
 
@@ -1585,9 +1419,11 @@ $ kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.p
 
 `Grafana` 是一个开源的监控解决方案，可以用来为 `Istio` 配置仪表板。使用如下的命令打开 `grafana` 指标：
 
-> `istioctl dashboard grafana --address 172.19.106.26`
+> `istioctl dashboard grafana --address 192.168.67.241`
 
-打开 `http://172.19.106.26:3000/dashboards` 页面，可以查看相关的指标。
+打开 `http://192.168.67.241:3000/dashboards` 页面，可以查看相关的指标：
+
+![](data-view-grafana.png)
 
 #### 插入CA证书
 

@@ -25,8 +25,7 @@ docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
 
 而`macvlan` 允许单个物理接口使用`macvlan`子接口拥有多个`MAC`和`IP`地址，每个子接口都将获得唯一的 `MAC` 和 `IP` 地址，并直接暴露在底层网络中。`macvlan` 接口通常用于虚拟化应用，每个 `macvlan` 接口都连接到一个容器或虚拟机。`macvlan` 有`4`种类型（`Private`、`VEPA`、`Bridge`、`Passthru`），常用的类型是 `Bridge`，它允许单个主机中的实体在数据包不离开主机的情况下相互通信。对于外部连接，则使用底层网络，下图显示两个容器使用 `macvlan` 网桥相互通信并与外界通信，两个容器都将使用 `macvlan` 子接口直接接入底层网络。
 
-{% asset_img 缺个图.png %}
-{% label @缺个图 %} 
+{% asset_img arch.png %}
 
 <!-- more -->
 
