@@ -373,7 +373,7 @@ codeblock:
     style: flat
   fold:
     enable: true
-    height: 500
+    height: 800
 
 back2top:
   enable: true

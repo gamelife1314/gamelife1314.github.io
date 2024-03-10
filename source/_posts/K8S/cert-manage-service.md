@@ -39,7 +39,7 @@ TLS证书用于证明访问目标的有效性，当访问某个网站时，浏�
 
 > `openssl req -x509 -sha256 -days 356 -nodes -newkey rsa:2048 -subj "/CN=ca.local.dev/C=CN/L=SH" -keyout rootCA.key -out rootCA.crt`
 
-证书的公约是可以从证书文件`rootCA.crt`解析出来的使用如下命令：
+从证书文件中解析公钥：
 
 > `openssl x509 -inform pem -in rootCA.crt -pubkey -noout`
 
@@ -151,6 +151,14 @@ how to fix it, please visit the web page mentioned above.
 $ curl https://127.0.0.1:8091/hello
 Hello World!
 ```
+
+可以使用如下的命令获取到服务端的证书：
+
+> `openssl s_client -connect 127.0.0.1:8091 -showcerts`
+
+可以使用如下的命令进行证书验证：
+
+> `openssl verify -CAfile rootCA.crt server.crt`
 
 #### mkcert
 
@@ -938,7 +946,6 @@ Certificate:
     Signature Value:
         ...
 ```
-
 
 ### 参考链接
 
