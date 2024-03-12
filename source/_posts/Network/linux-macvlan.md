@@ -525,7 +525,7 @@ $ docker network rm macvlan1-net macvlan2-net
 
 ### ipvlan
 
-`ipvlan` 有两种不同的模式：`L2` 和 `L3`。一个父接口只能选择一种模式，依附于它的所有虚拟接口都运行在这个模式下，不能混用模式。`ipvlan L2` 模式和 `macvlan bridge` 模式工作原理很相似，父接口作为交换机来转发子接口的数据，同一个网络的子接口可以通过父接口来转发数据，而如果想发送到其他网络，报文则会通过父接口的路由转发出去。`L3` 模式下，`ipvlan` 有点像路由器的功能，它在各个虚拟网络和主机网络之间进行不同网络报文的路由转发工作。只要父接口相同，即使虚拟机/容器不在同一个网络，也可以互相 `ping` 通对方，因为 `ipvlan` 会在中间做报文的转发工作。
+[ipvlan](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_networking/getting-started-with-ipvlan_configuring-and-managing-networking) 有两种不同的模式：`L2` 和 `L3`。一个父接口只能选择一种模式，依附于它的所有虚拟接口都运行在这个模式下，不能混用模式。`ipvlan L2` 模式和 `macvlan bridge` 模式工作原理很相似，父接口作为交换机来转发子接口的数据，同一个网络的子接口可以通过父接口来转发数据，而如果想发送到其他网络，报文则会通过父接口的路由转发出去。`L3` 模式下，`ipvlan` 有点像路由器的功能，它在各个虚拟网络和主机网络之间进行不同网络报文的路由转发工作。只要父接口相同，即使虚拟机/容器不在同一个网络，也可以互相 `ping` 通对方，因为 `ipvlan` 会在中间做报文的转发工作。
 
 ```
 $ ifconfig eth0
@@ -804,6 +804,166 @@ ip netns delete net3
 ip link delete ipvlan_shim
 ```
 
+#### docker
+
+创建基于 `ipvlan` 的容器网络：
+
+```
+$ docker network create -d ipvlan --subnet=172.28.240.0/20 --gateway=172.28.240.1 --ip-range 172.28.244.0/22 \
+> --aux-address 'host=172.28.244.254' -o parent=eth0 -o ipvlan_mode=l2 ipvlan_l2
+$ docker network ls
+NETWORK ID     NAME        DRIVER    SCOPE
+8599456a5481   bridge      bridge    local
+72f3e075f337   host        host      local
+b92fa8a5d1eb   ipvlan_l2   ipvlan    local
+5daaac101de2   none        null      local
+```
+
+基于 `ipvlan` 网络创建两个容器：
+
+```
+docker run -itd --name ubuntu1 --ip=172.28.244.2 --network ipvlan_l2 ubuntu:local
+docker run -itd --name ubuntu2 --ip=172.28.244.3 --network ipvlan_l2 ubuntu:local
+```
+
+查看容器的 eth0 网口详细信息并测试网络连通性：
+
+```
+$ docker exec -it ubuntu1 ip -detail addr show eth0
+135: eth0@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default
+    link/ether 00:15:5d:41:e5:36 brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65535
+    ipvlan  mode l2 bridge numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535
+    inet 172.28.244.2/20 brd 172.28.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+$ docker exec -it ubuntu2 ip -detail addr show eth0
+136: eth0@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default
+    link/ether 00:15:5d:41:e5:36 brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65535
+    ipvlan  mode l2 bridge numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535
+    inet 172.28.244.3/20 brd 172.28.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+$ docker exec -it ubuntu2 ping -c 3 172.28.244.2
+PING 172.28.244.2 (172.28.244.2) 56(84) bytes of data.
+64 bytes from 172.28.244.2: icmp_seq=1 ttl=64 time=0.071 ms
+64 bytes from 172.28.244.2: icmp_seq=2 ttl=64 time=0.041 ms
+64 bytes from 172.28.244.2: icmp_seq=3 ttl=64 time=0.039 ms
+
+--- 172.28.244.2 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2048ms
+rtt min/avg/max/mdev = 0.039/0.050/0.071/0.014 ms
+```
+
+清除现场：
+
+```
+docker stop ubuntu1 ubuntu2
+docker container prune
+docker network rm ipvlan_l2 
+```
+
+### benchmark
+
+使用 [betperf](https://github.com/HewlettPackard/netperf) 测试工具对容器三种组网方式的性能进行压测，测试机条件：
+
+> `12Core Intel(R) Core(TM) i7-8700 CPU @ 3.20GHz 5.15.146.1-microsoft-standard-WSL2+`
+
+{% tabs 压测 %}
+
+<!-- tab bridge -->
+
+启动 `Server`：
+
+> `docker run -it --rm --name perfserver alectolytic/netperf /usr/bin/netserver -D -p 4444`
+
+启动客户端之前需要知道`Server`的`IP`地址：
+
+```
+$ docker run -it --rm --name perfclient alectolytic/netperf netperf -H 172.17.0.3 -p 4444 -t TCP_STREAM -l 60
+$ docker run -it --rm --name perfclient alectolytic/netperf netperf -H 172.17.0.3 -p 4444 -t UDP_STREAM -l 60
+$ docker run -it --rm --name perfclient alectolytic/netperf netperf -H 172.17.0.3 -p 4444 -t TCP_RR -l 60
+$ docker run -it --rm --name perfclient alectolytic/netperf netperf -H 172.17.0.3 -p 4444 -t TCP_CRR -l 60
+$ docker run -it --rm --name perfclient alectolytic/netperf netperf -H 172.17.0.3 -p 4444 -t UDP_RR -l 60
+```
+
+清理现场：
+
+> `docker stop perfserver`
+
+<!-- endtab -->
+
+<!-- tab macvlan -->
+
+创建网络：
+
+> `docker network create -d macvlan --subnet=172.28.240.0/20 --gateway=172.28.240.1 --ip-range 172.28.244.0/22 --aux-address 'host=172.28.244.254' -o parent=eth0 macvlan`
+
+启动 `Server`：
+
+> `docker run -it --rm --name perfserver --ip=172.28.244.2 --network macvlan alectolytic/netperf /usr/bin/netserver -D -p 4444`
+
+启动客户端测试：
+
+```
+$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network macvlan alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_STREAM -l 60
+$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network macvlan alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t UDP_STREAM -l 60
+$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network macvlan alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_RR -l 60
+$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network macvlan alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_CRR -l 60
+$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network macvlan alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t UDP_RR -l 60
+```
+
+清理现场：
+
+> `docker stop perfserver`
+> `docker network rm macvlan`
+
+<!-- endtab -->
+
+<!-- tab ipvlan -->
+
+创建网络：
+
+> `docker network create -d ipvlan --subnet=172.28.240.0/20 --gateway=172.28.240.1 --ip-range 172.28.244.0/22 -o parent=eth0 -o ipvlan_mode=l2 ipvlan_l2`
+
+启动 `Server`：
+
+> `docker run -it --rm --name perfserver --ip=172.28.244.2 --network ipvlan_l2 alectolytic/netperf /usr/bin/netserver -D -p 4444`
+
+启动客户端测试：
+
+```
+$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_STREAM -l 60
+$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t UDP_STREAM -l 60
+$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_RR -l 60
+$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_CRR -l 60
+$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t UDP_RR -l 60
+```
+
+清理现场：
+
+> `docker stop perfserver`
+> `docker network rm ipvlan_l2`
+
+<!-- endtab -->
+
+{% endtabs %}
+
+测试结果如下：
+
+|容器组网方式|TCP_STREAM|UDP_STREAM|TCP_RR|TCP_CRR|UDP_RR|
+|:--:|:--:|:--:|:--:|:--:|:--:|
+|bridge|14739.80 Mbit/s|6560.40 Mbit/s、6559.54 Mbit/s|14782.62次/s|6819.55次/s|15110.83次/s|
+|macvlan（bridge）|21311.05 Mbit/s|9805.24 Mbit/s、9801.57 Mbit/s|16331.71次/s|8798.79次/s|16847.11次/s|
+|ipvlan（l2）	  |22691.55 Mbit/s|10500.90 Mbit/s、10488.34 Mbit/s|16573.58次/s|8875.21次/s|17010.19次/s|
+|ipvlan（l3）	  |22535.93 Mbit/s|10598.59 Mbit/s、10592.38 Mbit/s|16412.51次/s|9049.53次/s|16898.77次/s|
+
+指标介绍：
+
+1. TCP_STREAM：用来测试进行TCP批量传输时的网络性能，结果表示吞吐量大小；
+2. UDP_STREAM：用来测试进行UDP批量传输时的网络性能。UDP_STREAM方式的结果中有两组数据，分别表示客户端发送和服务端接收的能力；												
+3. TCP_RR：TCP_RR方式的测试对象是多次TCP request和response的交易过程，但发生在同一个TCP连接中，这种模式常常出现在数据库应用中。数据库的client程序与server程序建立一个TCP连接以后，就在这个连接中传送数据库的多次交易过程；
+4. TCP_CRR：TCP_CRR的测试对象是多次TCP request和response的交易过程，但为每次交易建立一个新的TCP连接。最典型的应用就是HTTP，每次HTTP交易是在一条单独的TCP连接中进行的。因此，由于需要不停地建立新的TCP连接，并且在交易结束后拆除TCP连接，交易率一定会受到很大的影响；
+5. UDP_RR：使用UDP分组进行request/response的交易过程。由于没有TCP连接所带来的负担，所以相比TCP_RR交易率一定会有相应的提升；									
+
+
 
 ### 网卡混杂模式
 
@@ -831,3 +991,5 @@ $ ip link set eth0 promisc off
 4. https://blog.oddbit.com/post/2018-03-12-using-docker-macvlan-networks/
 5. https://cloud.tencent.com/developer/article/1432601
 6. https://kiosk007.top/post/%E4%BD%BF%E7%94%A8open-vswitch%E6%9E%84%E5%BB%BA%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C/
+
+{% pdf https://events.static.linuxfound.org/sites/events/files/slides/LinuxConJapan2014_makita_0.pdf 800px %}
