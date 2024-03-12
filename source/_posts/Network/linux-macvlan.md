@@ -37,19 +37,19 @@ docker0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
 可以使用 `ip` 命令来创建 `macvlan` 设备：
 
 ```
-$ ip link add link eth0 name macvlan1 type macvlan mode bridge
-$ ip link add link eth0 name macvlan2 type macvlan mode bridge
+ip link add link eth0 name macvlan1 type macvlan mode bridge
+ip link add link eth0 name macvlan2 type macvlan mode bridge
 ```
 
 创建两个网络命名空间，将 `macvlan` 设备分别放入，模拟容器之间的通信，而且将它们的名字在两个命名空间之中都修改为了 `eth0`：
 
 ```
-$ ip netns add net1
-$ ip netns add net2
-$ ip link set macvlan1 netns net1
-$ ip link set macvlan2 netns net2
-$ ip netns exec net1 ip link set macvlan1 name eth0
-$ ip netns exec net2 ip link set macvlan2 name eth0
+ip netns add net1
+ip netns add net2
+ip link set macvlan1 netns net1
+ip link set macvlan2 netns net2
+ip netns exec net1 ip link set macvlan1 name eth0
+ip netns exec net2 ip link set macvlan2 name eth0
 ```
 
 然后设置`IP`地址并且启用，要注意的是设置的`IP`地址和`eth0`必须在同一网段内，例如，这里 `eth0` 的网络是 `172.19.96.0/20`：
@@ -67,11 +67,11 @@ $ ip addr show eth0
 所以，可以将两个 `macvlan` 设备的地址分别设置为 `172.28.248.10` 和 `172.28.248.9`：
 
 ```
-$ ip netns exec net1 ip addr add 172.28.248.10/20 dev eth0
-$ ip netns exec net2 ip addr add 172.28.248.9/20 dev eth0
-$ ip netns exec net1 ip link set eth0 up
-$ ip netns exec net2 ip link set eth0 up
-$ ip netns exec net1 ip -detail link show eth0
+ip netns exec net1 ip addr add 172.28.248.10/20 dev eth0
+ip netns exec net2 ip addr add 172.28.248.9/20 dev eth0
+ip netns exec net1 ip link set eth0 up
+ip netns exec net2 ip link set eth0 up
+ip netns exec net1 ip -detail link show eth0
 28: eth0@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
     link/ether 8e:c0:cd:f7:cb:3b brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65521
     macvlan mode bridge bcqueuelen 1000 usedbcqueuelen 1000 addrgenmode eui64 numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535
@@ -144,10 +144,10 @@ PING 172.28.252.45 (172.28.252.45) 56(84) bytes of data.
 
 {% note success %}
 ```
-$ ip link add mynet-shim link eth0 type macvlan mode bridge
-$ ip addr add 172.28.248.254/32 dev mynet-shim
-$ ip link set mynet-shim up
-$ ip route add 172.28.248.0/21 dev mynet-shim
+ip link add mynet-shim link eth0 type macvlan mode bridge
+ip addr add 172.28.248.254/32 dev mynet-shim
+ip link set mynet-shim up
+ip route add 172.28.248.0/21 dev mynet-shim
 $ ping -c 3 172.28.248.9
 PING 172.28.248.9 (172.28.248.9) 56(84) bytes of data.
 64 bytes from 172.28.248.9: icmp_seq=1 ttl=64 time=0.075 ms
@@ -248,10 +248,10 @@ pipe 4
 同样添加如下的设备用于打通主机和容器之间的网络，容器网络和主机网络的网络地址都是一样的，但是在添加路由时只限定了容器网络地址段的地址通过 `mynet-shim` 进行路由：
 
 ```
-$ ip link add mynet-shim link eth0 type macvlan mode bridge
-$ ip addr add 172.28.244.254/32 dev mynet-shim
-$ ip link set mynet-shim up
-$ ip route add 172.28.244.0/22 dev mynet-shim
+ip link add mynet-shim link eth0 type macvlan mode bridge
+ip addr add 172.28.244.254/32 dev mynet-shim
+ip link set mynet-shim up
+ip route add 172.28.244.0/22 dev mynet-shim
 ```
 
 然后进行测试网络连通正常：
@@ -291,9 +291,9 @@ Error response from daemon: network dm-f46f08bb4d34 is already using parent inte
 但是 `macvlan` 支持 `VLAN`，所以可以通过 `VLAN` 将 `eth0` 划分为不同的网络，然后基于 `VLAN` 再创建 `macvlan` 的网络。首先清除之前创建的 `macvlan` 网络：
 
 ```
-$ docker stop ubuntu1 ubuntu2
-$ docker container prune
-$ docker network rm macvlan 
+docker stop ubuntu1 ubuntu2
+docker container prune
+docker network rm macvlan 
 ```
 
 {% note danger 可以完全不执行这段命令，使用docker创建网络的命令能够自动创建vlan %}
@@ -301,12 +301,12 @@ $ docker network rm macvlan
 创建 `VLAN`，设置`IP`，并启用，如果对网络地址、子网、广播地址不会计算，可以点击[这里](https://tool.chinaz.com/tools/subnetmask)：
 
 ```
-$ ip link add link eth0 name eth0.10 type vlan id 10
-$ ip link add link eth0 name eth0.20 type vlan id 20 
-$ ip addr add 172.28.244.1/24 brd 172.28.244.255 dev eth0.10
-$ ip addr add 172.19.248.1/24 brd 172.28.248.255 dev eth0.20
-$ ip link set dev eth0.10 up
-$ ip link set dev eth0.20 up
+ip link add link eth0 name eth0.10 type vlan id 10
+ip link add link eth0 name eth0.20 type vlan id 20 
+ip addr add 172.28.244.1/24 brd 172.28.244.255 dev eth0.10
+ip addr add 172.19.248.1/24 brd 172.28.248.255 dev eth0.20
+ip link set dev eth0.10 up
+ip link set dev eth0.20 up
 $ ip -d a s eth0.10
 42: eth0.10@eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
     link/ether 00:15:5d:41:e5:36 brd ff:ff:ff:ff:ff:ff promiscuity 0 minmtu 0 maxmtu 65535
@@ -355,10 +355,10 @@ $ ip -d addr show type vlan
 基于两个不同的 `macvlan` 网络创建两个容器，发现他们之间并不互通，因为它们处于不同的 `vlan`：
 
 ```
-$ docker run -itd --name ubuntu1 --ip=172.28.244.2 --network macvlan1-net ubuntu:local
-$ docker run -itd --name ubuntu2 --ip=172.28.244.3 --network macvlan1-net ubuntu:local
-$ docker run -itd --name ubuntu3 --ip=172.28.248.2 --network macvlan2-net ubuntu:local
-$ docker run -itd --name ubuntu4 --ip=172.28.248.3 --network macvlan2-net ubuntu:local
+docker run -itd --name ubuntu1 --ip=172.28.244.2 --network macvlan1-net ubuntu:local
+docker run -itd --name ubuntu2 --ip=172.28.244.3 --network macvlan1-net ubuntu:local
+docker run -itd --name ubuntu3 --ip=172.28.248.2 --network macvlan2-net ubuntu:local
+docker run -itd --name ubuntu4 --ip=172.28.248.3 --network macvlan2-net ubuntu:local
 ```
 
 相同 `vlan` 之间的容器网络互通：
@@ -440,14 +440,14 @@ pipe 3
 如果想要实现容器和主机的互通，可以使用如下的方法，可以使用如下的方法：
 
 ```
-$ ip link add macvlan1-shim link eth0.10 type macvlan mode bridge
-$ ip addr add 172.28.244.254/32 dev macvlan1-shim
-$ ip link set macvlan1-shim up
-$ ip route add 172.28.244.0/24 dev macvlan1-shim
-$ ip link add macvlan2-shim link eth0.20 type macvlan mode bridge
-$ ip addr add 172.28.248.254/32 dev macvlan2-shim
-$ ip link set macvlan2-shim up
-$ ip route add 172.28.248.0/24 dev macvlan2-shim
+ip link add macvlan1-shim link eth0.10 type macvlan mode bridge
+ip addr add 172.28.244.254/32 dev macvlan1-shim
+ip link set macvlan1-shim up
+ip route add 172.28.244.0/24 dev macvlan1-shim
+ip link add macvlan2-shim link eth0.20 type macvlan mode bridge
+ip addr add 172.28.248.254/32 dev macvlan2-shim
+ip link set macvlan2-shim up
+ip route add 172.28.248.0/24 dev macvlan2-shim
 ```
 
 测试主机到容器的网络连通性：
@@ -474,10 +474,10 @@ rtt min/avg/max/mdev = 0.037/0.042/0.047/0.005 ms
 如果还没有为 `vlan` 设置 `IP` 地址，执行如下的命令：
 
 ```
-$ ip addr add 172.28.244.1/24 dev eth0.10
-$ ip addr add 172.28.248.1/24 dev eth0.20
-$ ip route delete 172.28.248.0/24 dev eth0.20
-$ ip route delete 172.28.244.0/24 dev eth0.10
+ip addr add 172.28.244.1/24 dev eth0.10
+ip addr add 172.28.248.1/24 dev eth0.20
+ip route delete 172.28.248.0/24 dev eth0.20
+ip route delete 172.28.244.0/24 dev eth0.10
 ```
 
 此时系统的路由如下：
@@ -518,9 +518,9 @@ rtt min/avg/max/mdev = 0.027/0.054/0.081/0.027 ms
 清理现场使用如下方式，`vlan` 和 `macvlan` 设备会被自动删除：
 
 ```
-$ docker stop ubuntu1 ubuntu2 ubuntu3 ubuntu4
-$ docker container prune
-$ docker network rm macvlan1-net macvlan2-net
+docker stop ubuntu1 ubuntu2 ubuntu3 ubuntu4
+docker container prune
+docker network rm macvlan1-net macvlan2-net
 ```
 
 ### ipvlan
@@ -962,7 +962,6 @@ $ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 al
 3. TCP_RR：TCP_RR方式的测试对象是多次TCP request和response的交易过程，但发生在同一个TCP连接中，这种模式常常出现在数据库应用中。数据库的client程序与server程序建立一个TCP连接以后，就在这个连接中传送数据库的多次交易过程；
 4. TCP_CRR：TCP_CRR的测试对象是多次TCP request和response的交易过程，但为每次交易建立一个新的TCP连接。最典型的应用就是HTTP，每次HTTP交易是在一条单独的TCP连接中进行的。因此，由于需要不停地建立新的TCP连接，并且在交易结束后拆除TCP连接，交易率一定会受到很大的影响；
 5. UDP_RR：使用UDP分组进行request/response的交易过程。由于没有TCP连接所带来的负担，所以相比TCP_RR交易率一定会有相应的提升；									
-
 
 
 ### 网卡混杂模式
