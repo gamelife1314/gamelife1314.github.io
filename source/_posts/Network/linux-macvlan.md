@@ -437,7 +437,7 @@ pipe 3
 ```
 {% endnote %}
 
-如果想要实现容器和主机的互通，可以使用如下的方法，可以使用如下的方法：
+如果想要实现容器和主机的互通，可以使用如下的方法：
 
 ```
 ip link add macvlan1-shim link eth0.10 type macvlan mode bridge
@@ -523,9 +523,16 @@ docker container prune
 docker network rm macvlan1-net macvlan2-net
 ```
 
+可以使用下面的命令验证是否有设备残留：
+
+```
+ip link show type vlan
+ip link show type macvlan
+```
+
 ### ipvlan
 
-[ipvlan](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_networking/getting-started-with-ipvlan_configuring-and-managing-networking) 有两种不同的模式：`L2` 和 `L3`。一个父接口只能选择一种模式，依附于它的所有虚拟接口都运行在这个模式下，不能混用模式。`ipvlan L2` 模式和 `macvlan bridge` 模式工作原理很相似，父接口作为交换机来转发子接口的数据，同一个网络的子接口可以通过父接口来转发数据，而如果想发送到其他网络，报文则会通过父接口的路由转发出去。`L3` 模式下，`ipvlan` 有点像路由器的功能，它在各个虚拟网络和主机网络之间进行不同网络报文的路由转发工作。只要父接口相同，即使虚拟机/容器不在同一个网络，也可以互相 `ping` 通对方，因为 `ipvlan` 会在中间做报文的转发工作。
+[ipvlan](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_networking/getting-started-with-ipvlan_configuring-and-managing-networking) 主要有两种不同的模式：`L2` 和 `L3`。一个父接口只能选择一种模式，依附于它的所有虚拟接口都运行在这个模式下，不能混用模式。`ipvlan L2` 模式和 `macvlan bridge` 模式工作原理很相似，父接口作为交换机来转发子接口的数据，同一个网络的子接口可以通过父接口来转发数据，而如果想发送到其他网络，报文则会通过父接口的路由转发出去。`L3` 模式下，`ipvlan` 有点像路由器的功能，它在各个虚拟网络和主机网络之间进行不同网络报文的路由转发工作。只要父接口相同，即使虚拟机/容器不在同一个网络，也可以互相 `ping` 通对方，因为 `ipvlan` 会在中间做报文的转发工作。
 
 ```
 $ ifconfig eth0
@@ -950,10 +957,10 @@ $ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 al
 
 |容器组网方式|TCP_STREAM|UDP_STREAM|TCP_RR|TCP_CRR|UDP_RR|
 |:--:|:--:|:--:|:--:|:--:|:--:|
-|bridge|14739.80 Mbit/s|6560.40 Mbit/s、6559.54 Mbit/s|14782.62次/s|6819.55次/s|15110.83次/s|
-|macvlan（bridge）|21311.05 Mbit/s|9805.24 Mbit/s、9801.57 Mbit/s|16331.71次/s|8798.79次/s|16847.11次/s|
-|ipvlan（l2）	  |22691.55 Mbit/s|10500.90 Mbit/s、10488.34 Mbit/s|16573.58次/s|8875.21次/s|17010.19次/s|
-|ipvlan（l3）	  |22535.93 Mbit/s|10598.59 Mbit/s、10592.38 Mbit/s|16412.51次/s|9049.53次/s|16898.77次/s|
+|`bridge`|14739.80 Mbit/s|6560.40 Mbit/s、6559.54 Mbit/s|14782.62次/s|6819.55次/s|15110.83次/s|
+|`macvlan（bridge）`|21311.05 Mbit/s|9805.24 Mbit/s、9801.57 Mbit/s|16331.71次/s|8798.79次/s|16847.11次/s|
+|`ipvlan（l2）`	  |22691.55 Mbit/s|10500.90 Mbit/s、10488.34 Mbit/s|16573.58次/s|8875.21次/s|17010.19次/s|
+|`ipvlan（l3）`	  |22535.93 Mbit/s|10598.59 Mbit/s、10592.38 Mbit/s|16412.51次/s|9049.53次/s|16898.77次/s|
 
 指标介绍：
 
