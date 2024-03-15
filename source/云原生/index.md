@@ -20,7 +20,8 @@ date: 2024-01-01 14:07:02
 
 #### kubectl
 
-1. 污点去除：
+1. 污点添加和去除：
+    > `kubectl taint nodes ctrlnode node-role.kubernetes.io/control-plane:NoSchedule`
     > `kubectl taint nodes ctrlnode node-role.kubernetes.io/control-plane:NoSchedule-`
 2. 节点标签：
     > `kubectl label node node1 node-role.kubernetes.io/worker=worker`

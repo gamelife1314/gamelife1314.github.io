@@ -454,8 +454,100 @@ $ ip addr add 10.244.0.1/24 dev cni0
 
 ![](pod-status.png)
 
+### 多个网络插件
+
+通常 `Pod` 内只有一个 `eth0` 网口，如果通过创建多个网络接口实现网络流量隔离，可以考虑使用[multus-cni](https://github.com/k8snetworkplumbingwg/multus-cni)。`Multus CNI` 是 `Kubernetes` 的一个容器网络接口 (`CNI`) 插件，可为 `Pod` 附加多个网络接口。下面是由 `Multus CNI` 提供的连接到 `pod` 的网络接口示意图。图中显示 `pod` 有三个接口：`eth0`、`net0` 和 `net1`。`eth0` 连接 `kubernetes` 集群网络，用于连接 `kubernetes` 服务器（如 `kubernetes api-server`、`kubelet` 等），属于集群默认网络。`net0` 和 `net1` 是附加网络接口，通过使用其他 `CNI` 插件（如 `vlan/vxlan/ptp`）连接其他网络。
+
+![](https://github.com/k8snetworkplumbingwg/multus-cni/raw/master/docs/images/multus-pod-image.svg)
+
+`Multus CNI` 有两种类型，`thick and thin`，其中 `thick` 由 `multus-daemon` 和 `multus-shim` 两个二进制文件组成 插件。`multus-daemon` 将作为本地代理部署到所有节点，相比 `thin` 具备额外功能（如度量），由于具有这些附加功能，要比 `thin` 消耗更多资源。
+
+`Multus CNI` 需要部署在已经安装默认 `CNI` 的集群中，并将其作为集群网络插件，实现 `pod` 网络互连互通，可以参考它的 [quick-start](https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/docs/quickstart.md) 进行安装，这里使用 `thick` 类型：
+
+> `kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/master/deployments/multus-daemonset-thick.yml`
+
+安装之后，可以看到类似的`Pod`正常运行即可：
+
+```
+$ kubectl get pods --all-namespaces | grep -i multus
+kube-system         kube-multus-ds-m7gqc                      1/1     Running   0               158m
+```
+
+如果遇到启动失败，提示 `Error response from daemon: path /opt/cni/bin is mounted on / but it is not a shared mount` 这样的信息时，执行命令 `kubectl edit ds -n kube-system kube-multus-ds` ，将所有带有[挂载卷的传播](https://kubernetes.io/zh-cn/docs/concepts/storage/volumes/#mount-propagation) 目录挂载相关的配置删掉（搜索 `mountPropagation: HostToContainer` 和 `mountPropagation: Bidirectional`）。
+
+如果默认的 `CNI` 插件使用 [cilium](https://docs.cilium.io/)，需要编辑它的`Agent`配置，设置 `cni-exclusive: "false"`（`kubectl edit cm -n kube-system cilium-config`）。
+
+接下来创建附加网络的定义，这里的 `master` 指的的 `macvlan` 模式下的父接口，不同的插件配置有所不同：
+
+```
+kubectl create -f - <<EOF
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: macvlan-conf
+spec:
+  config: '{
+      "cniVersion": "0.3.1",
+      "type": "macvlan",
+      "master": "eth0",
+      "mode": "bridge",
+      "ipam": {
+        "type": "host-local",
+        "subnet": "172.28.240.0/20",
+        "rangeStart": "172.28.244.2",
+        "rangeEnd": "172.28.244.250",
+        "routes": [
+          { "dst": "0.0.0.0/0" }
+        ],
+        "gateway": "172.28.240.1"
+      }
+    }'
+EOF
+```
+
+然后创建 `Pod` 进行测试：
+
+```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: samplepod
+  annotations:
+    k8s.v1.cni.cncf.io/networks: macvlan-conf
+spec:
+  containers:
+  - name: samplepod
+    command: ["/bin/ash", "-c", "trap : TERM INT; sleep infinity & wait"]
+    image: alpine
+EOF
+```
+
+验证 `samplepod` 具有多个网口 `net1` 和 `eth0`：
+
+```
+$ kubectl exec -it samplepod -- ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+2: tunl0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+3: sit0@NONE: <NOARP> mtu 1480 qdisc noop state DOWN qlen 1000
+    link/sit 0.0.0.0 brd 0.0.0.0
+4: net1@tunl0: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP
+    link/ether e2:28:17:2f:d7:f3 brd ff:ff:ff:ff:ff:ff
+    inet 172.28.244.2/20 brd 172.28.255.255 scope global net1
+       valid_lft forever preferred_lft forever
+315: eth0@if316: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP qlen 1000
+    link/ether 4e:dd:fe:fa:67:28 brd ff:ff:ff:ff:ff:ff
+    inet 10.0.0.213/32 scope global eth0
+       valid_lft forever preferred_lft forever
+```
+
+
 ### 参考链接
 
-1. [CNI with Multus](https://ubuntu.com/kubernetes/docs/cni-multus)
-2. [Use Multus CNI in Kubernetes](https://devopstales.github.io/kubernetes/multus/)
-3. [CNI](https://www.cni.dev/plugins/current/ipam/host-local/)
+1. [CNI](https://www.cni.dev/plugins/current/ipam/host-local/)
+2. [CNI with Multus](https://ubuntu.com/kubernetes/docs/cni-multus)
+3. [Use Multus CNI in Kubernetes](https://devopstales.github.io/kubernetes/multus/)
