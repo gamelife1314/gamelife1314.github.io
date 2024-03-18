@@ -22,6 +22,8 @@ categories:
 [BCC](https://github.com/iovisor/bcc) 是一个用于创建高效内核跟踪和操作程序的工具包，其中包括一些有用的工具和示例。使用 `BCC` 除了要求内核在 `4.1` 版本之上，还需要内核编译的时候打开一些开关，具体可以查看[这里](https://github.com/iovisor/bcc/blob/master/INSTALL.md#kernel-configuration)。除了直接从各个Linux发行版本的应用中心下载之外，这里着重记录源码安装的方式，以 `Ubuntu 22.04` 为例，不同的版本具体要求可能有所不同，但是大体流程相同，其他的版本请看[这里](https://github.com/iovisor/bcc/blob/master/INSTALL.md#source)：
 
 ```
+# 首先删除使用apt安装的软件残留信息
+sudo apt purge bpfcc-tools libbpfcc python3-bpfcc
 wget https://github.com/iovisor/bcc/releases/download/v0.29.0/bcc-src-with-submodule.tar.gz
 tar xf bcc-src-with-submodule.tar.gz
 cd ~/bcc
@@ -35,7 +37,63 @@ make
 make install
 ```
 
-安装好的 `BCC` 工具位于 `/usr/share/bcc/tools/` 路径之下。
+安装好的 `BCC` 工具位于 `/usr/share/bcc/tools/` 路径之下。使用 `BCC` 开发 `hello world` 小程序：
+
+{% tabs BCC hello world %}
+
+<!-- tab hello.py-->
+```py
+#!/usr/bin/env python3
+# 1) import bcc library
+from bcc import BPF
+
+# 2) load BPF program
+b = BPF(src_file="hello.c")
+# 3) attach kprobe
+b.attach_kprobe(event="do_sys_openat2", fn_name="hello_world")
+# 4) read and print /sys/kernel/debug/tracing/trace_pipe
+b.trace_print()
+```
+
+来看看每一处的具体含义：
+
+1. 处导入了 `BCC`  库的 `BPF` 模块，以便接下来调用；
+2. 调用 `BPF()` 加载第一步开发的 `BPF` 源代码；
+3. 将 `BPF` 程序挂载到内核探针（简称 `kprobe`），其中 `do_sys_openat2()` 是系统调用 `openat()` 在内核中的实现；
+4. 读取内核调试文件 `/sys/kernel/debug/tracing/trace_pipe` 的内容，并打印到标准输出中；
+
+运行该程序：
+
+> `sudo python3 hello.py`
+
+输出如下信息：
+
+> `b'      k3s-server-2795005 [000] d...1 265039.419072: bpf_trace_printk: Hello, World!'`
+
+每个字段的含义如下所示：
+
+- `k3s-server-2795005` 表示进程的名字和 `PID`；
+- `[006]` 表示 `CPU` 编号；
+- `d...1` 表示一系列的选项；
+- `265039.419072` 表示时间戳；
+- `bpf_trace_printk` 表示函数名；
+- 最后的 `Hello, World!` 是调用 `bpf_trace_printk()` 传入的字符串；
+
+<!-- endtab -->
+
+
+<!-- tab hello.c-->
+```c
+int hello_world(void *ctx)
+{
+    bpf_trace_printk("Hello, World!");
+    return 0;
+}
+```
+<!-- endtab -->
+
+
+{% endtabs %}
 
 ### bpftool
 
