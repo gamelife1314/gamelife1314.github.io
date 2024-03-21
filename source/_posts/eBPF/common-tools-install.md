@@ -97,7 +97,7 @@ int hello_world(void *ctx)
 
 ### bpftool
 
-[bpftool](https://github.com/libbpf/bpftool?tab=readme-ov-file)是linux内核自带的用于对eBPF程序和eBPF map进行检查与操作的工具软件。安装使用如下的源码编译方式：
+[bpftool](https://github.com/libbpf/bpftool?tab=readme-ov-file)是`linux`内核自带的用于对`eBPF`程序和`eBPF map`进行检查与操作的工具软件。安装使用如下的源码编译方式：
 
 ```
 $ git clone --recurse-submodules https://github.com/libbpf/bpftool.git
@@ -127,3 +127,5 @@ $ man bpftool
 ### 参考连接
 
 1. [How to Build Linux Kernel From Scratch {Step-By-Step Guide}](https://phoenixnap.com/kb/build-linux-kernel)
+2. [使用 libbpf-bootstrap 构建 BPF 程序](https://forsworns.github.io/zh/blogs/20210627/)
+3. [如何在 Ubuntu 上配置 eBPF 开发环境](https://yaoyao.io/posts/how-to-setup-ebpf-env-on-ubuntu#rust)

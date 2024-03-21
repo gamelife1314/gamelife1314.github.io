@@ -460,9 +460,7 @@ $ ip addr add 10.244.0.1/24 dev cni0
 
 ![](https://github.com/k8snetworkplumbingwg/multus-cni/raw/master/docs/images/multus-pod-image.svg)
 
-`Multus CNI` 有两种类型，`thick and thin`，其中 `thick` 由 `multus-daemon` 和 `multus-shim` 两个二进制文件组成 插件。`multus-daemon` 将作为本地代理部署到所有节点，相比 `thin` 具备额外功能（如度量），由于具有这些附加功能，要比 `thin` 消耗更多资源。
-
-`Multus CNI` 需要部署在已经安装默认 `CNI` 的集群中，并将其作为集群网络插件，实现 `pod` 网络互连互通，可以参考它的 [quick-start](https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/docs/quickstart.md) 进行安装，这里使用 `thick` 类型：
+`Multus CNI` 有两种类型，`thick and thin`，其中 `thick` 由 `multus-daemon` 和 `multus-shim` 两个二进制文件组成 插件。`multus-daemon` 将作为本地代理部署到所有节点，相比 `thin` 具备额外功能（如度量），由于具有这些附加功能，要比 `thin` 消耗更多资源。`Multus CNI` 需要部署在已经安装默认 `CNI` 的集群中，并将其作为集群网络插件，可以参考它的 [quick-start](https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/docs/quickstart.md) 进行安装，这里使用 `thick` 类型：
 
 > `kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/master/deployments/multus-daemonset-thick.yml`
 
@@ -473,14 +471,12 @@ $ kubectl get pods --all-namespaces | grep -i multus
 kube-system         kube-multus-ds-m7gqc                      1/1     Running   0               158m
 ```
 
-如果遇到启动失败，提示 `Error response from daemon: path /opt/cni/bin is mounted on / but it is not a shared mount` 这样的信息时，执行命令 `kubectl edit ds -n kube-system kube-multus-ds` ，将所有带有[挂载卷的传播](https://kubernetes.io/zh-cn/docs/concepts/storage/volumes/#mount-propagation) 目录挂载相关的配置删掉（搜索 `mountPropagation: HostToContainer` 和 `mountPropagation: Bidirectional`）。
-
-如果默认的 `CNI` 插件使用 [cilium](https://docs.cilium.io/)，需要编辑它的`Agent`配置，设置 `cni-exclusive: "false"`（`kubectl edit cm -n kube-system cilium-config`）。
+如果遇到启动失败，提示 `Error response from daemon: path /opt/cni/bin is mounted on / but it is not a shared mount` 这样的信息时，执行命令 `kubectl edit ds -n kube-system kube-multus-ds` ，将所有带有[挂载卷的传播](https://kubernetes.io/zh-cn/docs/concepts/storage/volumes/#mount-propagation) 目录挂载相关的配置删掉（搜索 `mountPropagation: HostToContainer` 和 `mountPropagation: Bidirectional`）。如果默认的 `CNI` 插件使用 [cilium](https://docs.cilium.io/)，需要编辑它的`Agent`配置，设置 `cni-exclusive: "false"`（`kubectl edit cm -n kube-system cilium-config`）。
 
 接下来创建附加网络的定义，这里的 `master` 指的的 `macvlan` 模式下的父接口，不同的插件配置有所不同：
 
 ```
-kubectl create -f - <<EOF
+kubectl create -n default -f - <<EOF
 apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
@@ -494,8 +490,8 @@ spec:
       "ipam": {
         "type": "host-local",
         "subnet": "172.28.240.0/20",
-        "rangeStart": "172.28.244.2",
-        "rangeEnd": "172.28.244.250",
+        "rangeStart": "172.28.252.2",
+        "rangeEnd": "172.28.252.250",
         "routes": [
           { "dst": "0.0.0.0/0" }
         ],

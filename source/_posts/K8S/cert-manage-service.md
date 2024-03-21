@@ -140,7 +140,7 @@ establish a secure connection to it. To learn more about this situation and
 how to fix it, please visit the web page mentioned above.
 ```
 
-这里显示找不到证书签名的机构，没法对证书进行验证，这是因为没把自签名的根证书放入系统的证书链中：
+这里显示找不到证书签名的机构，没法对证书进行验证，这是因为没把自签名的根证书放入系统的证书链中。系统保存的根证书在目录 `/etc/ssl/certs/` 中，但是如果要添加自定义的根证书，只需按照如下的方式操作：
 
 > `cp rootCA.crt /usr/local/share/ca-certificates`
 > `sudo update-ca-certificates`
