@@ -126,6 +126,10 @@ $ man bpftool
 
 ### 参考连接
 
-1. [How to Build Linux Kernel From Scratch {Step-By-Step Guide}](https://phoenixnap.com/kb/build-linux-kernel)
-2. [使用 libbpf-bootstrap 构建 BPF 程序](https://forsworns.github.io/zh/blogs/20210627/)
-3. [如何在 Ubuntu 上配置 eBPF 开发环境](https://yaoyao.io/posts/how-to-setup-ebpf-env-on-ubuntu#rust)
+- [https://github.com/xdp-project/xdp-tools](https://github.com/xdp-project/xdp-tools)
+- [How to Build Linux Kernel From Scratch {Step-By-Step Guide}](https://phoenixnap.com/kb/build-linux-kernel)
+- [使用 libbpf-bootstrap 构建 BPF 程序](https://forsworns.github.io/zh/blogs/20210627/)
+- [如何在 Ubuntu 上配置 eBPF 开发环境](https://yaoyao.io/posts/how-to-setup-ebpf-env-on-ubuntu#rust)
+- [AF_XDP技术详解](https://rexrock.github.io/post/af_xdp1/)
+- [解读eBPF XDP性能之路：它如何向着DPDK看齐？它在实际中又能带来多大效益？](https://blog.xuegaogg.com/posts/1933/)
+- [How to build a kernel with XDP support](https://blogs.igalia.com/dpino/2019/01/02/build-a-kernel/)
