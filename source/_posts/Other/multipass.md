@@ -194,7 +194,7 @@ Mounts:         /Users/fudenglong/WORKDIR => /Workdir
 
 MacOS:
 
->  sudo sh "/Library/Application Support/com.canonical.multipass/uninstall.sh"
+> `sudo sh "/Library/Application Support/com.canonical.multipass/uninstall.sh"`
 
 
 ### 参考文章
