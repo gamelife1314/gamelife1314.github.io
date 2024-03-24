@@ -190,10 +190,10 @@ Mounts:         /Users/fudenglong/WORKDIR => /Workdir
 
 新版本可以用下面的命令：
 
-> multipass stop ${name}
-> multipass set local.${name}.cpus=4
-> multipass set local.${name}.disk=60G
-> multipass set local.${name}.memory=7G
+> `multipass stop ${name}`
+> `multipass set local.${name}.cpus=4`
+> `multipass set local.${name}.disk=60G`
+> `multipass set local.${name}.memory=7G`
 
 ### 卸载虚拟机
 
