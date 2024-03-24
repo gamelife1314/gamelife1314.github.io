@@ -22,7 +22,6 @@ tags:
 使用 `multipass find` 我们可以查看有哪些可供选择的镜像：
 
 ```
-~ ⌚ 19:12:15
 $ multipass find
 Image                       Aliases           Version          Description
 18.04                       bionic            20221014         Ubuntu 18.04 LTS
@@ -40,7 +39,6 @@ minikube                                      latest           minikube is local
 使用 `multipass launch` 命令能快速启动一个 `Ubuntu` 虚拟机，如果我们没有指定镜像，会选择 `ubuntu` 最新的 `LTS` 版本：
 
 ```
-~ ⌚ 19:12:37
 $ multipass launch --name ubuntu2204 -d 20G
 Launched: ubuntu2204
 ```
@@ -50,7 +48,6 @@ Launched: ubuntu2204
 使用 `multipass list` 查看本地正在运行的虚拟机，这里的 `primary` 是默认的，`ubuntu2204` 是新创建的：
 
 ```
-~ ⌚ 19:16:23
 $ multipass list
 Name                    State             IPv4             Image
 primary                 Running           192.168.64.16    Ubuntu 20.04 LTS
