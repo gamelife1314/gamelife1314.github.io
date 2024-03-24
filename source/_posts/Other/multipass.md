@@ -62,7 +62,6 @@ ubuntu2204              Running           192.168.64.17    Ubuntu 22.04 LTS
 使用 `multipass mount` 命令，可以挂在目录，例如：
 
 ```
-~ ⌚ 19:42:59
 $ multipass mount /Users/fudenglong/WORKDIR  ubuntu2204
 ```
 
@@ -71,7 +70,6 @@ $ multipass mount /Users/fudenglong/WORKDIR  ubuntu2204
 使用 `multipass shell` 进入虚拟机之后，查看我们挂在的目录，如果要切 `root`，直接使用 `sudo su`：
 
 ```
-~ ⌚ 19:44:28
 $ multipass shell ubuntu2204
 Welcome to Ubuntu 22.04.1 LTS (GNU/Linux 5.15.0-52-generic aarch64)
 
@@ -128,7 +126,6 @@ exit
 我们可以在创建虚拟机的时候，可以指定更多的参数，例如，指定 `CPU`，内存，磁盘，目录挂在以及网路模式：
 
 ```
-~ ⌚ 20:01:44
 $ multipass launch -c 4 -d 20G -m 2G -n vm-ubuntu --bridged --mount /Users/fudenglong/WORKDIR:/Workdir
 Launched: vm-ubuntu
 Mounted '/Users/fudenglong/WORKDIR' into 'vm-ubuntu:/Workdir'
@@ -139,7 +136,6 @@ Mounted '/Users/fudenglong/WORKDIR' into 'vm-ubuntu:/Workdir'
 可以使用 `multipass network` 查看我们可以使用的网络类型：
 
 ```
-~ ⌚ 20:08:09
 $ multipass networks
 Name     Type         Description
 bridge0  bridge       Network bridge with en1, en2, en3
@@ -157,7 +153,6 @@ en6      ethernet     Ethernet Adapter (en6)
 可以使用 `multipass info` 查看虚拟机的信息：
 
 ```
-~ ⌚ 20:11:45
 $ multipass info vm-ubuntu
 Name:           vm-ubuntu
 State:          Running
@@ -178,11 +173,11 @@ Mounts:         /Users/fudenglong/WORKDIR => /Workdir
 
 但是参考这个方案之前，要查看自己本地的驱动是什么：
 
-> multipass get local.driver
+> `multipass get local.driver`
 
 然后安装 `qemu`：
 
-> brew install  qemu
+> `brew install qemu`
 
 安装之后，使用下面的命令进行 `resize`：
 
