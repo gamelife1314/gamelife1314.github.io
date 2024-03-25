@@ -56,7 +56,7 @@ ubuntu2204              Running           192.168.64.17    Ubuntu 22.04 LTS
 
 ### 目录挂载
 
-使用 `multipass mount` 命令，可以挂在目录，例如：
+使用 `multipass mount` 命令可以将主机的目录挂载到虚拟机，虚拟机中的路径和挂载路径相同：
 
 ```
 $ multipass mount /Users/fudenglong/WORKDIR  ubuntu2204
@@ -85,35 +85,9 @@ Welcome to Ubuntu 22.04.1 LTS (GNU/Linux 5.15.0-52-generic aarch64)
   IPv4 address for enp0s1: 192.168.64.17
   IPv6 address for enp0s1: fd88:7848:a9f4:53b8:5054:ff:fe74:a03b
 
-
 0 updates can be applied immediately.
 
-
-The list of available updates is more than a week old.
-To check for new updates run: sudo apt update
-
-ubuntu@ubuntu2204:~$ ll /Users/fudenglong/WORKDIR/
-total 76
-drwxr-xr-x 1 ubuntu ubuntu   480 Oct 26 23:05 ./
-drwxr-xr-x 3 ubuntu ubuntu  4096 Nov 13 19:44 ../
--rw-r--r-- 1 ubuntu ubuntu 10244 Nov  3 10:19 .DS_Store
--rw-r--r-- 1 ubuntu ubuntu  9483 Apr  5  2022 cluster-configuration.yaml
-drwxr-xr-x 1 ubuntu ubuntu   800 Jan 20  2022 delve/
-drwxr-xr-x 1 ubuntu ubuntu   544 Nov  3 10:39 gamelife1314.github.io/
-drwxr-xr-x 1 ubuntu ubuntu   128 Oct 26 23:07 gitee/
-drwxr-xr-x 1 ubuntu ubuntu   480 Jun 24 23:35 gostudy/
-drwxr-xr-x 1 ubuntu ubuntu   480 Nov  3 10:34 hexo-generator-searchdb/
-drwxr-xr-x 1 ubuntu ubuntu   128 Jun 13 00:26 java-study/
-drwxr-xr-x 1 ubuntu ubuntu   224 Dec  5  2021 k8s/
-drwxr-xr-x 1 ubuntu ubuntu   576 Jan 20  2022 manim/
-drwxr-xr-x 1 ubuntu ubuntu   672 May 21 22:29 pyquery/
-drwxr-xr-x 1 ubuntu ubuntu   384 Jun 20 00:21 rust/
-drwxr-xr-x 1 ubuntu ubuntu    96 Apr  8  2022 temp/
 ubuntu@ubuntu2204:~$ sudo su
-root@ubuntu2204:/home/ubuntu#
-root@ubuntu2204:/home/ubuntu#
-root@ubuntu2204:/home/ubuntu# exit
-exit
 ```
 
 ### 停止、删除
