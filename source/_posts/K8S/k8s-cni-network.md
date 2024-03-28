@@ -471,7 +471,7 @@ $ kubectl get pods --all-namespaces | grep -i multus
 kube-system         kube-multus-ds-m7gqc                      1/1     Running   0               158m
 ```
 
-如果遇到启动失败，提示 `Error response from daemon: path /opt/cni/bin is mounted on / but it is not a shared mount` 这样的信息时，执行命令 `kubectl edit ds -n kube-system kube-multus-ds` ，将所有带有[挂载卷的传播](https://kubernetes.io/zh-cn/docs/concepts/storage/volumes/#mount-propagation) 目录挂载相关的配置删掉（搜索 `mountPropagation: HostToContainer` 和 `mountPropagation: Bidirectional`）。如果默认的 `CNI` 插件使用 [cilium](https://docs.cilium.io/)，需要编辑它的`Agent`配置，设置 `cni-exclusive: "false"`（`kubectl edit cm -n kube-system cilium-config`）。
+如果遇到启动失败，提示 `Error response from daemon: path /opt/cni/bin is mounted on / but it is not a shared mount` 这样的信息时，需要将`Host`的`/`目录标记为共享的，在`Host`上执行命令 `mount --make-rshared /`。如果默认的 `CNI` 插件使用 [cilium](https://docs.cilium.io/)，需要编辑它的`Agent`配置，设置 `cni-exclusive: "false"`（`kubectl edit cm -n kube-system cilium-config`）。
 
 接下来创建附加网络的定义，这里的 `master` 指的的 `macvlan` 模式下的父接口，不同的插件配置有所不同：
 
