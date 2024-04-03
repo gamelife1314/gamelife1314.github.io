@@ -101,6 +101,10 @@ date: 2024-01-01 14:07:02
 5. 删除 `<none>` 镜像：
     > `docker rmi -f $(docker images -f "dangling=true" -q)`
 
+6. 镜像编译设置代理：
+    > 设置代理
+    > `docker build -t rb-dev:musl --build-arg https_proxy=http://1127.0.0.1:3128 --build-arg http_proxy=http://127.0.0.1:3128 .`
+
 
 ### 常用链接
 

@@ -47,44 +47,44 @@ Codename:	jammy
 #### swap
 首先，禁止 `swap`：
 
-> sudo swapoff -a  
+> `sudo swapoff -a`  
 > `sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab`
 
 #### 防火墙
 
-测试环境，直接关闭防火墙即可：
+测试环境，直接关闭防火墙即可（`Ubuntu`）：
 
-> sudo ufw disable
+> `sudo ufw disable`
 
 #### 桥接流量
 
 转发 `IPv4` 并让 `iptables` 看到桥接流量，这部分内容来源于[这里](https://kubernetes.io/zh-cn/docs/setup/production-environment/container-runtimes/#install-and-configure-prerequisites)：
 
 ```
-cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+$ cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
 overlay
 br_netfilter
 EOF
 
-sudo modprobe overlay
-sudo modprobe br_netfilter
+$ sudo modprobe overlay
+$ sudo modprobe br_netfilter
 
 # 设置所需的 sysctl 参数，参数在重新启动后保持不变
-cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+$ cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-iptables  = 1
 net.bridge.bridge-nf-call-ip6tables = 1
 net.ipv4.ip_forward                 = 1
 EOF
 
 # 应用 sysctl 参数而不重新启动
-sudo sysctl --system
+$ sudo sysctl --system
 ```
 
 通过运行以下指令确认 `br_netfilter` 和 `overlay` 模块被加载：
 
 ```
-lsmod | grep br_netfilter
-lsmod | grep overlay
+$ lsmod | grep br_netfilter
+$ lsmod | grep overlay
 ```
 
 `br_netfilter`（`Linux` 内核中的一个模块，它主要用于管理网桥设备上的数据包过滤。 此模块允许在网桥设备上使用`Netfilter`（`Linux`内核的防火墙框架）的功能，例如`iptables` 和`nftables`。 它允许对网桥连接的两个网络段之间的数据包进行过滤。）
@@ -97,9 +97,9 @@ lsmod | grep overlay
 
 为各个节点设置合适的名称，并且做域名解析：
 
->  sudo hostnamectl set-hostname "ctrlnode"
->  sudo hostnamectl set-hostname "node1"
->  sudo hostnamectl set-hostname "node2"
+> `sudo hostnamectl set-hostname "ctrlnode"`
+> `sudo hostnamectl set-hostname "node1"`
+> `sudo hostnamectl set-hostname "node2"`
 
 在`3`个节点的 `/etc/hosts` 文件中加入下面的解析条目：
 
@@ -114,8 +114,8 @@ lsmod | grep overlay
 这里选用 `containerd` 作为容器运行时，更多的容器运行时看[这里](https://kubernetes.io/zh-cn/docs/setup/production-environment/container-runtimes/)。在使用 `multipass` 的 `docker` 模板创建的节点中，`Docker` 默认安装，作为 `Docker` 的一部分，`continaerd` 也会被安装。不过不管以哪种方式安装 `containerd` 之后，需要稍作配置，第一步生成默认配置：
 
 ```
-sudo mkdir -p /etc/containerd
-containerd config default | sudo tee /etc/containerd/config.toml
+# sudo mkdir -p /etc/containerd
+# containerd config default | sudo tee /etc/containerd/config.toml
 ```
 
 [配置cgroup驱动](https://kubernetes.io/zh-cn/docs/setup/production-environment/container-runtimes/#containerd-systemd) 驱动，在 `/etc/containerd/config.toml` 中设置：
