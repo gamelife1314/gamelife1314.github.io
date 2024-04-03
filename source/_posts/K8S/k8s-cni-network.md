@@ -547,3 +547,4 @@ $ kubectl exec -it samplepod -- ip a
 1. [CNI](https://www.cni.dev/plugins/current/ipam/host-local/)
 2. [CNI with Multus](https://ubuntu.com/kubernetes/docs/cni-multus)
 3. [Use Multus CNI in Kubernetes](https://devopstales.github.io/kubernetes/multus/)
+4. [Kubernetes Network Model](https://www.zentao.pm/blog/kubernetes-network-model-1379.html)
