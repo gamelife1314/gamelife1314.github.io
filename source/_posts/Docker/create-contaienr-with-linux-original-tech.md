@@ -459,7 +459,7 @@ docker pull ubuntu
 docker run --name ubuntu -it --rm -d ubuntu
 docker exec -itu root ubuntu bash
 apt update
-apt install -y iproute2 net-tools iputils-ping bridge-utils
+apt install -y iproute2 net-tools iputils-ping bridge-utils iputils-arping
 
 # 将容器的RootFS导出备用
 mkdir rootfs
