@@ -599,3 +599,5 @@ ingress-nginx-controller-8558859656-bwkj7   1/1     Running     0          119m 
 4. [Kubernetes Service iptables 网络通信验证](https://lotabout.me/2022/Kubernetes-Service-Model-Verification/)
 5. [服务发现与负载均衡](https://jimmysong.io/kubernetes-handbook/practice/service-discovery-and-loadbalancing.html)
 6. [Kubernetes LoadBalancer Service 与负载均衡器](https://atbug.com/k8s-service-and-load-balancer/)
+7. [在 Kubernetes 集群中使用 MetalLB 作为 LoadBalancer（下）- BGP](https://atbug.com/load-balancer-service-with-metallb-bgp-mode/)
+8. [MetalLB服务和BGP路由器测试](https://www.flftuu.com/2023/06/08/MetalLB%E6%9C%8D%E5%8A%A1%E5%92%8CBGP%E8%B7%AF%E7%94%B1%E5%99%A8%E6%B5%8B%E8%AF%95/)
