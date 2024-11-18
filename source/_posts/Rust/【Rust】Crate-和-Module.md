@@ -344,7 +344,7 @@ pub fn synthesize(seq: &[AminoAcid]) // ok
 
 之前看了从父模块导入子模块，但是如果从子模块导入父模块的内容，可以使用 `super::`。
 
-如果你有一个和正在使用的 `crate` 同名的模块，在导入的时候就要注意了，否则会引起错误，例如，如果引用了 [`image`](https://crates.io/crates/image)，自己也有个 `image` 模块：
+如果你有一个模块和外部 `crate` 同名，在导入的时候就要注意了，否则会引起错误。例如，如果引用了 [`image`](https://crates.io/crates/image)，自己也有个 `image` 模块：
 
 {% note danger %}
 ```rust
