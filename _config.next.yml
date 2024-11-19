@@ -817,7 +817,7 @@ pdf:
 mermaid:
   enable: true
   # Available themes: default | dark | forest | neutral
-  theme: neutral
+  theme: dark
 
 # ---------------------------------------------------------------
 # Animation Settings
