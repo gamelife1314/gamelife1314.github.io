@@ -1724,7 +1724,7 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 外观设计模式
+### 外观模式
 
 外观设计模式是一种结构型设计模式，它为复杂的子系统提供了一个简化的、统一的接口，隐藏了子系统内部的复杂性和实现细节。客户端只需要与这个外观接口进行交互，而无需了解子系统中各个具体类的复杂操作和相互关系，就如同为复杂的机器设备提供了一个简单易用的控制面板，用户通过控制面板上的几个按钮就能完成一系列复杂的操作，而不需要深入了解机器内部各个零部件的具体运作原理。
 
@@ -2620,7 +2620,7 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 解释器模式
+### 迭代模式
 
 迭代器设计模式是一种行为型设计模式，它提供了一种方法来顺序访问一个聚合对象中的各个元素，而无需暴露该聚合对象的内部表示形式。通过将遍历逻辑封装在迭代器对象中，使得聚合对象的职责更加单一，专注于存储和管理数据，而迭代器负责实现数据的遍历操作，客户端可以通过统一的迭代器接口来遍历不同类型的聚合对象。
 
@@ -2806,7 +2806,7 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 中介者设计模式
+### 中介者模式
 
 中介者模式是一种行为型设计模式，它通过引入一个中介者对象来封装一系列对象之间的交互逻辑，使得这些对象之间不再直接相互引用，而是通过中介者进行通信和协调。中介者模式旨在减少对象之间的耦合度，将复杂的多对多交互关系简化为各个对象与中介者之间的一对多关系，从而使系统更易于理解、维护和扩展。
 
@@ -2948,7 +2948,7 @@ fn main() {
 }
 ```
 <!-- endtab -->
-<!-- tab Rust -->
+<!-- tab Go -->
 ```go
 package main
 
@@ -3041,6 +3041,521 @@ func main() {
     mediator.AddColleague(text_box)
 
     button.Send("点击按钮，更新文本框内容")
+}
+```
+<!-- endtab -->
+{% endtabs %}
+
+### 解释器模式
+
+解释器设计模式是一种行为型设计模式，它用于定义一种特定语言的文法表示，并提供一个解释器来按照这些文法规则解析和执行输入的语句或表达式，从而使程序能够理解和处理一种类似自定义 “语言” 的输入内容，并将其转化为具体的操作或计算结果。
+
+该模式具有以下应用场景：
+
+- 计算器程序：用户输入数学表达式，如 “(3 + 4) * 2 - 5”，解释器模式可定义数字、运算符等的语法规则，解析并计算表达式结果。在科学计算器或金融计算软件等场景中，能灵活处理各种复杂数学运算表达式。
+- 配置文件解析：软件系统常使用配置文件设置参数，格式多样，如 “server.port = 8080; database.url = 'jdbc:mysql://localhost:3306/mydb'”。解释器模式可解析此类配置文件，按语法规则将内容转换为程序可用的数据结构，以便正确配置系统运行参数。
+- 脚本语言执行：在游戏开发、自动化任务处理等领域，常使用自定义脚本语言。例如游戏中角色行为脚本 “if (health < 50) then use_healing_potion ()”，解释器模式能解析并执行这类脚本，实现相应游戏逻辑操作，让非专业编程人员也能通过编写简单脚本控制游戏行为。
+
+该模式具有以下特点：
+
+- 语法定义灵活性：可根据具体需求灵活定制各种复杂程度的语法规则，涵盖运算符优先级、语句嵌套结构、不同类型词汇（关键字、标识符、常量等），以适配不同应用场景对输入语言的要求。
+- 易于语法扩展：当需扩展所定义语言的语法，如在计算器程序中添加新运算符、在配置文件格式中引入新配置项类型或在脚本语言中增加新命令时，只需在现有语法规则基础上添加和修改相应解释器类即可，相对轻松实现语法扩展。
+- 解析与执行分离：清晰划分输入文本的语法解析过程和依据解析结果执行具体操作的过程。先通过解释器依语法规则解析输入，构建如抽象语法树等中间表示形式，再据此执行实际操作，使整个处理流程更清晰、易理解和维护。
+
+该模式具有以下缺点：
+
+- 性能问题：对于复杂的语法和大量的输入语句，解析和执行过程可能会消耗较多的计算资源和时间，导致性能下降。尤其是在实时性要求较高的应用场景中，如高频交易系统中的交易指令解析，如果采用解释器模式处理复杂的交易规则表达式，可能会因性能不佳而影响交易的及时性。
+- 语法复杂性管理：随着语法规则的不断增加和扩展，语法的复杂性会逐渐提高，这可能导致解释器的实现变得复杂且难以维护。不同语法元素之间的相互关系和处理逻辑可能变得错综复杂，使得代码的可读性和可理解性变差。
+- 错误处理困难：在解析输入语句时，可能会出现各种语法错误或语义错误，准确地定位和处理这些错误并非易事。例如，在解析一个复杂的配置文件时，如果用户输入了不符合语法规则的内容，要给出准确且易于理解的错误提示信息，并引导用户正确修改，是比较具有挑战性的。
+
+该模式遵循以下设计原则：
+
+- 开闭原则：对扩展开放，对修改关闭。当需添加新语法规则、词汇或修改现有语法时，只需创建新解释器类或对已有解释器类进行调整，无需对使用解释器的客户端代码进行大规模改动。例如，在计算器程序中添加新运算符时，只需创建对应的运算符解释器类并融入现有解释器体系即可。
+- 单一职责原则：每个解释器类通常只负责解析一种特定语法元素或执行一种特定操作，使代码职责明确，便于理解和维护。比如，在表达式求值中，数字常量解释器只负责识别和处理输入文本中的数字常量部分，加法运算符解释器只负责解析和执行加法运算操作。
+
+点击[链接](//www.plantuml.com/plantuml/png/jP91Iy9W6CVl-nJlhIBqKBSTmWuTwn9qd_fgWtTBjdTHL92GL2fE8b4wH19A49en8gDbNyR7lPty2aq5aRsliWxjjcVF_h_d_pp_c4aLWreQaPRG8F_5Nkki_iHwFN3jGQa1zgEawXGRAIM1qTPHni2cgHxew4H2_ZF-vDVeyWgIaRg-9fsDP2eTQ5MXs_svjATYKe8efebsB2sE3KvezL0X5fv8ZD_5of1_63WLzbtssjMWycOooSiIdABopDoJgg6czmLbCRF_KPlBtBO8LJFa-5_0ODS42znJ35M94ymZTKN3CjgbXggd_x9KzbQ0SvUzjC1kS4lr2MbTmpeLdMmoYIoOQOOVpkx8Ryxnd4yfc91ez7HZDdaoWlQzL-f8_i53T74dcj_AsvZFvlOITb0KYGIxSWxBtWxTAs6wePY3yZEyDy5se5MUrdtjVgymTAzvXuiOV9f3CNY_2obyfAQKGAhXfiYQMR_VkxlmVn6WOrXFMXhv1G00)查看解释器模式的UML关系图。
+
+{% tabs 解释器模式 %}
+<!-- tab Go -->
+```go
+package main
+
+import "fmt"
+
+// 抽象表达式接口，所有具体表达式都要实现此接口
+type Expression interface {
+	Interpret() int
+}
+
+// 数字常量表达式，用于表示一个具体数字
+type NumberExpression struct {
+	Value int
+}
+
+func (n *NumberExpression) Interpret() int {
+	return n.Value
+}
+
+// 加法运算表达式，由两个表达式相加组成
+type AddExpression struct {
+	Left, Right Expression
+}
+
+func (a *AddExpression) Interpret() int {
+	return a.Left.Interpret() + a.Right.Interpret()
+}
+
+// 乘法运算表达式，由两个方面的表达式相乘组成
+type MultiplyExpression struct {
+	Left, Right Expression
+}
+
+func (m *MultiplyExpression) Interpret() int {
+	return m.Left.Interpret() + m.Right.Interpret()
+}
+
+// 变量表达式，用于表示一个变量
+type VariableExpression struct {
+	Name  string
+	Value int
+}
+
+func (v *VariableExpression) Interpret() int {
+	return v.Value
+}
+
+// 赋值语句表达式，由变量和要赋的值（也是一个表达式）组成
+type AssignmentExpression struct {
+	Variable VariableExpression
+	Value    Expression
+}
+
+func (a *AssignmentExpression) Interpret() int {
+	assignedValue := a.Value.Interpret()
+	a.Variable.Value = assignedValue
+	return assignedValue
+}
+
+// 客户端代码，用于解析和计算表达式
+func main() {
+	// 创建变量表达式
+	variableX := &VariableExpression{
+		Name:  "x",
+		Value: 0,
+	}
+
+	// 创建数字常量表达式
+	five := &NumberExpression{Value: 5}
+
+	// 创建加法运算表达式
+	addExpression := &AddExpression{
+		Left:  variableX,
+		Right: five,
+	}
+
+	// 创建赋值语句表达式
+	assignmentExpression := &AssignmentExpression{
+		Variable: *variableX,
+		Value:    addExpression,
+	}
+
+	// 解析并计算表达式
+	result := assignmentExpression.Interpret()
+	fmt.Printf("表达式的结果是: %d\n", result)
+	fmt.Printf("变量x的值现在是: %d\n", variableX.Value)
+}
+
+```
+<!-- endtab -->
+<!-- tab Rust -->
+```rust
+use std::cell::RefCell;
+use std::rc::Rc;
+
+// 抽象表达式接口，所有具体表达式都要实现此接口
+trait Expression {
+    fn interpret(&mut self) -> i32;
+}
+
+// 数字常量表达式，用于表示一个具体数字
+struct NumberExpression {
+    value: i32,
+}
+
+impl Expression for NumberExpression {
+    fn interpret(&mut self) -> i32 {
+        self.value
+    }
+}
+
+// 加法运算表达式，由两个表达式相加组成
+struct AddExpression {
+    left: Rc<RefCell<dyn Expression>>,
+    right: Rc<RefCell<dyn Expression>>,
+}
+
+impl Expression for AddExpression {
+    fn interpret(&mut self) -> i32 {
+        self.left.borrow_mut().interpret() + self.right.borrow_mut().interpret()
+    }
+}
+
+// 乘法运算表达式，由两个表达式相乘组成
+struct MultiplyExpression {
+    left: Rc<RefCell<dyn Expression>>,
+    right: Rc<RefCell<dyn Expression>>,
+}
+
+impl Expression for MultiplyExpression {
+    fn interpret(&mut self) -> i32 {
+        self.left.borrow_mut().interpret() * self.right.borrow_mut().interpret()
+    }
+}
+
+// 变量表达式，用于表示一个变量
+struct VariableExpression {
+    name: String,
+    value: i32,
+}
+
+impl Expression for VariableExpression {
+    fn interpret(&mut self) -> i32 {
+        self.value
+    }
+}
+
+// 赋值语句表达式，由变量和要赋的值（也是一个表达式）组成
+struct AssignmentExpression {
+    variable: Rc<RefCell<VariableExpression>>,
+    value: Rc<RefCell<dyn Expression>>,
+}
+
+impl Expression for AssignmentExpression {
+    fn interpret(&mut self) -> i32 {
+        let assigned_value = self.value.borrow_mut().interpret();
+        self.variable.borrow_mut().value = assigned_value;
+        assigned_value
+    }
+}
+
+// 客户端代码，用于解析和计算表达式
+fn main() {
+    // 创建变量表达式，x=0
+    let  variable_x = Rc::new(RefCell::new(VariableExpression {
+        name: "x".to_string(),
+        value: 0,
+    }));
+
+    // 创建数字常量表达式 5
+    let five: Rc<RefCell<dyn Expression>> = Rc::new(RefCell::new(NumberExpression {value: 5}));
+    let three: Rc<RefCell<dyn Expression>> =  Rc::new(RefCell::new(NumberExpression {value: 3}));
+
+    // 创建加法运算表达式，x+5
+    let add_expression: Rc<RefCell<dyn Expression>> = Rc::new(RefCell::new(AddExpression {
+        left: Rc::clone(&variable_x) as Rc<RefCell<dyn Expression>>,
+        right: Rc::clone(&five),
+    }));
+
+    // 创建赋值语句表达式
+    let mut assignment_expression = AssignmentExpression {
+        variable: Rc::clone(&variable_x),
+        value: Rc::clone(&add_expression),
+    };
+
+    // 解析并计算表达式
+    let result = assignment_expression.interpret();
+    println!("表达式的结果是: {}", result);
+    println!("变量x的值现在是: {:?}", variable_x.borrow_mut().interpret());
+}
+```
+<!-- endtab -->
+{% endtabs %}
+
+### 备忘录模式
+
+备忘录设计模式是一种行为型设计模式，它用于在不破坏对象封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态，以便之后可以将对象恢复到先前保存的状态。简单来说，就像是给对象的某个时刻的状态拍了一张 “快照”，之后可以根据这张 “快照” 让对象回到那个时候的样子。
+
+该模式具有以下应用场景：
+
+- 文本编辑器的撤销 / 重做功能：在文本编辑器中，用户进行输入、删除、修改等一系列操作。每次操作后，都可以使用备忘录模式保存文本编辑器当前的状态（如文本内容、光标位置、选中区域等）。当用户点击撤销按钮时，就可以从备忘录中取出上一次保存的状态并恢复，实现撤销功能；同理，重做功能也可以基于备忘录中保存的不同状态来实现，通过记录多个状态的备忘录，可以支持多次撤销和重做操作。
+- 游戏存档功能：在游戏中，玩家在游戏过程中的各个关键节点（如完成一个关卡、获得重要道具等）可能希望保存游戏当前的状态（包括角色的属性、位置、游戏场景中的各种元素状态等）。备忘录模式可以用于创建这些游戏状态的备忘录，以便玩家之后可以从存档点重新开始游戏，或者在出现意外情况（如游戏崩溃）时恢复到之前保存的正常游戏状态。
+- 数据库事务管理：在数据库操作中，一个事务可能包含多个数据库操作语句（如插入、更新、删除等）。在事务执行过程中，如果出现错误或者需要回滚到事务开始前的状态，可以使用备忘录模式保存事务开始时数据库相关表的状态（如记录的原始数据值等）。一旦需要回滚，就可以根据备忘录中的状态信息将数据库表恢复到事务开始前的样子，保证数据的一致性和完整性。
+
+该模式具有以下特点：
+
+- 状态保存与恢复：能够方便地保存对象的某个时刻的完整状态，并在需要时准确地将对象恢复到该状态，使得对象的状态变化具有可追溯性和可逆性。
+- 不破坏封装性：在保存和恢复对象状态的过程中，不需要对象暴露其内部的实现细节，完全在对象外部通过备忘录对象来处理状态的捕获和恢复，维护了对象的封装性，使得对象的内部结构可以自由变化而不影响备忘录模式的使用。
+- 多状态记录支持：可以根据需要记录对象的多个不同状态，形成一个状态备忘录的序列，从而支持多次撤销、重做或在不同状态之间进行切换的功能，为用户提供了更灵活的操作体验。
+
+该模式具有以下缺点：
+
+- 内存消耗：如果需要频繁地保存对象的状态，尤其是对于复杂对象或者对象状态数据量较大的情况，可能会占用大量的内存空间来存储这些备忘录对象，导致内存资源的浪费和性能下降。
+- 状态一致性维护：在对象的状态发生复杂变化或者涉及多个相关对象的状态同步时，确保备忘录中保存的状态与对象实际应该恢复到的状态完全一致可能会比较困难，需要仔细处理对象之间的依赖关系和状态更新逻辑，否则可能会导致恢复后的状态出现错误或不符合预期。
+
+该模式遵循以下设计原则：
+
+- 单一职责原则（SRP）：备忘录模式通过将状态的保存和恢复职责封装在不同的类中，实现了单一职责。
+- 开放封闭原则（OCP）：备忘录模式允许在不修改现有代码的情况下扩展新的功能，例如增加更多的状态保存点。
+
+点击[链接](//www.plantuml.com/plantuml/png/nLFBRjD05DtxAxmZ0T8FY51LYJLYmH8Xox9l8WjxN8qdeZmg9OZGbaP9U1HLuL5LBG-1A5Gfj5NJvcSyjhlABt3hiIUJ4gJkcasicNFFlUUUCtC1CochUQvsHUVRItoupe_NelOdtjdI7CA0LamBz5lW0M6-_bZJyKSXO3u50qiP57pgL1rYuabPlos_YzeYCfw-hoUV6-7m0_-n7h_u4zKRSUyPRs_mBwlyvs6okpaQBFFEo-JtVb9lZWOhckMQGQ3GP1slCLXWXkNZG8ILzJkCEgGgRgmQ3NngpFk1mnoVbFLQu3m2SHU02nO3sp0fc3ZT_1dYHY55N1V0ugo0Lf0R1JrqOPAUm8D2KLULvTJCK8Sg8D2ODcLnZ3ytQbeoVNobQ493Md8XLRf2CTQMrlyhDSDQoCV0y8JPgUpCU76V-rwXlYTHsR-42kDvSpyyVercoqpndOzn-rUyUvHvVDCds8z1LdRfHbyyrF7EPjnzZe55CQD1AzdRIFQsCE3ywLV-gXLrkk79EobRn3pNZECnypx8M6VB2-JsxjwRZ9si4CUcRVz_yG9I1IOX3h5X8LkKwkQYbbhKZ_j7sZaVPcQUpEOuh12kQSg3B9NKUoH96c_m5QkF-hJUIuPBasd2pKoBJ_JsCEglXGTjkR2SSKKRR-jggQJqJ1eztbt6dgeHlDNatUzyknSUV5Cp5vwidd7D0R5hdliN)查看备忘录设计模式UML图。
+
+{% tabs 备忘录模式 %}
+<!-- tab Rust -->
+```Rust
+// 备忘录接口，定义了恢复对象状态的方法
+trait Memento {
+    fn restore_state(&self, originator: &mut Originator);
+}
+
+// 需要保存状态的原始对象（发起者）
+struct Originator {
+    text_content: String,
+    cursor_position: usize,
+    selected_area: Option<(usize, usize)>,
+    font_style: String,
+}
+
+impl Originator {
+    fn new() -> Self {
+        Originator {
+            text_content: String::new(),
+            cursor_position: 0,
+            selected_area: None,
+            font_style: String::new(),
+        }
+    }
+
+    fn set_text_content(&mut self, new_text_content: &str) {
+        self.text_content = new_text_content.to_string();
+    }
+
+    fn set_cursor_position(&mut self, new_cursor_position: usize) {
+        self.cursor_position = new_cursor_position;
+    }
+
+    fn set_selected_area(&mut self, new_selected_area: Option<(usize, usize)>) {
+        self.selected_area = new_selected_area;
+    }
+
+    fn set_font_style(&mut self, new_font_style: &str) {
+        self.font_style = new_font_style.to_string();
+    }
+
+    // 创建备忘录对象，保存当前状态
+    fn create_memento(&self) -> Box<dyn Memento> {
+        Box::new(ConcreteMemento {
+            text_content: self.text_content.clone(),
+            cursor_position: self.cursor_position,
+            selected_area: self.selected_area,
+            font_style: self.font_style.clone(),
+        })
+    }
+
+    // 从备忘录对象中恢复状态
+    fn restore_from_memento(&mut self, memento: &Box<dyn Memento>) {
+        memento.restore_state(self);
+    }
+}
+
+// 具体的备忘录实现类
+struct ConcreteMemento {
+    text_content: String,
+    cursor_position: usize,
+    selected_area: Option<(usize, usize)>,
+    font_style: String,
+}
+
+impl Memento for ConcreteMemento {
+    fn restore_state(&self, originator: &mut Originator) {
+        originator.set_text_content(&self.text_content);
+        originator.set_cursor_position(self.cursor_position);
+        originator.set_selected_area(self.selected_area);
+        originator.set_font_style(&self.font_style);
+    }
+}
+
+// 管理者类，负责存储和提供备忘录对象
+struct Caretaker {
+    mementos: Vec<Box<dyn Memento>>,
+}
+
+impl Caretaker {
+    fn new() -> Self {
+        Caretaker { mementos: Vec::new() }
+    }
+
+    fn add_memento(&mut self, memento: Box<dyn Memento>) {
+        self.mementos.push(memento);
+    }
+
+    fn get_memento(&self, index: usize) -> Option<&Box<dyn Memento>> {
+        self.mementos.get(index)
+    }
+}
+
+// 客户端代码示例，模拟文本编辑器的撤销/重做功能
+fn main() {
+    let mut originator = Originator::new();
+    let mut caretaker = Caretaker::new();
+
+    // 设置初始状态
+    originator.set_text_content("这是初始文本内容");
+    originator.set_cursor_position(5);
+    originator.set_selected_area(Some((2, 4)));
+    originator.set_font_style("宋体");
+
+    // 创建并保存初始状态的备忘录
+    caretaker.add_memento(originator.create_memento());
+
+    // 修改状态
+    originator.set_text_content("修改后的文本内容");
+    originator.set_cursor_position(10);
+    originator.set_selected_area(Some((3, 6)));
+    originator.set_font_style("黑体");
+
+    // 创建并保存修改后状态的备忘录
+    caretaker.add_memento(originator.create_memento());
+
+    // 模拟撤销操作，恢复到上一个状态
+    if let Some(memento) = caretaker.get_memento(0) {
+        originator.restore_from_memento(memento);
+    }
+
+    println!("当前文本内容: {}", originator.text_content);
+    println!("当前光标位置: {}", originator.cursor_position);
+    println!("当前选中区域: {:?}", originator.selected_area);
+    println!("当前字体样式: {}", originator.font_style);
+}
+```
+<!-- endtab -->
+<!-- tab Go -->
+```go
+package main
+
+import "fmt"
+
+// 备忘录接口，定义了恢复对象状态的方法
+type Memento interface {
+	RestoreState(originator *Originator)
+}
+
+// 需要保存状态的原始对象（发起者）
+type Originator struct {
+	TextContent    string
+	CursorPosition int
+	SelectedArea   *[2]int
+	FontStyle      string
+}
+
+func (o *Originator) New() *Originator {
+	return &Originator{
+		TextContent:    "",
+		CursorPosition: 0,
+		SelectedArea:   nil,
+		FontStyle:      "",
+	}
+}
+
+func (o *Originator) SetTextContent(newTextContent string) {
+	o.TextContent = newTextContent
+}
+
+func (o *Originator) SetCursorPosition(newCursorPosition int) {
+	o.CursorPosition = newCursorPosition
+}
+
+func (o *Originator) SetSelectedArea(newSelectedArea *[2]int) {
+	o.SelectedArea = newSelectedArea
+}
+
+func (o *Originator) SetFontStyle(newFontStyle string) {
+	o.FontStyle = newFontStyle
+}
+
+// 创建备忘录对象，保存当前状态
+func (o *Originator) CreateMemento() Memento {
+	return &ConcreteMemento{
+		TextContent:    o.TextContent,
+		CursorPosition: o.CursorPosition,
+		SelectedArea:   o.SelectedArea,
+		FontStyle:      o.FontStyle,
+	}
+}
+
+// 从备忘录对象中恢复状态
+func (o *Originator) RestoreFromMemento(memento Memento) {
+	memento.RestoreState(o)
+}
+
+// 具体的备忘录实现类
+type ConcreteMemento struct {
+	TextContent    string
+	CursorPosition int
+	SelectedArea   *[2]int
+	FontStyle      string
+}
+
+func (c *ConcreteMemento) RestoreState(originator *Originator) {
+	originator.SetTextContent(c.TextContent)
+	originator.SetCursorPosition(c.CursorPosition)
+	originator.SetSelectedArea(c.SelectedArea)
+	originator.SetFontStyle(c.FontStyle)
+}
+
+// 管理者类，负责存储和提供备忘录对象
+type Caretaker struct {
+	Mementos []Memento
+}
+
+func (c *Caretaker) New() *Caretaker {
+	return &Caretaker{
+		Mementos: []Memento{},
+	}
+}
+
+func (c *Caretaker) AddMemento(memento Memento) {
+	c.Mementos = append(c.Mementos, memento)
+}
+
+func (c *Caretaker) GetMemento(index int) Memento {
+	if index < len(c.Mementos) {
+		return c.Mementos[index]
+	}
+	return nil
+}
+
+// 客户端代码示例，模拟文本编辑器的撤销/重做功能
+func main() {
+	originator := &Originator{}
+	caretaker := &Caretaker{}
+
+	// 设置初始状态
+	originator.SetTextContent("这是初始文本内容")
+	originator.SetCursorPosition(5)
+	originator.SetSelectedArea(&[2]int{2, 4})
+	originator.SetFontStyle("宋体")
+
+	// 创建并保存初始状态的备忘录
+	caretaker.AddMemento(originator.CreateMemento())
+
+	// 修改状态
+	originator.SetTextContent("修改后的文本内容")
+	originator.SetCursorPosition(10)
+	originator.SetSelectedArea(&[2]int{3, 6})
+	originator.SetFontStyle("黑体")
+
+	// 创建并保存修改后状态的备忘录
+	caretaker.AddMemento(originator.CreateMemento())
+
+	// 模拟撤销操作，恢复到上一个状态
+	if memento := caretaker.GetMemento(0); memento != nil {
+		originator.RestoreFromMemento(memento)
+	}
+
+	fmt.Printf("当前文本内容: %s\n", originator.TextContent)
+	fmt.Printf("当前光标位置: %d\n", originator.CursorPosition)
+	fmt.Printf("当前选中区域: %v\n", originator.SelectedArea)
+	fmt.Printf("当前字体样式: %s\n", originator.FontStyle)
 }
 ```
 <!-- endtab -->
