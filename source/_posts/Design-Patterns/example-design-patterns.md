@@ -2002,16 +2002,17 @@ use std::collections::HashMap;
 
 // 享元对象的抽象接口
 trait Flyweight {
-    fn operation(&self, extrinsic_state: &str);
+    fn operation(&self, extrinsic_state: &str) -> ();
 }
 
 // 具体享元对象：图形元素享元
 struct GraphicElementFlyweight {
-    internal_state: String, // 假设这里可以存储图形元素的一些基本属性，如颜色、形状等
+    internal_state: String,
+    // 假设这里可以存储图形元素的一些基本属性，如颜色、形状等
 }
 
 impl Flyweight for GraphicElementFlyweight {
-    fn operation(&self, extrinsic_state: &str) {
+    fn operation(&self, extrinsic_state: &str) -> () {
         println!(
             "使用内部状态 {} 并结合外部状态 {} 进行图形元素操作",
             self.internal_state, extrinsic_state
@@ -2032,22 +2033,15 @@ impl FlyweightFactory {
     }
 
     fn get_flyweight(&mut self, key: &str) -> &Box<dyn Flyweight> {
-        if let Some(flyweight) = self.flyweights.get(key) {
-            flyweight // 如果存在，直接返回引用
-        } else {
-            // 根据具体情况创建新的享元对象并放入池中
-            let new_flyweight: Box<dyn Flyweight> = match key {
-                "tree" => Box::new(GraphicElementFlyweight {
-                    internal_state: "绿色圆形图标".to_string(),
-                }),
-                "building" => Box::new(GraphicElementFlyweight {
-                    internal_state: "灰色矩形图标".to_string(),
-                }),
-                _ => panic!("未知的享元对象类型"),
-            };
-            self.flyweights.insert(key.to_string(), new_flyweight);
-            &new_flyweight // 如果不存在，返回新创建的享元对象的引用
-        }
+        self.flyweights.entry(key.to_string()).or_insert(match key {
+            "tree" => Box::new(GraphicElementFlyweight {
+                internal_state: "绿色圆形图标".to_string(),
+            }),
+            "building" => Box::new(GraphicElementFlyweight {
+                internal_state: "灰色矩形图标".to_string(),
+            }),
+            _ => panic!("未知的享元对象类型"),
+        })
     }
 }
 
@@ -2065,7 +2059,6 @@ fn main() {
     let another_tree_flyweight = factory.get_flyweight("tree");
     another_tree_flyweight.operation("地图右上角位置");
 }
-
 ```
 <!-- endtab -->
 <!-- tab Go -->
@@ -2150,4 +2143,905 @@ func main() {
 ```
 <!-- endtab -->
 
+{% endtabs %}
+
+
+### 代理模式
+
+代理设计模式是一种结构型设计模式，它为其他对象提供一种代理以控制对这个对象的访问。代理对象和被代理对象通常实现相同的接口，代理对象可以在客户端和被代理对象之间起到中介的作用，在访问被代理对象之前或之后执行一些额外的操作，比如权限验证、懒加载、缓存等，而客户端无需知道它所访问的是代理对象还是被代理对象本身。
+
+该模式具有以下的应用场景：
+
+- 远程代理：在分布式系统中，当客户端需要访问位于远程服务器上的对象时，由于网络等因素，直接访问可能存在困难或效率低下。例如，在一个分布式数据库系统中，客户端位于本地机器，而数据库服务器在远程的数据中心。可以使用远程代理模式，在客户端本地创建一个远程数据库对象的代理，客户端通过这个代理与远程数据库进行交互。代理负责处理网络通信、数据序列化和反序列化等操作，使得客户端可以像访问本地对象一样方便地访问远程数据库，同时隐藏了远程访问的复杂性。
+- 虚拟代理（懒加载）：当创建一个对象的成本很高（如加载大量数据、初始化复杂资源等），但并不是每次都需要立即使用该对象时，可以使用虚拟代理实现懒加载。比如，在一个图像浏览应用中，可能有大量的高清图片，一次性加载所有图片会占用大量内存且可能导致启动缓慢。此时可以为每张图片创建一个虚拟代理，当用户真正需要查看某张图片时，代理才去加载真正的图片对象，在此之前只占用很少的内存来保存代理对象自身的信息，从而提高应用的启动速度和内存使用效率。
+- 保护代理（权限验证）：用于控制对特定对象的访问权限。例如，在一个企业内部的文件管理系统中，有一些敏感文件只有特定权限的用户才能访问。可以创建保护代理对象，在用户请求访问文件时，代理首先进行权限验证，只有验证通过的用户才能真正访问到被代理的文件对象，这样可以有效地保护敏感资源免受未授权访问。
+
+
+该模式具有以下特点：
+
+- 中介作用：代理对象作为客户端和被代理对象之间的中介，客户端通过代理对象来间接访问被代理对象，代理可以在中间执行一些额外的操作来增强或控制访问过程。
+- 接口一致性：代理对象和被代理对象通常实现相同的接口，这使得客户端在使用时无需区分是直接访问被代理对象还是通过代理访问，保证了客户端代码的简洁性和可维护性，客户端可以以相同的方式调用代理和被代理对象的方法。
+- 功能增强：可以在代理对象中添加额外的功能，如前面提到的权限验证、懒加载、缓存等功能，而不需要修改被代理对象本身的代码，从而实现对被代理对象功能的扩展和优化。
+
+该模式遵循以下设计原则：
+
+- 开闭原则：对扩展开放，对修改封闭。可以通过添加新的代理类来扩展功能，而不需要修改实际对象的代码。
+- 单一职责原则：代理对象应该只有一个职责，即代理对实际对象的访问，并可能添加额外的功能。
+
+{% tabs 代理模式 %}
+<!-- tab Rust -->
+```rust
+// 真实主题接口
+trait Subject {
+    fn request(&self);
+}
+
+// 真实主题
+struct RealSubject {
+    name: String,
+}
+
+impl Subject for RealSubject {
+    fn request(&self) {
+        println!("RealSubject: Handling request for {}", self.name);
+    }
+}
+
+// 代理主题
+struct Proxy<T: Subject> {
+    real_subject: T,
+}
+
+impl<T: Subject> Proxy<T> {
+    fn new(real_subject: T) -> Self {
+        Self { real_subject }
+    }
+
+    fn before_request(&self) {
+        println!("before request");
+    }
+
+    fn after_request(&self) {
+        println!("after request");
+    }
+}
+
+impl<T: Subject> Subject for Proxy<T> {
+    fn request(&self) {
+        self.before_request();
+        self.real_subject.request();
+        self.after_request();
+    }
+}
+
+fn main() {
+    let mut proxy = Proxy::new(RealSubject {
+        name: String::from(""),
+    });
+    proxy.request();
+}
+```
+<!-- endtab -->
+<!-- tab Go -->
+```go
+package main
+
+import "fmt"
+
+// 定义被代理对象和代理对象都要实现的接口
+type Subject interface {
+	Request()
+}
+
+// 具体被代理对象
+type RealSubject struct {
+	Data string
+}
+
+func (r *RealSubject) Request() {
+	fmt.Printf("真正的对象处理请求，数据: %s\n", r.Data)
+}
+
+// 代理对象
+type Proxy struct {
+	RealSubject Subject
+	// 用于模拟权限验证，这里简单用一个布尔值表示
+	HasPermission bool
+}
+
+func NewProxy() *Proxy {
+	return &Proxy{
+		RealSubject:   nil,
+		HasPermission: false,
+	}
+}
+
+// 模拟设置权限验证结果
+func (p *Proxy) SetPermission(permission bool) {
+	p.HasPermission = permission
+}
+
+// 加载真正的被代理对象（懒加载示例）
+func (p *Proxy) LoadRealSubject() {
+	if p.RealSubject == nil {
+		p.RealSubject = &RealSubject{
+			Data: "一些重要数据",
+		}
+	}
+}
+
+func (p *Proxy) Request() {
+	if p.HasPermission {
+		if p.RealSubject != nil {
+			p.RealSubject.Request()
+		} else {
+			p.LoadRealSubject()
+			if p.RealSubject != nil {
+				p.RealSubject.Request()
+			}
+		}
+	} else {
+		fmt.Println("没有权限访问")
+	}
+}
+
+// 客户端代码
+func main() {
+	proxy := NewProxy()
+
+	// 模拟权限验证未通过
+	proxy.Request()
+
+	// 设置权限验证通过
+	proxy.SetPermission(true)
+
+	proxy.Request()
+}
+```
+<!-- endtab -->
+{% endtabs %}
+
+### 责任链模式
+
+责任链模式是一种行为型设计模式，它将请求的发送者和接收者解耦，让多个对象都有机会处理请求，将这些对象连接成一条链，请求沿着这条链传递，直到有一个对象处理它为止。每个对象在接收到请求时，都可以决定是自己处理该请求还是将其传递给链上的下一个对象。
+
+该模式具有以下应用场景：
+
+- 事件处理系统：在图形用户界面（GUI）开发中，比如一个窗口应用程序，会有各种各样的事件发生，如鼠标点击、键盘按键按下等。不同的组件可能对不同类型的事件感兴趣并进行处理。可以使用责任链模式，将各个组件按照一定的顺序连接成责任链，当一个事件发生时，从链的开头开始传递该事件，每个组件检查是否是自己能处理的事件类型，如果是则处理，否则传递给下一个组件，直到事件被处理或者到达链的末尾。
+- 工作流审批系统：在企业的业务流程中，对于一些重要的业务操作，如请假申请、费用报销等，往往需要经过多个层级的审批。可以构建责任链模式，每个审批层级作为链上的一个节点，请假申请或费用报销请求从链的起始节点（如员工直属上级）开始传递，每个审批人根据自己的权限和规则决定是否批准该请求，如果不批准则传递给下一个审批层级，直到请求被批准或者到达链的最后审批层级（如公司高层领导）。
+- 日志过滤系统：在一个大型的软件系统中，会产生大量的日志信息，不同级别的日志可能需要不同的处理方式，比如一些调试日志可能只在开发环境中显示，而错误日志需要记录到文件并发送通知给运维人员。通过责任链模式，可以将不同的日志过滤器（如按级别过滤、按模块过滤等）连接成链，日志消息从链的一端传入，依次经过各个过滤器，根据过滤器的规则决定是记录、丢弃还是进一步传递该日志消息。
+
+该模式具有以下特点：
+
+- 解耦请求发送者和接收者：请求的发送者不需要知道具体哪个对象会处理它的请求，只需要将请求发送到责任链的开头即可，而接收者（链上的各个对象）也不需要知道请求的原始发送者是谁，它们只关心是否能处理接收到的请求以及如何处理。
+- 动态组合处理链：可以根据具体的业务需求灵活地组合和调整责任链上的对象顺序和类型，添加或删除链上的某个节点都比较方便，无需对整个系统进行大规模的修改，从而提高了系统的可扩展性。
+- 处理灵活性：每个节点在接收到请求时都有自主决定是否处理的权利，这使得对于不同类型的请求可以有不同的处理路径，同一个请求在不同的业务场景或配置下可能会被不同的节点处理，增加了处理的灵活性。
+
+该模式遵循以下设计原则：
+
+- 开闭原则：对扩展开放，对修改关闭。当需要添加新的处理节点（如在事件处理系统中添加新的组件来处理新类型的事件，或在工作流审批系统中新增一个审批层级）时，只需创建新的类实现相应的接口并将其插入到责任链中合适的位置即可，无需修改现有节点的代码以及请求发送者的代码。
+- 单一职责原则：链上的每个节点通常只负责处理一种特定类型的请求或执行一种特定的功能，使得每个节点的职责明确，便于代码的维护和理解，降低了代码的复杂性。
+
+点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XK-Nj3oVqFQYePKhCwyajIWjCJbLmICnBoKdjKYXcai128fJI-BpKYjAD38WmbOmUKsmD4GqlYYri3Irk4G3Ibif19SKPUQbQtBL0grwshhzoTx9SAiSkP9p4ekB5PppyvABKajIeUOvGYtK1jaMZsuRH8g0OxJ9S8qJTjSuqSKrOETiVhvvDnTwOEZfrTZ1Oy9AuUcwUS_xDg2hSY9AbQE2hYwIAf2DBngdlD_JWHulJtjQdqvO_MH7zvCT3Kzsh89B08rzig_x_PvE3Fk9DDc9iCaEgNafm8G90000)查看责任链模式的UML类关系图。
+
+{% tabs 责任链模式 %}
+<!-- tab Rust-->
+```rust
+// 抽象处理者，定义处理请求的接口
+trait Handler {
+    fn set_next(&mut self, handler: Box<dyn Handler>);
+    fn handle_request(&self, request: &str);
+}
+
+// 具体处理者A
+struct ConcreteHandlerA {
+    next_handler: Option<Box<dyn Handler>>,
+}
+
+impl Handler for ConcreteHandlerA {
+    fn set_next(&mut self, handler: Box<dyn Handler>) {
+        self.next_handler = Some(handler);
+    }
+
+    fn handle_request(&self, request: &str) {
+        println!("ConcreteHandlerA处理请求: {}", request);
+        if let Some(next_handler) = &self.next_handler {
+            next_handler.handle_request(request)
+        }
+    }
+}
+
+// 具体处理者B
+struct ConcreteHandlerB {
+    next_handler: Option<Box<dyn Handler>>,
+}
+
+impl Handler for ConcreteHandlerB {
+    fn set_next(&mut self, handler: Box<dyn Handler>) {
+        self.next_handler = Some(handler);
+    }
+
+    fn handle_request(&self, request: &str) {
+        println!("ConcreteHandlerB处理请求: {}", request);
+        if let Some(next_handler) = &self.next_handler {
+            next_handler.handle_request(request)
+        }
+    }
+}
+
+// 客户端代码
+fn main() {
+    let mut handler_a = ConcreteHandlerA { next_handler: None };
+    let mut handler_b = ConcreteHandlerB { next_handler: None };
+
+    handler_a.set_next(Box::new(handler_b));
+
+    handler_a.handle_request("请求1");
+    handler_a.handle_request("请求2");
+}
+```
+<!-- endtab -->
+<!-- tab Go -->
+```go
+package main
+
+import (
+	"fmt"
+)
+
+// 抽象处理者，定义处理请求的接口
+type Handler interface {
+	SetNext(handler Handler)
+	HandleRequest(request string)
+}
+
+// 具体处理者A
+type ConcreteHandlerA struct {
+	NextHandler Handler
+}
+
+func (c *ConcreteHandlerA) SetNext(handler Handler) {
+	c.NextHandler = handler
+}
+
+func (c *ConcreteHandlerA) HandleRequest(request string) {
+	fmt.Printf("ConcreteHandlerA处理请求: %s\n", request)
+	if c.NextHandler != nil {
+		c.NextHandler.HandleRequest(request)
+	}
+}
+
+// 具体处理者B
+type ConcreteHandlerB struct {
+	NextHandler Handler
+}
+
+func (c *ConcreteHandlerB) SetNext(handler Handler) {
+	c.NextHandler = handler
+}
+
+func (c *ConcreteHandlerB) HandleRequest(request string) {
+	fmt.Printf("ConcreteHandlerB处理请求: %s\n", request)
+	if c.NextHandler != nil {
+		c.NextHandler.HandleRequest(request)
+	}
+}
+
+// 客户端代码
+func main() {
+	handlerA := &ConcreteHandlerA{}
+	handlerB := &ConcreteHandlerB{}
+
+	handlerA.SetNext(handlerB)
+
+	handlerA.HandleRequest("请求1")
+	handlerA.HandleRequest("请求2")
+}
+
+```
+<!-- endtab -->
+{% endtabs %}
+
+
+### 命令模式
+
+命令模式是一种行为型设计模式，它将一个请求封装为一个对象，从而使你可以用不同的请求对客户进行参数化，将请求的发送者和接收者解耦。请求的发送者只需要知道如何发出请求（调用命令对象的执行方法），而不需要知道具体由谁来处理这个请求以及如何处理；请求的接收者也不需要知道请求是由谁发出的，只专注于执行具体的任务。
+
+该模式具有以下的应用场景：
+
+- 图形用户界面操作：在 GUI 应用程序中，比如一个绘图软件，用户可以进行各种操作，如画直线、画圆、填充颜色等。可以将每个操作都封装成一个命令对象，当用户点击相应的菜单按钮或工具图标时，就相当于发送了一个命令，命令对象会负责调用绘图引擎等相关接收者来执行具体的绘图动作。这样，不同的用户操作可以方便地被记录、撤销、重做等，通过维护一个命令历史列表，就可以轻松实现这些功能。
+- 订单处理系统：在电商平台的订单处理流程中，有下单、取消订单、发货、退款等多种操作。将这些操作都设计成命令对象，订单管理系统作为请求的发送者，只需要调用相应的命令对象的执行方法即可触发对应的订单处理动作，而具体的处理逻辑由各个命令对象对应的接收者（如库存管理系统、物流系统、财务系统等）来完成。这样可以灵活地组合和扩展不同的订单处理流程，并且方便对操作进行日志记录和审计。
+- 设备控制系统：在智能家居系统或工业自动化控制系统中，对于各种设备（如灯光、空调、电机等）有不同的控制操作，如打开灯光、调节空调温度、启动电机等。可以把这些控制操作封装成命令对象，控制中心作为发送者，通过发送不同的命令来控制设备的运行状态，设备本身或其对应的控制模块作为接收者执行具体的控制动作。这种方式使得控制逻辑更加清晰，便于添加新的设备控制命令和对现有命令进行修改。
+
+该模式具有以下特点：
+
+- 解耦请求发送者和接收者：发送者和接收者之间通过命令对象进行间接交互，发送者不需要了解接收者的具体实现细节，接收者也不需要知道发送者的情况，双方的耦合度大大降低，使得系统的可维护性和扩展性更好。
+- 可实现操作的参数化和排队执行：可以将不同的请求封装成不同的命令对象，并且可以对这些命令对象进行参数化设置（如设置绘图的起点和终点、订单操作的相关参数等）。同时，还可以将多个命令对象放入一个队列中，按照一定的顺序依次执行，实现操作的排队执行，这在一些需要批量处理操作或按照特定顺序执行操作的场景中非常有用。
+- 支持撤销和重做功能：由于命令对象记录了具体的操作以及相关参数，通过维护一个命令历史列表，可以方便地实现撤销和重做功能。只需要在列表中找到对应的命令对象，根据其类型和参数反向执行或再次执行相应的操作即可。
+
+该模式遵循以下设计原则：
+
+- 开闭原则：对扩展开放，对修改关闭。当需要添加新的操作（如在绘图软件中新增一种绘图工具，或在订单处理系统中新增一种订单处理流程）时，只需创建新的命令类并实现相应的接口，然后将其集成到系统中即可，不需要修改现有的请求发送者和接收者的代码。
+- 单一职责原则：每个命令类只负责封装一个特定的操作及其相关逻辑，使得代码的职责更加清晰，便于理解和维护。例如，画直线的命令类只专注于实现画直线的操作逻辑，取消订单的命令类只负责处理取消订单的相关事宜。
+
+点击[链接](//www.plantuml.com/plantuml/png/fP0nImGn48Nx_HNXgbN9WUrnBAU7dN1YAnRhPgA1P4QIMJrG2pjBQ_-VuCymRBAicqguT7bltiURsGHkFVVELfrjGn2Nvlw1nKibufEFz0nUhCGTaHsKantMHr5u8gEoeFMal5MPiYNdMbIPiruRPF2wxQ1fKknY3rtFK4R70ZkS4wGTQgsI-p-4reSmhi4HmvQGFTcHq2LWYDEPVNERG6TAPQNEGzFC_61N7a8uxva9QuCAzj4ro7yR52UGiicTfyLAfuWibw-Do9yYLPZpFO-b58lJnUZ6JZ_lNz-V7zK6KFNE_W80)查看命令模式的UML类关系图。
+
+{% tabs 命令模式 %}
+<!-- tab Rust -->
+```Rust
+use std::cell::RefCell;
+use std::rc::Rc;
+
+trait Command {
+    fn execute(&self);
+}
+
+struct Light {
+    power: bool,
+}
+
+impl Light {
+    fn on(&mut self) {
+        self.power = true;
+        println!("Light is on");
+    }
+
+    fn off(&mut self) {
+        self.power = false;
+        println!("Light is off");
+    }
+}
+
+struct LightOnCommand {
+    light: Rc<RefCell<Light>>,
+}
+
+impl Command for LightOnCommand {
+    fn execute(&self) {
+        self.light.borrow_mut().on();
+    }
+}
+
+struct LightOffCommand {
+    light: Rc<RefCell<Light>>,
+}
+
+impl Command for LightOffCommand {
+    fn execute(&self) {
+        self.light.borrow_mut().off();
+    }
+}
+
+struct RemoteControl {
+    commands: Vec<Box<dyn Command>>,
+}
+
+impl RemoteControl {
+    fn new() -> RemoteControl {
+        RemoteControl {
+            commands: Vec::new(),
+        }
+    }
+
+    fn add_command(&mut self, command: Box<dyn Command>) {
+        self.commands.push(command);
+    }
+
+    fn press_button(&self, index: usize) {
+        if let Some(command) = self.commands.get(index) {
+            command.execute();
+        }
+    }
+}
+
+fn main() {
+    let light = Rc::new(RefCell::new(Light { power: false }));
+
+    let mut remote = RemoteControl::new();
+    remote.add_command(Box::new(LightOnCommand {
+        light: Rc::clone(&light),
+    }));
+    remote.add_command(Box::new(LightOffCommand {
+        light: Rc::clone(&light),
+    }));
+
+    remote.press_button(0); // Light is on
+    remote.press_button(1); // Light is off
+}
+```
+<!-- endtab -->
+<!-- tab Rust -->
+```go
+package main
+
+import "fmt"
+
+type Command interface {
+	Execute()
+}
+
+type Light struct {
+	power bool
+}
+
+func (l *Light) On() {
+	l.power = true
+	fmt.Println("Light is on")
+}
+
+func (l *Light) Off() {
+	l.power = false
+	fmt.Println("Light is off")
+}
+
+type LightOnCommand struct {
+	light *Light
+}
+
+func (loc *LightOnCommand) Execute() {
+	loc.light.On()
+}
+
+type LightOffCommand struct {
+	light *Light
+}
+
+func (loc *LightOffCommand) Execute() {
+	loc.light.Off()
+}
+
+type RemoteControl struct {
+	commands []Command
+}
+
+func (rc *RemoteControl) AddCommand(command Command) {
+	rc.commands = append(rc.commands, command)
+}
+
+func (rc *RemoteControl) PressButton(index int) {
+	if index < len(rc.commands) {
+		rc.commands[index].Execute()
+	}
+}
+
+func main() {
+	var light Light
+	lightOn := LightOnCommand{light: &light}
+	lightOff := LightOffCommand{light: &light}
+
+	remote := RemoteControl{}
+	remote.AddCommand(&lightOn)
+	remote.AddCommand(&lightOff)
+
+	remote.PressButton(0) // Light is on
+	remote.PressButton(1) // Light is off
+}
+```
+<!-- endtab -->
+{% endtabs %}
+
+### 解释器模式
+
+迭代器设计模式是一种行为型设计模式，它提供了一种方法来顺序访问一个聚合对象中的各个元素，而无需暴露该聚合对象的内部表示形式。通过将遍历逻辑封装在迭代器对象中，使得聚合对象的职责更加单一，专注于存储和管理数据，而迭代器负责实现数据的遍历操作，客户端可以通过统一的迭代器接口来遍历不同类型的聚合对象。
+
+该模式具有如下应用场景：
+
+- 数据容器遍历：在处理各种数据容器如数组、链表、树、集合等时，需要逐个访问其中的元素。例如，在一个图形绘制程序中，有一个存储图形元素（如点、线、圆等）的容器，可能是数组或者链表结构。使用迭代器模式，可以方便地遍历这个容器，依次对每个图形元素进行绘制操作，而不需要关心容器的具体实现细节，无论是数组还是链表，客户端使用相同的迭代器接口就能完成遍历。
+- 数据库查询结果遍历：当从数据库中获取查询结果集时，通常需要遍历结果集中的每一行数据进行后续处理，比如在一个电商平台的订单管理系统中，查询出满足特定条件的订单列表后，要对每个订单进行统计分析、打印订单详情等操作。通过迭代器模式，可以为查询结果集创建一个迭代器，以统一的方式遍历这些订单数据，即使数据库底层的数据存储结构或者查询引擎发生变化，只要迭代器接口不变，客户端代码不需要做大量修改。
+- 文件系统遍历：在操作系统的文件系统中，需要遍历文件夹及其子文件夹中的文件。可以将文件系统看作是一个树形结构的聚合对象，文件夹是树枝节点，文件是叶子节点。利用迭代器模式，创建一个文件系统迭代器，能够按照特定的顺序（如深度优先或广度优先）遍历文件系统中的文件，对每个文件进行诸如文件属性查看、备份等操作，这样可以将文件系统的遍历逻辑与具体的文件操作逻辑分离开来。
+
+该模式具有以下特点：
+
+- 解耦聚合对象和遍历逻辑：将数据的存储和管理（聚合对象）与数据的遍历操作（迭代器）分离开来，使得两者可以独立变化。聚合对象不需要关心如何被遍历，而迭代器也不需要了解聚合对象的具体内部结构，只专注于实现遍历的逻辑，这提高了代码的可维护性和可扩展性。
+- 统一遍历接口：为不同类型的聚合对象提供了一个统一的遍历接口，客户端可以使用相同的方式来遍历各种不同的数据结构，如数组、链表、树等，只要这些数据结构实现了相应的迭代器接口。这简化了客户端代码，使其不需要针对每种数据结构编写不同的遍历代码。
+- 支持多种遍历方式：可以根据具体需求实现不同的迭代器来支持多种遍历方式，比如在遍历树形结构的文件系统时，可以实现深度优先迭代器和广度优先迭代器。客户端可以根据实际情况选择合适的迭代器来完成特定的遍历任务，增加了遍历的灵活性。
+
+该模式遵循以下设计原则：
+
+- 开闭原则：对扩展开放，对修改关闭。当需要添加新的聚合对象类型或者新的遍历方式时，只需创建新的迭代器类或者对现有迭代器类进行扩展，而不需要修改客户端代码和聚合对象的核心代码。例如，在图形绘制程序中，如果新增一种特殊的图形元素容器，只需要为其创建对应的迭代器并实现迭代器接口即可，客户端依然可以用相同的方式遍历新的容器。
+- 单一职责原则：聚合对象专注于存储和管理数据，迭代器专注于实现遍历数据的逻辑，各自职责明确。这样可以使代码更加清晰、易于理解和维护，降低了代码的复杂性，避免了将遍历逻辑和数据存储管理逻辑混在一起导致的代码混乱。
+
+点击[链接](//www.plantuml.com/plantuml/png/TLDFQzH05B_dKypDbfBq7cIf1n5F7ZoAoB0PDR2PBSaKwn-XnGtMLhQ5je89X6eLHT6sP65toVxvCdcJUDgluCJ9hjaapILXtdk_z_ipsN0OjjcMrL9k8Bu_Jgy-fTDVSNGE7x_pxbSuF5TCoeZz63S9kYi-C6lRwAM2n4F9DbjPHJgwjydCDhqfobP3UIs0mEt7u-DqruEZFRWO2j3Po0D_0kFFuBv9UcVyz3A9EagpXHq7tR7nvbEpwTooRVmynruZBM8HoXnzKRujJnuyb0sKFCkMBq_B4ZQCH_dyIlwkmApALbD8giBCXKen1Tv9TCo3Zj0cgPT1v-GfjeYExZFRf4_aYQPfQ7qTmU45xqUmVyRz7dpnu2hWEzyIVm1ko3yCUNXQj6-UGwrtYsgTYQMWranga6qTRJdc2v9RbBNLcbTEjIGn2_WVnJ098wLsgwQzQlo_Apg2tq7IlLpkHQhQk8Qpde6dkoUpqLvLzfyTBvs-pLAJVgNJ4_23UD2DXmToBF4w1UVUbTQsLRKIcexaJQrT2EzTEFefiee7FufL8IgU76GBDWWrnF_p5m00)查看迭代器模式的UML关系类图。
+
+{% tabs 解释器模式 %}
+<!-- tab Rust -->
+```Rust
+// 抽象迭代器接口
+trait Iterator {
+    type Item;
+    fn next(&mut self) -> Option<Self::Item>;
+}
+
+// 具体聚合对象：图形元素数组
+struct GraphicsArray {
+    elements: Vec<GraphicsElement>,
+}
+
+// 图形元素结构体
+struct GraphicsElement {
+    name: String,
+    // 可以添加更多图形元素的属性，如颜色、坐标等
+}
+
+impl Clone for GraphicsElement {
+    fn clone(&self) -> Self {
+        Self {
+            name: self.name.clone(),
+        }
+    }
+}
+
+impl GraphicsArray {
+    fn new() -> Self {
+        GraphicsArray {
+            elements: Vec::new(),
+        }
+    }
+
+    fn add_element(&mut self, element: GraphicsElement) {
+        self.elements.push(element);
+    }
+
+    // 创建并返回一个用于遍历该数组的迭代器
+    fn iter(&self) -> GraphicsArrayIterator {
+        GraphicsArrayIterator {
+            index: 0,
+            array: self,
+        }
+    }
+}
+
+// 具体迭代器：图形元素数组迭代器
+struct GraphicsArrayIterator<'a> {
+    index: usize,
+    array: &'a GraphicsArray,
+}
+
+impl<'a> Iterator for GraphicsArrayIterator<'a> {
+    type Item = GraphicsElement;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.array.elements.len() {
+            let element = self.array.elements[self.index].clone();
+            self.index += 1;
+            Some(element)
+        } else {
+            None
+        }
+    }
+}
+
+// 客户端代码
+fn main() {
+    let mut graphics_array = GraphicsArray::new();
+
+    let element1 = GraphicsElement {
+        name: "圆形".to_string(),
+    };
+    let element2 = GraphicsElement {
+        name: "直线".to_string(),
+    };
+
+    graphics_array.add_element(element1);
+    graphics_array.add_element(element2);
+
+    let mut iterator = graphics_array.iter();
+
+    while let Some(element) = iterator.next() {
+        println!("正在处理图形元素: {}", element.name);
+    }
+}
+```
+<!-- endtab -->
+<!-- tab Go -->
+```go
+package main
+
+import "fmt"
+
+// 抽象迭代器接口
+type Iterator interface {
+	Next() (interface{}, bool)
+}
+
+// 具体聚合对象：图形元素数组
+type GraphicsArray struct {
+	Elements []GraphicsElement
+}
+
+// 图形元素结构体
+type GraphicsElement struct {
+	Name string
+	// 可以添加更多图形元素的属性，如颜色、坐标等
+}
+
+func (g *GraphicsArray) AddElement(element GraphicsElement) {
+	g.Elements = append(g.Elements, element)
+}
+
+// 创建并返回一个用于遍历该数组的迭代器
+func (g *GraphicsArray) Iter() Iterator {
+	return &GraphicsArrayIterator{
+		Index: 0,
+		Array: g,
+	}
+}
+
+// 具体迭代器：图形元素数组迭代器
+type GraphicsArrayIterator struct {
+	Index int
+	Array *GraphicsArray
+}
+
+func (g *GraphicsArrayIterator) Next() (interface{}, bool) {
+	if g.Index < len(g.Array.Elements) {
+		element := g.Array.Elements[g.Index]
+		g.Index += 1
+		return element, true
+	} else {
+		return nil, false
+	}
+}
+
+// 客户端代码
+func main() {
+	graphicsArray := &GraphicsArray{
+		Elements: []GraphicsElement{},
+	}
+
+	graphicsArray.AddElement(GraphicsElement{Name: "圆形"})
+	graphicsArray.AddElement(GraphicsElement{Name: "直线"})
+
+	iterator := graphicsArray.Iter()
+
+	for {
+		element, ok := iterator.Next()
+		if !ok {
+			break
+		}
+		fmt.Printf("正在处理图形元素: %s\n", element.(GraphicsElement).Name)
+	}
+}
+```
+<!-- endtab -->
+{% endtabs %}
+
+### 中介者设计模式
+
+中介者模式是一种行为型设计模式，它通过引入一个中介者对象来封装一系列对象之间的交互逻辑，使得这些对象之间不再直接相互引用，而是通过中介者进行通信和协调。中介者模式旨在减少对象之间的耦合度，将复杂的多对多交互关系简化为各个对象与中介者之间的一对多关系，从而使系统更易于理解、维护和扩展。
+
+该模式具有以下适用场景：
+
+- 图形用户界面（GUI）开发：在 GUI 应用程序中，存在许多不同的组件，如按钮、文本框、下拉菜单等，它们之间可能会有各种交互行为。例如，点击一个按钮可能会导致文本框内容的更新，或者改变下拉菜单的选项。使用中介者模式，可以创建一个 GUI 中介者对象，各个组件在发生特定事件时（如按钮的点击事件、文本框的内容改变事件等）通过中介者来通知其他相关组件进行相应的操作，这样可以将组件之间复杂的交互逻辑集中在中介者中进行管理，避免了组件之间的直接相互引用和复杂的嵌套事件处理逻辑。
+- 即时通讯系统：在即时通讯软件中，有多个用户（或客户端）相互之间进行消息发送、文件传输等交互活动。可以将服务器端看作是一个中介者，客户端之间不直接进行通信，而是通过服务器这个中介者来转发消息、协调文件传输等操作。例如，当用户 A 向用户 B 发送一条消息时，用户 A 的客户端将消息发送到服务器，服务器再根据接收方的信息将消息转发给用户 B 的客户端。这样可以有效地管理和协调众多客户端之间的交互，同时也便于对消息进行过滤、记录等额外操作在服务器端进行处理。
+- 交通控制系统：在城市交通管理中，涉及到多种交通参与者，如汽车、行人、交通信号灯等，它们之间存在着复杂的交互关系。例如，汽车需要根据交通信号灯的状态来决定是否前行，行人也需要根据信号灯和汽车的情况来安全过马路。通过引入中介者模式，可以创建一个交通控制中介者对象，交通信号灯、汽车、行人等交通参与者通过这个中介者来获取其他参与者的信息并进行相应的操作。比如，交通信号灯状态改变时，通过中介者通知附近的汽车和行人；汽车接近路口时，也通过中介者向交通信号灯请求通行许可等，从而使整个交通系统的交互更加有序和易于管理。
+
+该模式具有以下特点：
+
+- 解耦对象间的直接交互：将原本相互直接引用和交互的多个对象之间的关系解耦，使得各个对象只需要与中介者对象进行交互，而不需要了解其他对象的具体实现细节和内部状态。这大大降低了对象之间的耦合度，提高了系统的可维护性和可扩展性，当某个对象的内部实现发生变化时，只要其与中介者的交互接口不变，其他对象通常不需要进行相应的修改。
+- 集中化的交互逻辑管理：将多个对象之间复杂的交互逻辑集中在中介者对象中进行处理，中介者对象负责协调各个对象之间的信息传递、事件触发等操作。这样可以使系统的交互逻辑更加清晰，便于对整个系统的交互行为进行统一的管理和监控，例如可以在中介者中方便地添加日志记录功能来跟踪系统中各个对象之间的交互情况。
+- 一对多的交互关系简化：将多个对象之间的多对多交互关系简化为各个对象与中介者之间的一对多关系。每个对象只需要关注与中介者的交互，而中介者则负责处理各个对象之间的所有交互需求，这种简化后的关系模型使得系统的结构更加清晰，易于理解和设计。
+
+该模式遵循以下设计原则：
+
+- 开闭原则：对扩展开放，对修改关闭。当需要添加新的对象参与到系统的交互中，或者对现有对象的交互逻辑进行修改时，只需要在中介者对象以及相关对象的与中介者交互的接口部分进行相应的修改或添加，而不需要对其他无关对象进行大规模的修改。例如，在 GUI 应用程序中，如果新增一个组件，只需要在 GUI 中介者对象中添加对该组件的处理逻辑以及在该组件中设置与中介者交互的接口即可，其他原有组件的代码通常不需要进行改动。
+- 单一职责原则：各个对象专注于自身的核心功能实现，而中介者对象则专注于管理和协调对象之间的交互逻辑，各自的职责明确。这样可以使代码更加清晰、易于理解和维护，避免了将对象自身的功能实现和交互逻辑混在一起导致的代码复杂性增加。
+- 迪米特法则：对象应该只与它们的直接朋友通信，不与“陌生人”交谈。
+
+点击[链接]()查看中介者设计模式UML关系类图。
+
+{% tabs 中介者模式 %}
+<!-- tab Rust -->
+```rust
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+
+// 抽象同事类接口，所有参与交互的具体对象都要实现这个接口
+trait Colleague {
+    fn set_mediator(&mut self, mediator: Rc<RefCell<dyn Mediator>>);
+    fn send(&self, message: &str);
+    fn receive(&self, message: &str);
+}
+
+// 中介者接口，定义中介者与同事类交互的方法
+trait Mediator {
+    fn add_colleague(&mut self, name: String, colleague: Rc<RefCell<dyn Colleague>>);
+    fn distribute_message(&self, sender: &str, message: &str);
+}
+
+// 具体同事类：按钮组件
+struct Button {
+    mediator: Option<Rc<RefCell<dyn Mediator>>>,
+    name: String,
+}
+
+impl Colleague for Button {
+    fn set_mediator(&mut self, mediator: Rc<RefCell<dyn Mediator>>) {
+        self.mediator = Some(mediator);
+    }
+
+    fn send(&self, message: &str) {
+        if let Some(mediator) = &self.mediator {
+            mediator
+                .borrow()
+                .distribute_message(self.name.as_str(), message);
+        }
+    }
+
+    fn receive(&self, message: &str) {
+        println!("按钮 {} 收到消息: {}", self.name, message);
+    }
+}
+
+// 具体同事类：文本框组件
+struct TextBox {
+    mediator: Option<Rc<RefCell<dyn Mediator>>>,
+    name: String,
+}
+
+impl Colleague for TextBox {
+    fn set_mediator(&mut self, mediator: Rc<RefCell<dyn Mediator>>) {
+        self.mediator = Some(mediator);
+    }
+
+    fn send(&self, message: &str) {
+        if let Some(mediator) = &self.mediator {
+            mediator
+                .borrow()
+                .distribute_message(self.name.as_str(), message);
+        }
+    }
+
+    fn receive(&self, message: &str) {
+        println!("按钮 {} 收到消息: {}", self.name, message);
+    }
+}
+
+// 具体中介者：GUI中介者
+struct GUIMediator {
+    colleagues: HashMap<String, Rc<RefCell<dyn Colleague>>>,
+}
+
+impl Mediator for GUIMediator {
+    fn add_colleague(&mut self, name: String, colleague: Rc<RefCell<dyn Colleague>>) {
+        self.colleagues.entry(name).or_insert(colleague);
+    }
+
+    fn distribute_message(&self, sender: &str, message: &str) {
+        for (name, colleague) in &self.colleagues {
+            if name.as_str() != sender {
+                colleague.borrow().receive(message);
+            }
+        }
+    }
+}
+
+// 客户端代码
+fn main() {
+    let mediator = Rc::new(RefCell::new(GUIMediator {
+        colleagues: HashMap::new(),
+    })) as Rc<RefCell<dyn Mediator>>;
+
+    let button: Rc<RefCell<dyn Colleague>> = Rc::new(RefCell::new(Button {
+        mediator: None,
+        name: String::from("button"),
+    }));
+
+    let text_box: Rc<RefCell<dyn Colleague>> = Rc::new(RefCell::new(TextBox {
+        mediator: None,
+        name: String::from("textbox"),
+    }));
+
+    {
+        button.borrow_mut().set_mediator(Rc::clone(&mediator));
+        text_box.borrow_mut().set_mediator(Rc::clone(&mediator));
+    }
+
+    {
+        let mut mediator_ref = mediator.borrow_mut();
+        mediator_ref.add_colleague("button".to_string(), Rc::clone(&button));
+        mediator_ref.add_colleague("textbox".to_string(), Rc::clone(&text_box));
+    }
+
+    button.borrow().send("点击按钮，更新文本框内容");
+}
+```
+<!-- endtab -->
+<!-- tab Rust -->
+```go
+package main
+
+import "fmt"
+
+// 抽象同事类接口，所有参与交互的具体对象都要实现这个接口
+type Colleague interface {
+    SetMediator(mediator Mediator)
+    Send(message string)
+    Receive(message string)
+}
+
+// 中介者接口，定义中介者与同事类交互的方法
+type Mediator interface {
+    AddColleague(colleague Colleague)
+    DistributeMessage(sender Colleague, message string)
+}
+
+// 具体同事类：按钮组件
+type Button struct {
+    Mediator Mediator
+    Text     string
+}
+
+func (b *Button) SetMediator(mediator Mediator) {
+    b.Mediator = mediator
+}
+
+func (b *Button) Send(message string) {
+    b.Mediator.DistributeMessage(b, message)
+}
+
+func (b *Button) Receive(message string) {
+    fmt.Printf("按钮 %s 收到消息: %s\n", b.Text, message)
+}
+
+// 具体同事类：文本框组件
+type TextBox struct {
+    Mediator Mediator
+    Content  string
+}
+
+func (t *TextBox) SetMediator(mediator Mediator) {
+    t.Mediator = mediator
+}
+
+func (t *TextBox) Send(message string) {
+    t.Mediator.DistributeMessage(t,	message)
+}
+
+func (t *TextBox) Receive(message string) {
+    t.Content = message
+    fmt.Printf("文本框内容更新为: %s\n", t.Content)
+}
+
+// 具体中介者：GUI中介者
+type GUIMediator struct {
+    Colleagues []Colleague
+}
+
+func (g *GUIMediator) AddColleague(colleague Colleague) {
+    g.Colleagues = append(g.Colleagues, colleague)
+}
+
+func (g *GUIMediator) DistributeMessage(sender Colleague, message string) {
+    for _, colleague := range g.Colleagues {
+        if colleague!= sender {
+        colleague.Receive(message)
+        }
+    }
+}
+
+// 客户端代码
+func main() {
+    mediator := &GUIMediator{Colleagues: []Colleague{}}
+
+    button := &Button{
+        Mediator: nil,
+        Text:     "点击按钮",
+    }
+    text_box := &TextBox{
+        Mediator: nil,
+        Content:  "初始内容",
+    }
+
+    button.SetMediator(mediator)
+    text_box.SetMediator(mediator)
+
+    mediator.AddColleague(button)
+    mediator.AddColleague(text_box)
+
+    button.Send("点击按钮，更新文本框内容")
+}
+```
+<!-- endtab -->
 {% endtabs %}
