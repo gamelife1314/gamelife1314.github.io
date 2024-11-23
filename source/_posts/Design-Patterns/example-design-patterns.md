@@ -178,7 +178,7 @@ class Connection {}
 
 #### 工厂模式
 
-工厂设计模式是一种创建对象的设计模式，它提供了一种创建对象的方式，将对象的创建和使用分离。通过使用工厂类来负责创建对象，而不是在客户端代码中直接实例化对象，这样可以隐藏对象创建的复杂细节，使得客户端代码只需要关心如何使用对象，而不需要了解对象是如何被创建出来的。
+工厂设计模式核心是提供了一种创建对象的方式，将<span style="color:red">**对象的创建和使用分离、屏蔽复杂的对象创建细节或者根据条件创建对象**</span>，通过使用工厂类来负责创建对象，而不是在客户端代码中直接实例化对象，这样可以隐藏对象创建的复杂细节，使得客户端代码只需要关心如何使用对象，而不需要了解对象是如何被创建出来的。
 
 工厂模式适用以下场景：
 
@@ -196,7 +196,7 @@ class Connection {}
 - 开闭原则：对扩展开放，对修改关闭。当需要添加新的对象类型时，只需创建新的具体工厂类或在现有工厂类中添加创建新对象的方法，而不需要修改客户端代码，使得系统能够方便地进行扩展。
 - 依赖倒置原则：高层模块（客户端）不依赖于低层模块（具体对象的实现），而是依赖于抽象（工厂接口和抽象对象接口）。这样可以提高代码的灵活性，便于在不同的场景下替换不同的工厂类或具体对象实现。
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XKzsBNywkP4hCwyajIWjCJbL8JWZiI1LePfB0GXIYXBBDJIvQe6gdxPkVx9tCaJr-pspdivfUxft4LToJc9niO9pPb5o3aoFTb5YIcPfiPL2ch4HH02tAS_dhqIO4fIQN9AObuumg3mpfIG3oPoCrCpqZ18i1iCzytJxqgTzJUYUSKjCBialgeGQcroKcbYI6byCaj7Gj88eGN8Sn0ou5o5SP8-YcQTDd85mtqAug7ucsaomePkVRzxD1GrpFRqQEsYKMIayNJVlUTy6BgYXE6HH_81G0HF1C8QWMan3TNNje445Kj4n--dkNU_tT00T_g9nolizdJ2JKJL01N7fSKZDIm6cMm00)查看使用工厂方法分离对象创建和使用的过程。
+![链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XKzsBNywkP4hCwyajIWjCJbL8JWZiI1LePfB0GXIYXBBDJIvQe6gdxPkVx9tCaJr-pspdivfUxft4LToJc9niO9pPb5o3aoFTb5YIcPfiPL2ch4HH02tAS_dhqIO4fIQN9AObuumg3mpfIG3oPoCrCpqZ18i1iCzytJxqgTzJUYUSKjCBialgeGQcroKcbYI6byCaj7Gj88eGN8Sn0ou5o5SP8-YcQTDd85mtqAug7ucsaomePkVRzxD1GrpFRqQEsYKMIayNJVlUTy6BgYXE6HH_81G0HF1C8QWMan3TNNXjeAS-w9n2imml6eSKlDIW4aJ0000)
 
 {% tabs 工厂方法 %}
 
@@ -400,12 +400,12 @@ fn main() {
 
 #### 抽象工厂
 
-抽象工厂设计模式是一种创建对象的设计模式，它提供了一种创建一系列相关或相互依赖对象的方式，而无需指定它们具体的类。该模式通过抽象工厂接口定义创建不同产品对象的方法，具体工厂类实现这些接口来创建实际的产品对象，客户端代码则通过调用抽象工厂的方法来获取所需的产品对象，从而实现了对象创建和使用的解耦。
+抽象工厂<span style="color:red">**相比创建单个产品的工厂模式，提供了创建一系列相关或相互依赖的对象，在实际应用场景中多是用来创建一些列的产品** </span>，例如某个平台下的各种UI组件。客户端代码通过调用抽象工厂的方法来获取所需的产品对象，从而实现了对象创建和使用的解耦。因此个人认为<span style="color:red">**抽象工厂可以叫做高级工厂**</span>。
 
 如下是一些应用场景：
 
-1. 跨平台应用开发：例如开发一款图形界面应用程序，需要在不同操作系统（如 Windows、Mac、Linux）上运行，每个操作系统的界面组件（如按钮、文本框、菜单等）外观和行为有所不同，但整体都属于界面组件这一系列产品。可以使用抽象工厂模式，为每个操作系统创建一个具体工厂，负责生产该平台对应的界面组件产品族；
-2. 数据库访问层：当应用程序需要支持多种数据库系统（如 MySQL、PostgreSQL、SQLite 等）时，对于每种数据库，都有相关的连接对象、命令对象、结果集对象等一系列数据库操作相关对象。通过抽象工厂模式，可为每种数据库创建一个具体工厂，专门生产该数据库所需的这一系列相关对象；
+1. 跨平台应用开发：例如开发一款图形界面应用程序，需要在不同操作系统（如`Windows`、`Mac`、`Linux`）上运行，每个操作系统的界面组件（如按钮、文本框、菜单等）外观和行为有所不同，但整体都属于界面组件这一系列产品。可以使用抽象工厂模式，为每个操作系统创建一个具体工厂，负责生产该平台对应的界面组件产品族；
+2. 数据库访问层：当应用程序需要支持多种数据库系统（如 `MySQL`、`PostgreSQL`、`SQLite` 等）时，对于每种数据库，都有相关的连接对象、命令对象、结果集对象等一系列数据库操作相关对象。通过抽象工厂模式，可为每种数据库创建一个具体工厂，专门生产该数据库所需的这一系列相关对象；
 
 具有下面一些特点：
 
@@ -418,7 +418,8 @@ fn main() {
 - 依赖倒置原则：高层模块（客户端）不依赖于低层模块（具体工厂和具体产品）的具体实现，而是依赖于抽象（抽象工厂和抽象产品接口）。这样可以降低模块之间的耦合度，提高代码的灵活性和可维护性。
 - 开闭原则：对扩展开放，对修改关闭。当需要添加新的产品族（如支持新的操作系统或数据库系统）时，只需创建新的具体工厂和对应的新的具体产品类，实现相应的抽象接口，而无需修改现有的客户端代码和已有的抽象工厂、抽象产品接口。
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XKzsBNywkV7zdbdFUZfVJbh7bPbNabgKbfYSgk1KMbAIdwTGpQK01CavcSdP6ffSjK2DJrktFzax6QunF3Cl9R-y6Ae_EIUnk5W1AePYX3OUCtmJar7q0_cuz68wV5hxipbhdYriGt9xI6f5YLD-1LHtPbv1QKby2L1C0qHOAGIN56NcfUFp3TnGL0-XcgkDrs1CBw8R2XGYra24lvzkN_gqhmd9h-wXdcw9oINvHPMmk2fAJIn9ZKy21w26fXKq9f7am3R49-LNW6IXJa1oCyGAH620h828eOO6XitQ-ApM9i5kI7XXs0iKewQTO4itFz-ycmirlUhfrTZ1ah-LmjDryvxtRU02serF6ZM1GDH0EIXcu5U04R0GTGW-YbcubU4pKLVN3XQ124zqp7wwUzVxFHt0y7ZHEENzdaxy6X4EnzG9Tnb25ppiID20rmg7rBmKO2a60000)查看Windows平台上和MAC平台上的GUI场景示例。
+如下是抽象工厂模式的一个示例图：
+![链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XKzsBNywkV7zdbdFUZfVJbh7bPbNabgKbfYSgk1KMbAIdwTGpQK01CavcSdP6ffSjK2DJrktFzax6QunF3Cl9R-y6Ae_EIUnk5W1AePYX3OUCtmJar7q0_cuz68wV5hxipbhdYriGt9xI6f5YLD-1LHtPbv1QKby2L1C0qHOAGIN56NcfUFp3TnGL0-XcgkDrs1CBw8R2XGYra24lvzkN_gqhmd9h-wXdcw9oINvHPMmk2fAJIn9ZKy21w26fXKq9f7am3R49-LNW6IXJa1oCyGAH620h828eOO6XitQ-ApM9i5kI7XXs0iKewQTO4itFz-ycmirlUhfrTZ1ah-LmjDryvxtRU02serF6ZM1GDH0EIXcu5U04R0GTGW-YbcubU4pKLVN3Yr_Me62uKNZ53oA4Lw3guQx0A4I7aO4564OvP2Qbm8ibG00)
 
 {% tabs 抽象工厂 %}
 <!-- tab Rust -->
@@ -615,7 +616,7 @@ func main() {
 
 #### 建造者模式
 
-建造者设计模式是一种创建对象的设计模式，它将一个复杂对象的构建过程与其表示分离，使得同样的构建过程可以创建不同的表示。该模式通过将复杂对象的构建步骤抽象出来，由不同的建造者来具体实现这些步骤，最后通过指挥者来协调建造者完成复杂对象的构建。
+建造者设计<span style="color:red">**核心是将一个复杂对象的构建过程与其表示分离，使得同样的构建过程可以创建不同的表示，例如，造汽车就是车轮、车身以及发动机等，但是豪车和普通车的工艺以及配件就是不一样**</span>。该模式通过将复杂对象的构建步骤抽象出来，由不同的**建造者**来具体实现这些步骤，最后通过**指挥者**来协调建造者完成复杂对象的构建。
 
 建造者设计模式适用场景举例：
 
@@ -633,7 +634,8 @@ func main() {
 - 单一职责原则：每个建造者类只负责对象构建过程中的一部分工作，如专门负责安装发动机的建造者、负责安装车身的建造者等，使得每个类的职责更加单一明确。
 - 开闭原则：对扩展开放，对修改关闭。当需要创建新类型的复杂对象或对现有对象的构建过程进行修改时，只需添加新的建造者类或修改现有建造者类的构建步骤，而不需要修改指挥者类和客户端代码。
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUB9h-TF9ZU_tp7gsSU-BlSkuadCIYuiLd1EB5Agv5810EpKlFJClrKeXkAGeCoyT8fQKdrA9AbAIMPHQ31Ug1Hhyh6llYuqBd-xUzR9XmOk6LgxCl9BKehJ4v5IGuKwbcJafgJ0xaa2yU8X56ffMI0gGf45sufG4Muz5DZsr91ueKvfJ0fK4E-rfw_OdUoV3dGRq_8kDgvxsza6202uE3GkVqehIeaeCHsid9nQ1ZOJm2FX16wydjF7xGfjORpoRkUvbmopitWXAJI_DIImQXFvurjF-h6SfmgKkGEt99Vbm1oP1ZC0qBZa_hxYag3Iv91xe1uI9uA3P_7ppRYwCgDFJgx53JdzM2a_NpNlUju4B7Zg4bSATfwkBgW1awul6AU_tTC1zz6JVt1TRfq6p0YAYEj5T1ZCCnHIq-7tQq_fqmcf8VWKwvSc-Rg11S8TJRf93QbuAi4m00000)查看使用构建者设计模式构建豪华车与普通车的类图。
+如下是建造者模式的UML类图：
+![链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUB9h-TF9ZU_tp7gsSU-BlSkuadCIYuiLd1EB5Agv5810EpKlFJClrKeXkAGeCoyT8fQKdrA9AbAIMPHQ31Ug1Hhyh6llYuqBd-xUzR9XmOk6LgxCl9BKehJ4v5IGuKwbcJafgJ0xaa2yU8X56ffMI0gGf45sufG4Muz5DZsr91ueKvfJ0fK4E-rfw_OdUoV3dGRq_8kDgvxsza6202uE3GkVqehIeaeCHsid9nQ1ZOJm2FX16wydjF7xGfjORpoRkUvbmopitWXAJI_DIImQXFvurjF-h6SfmgKkGEt99Vbm1oP1ZC0qBZa_hxYag3Iv91xe1uI9uA3P_7ppRYwCgDFJgx53JdzM2a_NpNlUju4B7Zg4bSATfwkBgW1awul6AU_tTC1zz6JVt1TRfq6p0YAYEhdW-c36eEX7q_1iJiFptHr0zjFsNS2O1UbtICrB0MPW0000)
 
 {% tabs 建造者设计模式 %}
 
@@ -772,7 +774,6 @@ fn main() {
     println!("轮胎：{}", regular_car.tires);
 }
 ```
-
 <!-- endtab -->
 
 <!-- tab Go -->
@@ -912,7 +913,7 @@ func main() {
 
 #### 原型模式
 
-原型设计模式是一种创建对象的设计模式，它通过复制现有的对象（原型）来创建新的对象，而不是通过传统的使用构造函数来实例化对象。这种模式允许在运行时基于已有的对象实例快速创建出相似的对象，并且可以根据需要对复制后的对象进行个性化的修改。
+原型设计模式中的<span style="color:red">**原型的含义是新对象的创建是通过复制已有的对象（原型）来完成，从而创建一个与原始对象相似的新对象，而不需要知道创建细节，这种模式适合于对象创建成本较高的场景**</span>。
 
 原型设计模式适用场景如下：
 
@@ -927,10 +928,12 @@ func main() {
 
 原型设计模式遵循的设计原则如下：
 
-- 开闭原则：对扩展开放，对修改关闭。当需要创建新类型的相似对象时，只需提供相应的原型对象，无需修改现有创建对象的核心逻辑，通过复制和修改原型即可满足需求。
+- 开闭原则：原型模式确保对象的复制逻辑集中在对象自身，符合单一职责原则。。
 - 依赖倒置原则：高层模块（如使用对象的客户端）不依赖于具体的对象创建方式（如通过构造函数或其他复杂方式），而是依赖于抽象的原型接口，这样使得代码更具灵活性，便于替换不同的原型实现。
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XK_xvZ-TrysLcLUIMfIMc9og452KNv9VKbcGgb3DfG04oJdvUQaQcWfM21ckMg3sfwtRd-oT3D7-Vi-ifxFtFTsxwEdwdK0pkP9p4ekB5ToB4WioCfFzax9IaqkWfcadv-Va5raf19SKPUQbGuIACwjIhHGqCesDT1I0X2P45BkzO8itFz-ycmlLT5tT6Zk4Gg2cf-lcFU_RmEMGcfS2z2u0)查看原型设计模式的类图。
+下面是原型模式的UML类图：
+
+![链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XK_xvZ-TrysLcLUIMfIMc9og452KNv9VKbcGgb3DfG04oJdvUQaQcWfM21ckMg3sfwtRd-oT3D7-Vi-ifxFtFTsxwEdwdK0pkP9p4ekB5ToB4WioCfFzax9IaqkWfcadv-Va5raf19SKPUQbGuIACwjIhHGqCesDT1I0X2P45BkzO8itFz-ycmlLT5tT6Zk4Gg2cf-lcFU_RmEMGcfS2z2u0)
 
 {% tabs 原型设计模式 %}
 
@@ -1024,7 +1027,7 @@ func main() {
 
 #### 适配器模式
 
-适配器模式是一种结构型设计模式，它的主要作用是将一个类的接口转换成客户期望的另一个接口，使得原本不兼容的类可以协同工作。就好比给不同规格的插头（被适配者）配上对应的转换插头（适配器），使其能插入特定的插座（客户端期望的接口）。
+适配器模式<span style="color:red">**主要作用是将一个类的接口转换成客户期望的另一个接口，使得原本不兼容的类可以协同工作，就像出国时要带的转换插头，将其他地区的插座形态转换为国标形态，通常用于系统集成、第三方库使用场景**</span>。
 
 适配器模式适用以下场景：
 
@@ -1044,7 +1047,9 @@ func main() {
 - 开闭原则：对扩展开放，对修改关闭。当需要适配新的不兼容接口时，只需创建新的适配器类来实现接口转换，而不需要修改客户端代码和被适配对象的原有实现。
 - 依赖倒置原则：高层模块（客户端）不依赖于低层模块（被适配对象的具体实现），而是依赖于抽象（适配器接口和被适配对象的抽象接口，如果有的话）。这样可以提高代码的灵活性，便于在不同场景下替换不同的适配器或被适配对象。
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NU3vxtRC5xS_wbZxjNyoLcLUIMfIMc9og499Ob9vQeb3DfG04HQc5fQd59HgQ2bOAmIL5cNdfNBL0hIyMhNxPqFIojVT5GojNSavYSR62OqfYGKbgAbIVTd51Qd9cMcPoFDG4k7uqQHmMG4n_EdC5Ykb5CDCJePPPmQo526Cr36ZQqzRDppVlve8QegTNOmVr9L3TqtNpdlTjWCafwEhQmRrY1TBued7A-pqTSFSyxMbzEc4ril-11ZpPr_r-JoUNGsfU2Z1e0G00)查看适配器设计模式的UML图。
+以下是适配器模式的UML关系图，`Adapter`将`Adapee`转换为用于希望的`Target`：
+
+![链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NU3vxtRC5xS_wbZxjNyoLcLUIMfIMc9og499Ob9vQeb3DfG04HQc5fQd59HgQ2bOAmIL5cNdfNBL0hIyMhNxPqFIojVT5GojNSavYSR62OqfYGKbgAbIVTd51Qd9cMcPoFDG4k7uqQHmMG4n_EdC5Ykb5CDCJePPPmQo526Cr36ZQqzRDppVlve8QegTNOmVr9L3TqtNpdlTjWCafwEhQmRrY1TBued7A-pqTSFSyxMbzEc4ril-11ZpPr_r-JoUNGsfU2Z1e0G00)
 
 
 {% tabs 适配器模式 %}
@@ -1152,7 +1157,11 @@ func main() {
 
 #### 桥接模式
 
-桥接模式是一种结构型设计模式，它将抽象部分与它的实现部分分离，使它们可以独立地变化。通过提供抽象化和实现化之间的桥接结构，使得在系统扩展或变化时，能够灵活地组合不同的抽象和实现，而不需要修改大量的现有代码。
+桥接模式的含义是<span style="color:red">**通过一个桥梁（抽象部分）来将客户端与实现部分分离开来，让他们能够独立在不同的方向上进行演化，使得在系统扩展或变化时，能够灵活地组合不同的抽象和实现，而不需要修改大量的现有代码**</span>。
+
+如下图所示，为了将不同的图形绘画出来，可以选择不同的技术，将图形（客户端）和具体的图形绘制技术（实现部分）抽象出来组成桥梁，这样客户端和实现就可以朝着两边持续进行演化：
+
+![](bridge.png)
 
 桥接模式适用以下场景：
 
@@ -1170,7 +1179,9 @@ func main() {
 - 开闭原则：如前面所述，在需要扩展系统功能时，通过添加新的抽象类或实现类来实现，而不修改现有代码，保证了系统对扩展开放，对修改关闭。
 - 依赖倒置原则：高层模块（如使用桥接模式的客户端）不依赖于低层模块（具体的抽象和实现类）的具体实现，而是依赖于抽象（抽象类和接口）。这样可以提高代码的灵活性，便于在不同场景下替换不同的抽象和实现组合。
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XI-RLppjQ7k_PzRJlOkUTsrxrhVqQVzYhioyajIYjCJaL8NWZCI2L8LgBWKWI2bABDVGvAe5QdxQklt9tiaGFK_NpNlUjm5an9mse0XNSavYSR62SsPHSWvCftPHQbvAQb5gaPL249G54ITavFFvA-560hKcboJcfPDaAiGak2-VxTZqRFxafpDNe7iKRWBKR8ZHySbWNsXe8eiLmPo1ud2uoN2t-nUavhdxmCMXde28ejccZSqwRHBj2olDoKxCGxSF8ag-VM0BDp_Vl9iB4gDwUZLsq5HX1GrTBcZ4O9T4zJ1O1Oo3K0Hn9G55q2IbguigsRhvHUEKztiw8CdlQK_hqmchaKFdoRxkztiwOOx4Om0miQ4Pa5g4qEy0r07CEG00)查看桥接模式的UML图。
+如下是示例代码的UML关系图：
+
+![链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XI-RLppjQ7k_PzRJlOkUTsrxrhVqQVzYhioyajIYjCJaL8NWZCI2L8LgBWKWI2bABDVGvAe5QdxQklt9tiaGFK_NpNlUjm5an9mse0XNSavYSR62SsPHSWvCftPHQbvAQb5gaPL249G54ITavFFvA-560hKcboJcfPDaAiGak2-VxTZqRFxafpDNe7iKRWBKR8ZHySbWNsXe8eiLmPo1ud2uoN2t-nUavhdxmCMXde28ejccZSqwRHBj2olDoKxCGxSF8ag-VM0BDp_Vl9iB4gDwUZLsq5HX1GrTBcZ4O9T4zJ1O1Oo3K0Hn9G55q2IbguigsRhvHUEKztiw8CdlQK_hqmchaKFdoRxkztiwOOx4Om0miU4pm06e1PXr0000)
 
 {% tabs 桥接模式 %}
 <!-- tab Rust-->
@@ -1351,7 +1362,7 @@ func main() {
 
 #### 组合模式
 
-组合设计模式是一种结构型设计模式，它允许将对象组合成树形结构来表示 “部分 - 整体” 的层次关系。在该模式中，单个对象（叶子节点）和由对象组成的组合对象（树枝节点）都可以被统一对待，客户端可以以一致的方式处理它们，而无需区分是单个对象还是组合对象。
+组合模式有着非常鲜明的特色，<span style="color:red">**它将对象组合成树形结构来表示部分与整体的关系，其中单个对象形成的叶子节点和由单个对象共同组合成的树枝节点都会实现相同的接口，这使得客户端可以对它们一视同仁，常用于文件系统的表示以及树结构的表示**</span>。
 
 该模式具有以下的适用场景（但不局限于此）：
 
@@ -1370,7 +1381,9 @@ func main() {
 - 开闭原则：对扩展开放，对修改关闭。当需要添加新的类型的对象（如在文件系统中新增一种特殊文件类型，或在组织结构图中新增一种特殊部门类型）时，只需创建新的类实现相应的接口或继承自相关基类，并按照组合模式的结构进行组合即可，无需修改现有的客户端代码和核心处理逻辑。
 - 依赖倒置原则：高层模块（如进行文件系统操作或组织架构管理的客户端代码）不依赖于低层模块（具体的文件、文件夹、员工、部门等对象的实现）的具体实现，而是依赖于抽象（抽象的组件接口、文件或员工等的抽象类或接口）。这样可以提高代码的灵活性，便于在不同场景下替换不同的具体对象实现，而不影响客户端代码的正常运行。
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XSztjppPlUrPtzAd_OkvClDAKelI4fDJ5PppSmloyrBpIXIgkHI08ByWjIYn93C_JqEJgnQe-Md_jgTh9xpeQdhUjFFzdbdFfhK3JU5ApaaiBbPmoyn9XMhJpalCJRLI22ufoinBXuYWcmHqmDC97MWcFLso4sPOVavAQX5kuv8pCdDIYbBph11EZex5PXF8qQsRds_UpGLodvvUZHsI9wqKdgwRzxnl0nV4Eloo2bgwkiYoK2-ytzC1T_pJdjQd4rP3mXQezyc-xcTJDm2vx_VqFDax6MZKo-OLJplQ57GLdatT0XI1kEpzdaukXzIy563y0000)查看组合模式的UML关系图。
+如下是示例代码的UML示意图：
+
+![链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XSztjppPlUrPtzAd_OkvClDAKelI4fDJ5PppSmloyrBpIXIgkHI08ByWjIYn93C_JqEJgnQe-Md_jgTh9xpeQdhUjFFzdbdFfhK3JU5ApaaiBbPmoyn9XMhJpalCJRLI22ufoinBXuYWcmHqmDC97MWcFLso4sPOVavAQX5kuv8pCdDIYbBph11EZex5PXF8qQsRds_UpGLodvvUZHsI9wqKdgwRzxnl0nV4Eloo2bgwkiYoK2-ytzC1T_pJdjQd4rP3mXQezyc-xcTJDm2vx_VqFDax6MZKo-OLJplQ57GLdatT0XI1kEpzdaukXzIy563y0000)
 
 {% tabs 组合模式 %}
 <!-- tab Rust -->
@@ -1509,7 +1522,7 @@ func main() {
 
 #### 装饰器模式
 
-装饰器设计模式是一种结构型设计模式，它允许在不改变原有对象结构和行为的基础上，动态地给对象添加额外的功能。通过将功能的扩展从对象本身的类中分离出来，使用装饰器类来包裹原始对象，从而实现对对象功能的逐步增强。
+Python中的装饰器就是该模式的一个实现场景，<span style="color:red">**装饰器设计模式允许在不改变原有对象结构和行为的基础上，动态地给对象添加额外的功能，通过将功能的扩展从对象本身的类中分离出来，使用装饰器类来包裹原始对象，从而实现对对象功能的逐步增强**</span>。
 
 该模式具有以下的应用场景：
 
@@ -1527,7 +1540,8 @@ func main() {
 - 开闭原则：对扩展开放，对修改关闭。当需要添加新的功能时，只需创建新的装饰器类实现与原始对象相同的接口，并在装饰器类中实现新的功能逻辑，而不需要修改原始对象的类以及使用该对象的客户端代码。
 - 单一职责原则：每个装饰器类只负责添加一种特定的功能，使得功能的扩展更加清晰和易于维护。例如，缓存装饰器只负责处理缓存相关的逻辑，加密装饰器只负责加密相关的逻辑。
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XSztjppPlUrPtzAd_OkvClDAKelI4fDJ5PppSmloyrBpIXIgkHI08BKYDRcq95L3awiMgFLfw_OdUoT3j78bvoGM5olufPQKvnTb1wKMbgOMmtHfbnRbM2a4bnHbvgL3179JIpBoKr35aCo6E-l5ujQNIpSydRa2oKqkgSdvHOab-KLGqzDJI-AJOUxKqBH2E1gda-76ljypwzdstK-x5ZpVC_dfsXbFk-Q_QDuBzOfpOd86q77ercd3xKAo2Ie3r95gfU2HM9pXcrXW0_6S3jIJTX0r15ohJPnpdqrV-dJ_z1VhDZpTEnN5qJxvwUd4Effq1u5TjFdvvjrSgF6ifrTZXvHMh1IUhfltl6y35teGubA7xcgIp8FpqCqZh0uZYdLrqUnjtVoYSShxFHtmA7ZMq_XiJkUBHQkX8kjt0fCfqBWd-xhVx-a4sqnT4nrIyrA0EHK0)查看装饰器模式UML类的关系图。
+如下是装饰器模式的UML类图，`LoggingDecorator`以及`CachingDecorator`这两个装饰器和被装饰的对象`NetworkRequest`一样都实现了相同的接口`Component`，这样在不改变`Compinent`内部逻辑的情况下就可以为它增加新的功能：
+![](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XSztjppPlUrPtzAd_OkvClDAKelI4fDJ5PppSmloyrBpIXIgkHI08BKYDRcq95L3awiMgFLfw_OdUoT3j78bvoGM5olufPQKvnTb1wKMbgOMmtHfbnRbM2a4bnHbvgL3179JIpBoKr35aCo6E-l5ujQNIpSydRa2oKqkgSdvHOab-KLGqzDJI-AJOUxKqBH2E1gda-76ljypwzdstK-x5ZpVC_dfsXbFk-Q_QDuBzOfpOd86q77ercd3xKAo2Ie3r95gfU2HM9pXcrXW0_6S3jIJTX0r15ohJPnpdqrV-dJ_z1VhDZpTEnN5qJxvwUd4Effq1u5TjFdvvjrSgF6ifrTZXvHMh1IUhfltl6y35teGubA7xcgIp8FpqCqZh0uZYdLrqUnjtVoYSShxFHtmA7ZMq_XiJkUBHQkX8kjt0fCfqBWd-xhVx-a4sqnT4nrIyrA0EHK0)
 
 {% tabs 装饰器模式 %}
 <!-- tab Rust -->
@@ -1733,7 +1747,7 @@ func main() {
 
 #### 外观模式
 
-外观设计模式是一种结构型设计模式，它为复杂的子系统提供了一个简化的、统一的接口，隐藏了子系统内部的复杂性和实现细节。客户端只需要与这个外观接口进行交互，而无需了解子系统中各个具体类的复杂操作和相互关系，就如同为复杂的机器设备提供了一个简单易用的控制面板，用户通过控制面板上的几个按钮就能完成一系列复杂的操作，而不需要深入了解机器内部各个零部件的具体运作原理。
+外观模式也叫门面模式，<span style="color:red">**其外观含义来源于建筑学中的“Facade”，表示建筑物的表面或者正面，我们看到的精美的建筑物的表面都将其内部的钢筋水泥等复杂结构都隐藏起来了（想起一句话：驴粪蛋子表面光）。在软件设计领域中，外观模式用于隐藏子系统内部的复杂性和细节，客户端只需要和外观接口进行交互，而不用知道这个外观背后子系统的复杂操作和相互关系，就如同为复杂的机器设备提供了一个简单易用的控制面板，用户通过控制面板上的几个按钮就能完成一系列复杂的操作，而不需要深入了解机器内部各个零部件的具体运作原理**</span>。
 
 该模式具有以下应用场景：
 
@@ -1751,7 +1765,9 @@ func main() {
 - 迪米特法则：只与你的直接朋友交流，不与“陌生人”交谈。外观模式通过提供一个简化的接口，减少了客户端与子系统之间的交互。
 - 单一职责原则：外观类具有单一职责，即提供子系统的简化接口。
 
-打开[链接](//www.plantuml.com/plantuml/png/XL8_IyD05D_pAR9PaGwsMmOf2EBWLlTmDgzj99UJkyjGn46XqAAK3YB5GHUnY5ZGWeWjVXglgLE_Wg-cqUHgIRPxx-Ntv_TUIKZ2PK0zOyrKJzrmE0f7jvkpyNNOx4zwdUXjL3mYXBddrkhIzMlbXf10pMF3n6_35JRpBVE0CIygo83xMCgj9v_LAhvFaYG599cyFQZt-qcdhrglAQfze4V02VuBsyoNd7bfqah0EVZIbdzpbbaj5XQKXDTWLLDWPtaW5vL-vXR2YNCOYDIGRg685jIW_TLxIOal0yfpPMCf9y8fECcei137vBW2Np73tTMqVnO-Zs94YalQPHHsI8Ku44DwYuLOscgYRjB-oa3ZJ2B5bgOzjL2xZW9ioXpGLvlieFwvWUOG8p5qtVdybdv5rdnsUdev6xT-NQkBfke-9YzG3Mu-Fyvdu_Q_aClcCi6roykaY7F918xkGOSiWUy4rFi6)查看外观模式的UML类之间的关系。
+如下是外观模式代码示例的类图呈现，通过`SmartHomeFacade`这个门面提供的几个简单方法，就可以操作照明、温控以及安防系统，而不用详细了解这些系统如何实现：
+
+![链接](//www.plantuml.com/plantuml/png/XL8_IyD05D_pAR9PaGwsMmOf2EBWLlTmDgzj99UJkyjGn46XqAAK3YB5GHUnY5ZGWeWjVXglgLE_Wg-cqUHgIRPxx-Ntv_TUIKZ2PK0zOyrKJzrmE0f7jvkpyNNOx4zwdUXjL3mYXBddrkhIzMlbXf10pMF3n6_35JRpBVE0CIygo83xMCgj9v_LAhvFaYG599cyFQZt-qcdhrglAQfze4V02VuBsyoNd7bfqah0EVZIbdzpbbaj5XQKXDTWLLDWPtaW5vL-vXR2YNCOYDIGRg685jIW_TLxIOal0yfpPMCf9y8fECcei137vBW2Np73tTMqVnO-Zs94YalQPHHsI8Ku44DwYuLOscgYRjB-oa3ZJ2B5bgOzjL2xZW9ioXpGLvlieFwvWUOG8p5qtVdybdv5rdnsUdev6xT-NQkBfke-9YzG3Mu-Fyvdu_Q_aClcCi6roykaY7F918xkGOSiWUy4rFi6)
 
 {% tabs 外观设计模式 %}
 <!-- tab Rust -->
@@ -1981,7 +1997,7 @@ func main() {
 
 #### 享元模式
 
-享元设计模式是一种结构型设计模式，它主要用于通过共享对象来减少内存使用和提高性能。其核心思想是将对象的状态分为内部状态和外部状态，内部状态是对象可共享的部分，不随环境变化而改变；外部状态是对象依赖于具体场景而变化的部分，通过在运行时将外部状态传递给共享对象来实现不同场景下的特定功能。这样可以避免创建大量相似的对象，而是共享那些具有相同内部状态的对象，从而节省内存空间。
+享元模式的<span style="color:red">**核心思想通过共享对象来减少内存使用以提高性能，在应用上将对象分为内部状态和外部状态，内部状态可共享，外部状态依赖具体场景变化，过在运行时将外部状态传递给共享对象来实现不同场景下的特定功能。这样可以避免创建大量相似的对象，而是共享那些具有相同内部状态的对象，从而节省内存空间。例如，游戏地图中的草，长得都一样，只是位置不一样，有些在河道，有些在河边，草的颜色、形态就是对象的内部状态，草的位置就是外部状态**</span>。
 
 该模式具有以下应用场景：
 
@@ -1999,7 +2015,9 @@ func main() {
 - 单一职责原则：享元模式通过分离内部状态和外部状态，使得享元对象只负责内部状态的管理，符合单一职责原则。
 - 开闭原则：享元模式通过扩展内部状态来适应新的需求，而不需要修改现有的享元对象，符合开闭原则。
 
-打开[链接](//www.plantuml.com/plantuml/png/ZP9T2z9G6CVlpwSuTzdB_00IuatMJLTz03cieuxcbEr8IGcPpLR8b58l9eGMWY1OCi5yiRwCppQl_0eT7NCw2ThLTixpxFTx_ZmfZH6LbGiokeDtgmdeTVYnz6P3rthlVDho5ySSGUixaXH6rImHAKxBbPTKokKPVeqmVuebgX8c5PKOVSLKIT4aCQCnmcW2Fpj-v-wYAlyvw8lTziibuh2neFyRjj_uYJiV-5T8b8ccuSSgAUKbyP5C2rHXKUJzaur2v6kGV_T_Fi6mYn6OxmwRfjiPxrOc67rOh-1pqvqEtNRZqjQP3NotC80q4LbHhGHIsU1SI-0dHCi_9QM7Fl51s9FqQtEKPSxriHUqSfR3YR0OLT4fETkrr-WVaSJZRv9X1--6wLVN_8bkB0KXKgVRNgrps1YNITpEpRFPlxMyFnyySm6jdjDREdOtwFruYxad25SOhsP1suXWeAb3UnA9bvFuXd1tfpi_hielSryVWz7mvp_2KbHvNYx8Vm40)查看享元模式的UML类图。
+以下是享元模式代码示意图的UML类图，通过享元工厂`FlyweightFactory`来管理享元对象，在客户端代码中将不同的`Flyweight`部署到不同的位置：
+
+![链接](//www.plantuml.com/plantuml/png/ZP9T2z9G6CVlpwSuTzdB_00IuatMJLTz03cieuxcbEr8IGcPpLR8b58l9eGMWY1OCi5yiRwCppQl_0eT7NCw2ThLTixpxFTx_ZmfZH6LbGiokeDtgmdeTVYnz6P3rthlVDho5ySSGUixaXH6rImHAKxBbPTKokKPVeqmVuebgX8c5PKOVSLKIT4aCQCnmcW2Fpj-v-wYAlyvw8lTziibuh2neFyRjj_uYJiV-5T8b8ccuSSgAUKbyP5C2rHXKUJzaur2v6kGV_T_Fi6mYn6OxmwRfjiPxrOc67rOh-1pqvqEtNRZqjQP3NotC80q4LbHhGHIsU1SI-0dHCi_9QM7Fl51s9FqQtEKPSxriHUqSfR3YR0OLT4fETkrr-WVaSJZRv9X1--6wLVN_8bkB0KXKgVRNgrps1YNITpEpRFPlxMyFnyySm6jdjDREdOtwFruYxad25SOhsP1suXWeAb3UnA9bvFuXd1tfpi_hielSryVWz7mvp_2KbHvNYx8Vm40)
 
 {% tabs 享元设计模式 %}
 
@@ -2155,7 +2173,7 @@ func main() {
 
 #### 代理模式
 
-代理设计模式是一种结构型设计模式，它为其他对象提供一种代理以控制对这个对象的访问。代理对象和被代理对象通常实现相同的接口，代理对象可以在客户端和被代理对象之间起到中介的作用，在访问被代理对象之前或之后执行一些额外的操作，比如权限验证、懒加载、缓存等，而客户端无需知道它所访问的是代理对象还是被代理对象本身。
+代理模式<span style="color:red">**为其他对象提供一种代理以控制对这个对象的访问，代理对象和被代理对象通常实现相同的接口，代理对象可以在客户端和被代理对象之间起到中介的作用，在访问被代理对象之前或之后执行一些额外的操作，比如权限验证、懒加载、缓存等，而客户端无需知道它所访问的是代理对象还是被代理对象本身**</span>。
 
 该模式具有以下的应用场景：
 
@@ -2174,6 +2192,8 @@ func main() {
 
 - 开闭原则：对扩展开放，对修改封闭。可以通过添加新的代理类来扩展功能，而不需要修改实际对象的代码。
 - 单一职责原则：代理对象应该只有一个职责，即代理对实际对象的访问，并可能添加额外的功能。
+
+如下的代码中，代理对象（`Proxy`）和被代理对象（`RealSubject`）都实现了相同的接口`Subject`，但是`Proxy`增加了自己的一些方法，可以在调用`request`方法的前后做一些记录操作。
 
 {% tabs 代理模式 %}
 <!-- tab Rust -->
@@ -2314,7 +2334,7 @@ func main() {
 
 #### 责任链模式
 
-责任链模式是一种行为型设计模式，它将请求的发送者和接收者解耦，让多个对象都有机会处理请求，将这些对象连接成一条链，请求沿着这条链传递，直到有一个对象处理它为止。每个对象在接收到请求时，都可以决定是自己处理该请求还是将其传递给链上的下一个对象。
+责任链模式<span style="color:red">**主要关注这个`链`字，它将请求的发送者和接收者解耦，让多个对象都有机会处理请求，将这些对象连接成一条链，请求沿着这条链传递，直到有一个对象处理它为止。每个对象在接收到请求时，都可以决定是自己处理该请求还是将其传递给链上的下一个对象，WEB请求中的各种中间件就是使用了该设计模式**</span>。
 
 该模式具有以下应用场景：
 
@@ -2333,7 +2353,9 @@ func main() {
 - 开闭原则：对扩展开放，对修改关闭。当需要添加新的处理节点（如在事件处理系统中添加新的组件来处理新类型的事件，或在工作流审批系统中新增一个审批层级）时，只需创建新的类实现相应的接口并将其插入到责任链中合适的位置即可，无需修改现有节点的代码以及请求发送者的代码。
 - 单一职责原则：链上的每个节点通常只负责处理一种特定类型的请求或执行一种特定的功能，使得每个节点的职责明确，便于代码的维护和理解，降低了代码的复杂性。
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XK-Nj3oVqFQYePKhCwyajIWjCJbLmICnBoKdjKYXcai128fJI-BpKYjAD38WmbOmUKsmD4GqlYYri3Irk4G3Ibif19SKPUQbQtBL0grwshhzoTx9SAiSkP9p4ekB5PppyvABKajIeUOvGYtK1jaMZsuRH8g0OxJ9S8qJTjSuqSKrOETiVhvvDnTwOEZfrTZ1Oy9AuUcwUS_xDg2hSY9AbQE2hYwIAf2DBngdlD_JWHulJtjQdqvO_MH7zvCT3Kzsh89B08rzig_x_PvE3Fk9DDc9iCaEgNafm8G90000)查看责任链模式的UML类关系图。
+如下是责任链设计模式示例代码类图：
+
+![链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XK-Nj3oVqFQYePKhCwyajIWjCJbLmICnBoKdjKYXcai128fJI-BpKYjAD38WmbOmUKsmD4GqlYYri3Irk4G3Ibif19SKPUQbQtBL0grwshhzoTx9SAiSkP9p4ekB5PppyvABKajIeUOvGYtK1jaMZsuRH8g0OxJ9S8qJTjSuqSKrOETiVhvvDnTwOEZfrTZ1Oy9AuUcwUS_xDg2hSY9AbQE2hYwIAf2DBngdlD_JWHulJtjQdqvO_MH7zvCT3Kzsh89B08rzig_x_PvE3Fk9DDc9iCaEgNafm8G90000)
 
 {% tabs 责任链模式 %}
 <!-- tab Rust-->
@@ -2456,11 +2478,11 @@ func main() {
 
 #### 命令模式
 
-命令模式是一种行为型设计模式，它将一个请求封装为一个对象，从而使你可以用不同的请求对客户进行参数化，将请求的发送者和接收者解耦。请求的发送者只需要知道如何发出请求（调用命令对象的执行方法），而不需要知道具体由谁来处理这个请求以及如何处理；请求的接收者也不需要知道请求是由谁发出的，只专注于执行具体的任务。
+命令模式会<span style="color:red">**把对一个对象的操作封装成一个对象，从而使用户可以用不同的参数将对象参数化，将请求的发送者和接收者解耦。请求的发送者只需要知道如何发出请求（调用命令对象的执行方法），而不需要知道具体由谁来处理这个请求以及如何处理；请求的接收者也不需要知道请求是由谁发出的，只专注于执行具体的任务。该设计模式通常用于需要排队或者支持撤销的场景中**</span>。
 
 该模式具有以下的应用场景：
 
-- 图形用户界面操作：在 GUI 应用程序中，比如一个绘图软件，用户可以进行各种操作，如画直线、画圆、填充颜色等。可以将每个操作都封装成一个命令对象，当用户点击相应的菜单按钮或工具图标时，就相当于发送了一个命令，命令对象会负责调用绘图引擎等相关接收者来执行具体的绘图动作。这样，不同的用户操作可以方便地被记录、撤销、重做等，通过维护一个命令历史列表，就可以轻松实现这些功能。
+- 绘图软件：在绘图软件中，用户可以进行各种操作，如画直线、画圆、填充颜色等。可以将每个操作都封装成一个命令对象，当用户点击相应的菜单按钮或工具图标时，就相当于发送了一个命令，命令对象会负责调用绘图引擎等相关接收者来执行具体的绘图动作。这样，不同的用户操作可以方便地被记录、撤销、重做等，通过维护一个命令历史列表，就可以轻松实现这些功能。
 - 订单处理系统：在电商平台的订单处理流程中，有下单、取消订单、发货、退款等多种操作。将这些操作都设计成命令对象，订单管理系统作为请求的发送者，只需要调用相应的命令对象的执行方法即可触发对应的订单处理动作，而具体的处理逻辑由各个命令对象对应的接收者（如库存管理系统、物流系统、财务系统等）来完成。这样可以灵活地组合和扩展不同的订单处理流程，并且方便对操作进行日志记录和审计。
 - 设备控制系统：在智能家居系统或工业自动化控制系统中，对于各种设备（如灯光、空调、电机等）有不同的控制操作，如打开灯光、调节空调温度、启动电机等。可以把这些控制操作封装成命令对象，控制中心作为发送者，通过发送不同的命令来控制设备的运行状态，设备本身或其对应的控制模块作为接收者执行具体的控制动作。这种方式使得控制逻辑更加清晰，便于添加新的设备控制命令和对现有命令进行修改。
 
@@ -2475,7 +2497,9 @@ func main() {
 - 开闭原则：对扩展开放，对修改关闭。当需要添加新的操作（如在绘图软件中新增一种绘图工具，或在订单处理系统中新增一种订单处理流程）时，只需创建新的命令类并实现相应的接口，然后将其集成到系统中即可，不需要修改现有的请求发送者和接收者的代码。
 - 单一职责原则：每个命令类只负责封装一个特定的操作及其相关逻辑，使得代码的职责更加清晰，便于理解和维护。例如，画直线的命令类只专注于实现画直线的操作逻辑，取消订单的命令类只负责处理取消订单的相关事宜。
 
-点击[链接](//www.plantuml.com/plantuml/png/fP0nImGn48Nx_HNXgbN9WUrnBAU7dN1YAnRhPgA1P4QIMJrG2pjBQ_-VuCymRBAicqguT7bltiURsGHkFVVELfrjGn2Nvlw1nKibufEFz0nUhCGTaHsKantMHr5u8gEoeFMal5MPiYNdMbIPiruRPF2wxQ1fKknY3rtFK4R70ZkS4wGTQgsI-p-4reSmhi4HmvQGFTcHq2LWYDEPVNERG6TAPQNEGzFC_61N7a8uxva9QuCAzj4ro7yR52UGiicTfyLAfuWibw-Do9yYLPZpFO-b58lJnUZ6JZ_lNz-V7zK6KFNE_W80)查看命令模式的UML类关系图。
+如下的示例中，`LightOnCommand`和`LightOffCommand`已经将灯的开关操作封装为对象，使用者只要使用这两个对象即可完成灯的操作，不用关心灯的开关具体需要调用什么方法，如果有很多灯需要操作，则可以将他们放入队列中逐条处理：
+
+![链接](//www.plantuml.com/plantuml/png/fP0nImGn48Nx_HNXgbN9WUrnBAU7dN1YAnRhPgA1P4QIMJrG2pjBQ_-VuCymRBAicqguT7bltiURsGHkFVVELfrjGn2Nvlw1nKibufEFz0nUhCGTaHsKantMHr5u8gEoeFMal5MPiYNdMbIPiruRPF2wxQ1fKknY3rtFK4R70ZkS4wGTQgsI-p-4reSmhi4HmvQGFTcHq2LWYDEPVNERG6TAPQNEGzFC_61N7a8uxva9QuCAzj4ro7yR52UGiicTfyLAfuWibw-Do9yYLPZpFO-b58lJnUZ6JZ_lNz-V7zK6KFNE_W80)
 
 {% tabs 命令模式 %}
 <!-- tab Rust -->
@@ -2633,7 +2657,7 @@ func main() {
 
 #### 迭代模式
 
-迭代器设计模式是一种行为型设计模式，它提供了一种方法来顺序访问一个聚合对象中的各个元素，而无需暴露该聚合对象的内部表示形式。通过将遍历逻辑封装在迭代器对象中，使得聚合对象的职责更加单一，专注于存储和管理数据，而迭代器负责实现数据的遍历操作，客户端可以通过统一的迭代器接口来遍历不同类型的聚合对象。
+迭代器模式<span style="color:red">**提供了一种方法来顺序访问一个聚合对象中的各个元素，而无需暴露该聚合对象的内部表示形式。通过将遍历逻辑封装在迭代器对象中，使得聚合对象的职责更加单一，专注于存储和管理数据，而迭代器负责实现数据的遍历操作，客户端可以通过统一的迭代器接口来遍历不同类型的聚合对象**</span>。
 
 该模式具有如下应用场景：
 
@@ -2652,7 +2676,9 @@ func main() {
 - 开闭原则：对扩展开放，对修改关闭。当需要添加新的聚合对象类型或者新的遍历方式时，只需创建新的迭代器类或者对现有迭代器类进行扩展，而不需要修改客户端代码和聚合对象的核心代码。例如，在图形绘制程序中，如果新增一种特殊的图形元素容器，只需要为其创建对应的迭代器并实现迭代器接口即可，客户端依然可以用相同的方式遍历新的容器。
 - 单一职责原则：聚合对象专注于存储和管理数据，迭代器专注于实现遍历数据的逻辑，各自职责明确。这样可以使代码更加清晰、易于理解和维护，降低了代码的复杂性，避免了将遍历逻辑和数据存储管理逻辑混在一起导致的代码混乱。
 
-点击[链接](//www.plantuml.com/plantuml/png/TLDFQzH05B_dKypDbfBq7cIf1n5F7ZoAoB0PDR2PBSaKwn-XnGtMLhQ5je89X6eLHT6sP65toVxvCdcJUDgluCJ9hjaapILXtdk_z_ipsN0OjjcMrL9k8Bu_Jgy-fTDVSNGE7x_pxbSuF5TCoeZz63S9kYi-C6lRwAM2n4F9DbjPHJgwjydCDhqfobP3UIs0mEt7u-DqruEZFRWO2j3Po0D_0kFFuBv9UcVyz3A9EagpXHq7tR7nvbEpwTooRVmynruZBM8HoXnzKRujJnuyb0sKFCkMBq_B4ZQCH_dyIlwkmApALbD8giBCXKen1Tv9TCo3Zj0cgPT1v-GfjeYExZFRf4_aYQPfQ7qTmU45xqUmVyRz7dpnu2hWEzyIVm1ko3yCUNXQj6-UGwrtYsgTYQMWranga6qTRJdc2v9RbBNLcbTEjIGn2_WVnJ098wLsgwQzQlo_Apg2tq7IlLpkHQhQk8Qpde6dkoUpqLvLzfyTBvs-pLAJVgNJ4_23UD2DXmToBF4w1UVUbTQsLRKIcexaJQrT2EzTEFefiee7FufL8IgU76GBDWWrnF_p5m00)查看迭代器模式的UML关系类图。
+如下是迭代器模式的UNL类图：
+
+![链接](//www.plantuml.com/plantuml/png/TLDFQzH05B_dKypDbfBq7cIf1n5F7ZoAoB0PDR2PBSaKwn-XnGtMLhQ5je89X6eLHT6sP65toVxvCdcJUDgluCJ9hjaapILXtdk_z_ipsN0OjjcMrL9k8Bu_Jgy-fTDVSNGE7x_pxbSuF5TCoeZz63S9kYi-C6lRwAM2n4F9DbjPHJgwjydCDhqfobP3UIs0mEt7u-DqruEZFRWO2j3Po0D_0kFFuBv9UcVyz3A9EagpXHq7tR7nvbEpwTooRVmynruZBM8HoXnzKRujJnuyb0sKFCkMBq_B4ZQCH_dyIlwkmApALbD8giBCXKen1Tv9TCo3Zj0cgPT1v-GfjeYExZFRf4_aYQPfQ7qTmU45xqUmVyRz7dpnu2hWEzyIVm1ko3yCUNXQj6-UGwrtYsgTYQMWranga6qTRJdc2v9RbBNLcbTEjIGn2_WVnJ098wLsgwQzQlo_Apg2tq7IlLpkHQhQk8Qpde6dkoUpqLvLzfyTBvs-pLAJVgNJ4_23UD2DXmToBF4w1UVUbTQsLRKIcexaJQrT2EzTEFefiee7FufL8IgU76GBDWWrnF_p5m00)
 
 {% tabs 迭代器模式 %}
 <!-- tab Rust -->
@@ -2819,7 +2845,7 @@ func main() {
 
 #### 中介者模式
 
-中介者模式是一种行为型设计模式，它通过引入一个中介者对象来封装一系列对象之间的交互逻辑，使得这些对象之间不再直接相互引用，而是通过中介者进行通信和协调。中介者模式旨在减少对象之间的耦合度，将复杂的多对多交互关系简化为各个对象与中介者之间的一对多关系，从而使系统更易于理解、维护和扩展。
+中介者模式<span style="color:red">**通过引入一个`中介者`对象来封装一系列对象之间的交互逻辑，使得这些对象之间不再直接相互引用，而是通过中介者进行通信和协调。中介者模式旨在减少对象之间的耦合度，将复杂的多对多交互关系简化为各个对象与中介者之间的一对多关系，从而使系统更易于理解、维护和扩展。就像即时通讯的实现中，通信双方的两个人不直接建立连接通信，都是通过中间服务器进行消息转发，通过这个中间服务器，不仅实现了一对一（单聊）还能实现群发，简化了整个系统的复杂度**</span>。
 
 该模式具有以下适用场景：
 
@@ -2839,7 +2865,7 @@ func main() {
 - 单一职责原则：各个对象专注于自身的核心功能实现，而中介者对象则专注于管理和协调对象之间的交互逻辑，各自的职责明确。这样可以使代码更加清晰、易于理解和维护，避免了将对象自身的功能实现和交互逻辑混在一起导致的代码复杂性增加。
 - 迪米特法则：对象应该只与它们的直接朋友通信，不与“陌生人”交谈。
 
-点击[链接]()查看中介者设计模式UML关系类图。
+如下是中介模式的实现，所有的组件都实现了`Colleague`这个接口，但是所有的组件都不直接交互，而是将消息发到`Mediator`，终结者再将消息发送到其他组件：
 
 {% tabs 中介者模式 %}
 <!-- tab Rust -->
@@ -3059,7 +3085,7 @@ func main() {
 
 #### 解释器模式
 
-解释器设计模式是一种行为型设计模式，它用于定义一种特定语言的文法表示，并提供一个解释器来按照这些文法规则解析和执行输入的语句或表达式，从而使程序能够理解和处理一种类似自定义 “语言” 的输入内容，并将其转化为具体的操作或计算结果。
+解释器设计用于定义一种特定语言的文法表示，并提供一个解释器来按照这些文法规则解析和执行输入的语句或表达式，从而使程序能够理解和处理一种类似自定义 “语言” 的输入内容，并将其转化为具体的操作或计算结果。
 
 该模式具有以下应用场景：
 
@@ -3084,7 +3110,9 @@ func main() {
 - 开闭原则：对扩展开放，对修改关闭。当需添加新语法规则、词汇或修改现有语法时，只需创建新解释器类或对已有解释器类进行调整，无需对使用解释器的客户端代码进行大规模改动。例如，在计算器程序中添加新运算符时，只需创建对应的运算符解释器类并融入现有解释器体系即可。
 - 单一职责原则：每个解释器类通常只负责解析一种特定语法元素或执行一种特定操作，使代码职责明确，便于理解和维护。比如，在表达式求值中，数字常量解释器只负责识别和处理输入文本中的数字常量部分，加法运算符解释器只负责解析和执行加法运算操作。
 
-点击[链接](//www.plantuml.com/plantuml/png/jP91Iy9W6CVl-nJlhIBqKBSTmWuTwn9qd_fgWtTBjdTHL92GL2fE8b4wH19A49en8gDbNyR7lPty2aq5aRsliWxjjcVF_h_d_pp_c4aLWreQaPRG8F_5Nkki_iHwFN3jGQa1zgEawXGRAIM1qTPHni2cgHxew4H2_ZF-vDVeyWgIaRg-9fsDP2eTQ5MXs_svjATYKe8efebsB2sE3KvezL0X5fv8ZD_5of1_63WLzbtssjMWycOooSiIdABopDoJgg6czmLbCRF_KPlBtBO8LJFa-5_0ODS42znJ35M94ymZTKN3CjgbXggd_x9KzbQ0SvUzjC1kS4lr2MbTmpeLdMmoYIoOQOOVpkx8Ryxnd4yfc91ez7HZDdaoWlQzL-f8_i53T74dcj_AsvZFvlOITb0KYGIxSWxBtWxTAs6wePY3yZEyDy5se5MUrdtjVgymTAzvXuiOV9f3CNY_2obyfAQKGAhXfiYQMR_VkxlmVn6WOrXFMXhv1G00)查看解释器模式的UML关系图。
+如下是解释器设计模式的类图：
+
+![链接](//www.plantuml.com/plantuml/png/jP91Iy9W6CVl-nJlhIBqKBSTmWuTwn9qd_fgWtTBjdTHL92GL2fE8b4wH19A49en8gDbNyR7lPty2aq5aRsliWxjjcVF_h_d_pp_c4aLWreQaPRG8F_5Nkki_iHwFN3jGQa1zgEawXGRAIM1qTPHni2cgHxew4H2_ZF-vDVeyWgIaRg-9fsDP2eTQ5MXs_svjATYKe8efebsB2sE3KvezL0X5fv8ZD_5of1_63WLzbtssjMWycOooSiIdABopDoJgg6czmLbCRF_KPlBtBO8LJFa-5_0ODS42znJ35M94ymZTKN3CjgbXggd_x9KzbQ0SvUzjC1kS4lr2MbTmpeLdMmoYIoOQOOVpkx8Ryxnd4yfc91ez7HZDdaoWlQzL-f8_i53T74dcj_AsvZFvlOITb0KYGIxSWxBtWxTAs6wePY3yZEyDy5se5MUrdtjVgymTAzvXuiOV9f3CNY_2obyfAQKGAhXfiYQMR_VkxlmVn6WOrXFMXhv1G00)
 
 {% tabs 解释器模式 %}
 <!-- tab Go -->
@@ -3284,7 +3312,7 @@ fn main() {
 
 #### 备忘录模式
 
-备忘录设计模式是一种行为型设计模式，它用于在不破坏对象封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态，以便之后可以将对象恢复到先前保存的状态。简单来说，就像是给对象的某个时刻的状态拍了一张 “快照”，之后可以根据这张 “快照” 让对象回到那个时候的样子。
+备忘录设计<span style="color:red">**用于在不破坏对象封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态，以便之后可以将对象恢复到先前保存的状态。简单来说，就像是给对象的某个时刻的状态拍了一张`快照`，之后可以根据这张`快照`让对象回到那个时候的样子**</span>。
 
 该模式具有以下应用场景：
 
@@ -3308,7 +3336,9 @@ fn main() {
 - 单一职责原则（SRP）：备忘录模式通过将状态的保存和恢复职责封装在不同的类中，实现了单一职责。
 - 开放封闭原则（OCP）：备忘录模式允许在不修改现有代码的情况下扩展新的功能，例如增加更多的状态保存点。
 
-点击[链接](//www.plantuml.com/plantuml/png/nLFBRjD05DtxAxmZ0T8FY51LYJLYmH8Xox9l8WjxN8qdeZmg9OZGbaP9U1HLuL5LBG-1A5Gfj5NJvcSyjhlABt3hiIUJ4gJkcasicNFFlUUUCtC1CochUQvsHUVRItoupe_NelOdtjdI7CA0LamBz5lW0M6-_bZJyKSXO3u50qiP57pgL1rYuabPlos_YzeYCfw-hoUV6-7m0_-n7h_u4zKRSUyPRs_mBwlyvs6okpaQBFFEo-JtVb9lZWOhckMQGQ3GP1slCLXWXkNZG8ILzJkCEgGgRgmQ3NngpFk1mnoVbFLQu3m2SHU02nO3sp0fc3ZT_1dYHY55N1V0ugo0Lf0R1JrqOPAUm8D2KLULvTJCK8Sg8D2ODcLnZ3ytQbeoVNobQ493Md8XLRf2CTQMrlyhDSDQoCV0y8JPgUpCU76V-rwXlYTHsR-42kDvSpyyVercoqpndOzn-rUyUvHvVDCds8z1LdRfHbyyrF7EPjnzZe55CQD1AzdRIFQsCE3ywLV-gXLrkk79EobRn3pNZECnypx8M6VB2-JsxjwRZ9si4CUcRVz_yG9I1IOX3h5X8LkKwkQYbbhKZ_j7sZaVPcQUpEOuh12kQSg3B9NKUoH96c_m5QkF-hJUIuPBasd2pKoBJ_JsCEglXGTjkR2SSKKRR-jggQJqJ1eztbt6dgeHlDNatUzyknSUV5Cp5vwidd7D0R5hdliN)查看备忘录设计模式UML图。
+如下是备忘录模式的类图示例：
+
+![链接](//www.plantuml.com/plantuml/png/nLFBRjD05DtxAxmZ0T8FY51LYJLYmH8Xox9l8WjxN8qdeZmg9OZGbaP9U1HLuL5LBG-1A5Gfj5NJvcSyjhlABt3hiIUJ4gJkcasicNFFlUUUCtC1CochUQvsHUVRItoupe_NelOdtjdI7CA0LamBz5lW0M6-_bZJyKSXO3u50qiP57pgL1rYuabPlos_YzeYCfw-hoUV6-7m0_-n7h_u4zKRSUyPRs_mBwlyvs6okpaQBFFEo-JtVb9lZWOhckMQGQ3GP1slCLXWXkNZG8ILzJkCEgGgRgmQ3NngpFk1mnoVbFLQu3m2SHU02nO3sp0fc3ZT_1dYHY55N1V0ugo0Lf0R1JrqOPAUm8D2KLULvTJCK8Sg8D2ODcLnZ3ytQbeoVNobQ493Md8XLRf2CTQMrlyhDSDQoCV0y8JPgUpCU76V-rwXlYTHsR-42kDvSpyyVercoqpndOzn-rUyUvHvVDCds8z1LdRfHbyyrF7EPjnzZe55CQD1AzdRIFQsCE3ywLV-gXLrkk79EobRn3pNZECnypx8M6VB2-JsxjwRZ9si4CUcRVz_yG9I1IOX3h5X8LkKwkQYbbhKZ_j7sZaVPcQUpEOuh12kQSg3B9NKUoH96c_m5QkF-hJUIuPBasd2pKoBJ_JsCEglXGTjkR2SSKKRR-jggQJqJ1eztbt6dgeHlDNatUzyknSUV5Cp5vwidd7D0R5hdliN)
 
 {% tabs 备忘录模式 %}
 <!-- tab Rust -->
@@ -3574,7 +3604,7 @@ func main() {
 
 #### 观察者模式
 
-观察者设计模式是一种行为型设计模式，它定义了一种一对多的依赖关系，让一个被观察的对象（主题 `Subject`）在自身状态发生变化时，能够自动通知所有依赖它的观察者对象（`Observer`），使得观察者们可以根据主题的状态变化采取相应的行动。
+观察者模式<span style="color:red">**定义了一种一对多的依赖关系，让一个被观察的对象（主题 `Subject`）在自身状态发生变化时，能够自动通知所有依赖它的观察者对象（`Observer`），使得观察者们可以根据主题的状态变化采取相应的行动**</span>。
 
 该模式具有以下应用场景：
 
@@ -3599,7 +3629,9 @@ func main() {
 - 单一职责原则（SRP）：观察者模式中的每个类都有明确的职责，被观察者负责管理状态，观察者负责响应状态变化。
 - 开闭原则（OCP）：观察者模式允许在不修改现有代码的情况下增加新的观察者，符合开闭原则。
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUB6ywUdw-IyQMf_rBNtQlvWhCwyajIWjCJbLmJ-fEBMeBBL8ePfB0GXA2r8IIr8rYakJibAJIwmKWY4CJQvQe2bFTkn-kMW6kX4mDL0J4bDIulEXXch065PmUpJ1YefIS_FBKWchoyiloKohXAihre0uv6dhzYTx9p-VrG9nqTDryvxtRNY-SVVxFJrFTYzzqRJm-T8LJtPlVxPWpvCTkvxiw-PApaaiBbO8BibFpWueoanEXRfLkm34iL98CpE1yE4M8HmI7GkH8ifVsiHwJ1k7pvvrJNsnjGKOKK_spW6w7HvlGBz2F0ttAzHFddbbgSKb-KKm7-KbvgPQ0NrQb9cN3X791Al8JSqhYIykAGB6RdebgW8ySGuEwytFD-_cWjcZfrTZXqWqLWeGzt0XWXQa06O4Dda5NLra0q3clsYSydvF1tAq0Vttic7MY_tjwC7qRDhEPvkdFjdH1myPcFvEBeVKl1HWSWS0)查看UML管理图。
+如下是观察者模式的类图：
+
+![链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUB6ywUdw-IyQMf_rBNtQlvWhCwyajIWjCJbLmJ-fEBMeBBL8ePfB0GXA2r8IIr8rYakJibAJIwmKWY4CJQvQe2bFTkn-kMW6kX4mDL0J4bDIulEXXch065PmUpJ1YefIS_FBKWchoyiloKohXAihre0uv6dhzYTx9p-VrG9nqTDryvxtRNY-SVVxFJrFTYzzqRJm-T8LJtPlVxPWpvCTkvxiw-PApaaiBbO8BibFpWueoanEXRfLkm34iL98CpE1yE4M8HmI7GkH8ifVsiHwJ1k7pvvrJNsnjGKOKK_spW6w7HvlGBz2F0ttAzHFddbbgSKb-KKm7-KbvgPQ0NrQb9cN3X791Al8JSqhYIykAGB6RdebgW8ySGuEwytFD-_cWjcZfrTZXqWqLWeGzt0XWXQa06O4Dda5NLra0q3clsYSydvF1tAq0Vttic7MY_tjwC7qRDhEPvkdFjdH1myPcFvEBeVKl1HWSWS0)
 
 {% tabs 观察者模式 %}
 <!-- tab Rust -->
@@ -3797,7 +3829,7 @@ func main() {
 
 #### 状态模式
 
-状态模式是一种行为型设计模式，它允许一个对象在其内部状态改变时改变其行为方式。通过将对象的不同状态封装成独立的类，并让对象的行为依赖于当前所处的状态，使得代码结构更加清晰、易于维护和扩展。
+状态模式<span style="color:red">**允许一个对象在其内部状态改变时改变其行为方式，核心通过将对象的不同状态封装成独立的类，并让对象的行为依赖于当前所处的状态，使得代码结构更加清晰、易于维护和扩展，状态机的实现就是使用了该模式**</span>。
 
 该模式具有以下应用场景：
 
@@ -3819,6 +3851,8 @@ func main() {
 该模式遵循以下设计原则：
 
 - 单一职责原则（SRP）：状态模式将与特定状态相关的行为局部化到一个状态中，并且将不同状态的行为分割开来，满足单一职责原则
+
+如下的代码示例中，上下文对象`Context`的行为依赖于不同的`State`对象：
 
 {% tabs 状态模式 %}
 <!-- tab Rust -->
@@ -3956,7 +3990,7 @@ func main() {
 
 #### 策略模式
 
-策略模式是一种行为型设计模式，它定义了一系列可互换的算法或策略，并将每个策略封装成独立的类，使得它们可以在运行时根据需要进行替换，从而让对象的行为能够根据所选择的策略而改变。
+策略模式<span style="color:red">**从实现的形式上来看和状态模式很像，都会在对象的上下文对象内部保存一个和其行为有关的状态或者策略类，不同的是它们的应用场景，策略模式用于和策略有关的场景而已，它定义了一系列可互换的算法或策略，并将每个策略封装成独立的类，使得它们可以在运行时根据需要进行替换，从而让对象的行为能够根据所选择的策略而改变**</span>。
 
 该模式具有以下应用场景：
 
@@ -3980,7 +4014,8 @@ func main() {
 - 开闭原则（OCP）：策略模式提供了对开闭原则的支持，可以在不修改原有系统的基础上，选择不同的行为，也可以额外扩展其他行为。
 - 单一职责原则（SRP）：每个策略类只负责一个算法的实现，符合单一职责原则
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUBvsslEfIv_rBNtQlvWhCwyajIWjCJbL8RYaAB4aDRrIePfB0GXIArAJIqjIDH9pyqlpIgmKqinCDBbgWTgVxLxujBqVOiZpZRkvadCIYuiLt4fpSe9IKqgJIpBpyz2CqYx9A4ejpiZFIG4R0n4hWYb64YFHJfVCucIGGdJhKg3YyI1XOen_igFhoOxkPzFQ4MOxvmC3fg84PcGnr0ehU311nFDIopKmvJGLh606eDWS3rEAxWIW6vwsRdw-UJSNrd3KqwknWniEDFlfkddF-pPmmVnFG1dCAxgwoB8W2ryqJdc_fmFPzoyRPhtOtuxkt6VJTZxRFFN9ZZv83C1qTd8vfEQb01CL0000)查看UML关系类图。
+如下是策略模式的UML类图：
+![链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUBvsslEfIv_rBNtQlvWhCwyajIWjCJbL8RYaAB4aDRrIePfB0GXIArAJIqjIDH9pyqlpIgmKqinCDBbgWTgVxLxujBqVOiZpZRkvadCIYuiLt4fpSe9IKqgJIpBpyz2CqYx9A4ejpiZFIG4R0n4hWYb64YFHJfVCucIGGdJhKg3YyI1XOen_igFhoOxkPzFQ4MOxvmC3fg84PcGnr0ehU311nFDIopKmvJGLh606eDWS3rEAxWIW6vwsRdw-UJSNrd3KqwknWniEDFlfkddF-pPmmVnFG1dCAxgwoB8W2ryqJdc_fmFPzoyRPhtOtuxkt6VJTZxRFFN9ZZv83C1qTd8vfEQb01CL0000)
 
 {% tabs 策略模式 %}
 <!-- tab Rust -->
@@ -4129,7 +4164,7 @@ func main() {
 
 #### 模板方法
 
-模板方法模式是一种行为型设计模式，它在一个抽象类中定义了一个算法的骨架（即模板方法），这个模板方法包含了一系列的步骤，其中一些步骤的具体实现被延迟到子类中。通过这种方式，子类可以在不改变算法整体结构的情况下，重新定义某些特定步骤的实现，从而实现不同的行为。
+模板方法<span style="color:red">**在一个抽象类中定义了一个算法或者对象行为的的骨架（即模板方法），这个模板方法包含了一系列的步骤，其中一些步骤的具体实现被延迟到子类中。通过这种方式，子类可以在不改变算法整体结构的情况下，重新定义某些特定步骤的实现，从而实现不同的行为**</span>。
 
 该模式具有以下应用场景：
 
@@ -4153,8 +4188,9 @@ func main() {
 - 单一职责原则（SRP）：模板方法模式将算法的框架和步骤的具体实现分离，符合单一职责原则。
 - 开闭原则（OCP）：模板方法模式允许对算法的扩展开放，对修改关闭，可以通过添加新的子类来扩展算法的行为。
 
-点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XSytxdw_f-DPtzAd_OkVxbtqT4__axsJd_TjUB-daoiphoIrA2qnELN1BJCdDQ0eFpcrk3Y_IA6QIm482Y3y-3IWd0Q8Y2z8BCcmKYWkAT84AyWlICt3BPkSar-SYf2s0ji1aSf8p4l9WSZ59-S37P5NWgAc5kZwfwtRGGwTrV9iMlkpEMk0v9FTsvukQNa-eGte9QxadCJYOeMGr8eIR4xN9kXsRVoEryRZUcsIdFzqzhwdpVtOdU-PcvYUEXZT3_R0vkURTtDXXB2UNeqTMdAnKdYwRXumIN61_KEqQeVKl1HWIWK0)查看模板方法的UML关系类图。
+如下的实现中，抽象类（Rust中用Trait，`FileProcessor`）中定义了处理文件的基本流程（即模板），打开文件然后处理文件内容，只是不同文件的处理方式不同，可以在子类中处理：
 
+![链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XSytxdw_f-DPtzAd_OkVxbtqT4__axsJd_TjUB-daoiphoIrA2qnELN1BJCdDQ0eFpcrk3Y_IA6QIm482Y3y-3IWd0Q8Y2z8BCcmKYWkAT84AyWlICt3BPkSar-SYf2s0ji1aSf8p4l9WSZ59-S37P5NWgAc5kZwfwtRGGwTrV9iMlkpEMk0v9FTsvukQNa-eGte9QxadCJYOeMGr8eIR4xN9kXsRVoEryRZUcsIdFzqzhwdpVtOdU-PcvYUEXZT3_R0vkURTtDXXB2UNeqTMdAnKdYwRXumIN61_KEqQeVKl1HWIWK0)
 
 {% tabs 模板方法 %}
 <!-- tab Rust -->
@@ -4166,7 +4202,11 @@ use std::io;
 // 抽象类，定义模板方法及部分通用步骤
 trait FileProcessor {
     // 模板方法，定义文件处理的通用流程
-    fn process_file(&self, file_path: &str) -> io::Result<()>;
+    fn process_file(&self, file_path: &str) -> io::Result<()> {
+        let file_result = self.open_file(file_path)?;
+        self.handle_file_content(file_result)?;
+        Ok(())
+    }
 
     // 通用步骤：打开文件
     fn open_file(&self, file_path: &str) -> io::Result<RefCell<File>> {
@@ -4184,12 +4224,6 @@ trait FileProcessor {
 struct TextFileProcessor {}
 
 impl FileProcessor for TextFileProcessor {
-    fn process_file(&self, file_path: &str) -> io::Result<()> {
-        let file_result = self.open_file(file_path)?;
-        self.handle_file_content(file_result)?;
-        Ok(())
-    }
-
     fn handle_file_content(&self, file: RefCell<File>) -> io::Result<()> {
         // 这里可以实现具体的文本解析等操作
         println!("正在处理文本文件内容");
@@ -4201,12 +4235,6 @@ impl FileProcessor for TextFileProcessor {
 struct ImageFileProcessor {}
 
 impl FileProcessor for ImageFileProcessor {
-    fn process_file(&self, file_path: &str) -> io::Result<()> {
-        let file = self.open_file(file_path)?;
-        self.handle_file_content(file)?;
-        Ok(())
-    }
-
     fn handle_file_content(&self, file: RefCell<File>) -> io::Result<()> {
         // 这里可以实现具体的图像处理等操作
         println!("正在处理图像文件内容");
@@ -4329,7 +4357,7 @@ func main() {
 
 #### 访问者模式
 
-访问者模式是一种行为型设计模式，它将数据结构与作用于该数据结构上的操作分离开来。通过定义一个访问者接口，其中包含了对不同类型元素进行访问操作的方法，然后让具体的访问者类实现这些方法来执行特定的操作。而数据结构中的元素则提供一个接受访问者的接口，使得访问者可以遍历数据结构并对其中的元素执行相应操作。
+访问者模式<span style="color:red">**核心是将数据结构与作用于该数据结构上的操作分离开来，通过定义一个访问者接口，其中包含了对不同类型元素进行访问操作的方法，然后让具体的访问者类实现这些方法来执行特定的操作。而数据结构中的元素则提供一个接受访问者的接口，使得访问者可以遍历数据结构并对其中的元素执行相应操作。就像小米粥和馒头都可以被人吃，但是吃法不一样，所以可以将小米粥和馒头抽象出来形成一个Food抽象对象，把吃法形成一个新的接口Visitor，Food中包含一个方法accepct，这个方法会传入一个Visitor对象的实例，而Visitor中会实现喝小米粥和吃馒头这两个方法，在具体的食物类中进行调用**</span>。
 
 该模式具有以下应用场景：
 
@@ -4354,7 +4382,9 @@ func main() {
 - 开闭原则（OCP）：访问者模式支持对扩展开放，可以添加新的访问者而不需要修改对象结构。
 - 单一职责原则（SRP）：每个访问者应该只有一个职责，即一个访问者类对应一个操作。
 
-点击[链接](//www.plantuml.com/plantuml/png/fPFDJkf07CNtVOhPNMuQMDtSHHS6unkeSKl6Cj19oaUc0oxKX0qgBZ3H20cA1emXRgg463Lyy3BqWnMlOELF9zMWWhAPF_nFVkSCFOqQ73EUI-dI7-IQmt7LT0j5ktnhdTn8DCq9Is2Le2rgK9vXQ5T2tYV_zYscKgRg90I7WjQcvz-0W16LutJIquX9GUl-65HoHa7e3mhQXCcJxNl9h8k1rM_QntsttN3QtK2o3GrdoImNLbMIvQ4yX5Nyr3D4yMdKFmEGXvZqQjRbWJTBgeuD0-Bx89dXECqP2ahy_mS_B8bshky4MbnPq7Ted6i1k4PeKkC_TnizbzpMgJ0K_vtljuqDyaixKGrm7DURJklUDHkEMHMhcVig8_XzNsIUuLYFOMyHSFssHVBYDP8Nwj7qDXsdqvK26IEHlHNHRmLPvfLJVf0WntG73HCRuJnl2MxpTu14uN3GRZIeku-LIUy8oZWkrDpX8JmFk_9YTyv1yE7DdFHA8iUdHEZWuaG8_mKGQhOSCqhIyLnAVmK0)查看访问者模式UML关系图。
+以下是访问者设计模式的类图示例：
+
+![链接](//www.plantuml.com/plantuml/png/fPFDJkf07CNtVOhPNMuQMDtSHHS6unkeSKl6Cj19oaUc0oxKX0qgBZ3H20cA1emXRgg463Lyy3BqWnMlOELF9zMWWhAPF_nFVkSCFOqQ73EUI-dI7-IQmt7LT0j5ktnhdTn8DCq9Is2Le2rgK9vXQ5T2tYV_zYscKgRg90I7WjQcvz-0W16LutJIquX9GUl-65HoHa7e3mhQXCcJxNl9h8k1rM_QntsttN3QtK2o3GrdoImNLbMIvQ4yX5Nyr3D4yMdKFmEGXvZqQjRbWJTBgeuD0-Bx89dXECqP2ahy_mS_B8bshky4MbnPq7Ted6i1k4PeKkC_TnizbzpMgJ0K_vtljuqDyaixKGrm7DURJklUDHkEMHMhcVig8_XzNsIUuLYFOMyHSFssHVBYDP8Nwj7qDXsdqvK26IEHlHNHRmLPvfLJVf0WntG73HCRuJnl2MxpTu14uN3GRZIeku-LIUy8oZWkrDpX8JmFk_9YTyv1yE7DdFHA8iUdHEZWuaG8_mKGQhOSCqhIyLnAVmK0)
 
 {% tabs 访问者模式 %}
 <!-- tab Rust -->
