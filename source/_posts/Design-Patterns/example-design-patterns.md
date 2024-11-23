@@ -11,7 +11,11 @@ searchOnlyTitle: true
 
 本文介绍23设计模式使用场景及其示例。
 
-### 单例模式
+### 创建型设计模式
+
+创建型设计模式主要用于对象的创建过程，旨在将对象的创建和使用分离，使得代码在创建对象时更加灵活、可维护且可复用。它关注的是对象创建的机制，通过隐藏对象创建的具体细节，提供了一种创建对象的统一方式，以满足不同场景下的需求。
+
+#### 单例模式
 
 单例模式适用于整个系统只有一个实例的场景，比如数据库连接池、线程池、系统配置信息管理等。确保在任何时候只有一个对象被创建来提供统一的访问点，避免资源浪费和不一致性。
 
@@ -172,7 +176,7 @@ class Connection {}
 
 <!-- more -->
 
-### 工厂模式
+#### 工厂模式
 
 工厂设计模式是一种创建对象的设计模式，它提供了一种创建对象的方式，将对象的创建和使用分离。通过使用工厂类来负责创建对象，而不是在客户端代码中直接实例化对象，这样可以隐藏对象创建的复杂细节，使得客户端代码只需要关心如何使用对象，而不需要了解对象是如何被创建出来的。
 
@@ -394,11 +398,11 @@ fn main() {
 
 {% endtabs %}
 
-### 抽象工厂
+#### 抽象工厂
 
 抽象工厂设计模式是一种创建对象的设计模式，它提供了一种创建一系列相关或相互依赖对象的方式，而无需指定它们具体的类。该模式通过抽象工厂接口定义创建不同产品对象的方法，具体工厂类实现这些接口来创建实际的产品对象，客户端代码则通过调用抽象工厂的方法来获取所需的产品对象，从而实现了对象创建和使用的解耦。
 
-如下是一些示例的应用场景：
+如下是一些应用场景：
 
 1. 跨平台应用开发：例如开发一款图形界面应用程序，需要在不同操作系统（如 Windows、Mac、Linux）上运行，每个操作系统的界面组件（如按钮、文本框、菜单等）外观和行为有所不同，但整体都属于界面组件这一系列产品。可以使用抽象工厂模式，为每个操作系统创建一个具体工厂，负责生产该平台对应的界面组件产品族；
 2. 数据库访问层：当应用程序需要支持多种数据库系统（如 MySQL、PostgreSQL、SQLite 等）时，对于每种数据库，都有相关的连接对象、命令对象、结果集对象等一系列数据库操作相关对象。通过抽象工厂模式，可为每种数据库创建一个具体工厂，专门生产该数据库所需的这一系列相关对象；
@@ -609,7 +613,7 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 建造者模式
+#### 建造者模式
 
 建造者设计模式是一种创建对象的设计模式，它将一个复杂对象的构建过程与其表示分离，使得同样的构建过程可以创建不同的表示。该模式通过将复杂对象的构建步骤抽象出来，由不同的建造者来具体实现这些步骤，最后通过指挥者来协调建造者完成复杂对象的构建。
 
@@ -634,7 +638,7 @@ func main() {
 {% tabs 建造者设计模式 %}
 
 <!-- tab Rust -->
-```go
+```rust
 // 产品：汽车
 struct Car {
     engine: String,
@@ -906,7 +910,7 @@ func main() {
 
 {% endtabs %}
 
-### 原型模式
+#### 原型模式
 
 原型设计模式是一种创建对象的设计模式，它通过复制现有的对象（原型）来创建新的对象，而不是通过传统的使用构造函数来实例化对象。这种模式允许在运行时基于已有的对象实例快速创建出相似的对象，并且可以根据需要对复制后的对象进行个性化的修改。
 
@@ -1014,8 +1018,11 @@ func main() {
 
 {% endtabs %}
 
+### 结构型设计模式
 
-### 适配器模式
+结构型设计模式主要用于处理对象之间的组合和关联关系，通过合理地组织对象之间的结构，使得系统更加稳定、灵活且易于维护。
+
+#### 适配器模式
 
 适配器模式是一种结构型设计模式，它的主要作用是将一个类的接口转换成客户期望的另一个接口，使得原本不兼容的类可以协同工作。就好比给不同规格的插头（被适配者）配上对应的转换插头（适配器），使其能插入特定的插座（客户端期望的接口）。
 
@@ -1143,7 +1150,7 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 桥接模式
+#### 桥接模式
 
 桥接模式是一种结构型设计模式，它将抽象部分与它的实现部分分离，使它们可以独立地变化。通过提供抽象化和实现化之间的桥接结构，使得在系统扩展或变化时，能够灵活地组合不同的抽象和实现，而不需要修改大量的现有代码。
 
@@ -1342,7 +1349,7 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 组合模式
+#### 组合模式
 
 组合设计模式是一种结构型设计模式，它允许将对象组合成树形结构来表示 “部分 - 整体” 的层次关系。在该模式中，单个对象（叶子节点）和由对象组成的组合对象（树枝节点）都可以被统一对待，客户端可以以一致的方式处理它们，而无需区分是单个对象还是组合对象。
 
@@ -1500,7 +1507,7 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 装饰器模式
+#### 装饰器模式
 
 装饰器设计模式是一种结构型设计模式，它允许在不改变原有对象结构和行为的基础上，动态地给对象添加额外的功能。通过将功能的扩展从对象本身的类中分离出来，使用装饰器类来包裹原始对象，从而实现对对象功能的逐步增强。
 
@@ -1724,7 +1731,7 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 外观模式
+#### 外观模式
 
 外观设计模式是一种结构型设计模式，它为复杂的子系统提供了一个简化的、统一的接口，隐藏了子系统内部的复杂性和实现细节。客户端只需要与这个外观接口进行交互，而无需了解子系统中各个具体类的复杂操作和相互关系，就如同为复杂的机器设备提供了一个简单易用的控制面板，用户通过控制面板上的几个按钮就能完成一系列复杂的操作，而不需要深入了解机器内部各个零部件的具体运作原理。
 
@@ -1972,7 +1979,7 @@ func main() {
 {% endtabs %}
 
 
-### 享元模式
+#### 享元模式
 
 享元设计模式是一种结构型设计模式，它主要用于通过共享对象来减少内存使用和提高性能。其核心思想是将对象的状态分为内部状态和外部状态，内部状态是对象可共享的部分，不随环境变化而改变；外部状态是对象依赖于具体场景而变化的部分，通过在运行时将外部状态传递给共享对象来实现不同场景下的特定功能。这样可以避免创建大量相似的对象，而是共享那些具有相同内部状态的对象，从而节省内存空间。
 
@@ -2146,7 +2153,7 @@ func main() {
 {% endtabs %}
 
 
-### 代理模式
+#### 代理模式
 
 代理设计模式是一种结构型设计模式，它为其他对象提供一种代理以控制对这个对象的访问。代理对象和被代理对象通常实现相同的接口，代理对象可以在客户端和被代理对象之间起到中介的作用，在访问被代理对象之前或之后执行一些额外的操作，比如权限验证、懒加载、缓存等，而客户端无需知道它所访问的是代理对象还是被代理对象本身。
 
@@ -2301,7 +2308,11 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 责任链模式
+### 行为型模式
+
+行为型设计模式主要用于处理对象之间的交互和职责分配，关注的是对象的行为和它们之间的通信方式，以实现更加灵活和可维护的系统行为。
+
+#### 责任链模式
 
 责任链模式是一种行为型设计模式，它将请求的发送者和接收者解耦，让多个对象都有机会处理请求，将这些对象连接成一条链，请求沿着这条链传递，直到有一个对象处理它为止。每个对象在接收到请求时，都可以决定是自己处理该请求还是将其传递给链上的下一个对象。
 
@@ -2443,7 +2454,7 @@ func main() {
 {% endtabs %}
 
 
-### 命令模式
+#### 命令模式
 
 命令模式是一种行为型设计模式，它将一个请求封装为一个对象，从而使你可以用不同的请求对客户进行参数化，将请求的发送者和接收者解耦。请求的发送者只需要知道如何发出请求（调用命令对象的执行方法），而不需要知道具体由谁来处理这个请求以及如何处理；请求的接收者也不需要知道请求是由谁发出的，只专注于执行具体的任务。
 
@@ -2620,7 +2631,7 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 迭代模式
+#### 迭代模式
 
 迭代器设计模式是一种行为型设计模式，它提供了一种方法来顺序访问一个聚合对象中的各个元素，而无需暴露该聚合对象的内部表示形式。通过将遍历逻辑封装在迭代器对象中，使得聚合对象的职责更加单一，专注于存储和管理数据，而迭代器负责实现数据的遍历操作，客户端可以通过统一的迭代器接口来遍历不同类型的聚合对象。
 
@@ -2643,7 +2654,7 @@ func main() {
 
 点击[链接](//www.plantuml.com/plantuml/png/TLDFQzH05B_dKypDbfBq7cIf1n5F7ZoAoB0PDR2PBSaKwn-XnGtMLhQ5je89X6eLHT6sP65toVxvCdcJUDgluCJ9hjaapILXtdk_z_ipsN0OjjcMrL9k8Bu_Jgy-fTDVSNGE7x_pxbSuF5TCoeZz63S9kYi-C6lRwAM2n4F9DbjPHJgwjydCDhqfobP3UIs0mEt7u-DqruEZFRWO2j3Po0D_0kFFuBv9UcVyz3A9EagpXHq7tR7nvbEpwTooRVmynruZBM8HoXnzKRujJnuyb0sKFCkMBq_B4ZQCH_dyIlwkmApALbD8giBCXKen1Tv9TCo3Zj0cgPT1v-GfjeYExZFRf4_aYQPfQ7qTmU45xqUmVyRz7dpnu2hWEzyIVm1ko3yCUNXQj6-UGwrtYsgTYQMWranga6qTRJdc2v9RbBNLcbTEjIGn2_WVnJ098wLsgwQzQlo_Apg2tq7IlLpkHQhQk8Qpde6dkoUpqLvLzfyTBvs-pLAJVgNJ4_23UD2DXmToBF4w1UVUbTQsLRKIcexaJQrT2EzTEFefiee7FufL8IgU76GBDWWrnF_p5m00)查看迭代器模式的UML关系类图。
 
-{% tabs 解释器模式 %}
+{% tabs 迭代器模式 %}
 <!-- tab Rust -->
 ```Rust
 // 抽象迭代器接口
@@ -2806,7 +2817,7 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 中介者模式
+#### 中介者模式
 
 中介者模式是一种行为型设计模式，它通过引入一个中介者对象来封装一系列对象之间的交互逻辑，使得这些对象之间不再直接相互引用，而是通过中介者进行通信和协调。中介者模式旨在减少对象之间的耦合度，将复杂的多对多交互关系简化为各个对象与中介者之间的一对多关系，从而使系统更易于理解、维护和扩展。
 
@@ -3046,15 +3057,15 @@ func main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 解释器模式
+#### 解释器模式
 
 解释器设计模式是一种行为型设计模式，它用于定义一种特定语言的文法表示，并提供一个解释器来按照这些文法规则解析和执行输入的语句或表达式，从而使程序能够理解和处理一种类似自定义 “语言” 的输入内容，并将其转化为具体的操作或计算结果。
 
 该模式具有以下应用场景：
 
-- 计算器程序：用户输入数学表达式，如 “(3 + 4) * 2 - 5”，解释器模式可定义数字、运算符等的语法规则，解析并计算表达式结果。在科学计算器或金融计算软件等场景中，能灵活处理各种复杂数学运算表达式。
-- 配置文件解析：软件系统常使用配置文件设置参数，格式多样，如 “server.port = 8080; database.url = 'jdbc:mysql://localhost:3306/mydb'”。解释器模式可解析此类配置文件，按语法规则将内容转换为程序可用的数据结构，以便正确配置系统运行参数。
-- 脚本语言执行：在游戏开发、自动化任务处理等领域，常使用自定义脚本语言。例如游戏中角色行为脚本 “if (health < 50) then use_healing_potion ()”，解释器模式能解析并执行这类脚本，实现相应游戏逻辑操作，让非专业编程人员也能通过编写简单脚本控制游戏行为。
+- 计算器程序：用户输入数学表达式，如 `(3 + 4) * 2 - 5`，解释器模式可定义数字、运算符等的语法规则，解析并计算表达式结果。在科学计算器或金融计算软件等场景中，能灵活处理各种复杂数学运算表达式。
+- 配置文件解析：软件系统常使用配置文件设置参数，格式多样，如 `server.port = 8080; database.url = 'jdbc:mysql://localhost:3306/mydb'`。解释器模式可解析此类配置文件，按语法规则将内容转换为程序可用的数据结构，以便正确配置系统运行参数。
+- 脚本语言执行：在游戏开发、自动化任务处理等领域，常使用自定义脚本语言。例如游戏中角色行为脚本 `if (health < 50) then use_healing_potion ()`，解释器模式能解析并执行这类脚本，实现相应游戏逻辑操作，让非专业编程人员也能通过编写简单脚本控制游戏行为。
 
 该模式具有以下特点：
 
@@ -3271,7 +3282,7 @@ fn main() {
 <!-- endtab -->
 {% endtabs %}
 
-### 备忘录模式
+#### 备忘录模式
 
 备忘录设计模式是一种行为型设计模式，它用于在不破坏对象封装性的前提下，捕获一个对象的内部状态，并在该对象之外保存这个状态，以便之后可以将对象恢复到先前保存的状态。简单来说，就像是给对象的某个时刻的状态拍了一张 “快照”，之后可以根据这张 “快照” 让对象回到那个时候的样子。
 
@@ -3556,6 +3567,957 @@ func main() {
 	fmt.Printf("当前光标位置: %d\n", originator.CursorPosition)
 	fmt.Printf("当前选中区域: %v\n", originator.SelectedArea)
 	fmt.Printf("当前字体样式: %s\n", originator.FontStyle)
+}
+```
+<!-- endtab -->
+{% endtabs %}
+
+#### 观察者模式
+
+观察者设计模式是一种行为型设计模式，它定义了一种一对多的依赖关系，让一个被观察的对象（主题 `Subject`）在自身状态发生变化时，能够自动通知所有依赖它的观察者对象（`Observer`），使得观察者们可以根据主题的状态变化采取相应的行动。
+
+该模式具有以下应用场景：
+
+- 股票交易系统：在股票交易市场中，股票价格是不断变化的主题。众多投资者是观察者，他们关注着特定股票的价格走势。当某只股票的价格发生变化时，股票交易系统作为主题对象，会通知所有关注该股票的投资者（观察者）。投资者们（观察者）根据收到的价格变化信息，结合自己的投资策略，可能会采取买入、卖出或继续持有等不同的操作。
+- 用户界面更新：在图形用户界面（GUI）应用程序中，例如一个包含多个组件（如按钮、文本框、进度条等）的窗口。当用户在窗口中进行某些操作（如点击按钮、在文本框中输入内容等），可能会导致窗口的整体状态发生变化，比如窗口大小改变、某些数据更新等。此时，窗口可以作为主题，而各个组件则是观察者。窗口状态的任何变化都需要通知到各个组件，以便它们能够相应地更新自己的显示内容或执行其他相关操作，如按钮可能需要改变其可用性状态，文本框可能需要重新绘制以显示新输入的内容，进度条可能需要根据新的数据更新其进度显示等。
+- 社交媒体平台的消息推送：在社交媒体平台上，用户发布的新动态（如微博、朋友圈等）是主题。关注该用户的其他用户则是观察者。当一个用户发布了新动态，社交媒体平台会将这条新动态的信息推送给所有关注该用户的其他用户（观察者）。这些观察者用户可以根据收到的新动态内容，选择点赞、评论、转发等不同的操作。
+
+该模式具有以下特点：
+
+- 松耦合：主题和观察者之间是松耦合的关系。主题只知道有哪些观察者对象依赖于它，但并不需要了解观察者的具体细节，如它们如何处理接收到的通知等。同样，观察者也只需要知道它所观察的主题对象，而不需要关心主题内部是如何实现状态变化检测以及通知发送机制的。这种松耦合使得主题和观察者可以独立地进行扩展和修改，不会因为一方的变化而对另一方产生过多的影响。
+- 动态添加和删除观察者：可以在运行时动态地添加或删除观察者对象。例如，在股票交易系统中，投资者可以随时决定关注或取消关注某只股票，这就相当于在主题（股票价格对象）上动态地添加或删除观察者（投资者对象）。这种灵活性使得系统能够更好地适应不同的应用场景和用户需求。
+- 自动通知机制：一旦主题的状态发生变化，它会自动地通知所有已注册的观察者对象，无需手动逐个去通知。这大大简化了在多个对象之间传递状态变化信息的过程，提高了系统的响应速度和效率，确保观察者们能够及时获取到主题的最新状态信息并做出相应的反应。
+
+该模式具有以下缺点：
+
+- 内存泄漏风险：如果观察者对象在不再需要被通知（例如，相关的业务逻辑已经结束或者用户已经取消了关注等情况）时，没有及时从主题对象中删除自己，那么主题对象在每次状态变化时仍然会尝试通知这些已经无用的观察者对象，这可能会导致内存泄漏问题，尤其是在长时间运行的应用程序中，随着无用观察者对象的不断积累，内存占用会越来越大，最终影响系统的性能。
+- 通知顺序不确定：当主题对象通知多个观察者对象时，通常并没有规定通知的顺序。这可能会导致在一些对通知顺序有要求的应用场景中出现问题。例如，在一个涉及多个组件协同工作的复杂 GUI 应用程序中，如果某些组件的更新操作依赖于其他组件先完成更新，那么由于无法确定通知的顺序，可能会出现组件更新顺序混乱的情况，从而影响整个系统的正常运行。
+- 过度使用导致复杂度过高：在一些简单的应用场景中，如果过度使用观察者设计模式，可能会引入不必要的复杂性。因为每增加一个主题和一组观察者，就需要管理它们之间的注册、通知等一系列关系，这可能会使代码变得难以理解和维护，尤其是当系统中有大量的主题和观察者对象时，整个系统的架构会变得非常复杂。
+
+该模式遵循以下设计原则：
+
+- 单一职责原则（SRP）：观察者模式中的每个类都有明确的职责，被观察者负责管理状态，观察者负责响应状态变化。
+- 开闭原则（OCP）：观察者模式允许在不修改现有代码的情况下增加新的观察者，符合开闭原则。
+
+点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUB6ywUdw-IyQMf_rBNtQlvWhCwyajIWjCJbLmJ-fEBMeBBL8ePfB0GXA2r8IIr8rYakJibAJIwmKWY4CJQvQe2bFTkn-kMW6kX4mDL0J4bDIulEXXch065PmUpJ1YefIS_FBKWchoyiloKohXAihre0uv6dhzYTx9p-VrG9nqTDryvxtRNY-SVVxFJrFTYzzqRJm-T8LJtPlVxPWpvCTkvxiw-PApaaiBbO8BibFpWueoanEXRfLkm34iL98CpE1yE4M8HmI7GkH8ifVsiHwJ1k7pvvrJNsnjGKOKK_spW6w7HvlGBz2F0ttAzHFddbbgSKb-KKm7-KbvgPQ0NrQb9cN3X791Al8JSqhYIykAGB6RdebgW8ySGuEwytFD-_cWjcZfrTZXqWqLWeGzt0XWXQa06O4Dda5NLra0q3clsYSydvF1tAq0Vttic7MY_tjwC7qRDhEPvkdFjdH1myPcFvEBeVKl1HWSWS0)查看UML管理图。
+
+{% tabs 观察者模式 %}
+<!-- tab Rust -->
+```rust
+use std::any::Any;
+use std::rc::Rc;
+
+// 观察者接口，定义了接收通知的方法
+trait Observer {
+    fn update(&self, subject: &dyn Subject);
+}
+
+
+// 主题接口，定义了添加观察者、删除观察者以及通知观察者的方法
+trait Subject: Any {
+    fn add_observer(&mut self, observer: Rc<dyn Observer>);
+    fn remove_observer(&mut self, observer: Rc<dyn Observer>) -> bool;
+    fn notify_observers(&self);
+    fn as_any(&self) -> &dyn Any;
+}
+
+// 具体的主题实现类，以股票价格为例
+struct StockPrice {
+    price: f64,
+    observers: Vec<Rc<dyn Observer>>,
+}
+
+impl Subject for StockPrice {
+    fn add_observer(&mut self, observer: Rc<dyn Observer>) {
+        self.observers.push(observer);
+    }
+
+    fn remove_observer(&mut self, observer: Rc<dyn Observer>) -> bool {
+        if let Some(index) = self
+            .observers
+            .iter()
+            .position(|o| {
+                std::ptr::addr_eq(&**o as *const dyn Observer, &*observer as *const dyn Observer)
+            }) {
+            self.observers.remove(index);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn notify_observers(&self) {
+        for observer in &self.observers {
+            observer.update(self);
+        }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+// 投资者作为观察者的具体实现类
+struct Investor {
+    name: String,
+    investment_strategy: String,
+}
+
+impl Observer for Investor {
+    fn update(&self, subject: &dyn Subject) {
+        if let Some(stock_price) = subject.as_any().downcast_ref::<StockPrice>() {
+            println!("投资者 {} 收到股票价格更新通知，当前价格: {}", self.name, stock_price.price);
+            // 根据投资策略进行决策，这里只是简单示例
+            if self.investment_strategy == "买入" && stock_price.price < 100.0 {
+                println!("投资者 {} 决定买入", self.name);
+            } else if self.investment_strategy == "卖出" && stock_price.price > 100.0 {
+                println!("投资者 {} 决定卖出", self.name);
+            }
+        }
+    }
+}
+
+// 客户端代码
+fn main() {
+    let mut stock_price = StockPrice {
+        price: 90.0,
+        observers: Vec::new(),
+    };
+
+    let investor1: Rc<dyn Observer> = Rc::new(Investor {
+        name: "张三".to_string(),
+        investment_strategy: "买入".to_string(),
+    });
+    let investor2: Rc<dyn Observer> = Rc::new(Investor {
+        name: String::from("李四"),
+        investment_strategy: String::from("卖出"),
+    });
+
+    // 添加张三和李四作为观察者
+    stock_price.add_observer(Rc::clone(&investor1));
+    stock_price.add_observer(Rc::clone(&investor2));
+    stock_price.price = 110.0;
+    stock_price.notify_observers();
+
+    // 移除李四作为观察者
+    stock_price.remove_observer(Rc::clone(&investor2));
+    stock_price.price = 99.0;
+    stock_price.notify_observers();
+}
+```
+<!-- endtab -->
+<!-- tab Go -->
+```Go
+package main
+
+import "fmt"
+
+// 观察者接口，定义了接收通知的方法
+type Observer interface {
+	Update(subject Subject)
+}
+
+// 主题接口，定义了添加观察者、删除观察者以及通知观察者的方法
+type Subject interface {
+	AddObserver(observer Observer) bool
+	RemoveObserver(observer Observer) bool
+	NotifyObservers()
+}
+
+// 具体的主题实现类，以股票价格为例
+type StockPrice struct {
+	Price     float64
+	Observers []Observer
+}
+
+func (s *StockPrice) AddObserver(observer Observer) bool {
+	s.Observers = append(s.Observers, observer)
+	return true
+}
+
+func (s *StockPrice) RemoveObserver(observer Observer) bool {
+	for i, o := range s.Observers {
+		if o == observer {
+			s.Observers = append(s.Observers[:i], s.Observers[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+func (s *StockPrice) NotifyObservers() {
+	for _, observer := range s.Observers {
+		observer.Update(s)
+	}
+}
+
+// 投资者作为观察者的具体实现类
+type Investor struct {
+	Name               string
+	InvestmentStrategy string
+}
+
+func (i *Investor) Update(subject Subject) {
+	if stockPrice, ok := subject.(*StockPrice); ok {
+		fmt.Printf("投资者 %s 收到股票价格更新通知，当前价格: %f\n", i.Name, stockPrice.Price)
+		// 根据投资策略进行决策，这里只是简单示例
+		if i.InvestmentStrategy == "买入" && stockPrice.Price < 100.0 {
+			fmt.Printf("投资者 %s 决定买入\n", i.Name)
+		} else if i.InvestmentStrategy == "卖出" && stockPrice.Price > 100.0 {
+			fmt.Printf("投资者 %s 决定卖出\n", i.Name)
+		}
+	}
+}
+
+// 客户端代码
+func main() {
+	stockPrice := &StockPrice{
+		Price:     90.0,
+		Observers: []Observer{},
+	}
+
+	investor1 := &Investor{
+		Name:               "张三",
+		InvestmentStrategy: "买入",
+	}
+	investor2 := &Investor{
+		Name:               "李四",
+		InvestmentStrategy: "卖出",
+	}
+
+	stockPrice.AddObserver(investor1)
+	stockPrice.AddObserver(investor2)
+
+	stockPrice.Price = 110.0
+	stockPrice.NotifyObservers()
+}
+```
+<!-- endtab -->
+{% endtabs %}
+
+#### 状态模式
+
+状态模式是一种行为型设计模式，它允许一个对象在其内部状态改变时改变其行为方式。通过将对象的不同状态封装成独立的类，并让对象的行为依赖于当前所处的状态，使得代码结构更加清晰、易于维护和扩展。
+
+该模式具有以下应用场景：
+
+- 交通信号灯控制系统：交通信号灯有不同的状态，如红灯、绿灯、黄灯。在不同状态下，信号灯的行为不同，例如红灯时禁止通行，绿灯时允许通行，黄灯时警示通行。使用状态模式，可以将每个信号灯状态封装成一个独立的类，交通信号灯对象根据当前所处的状态类来执行相应的行为，当状态发生变化时（如从绿灯变为黄灯），只需切换到对应的状态类，信号灯的行为就会相应改变。
+- 媒体播放器应用：媒体播放器有多种状态，如播放、暂停、停止等。在播放状态下，可以进行调节音量、快进、快退等操作；在暂停状态下，可以恢复播放或停止播放；在停止状态下，可以开始播放等。通过状态模式，把每个状态对应的操作封装在各自的状态类中，媒体播放器对象根据当前状态来执行合适的操作，当用户进行操作导致状态改变时（如点击暂停按钮使播放状态变为暂停状态），播放器的可执行操作也随之改变。
+- 订单处理系统：订单在处理过程中有不同状态，如已下单、已支付、已发货、已完成等。不同状态下订单的处理逻辑和可执行操作不同，例如已下单状态下可以修改订单信息，已支付状态下可以安排发货，已发货状态下可以跟踪物流，已完成状态下可以进行订单评价等。利用状态模式，将每个订单状态对应的处理逻辑封装成独立的状态类，订单对象依据当前所处的状态来执行相应的操作，随着订单处理流程推进状态发生变化，其行为也相应改变。
+
+该模式具有以下特点:
+
+- 状态封装与独立性：将不同的状态及其相关行为封装成独立的状态类，每个状态类负责处理该状态下对象的特定行为，使得状态相关的逻辑更加清晰、易于理解和维护。不同状态类之间相互独立，修改一个状态类的行为不会影响到其他状态类。
+- 行为随状态变化：对象的行为由其当前所处的状态决定，当状态发生变化时，对象自动切换到对应的状态类，从而改变其行为方式。这种动态的行为改变使得代码能够更好地适应对象在不同状态下的不同需求，无需使用大量的条件判断语句来处理不同状态下的行为差异。
+- 易于扩展新状态：当需要添加新的状态及其相关行为时，只需创建一个新的状态类并实现相应的接口或继承相关的抽象类，然后在对象中添加逻辑以切换到这个新状态即可。对现有代码的改动较小，符合开闭原则，便于系统的扩展。
+
+该模式具有以下的缺点：
+
+- 类数量增加：随着状态数量的增加，需要创建相应数量的状态类，可能导致类的数量过多，增加了代码的复杂性和维护成本。尤其是在一些简单的场景中，如果过度使用状态模式，可能会使代码变得臃肿，反而不利于理解和维护。
+- 状态切换逻辑复杂：在对象中需要正确处理状态之间的切换逻辑，确保在合适的时机切换到正确的状态类。如果状态切换逻辑处理不当，可能会导致程序出现错误的行为或进入不合理的状态，这需要仔细设计和测试状态切换的条件和流程。
+
+该模式遵循以下设计原则：
+
+- 单一职责原则（SRP）：状态模式将与特定状态相关的行为局部化到一个状态中，并且将不同状态的行为分割开来，满足单一职责原则
+
+{% tabs 状态模式 %}
+<!-- tab Rust -->
+```Rust
+// 抽象状态接口，定义了不同状态下共有的方法
+trait State {
+    fn handle(&self, context: &Context);
+}
+
+// 上下文对象，用于持有当前状态并执行状态相关操作
+struct Context {
+    state: Box<dyn State>,
+}
+
+impl Context {
+    fn new(initial_state: Box<dyn State>) -> Self {
+        Context { state: initial_state }
+    }
+
+    fn set_state(&mut self, new_state: Box<dyn State>) {
+        self.state = new_state;
+    }
+
+    fn request(&self) {
+        self.state.handle(self);
+    }
+}
+
+// 具体状态类：红灯状态，以交通信号灯为例
+struct RedLightState;
+
+impl State for RedLightState {
+    fn handle(&self, context: &Context) {
+        println!("红灯亮，禁止通行");
+    }
+}
+
+// 具体状态类：绿灯状态，以交通信号灯为例
+struct GreenLightState;
+
+impl State for GreenLightState {
+    fn handle(&self, context: &Context) {
+        println!("绿灯亮，允许通行");
+    }
+}
+
+// 具体状态类：黄灯状态，以交通信号灯为例
+struct YellowLightState;
+
+impl State for YellowLightState {
+    fn handle(&self, context: &Context) {
+        println!("黄灯亮，警示通行");
+    }
+}
+
+// 客户端代码，模拟交通信号灯状态变化
+fn main() {
+    let mut context = Context::new(Box::new(RedLightState));
+
+    context.request();
+
+    context.set_state(Box::new(GreenLightState));
+    context.request();
+
+    context.set_state(Box::new(YellowLightState));
+    context.request();
+}
+```
+<!-- endtab -->
+<!-- tab Go -->
+```Go
+package main
+
+import "fmt"
+
+// 抽象状态接口，定义了不同状态下共有的方法
+type State interface {
+	Handle(context *Context)
+}
+
+// 上下文对象，用于持有当前状态并执行状态相关操作
+type Context struct {
+	State State
+}
+
+func (c *Context) New(initialState State) *Context {
+	return &Context{State: initialState}
+}
+
+func (c *Context) SetState(newState State) {
+	c.State = newState
+}
+
+func (c *Context) Request() {
+	c.State.Handle(c)
+}
+
+// 具体状态类：红灯状态，以交通信号灯为例
+type RedLightState struct{}
+
+func (r *RedLightState) Handle(context *Context) {
+	fmt.Println("红灯亮，禁止通行")
+}
+
+// 具体状态类：绿灯状态，以交通信号灯为例
+type GreenLightState struct{}
+
+func (g *GreenLightState) Handle(context *Context) {
+	fmt.Println("绿灯亮，允许通行")
+}
+
+// 具体状态类：黄灯状态，以交通信号灯为例
+type YellowLightState struct{}
+
+func (y *YellowLightState) Handle(context *Context) {
+	fmt.Println("黄灯亮，警示通行")
+}
+
+// 客户端代码，模拟交通信号灯状态变化
+func main() {
+	context := &Context{}
+	context.SetState(&RedLightState{})
+
+	context.Request()
+
+	context.SetState(&GreenLightState{})
+	context.Request()
+
+	context.SetState(&YellowLightState{})
+	context.Request()
+}
+```
+<!-- endtab -->
+{% endtabs %}
+
+#### 策略模式
+
+策略模式是一种行为型设计模式，它定义了一系列可互换的算法或策略，并将每个策略封装成独立的类，使得它们可以在运行时根据需要进行替换，从而让对象的行为能够根据所选择的策略而改变。
+
+该模式具有以下应用场景：
+
+- 电商促销活动：在电商平台中，经常会有各种促销活动，如满减、折扣、赠品等不同的优惠策略。可以将每种优惠策略封装成一个独立的类，订单结算系统根据当前的促销活动选择相应的策略类来计算订单的最终价格。例如，在 “双十一” 活动期间可能采用满减策略，而在店庆活动时可能采用折扣策略，通过切换策略类就能轻松实现不同促销活动下的价格计算。
+- 文件加密与解密：对于文件的加密和解密操作，存在多种加密算法，如 AES、DES、RSA 等。将每种加密算法封装成一个独立的策略类，文件处理程序在需要加密或解密文件时，根据用户的选择或文件的安全级别等因素，选用合适的策略类来执行相应的操作，这样可以方便地替换加密算法而不影响文件处理程序的其他部分。
+- 游戏角色移动方式：在游戏中，角色的移动方式有多种，比如步行、跑步、跳跃、飞行等不同的策略。可以把每种移动方式都封装成一个独立的策略类，游戏角色对象根据游戏场景、角色状态（如是否拥有飞行道具等）等因素，选择合适的策略类来实现其移动行为，当角色获得新的能力或处于不同场景时，能够灵活切换移动策略。
+
+该模式具有以下的特点：
+
+- 算法封装与独立性：将不同的算法或策略封装成独立的类，每个策略类负责实现特定的算法逻辑，使得算法相关的代码更加清晰、易于理解和维护。不同策略类之间相互独立，修改一个策略类的算法不会影响到其他策略类。
+- 可替换性与灵活性：在运行时可以根据具体需求灵活地替换策略类，从而改变对象的行为方式。这使得系统能够快速适应不同的业务场景或用户需求，无需对大量代码进行修改，只需切换所采用的策略即可。
+- 易于扩展新策略：当需要添加新的策略及其相关算法时，只需创建一个新的策略类并实现相应的接口或继承相关的抽象类，然后在需要使用策略的地方添加逻辑以选择这个新策略即可。对现有代码的改动较小，符合开闭原则，便于系统的扩展。
+
+该模式具有以下缺点：
+
+- 类数量增加：随着策略数量的增加，需要创建相应数量的策略类，可能导致类的数量过多，增加了代码的复杂性和维护成本。尤其是在一些简单的场景中，如果过度使用策略模式，可能会使代码变得臃肿，反而不利于理解和维护。
+- 策略选择逻辑复杂：在使用策略模式的地方，需要正确处理策略的选择逻辑，确保在合适的时机选择正确的策略类。如果策略选择逻辑处理不当，可能会导致程序出现错误的行为或选择了不合适的策略，这需要仔细设计和测试策略选择的条件和流程。
+
+该模式遵循以下设计原则：
+
+- 开闭原则（OCP）：策略模式提供了对开闭原则的支持，可以在不修改原有系统的基础上，选择不同的行为，也可以额外扩展其他行为。
+- 单一职责原则（SRP）：每个策略类只负责一个算法的实现，符合单一职责原则
+
+点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUBvsslEfIv_rBNtQlvWhCwyajIWjCJbL8RYaAB4aDRrIePfB0GXIArAJIqjIDH9pyqlpIgmKqinCDBbgWTgVxLxujBqVOiZpZRkvadCIYuiLt4fpSe9IKqgJIpBpyz2CqYx9A4ejpiZFIG4R0n4hWYb64YFHJfVCucIGGdJhKg3YyI1XOen_igFhoOxkPzFQ4MOxvmC3fg84PcGnr0ehU311nFDIopKmvJGLh606eDWS3rEAxWIW6vwsRdw-UJSNrd3KqwknWniEDFlfkddF-pPmmVnFG1dCAxgwoB8W2ryqJdc_fmFPzoyRPhtOtuxkt6VJTZxRFFN9ZZv83C1qTd8vfEQb01CL0000)查看UML关系类图。
+
+{% tabs 策略模式 %}
+<!-- tab Rust -->
+```Rust
+// 策略接口，定义了执行策略的方法
+trait Strategy {
+    fn execute(&self, amount: f64) -> f64;
+}
+
+// 满减策略类
+struct FullReductionStrategy {
+    threshold: f64,
+    reduction: f64,
+}
+
+impl Strategy for FullReductionStrategy {
+    fn execute(&self, amount: f64) -> f64 {
+        if amount >= self.threshold {
+            amount - self.reduction
+        } else {
+            amount
+        }
+    }
+}
+
+// 折扣策略类
+struct DiscountStrategy {
+    discount_rate: f64,
+}
+
+impl Strategy for DiscountStrategy {
+    fn execute(&self, amount: f64) -> f64 {
+        amount * (1.0 - self.discount_rate)
+    }
+}
+
+// 使用策略的上下文类
+struct Context {
+    strategy: Box<dyn Strategy>,
+}
+
+impl Context {
+    fn new(strategy: Box<dyn Strategy>) -> Self {
+        Context { strategy: strategy }
+    }
+
+    fn execute_strategy(&self, amount: f64) -> f64 {
+        self.strategy.execute(amount)
+    }
+}
+
+// 客户端代码，模拟电商促销活动中的价格计算
+fn main() {
+    let amount = 100.0;
+
+    // 使用满减策略
+    let full_reduction_strategy = FullReductionStrategy {
+        threshold: 80.0,
+        reduction: 20.0,
+    };
+    let mut context = Context::new(Box::new(full_reduction_strategy));
+    let final_amount = context.execute_strategy(amount);
+    println!("使用满减策略后的价格: {}", final_amount);
+
+    // 使用折扣策略
+    let discount_strategy = DiscountStrategy {
+        discount_rate: 0.2,
+    };
+    context.strategy = Box::new(discount_strategy);
+    let final_amount = context.execute_strategy(amount);
+    println!("使用折扣策略后的价格: {}", final_amount);
+}
+```
+<!-- endtab -->
+<!-- tab Go -->
+```Go
+package main
+
+import "fmt"
+
+// 策略接口，定义了执行策略的方法
+type Strategy interface {
+    Execute(amount float64) float64
+}
+
+// 满减策略类
+type FullReductionStrategy struct {
+    Threshold float64
+    Reduction float64
+}
+
+func (f *FullReductionStrategy) Execute(amount float64) float64 {
+    if amount >= f.Threshold {
+        return amount - f.Reduction
+    } else {
+        return amount
+    }
+}
+
+// 折扣策略类
+type DiscountStrategy struct {
+    DiscountRate float64
+}
+
+func (d *DiscountStrategy) Execute(amount float64) float64 {
+    return amount * (1.0 - d.DiscountRate)
+}
+
+// 使用策略的上下文类
+type Context struct {
+    Strategy Strategy
+}
+
+func (c *Context) New(Strategy Strategy) *Context {
+    return &Context{Strategy: Strategy}
+}
+
+func (c *Context) ExecuteStrategy(amount float64) float64 {
+    return c.Strategy.Execute(amount)
+}
+
+// 客户端代码，模拟电商促销活动中的价格计算
+func main() {
+    amount := 100.0
+
+    // 使用满减策略
+    fullReductionStrategy := &FullReductionStrategy{
+        Threshold: 80.0,
+        Reduction: 20.0,
+    }
+    context := &Context{Strategy: fullReductionStrategy}
+    finalAmount := context.ExecuteStrategy(amount)
+    fmt.Printf("使用满减策略后的价格: %f\n", finalAmount)
+
+    // 使用折扣策略
+    discountStrategy := &DiscountStrategy{
+        DiscountRate: 0.2,
+    }
+    context.Strategy = discountStrategy
+    finalAmount = context.ExecuteStrategy(amount)
+    fmt.Printf("使用折扣策略后的暗码: %f\n", finalAmount)
+}
+```
+<!-- endtab -->
+{% endtabs %}
+
+#### 模板方法
+
+模板方法模式是一种行为型设计模式，它在一个抽象类中定义了一个算法的骨架（即模板方法），这个模板方法包含了一系列的步骤，其中一些步骤的具体实现被延迟到子类中。通过这种方式，子类可以在不改变算法整体结构的情况下，重新定义某些特定步骤的实现，从而实现不同的行为。
+
+该模式具有以下应用场景：
+
+- 数据访问层操作：在数据库应用中，对于不同类型的数据实体（如用户、订单、产品等），数据访问层通常需要执行一些通用的操作，比如连接数据库、执行查询语句、处理查询结果、关闭数据库连接等。可以使用模板方法模式，在一个抽象的数据访问类中定义这些通用操作的模板方法，将如构建具体查询语句、处理不同类型结果集等特定步骤的实现留给具体的数据访问子类（如用户数据访问类、订单数据访问类等），这样既能保证数据访问操作的整体流程一致，又能根据不同的数据实体进行个性化的处理。
+- 文件处理流程：当处理不同类型的文件（如文本文件、图像文件、音频文件等）时，可能存在一些通用的处理步骤，比如打开文件、读取文件内容、进行某种处理（如对文本文件进行文本解析，对图像文件进行图像处理等）、写入处理结果（如果需要）、关闭文件等。通过模板方法模式，在一个抽象的文件处理类中定义这个通用的文件处理流程模板方法，而将针对不同文件类型的具体处理步骤（如文本解析算法、图像处理算法等）放到具体的文件处理子类（如文本文件处理类、图像文件处理类等）中实现，以适应不同文件类型的处理需求。
+- 游戏角色创建流程：在游戏开发中，创建不同类型的游戏角色（如战士、法师、刺客等）通常会遵循一些通用的步骤，比如分配基础属性（生命值、攻击力、防御力等）、设置角色外观、赋予初始技能等。可以利用模板方法模式，在一个抽象的角色创建类中定义这个创建角色的通用流程模板方法，将如根据不同角色类型分配特定属性值、设置特定外观、赋予特定初始技能等步骤的实现留给具体的角色创建子类（如战士角色创建类、法师角色创建类等），这样可以在保证角色创建整体流程规范的同时，实现不同角色类型的差异化创建。
+
+该模式具有以下特点：
+
+- 算法框架定义：在抽象类中清晰地定义了算法的整体框架（模板方法），明确了一系列的步骤顺序，使得整个算法的流程结构一目了然，便于理解和维护。不同的子类遵循这个统一的框架进行实现，保证了算法执行的一致性和规范性。
+- 步骤实现延迟到子类：将算法中的某些特定步骤的具体实现延迟到子类中，使得子类可以根据自身的需求和特点灵活地重新定义这些步骤的实现方式，从而实现不同的行为效果。这种方式既保证了整体算法的通用性，又兼顾了子类的个性化需求。
+- 代码复用与可扩展性：通过在抽象类中定义通用的模板方法和部分通用步骤的实现，实现了代码的复用，减少了代码的冗余。同时，当需要添加新的子类来实现不同的行为时，只需按照模板方法的框架，在新子类中实现特定步骤的新实现即可，很容易实现系统的扩展。
+
+该模式具有以下缺点：
+
+- 子类实现约束：子类必须遵循抽象类中定义的模板方法的步骤顺序和框架，如果子类需要对模板方法进行较大幅度的修改或不按照规定的步骤顺序实现，可能会导致代码的逻辑混乱，破坏整个算法的正常运行。因此，子类的实现相对受到一定的约束，灵活性有限。
+- 抽象类理解难度：对于初学者或不熟悉模板方法模式的开发人员来说，理解抽象类中定义的模板方法以及其中各个步骤的含义和作用可能会有一定的难度，尤其是当模板方法包含较多的步骤和复杂的逻辑时，这可能会增加代码的理解成本。
+
+该模式遵循以下设计原则：
+
+- 单一职责原则（SRP）：模板方法模式将算法的框架和步骤的具体实现分离，符合单一职责原则。
+- 开闭原则（OCP）：模板方法模式允许对算法的扩展开放，对修改关闭，可以通过添加新的子类来扩展算法的行为。
+
+点击[链接](//www.plantuml.com/plantuml/png/SoWkIImgAStDuL9NUDQrzyN6XSytxdw_f-DPtzAd_OkVxbtqT4__axsJd_TjUB-daoiphoIrA2qnELN1BJCdDQ0eFpcrk3Y_IA6QIm482Y3y-3IWd0Q8Y2z8BCcmKYWkAT84AyWlICt3BPkSar-SYf2s0ji1aSf8p4l9WSZ59-S37P5NWgAc5kZwfwtRGGwTrV9iMlkpEMk0v9FTsvukQNa-eGte9QxadCJYOeMGr8eIR4xN9kXsRVoEryRZUcsIdFzqzhwdpVtOdU-PcvYUEXZT3_R0vkURTtDXXB2UNeqTMdAnKdYwRXumIN61_KEqQeVKl1HWIWK0)查看模板方法的UML关系类图。
+
+
+{% tabs 模板方法 %}
+<!-- tab Rust -->
+```Rust
+use std::cell::RefCell;
+use std::fs::File;
+use std::io;
+
+// 抽象类，定义模板方法及部分通用步骤
+trait FileProcessor {
+    // 模板方法，定义文件处理的通用流程
+    fn process_file(&self, file_path: &str) -> io::Result<()>;
+
+    // 通用步骤：打开文件
+    fn open_file(&self, file_path: &str) -> io::Result<RefCell<File>> {
+        match File::open(file_path) {
+            Ok(f) => Ok(RefCell::new(f)),
+            Err(e) => Err(e),
+        }
+    }
+
+    // 抽象步骤：处理文件内容，具体实现留给子类
+    fn handle_file_content(&self, file: RefCell<File>) -> io::Result<()>;
+}
+
+// 具体的文本文件处理类
+struct TextFileProcessor {}
+
+impl FileProcessor for TextFileProcessor {
+    fn process_file(&self, file_path: &str) -> io::Result<()> {
+        let file_result = self.open_file(file_path)?;
+        self.handle_file_content(file_result)?;
+        Ok(())
+    }
+
+    fn handle_file_content(&self, file: RefCell<File>) -> io::Result<()> {
+        // 这里可以实现具体的文本解析等操作
+        println!("正在处理文本文件内容");
+        Ok(())
+    }
+}
+
+// 具体的图像文件处理类
+struct ImageFileProcessor {}
+
+impl FileProcessor for ImageFileProcessor {
+    fn process_file(&self, file_path: &str) -> io::Result<()> {
+        let file = self.open_file(file_path)?;
+        self.handle_file_content(file)?;
+        Ok(())
+    }
+
+    fn handle_file_content(&self, file: RefCell<File>) -> io::Result<()> {
+        // 这里可以实现具体的图像处理等操作
+        println!("正在处理图像文件内容");
+        Ok(())
+    }
+}
+
+// 客户端代码
+fn main() -> io::Result<()> {
+    let text_file_processor = TextFileProcessor {};
+    text_file_processor.process_file("bin/state.rs")?;
+
+    let image_file_processor = ImageFileProcessor {};
+    image_file_processor.process_file("bin/mediator.rs")?;
+
+    Ok(())
+}
+```
+<!-- endtab -->
+<!-- tab Go -->
+```Go
+package main
+
+import (
+	"fmt"
+	"os"
+)
+
+// 抽象类，定义模板方法及部分通用步骤
+type FileProcessor interface {
+	// 模板方法，定义文件处理的通用流程
+	ProcessFile(filePath string)
+	// 通用步骤：打开文件
+	OpenFile(filePath string) (*os.File, error)
+	// 通用步骤：关闭文件
+	CloseFile(file *os.File) error
+	// 抽象步骤：处理文件内容，具体实现留给子类
+	HandleFileContent(file *os.File) error
+}
+
+// 具体的文本文件处理类
+type TextFileProcessor struct{}
+
+func (t *TextFileProcessor) ProcessFile(filePath string) {
+	file, err := t.OpenFile(filePath)
+	if err == nil {
+		if err := t.HandleFileContent(file); err == nil {
+			if err := t.CloseFile(file); err == nil {
+				fmt.Println("文本文件处理成功")
+			} else {
+				fmt.Println("关闭文本文件失败")
+			}
+		} else {
+			fmt.Println("处理文本文件内容失败")
+		}
+	} else {
+		fmt.Println("打开文本文件失败")
+	}
+}
+
+func (t *TextFileProcessor) OpenFile(filePath string) (*os.File, error) {
+	return os.Open(filePath)
+}
+
+func (t *TextFileProcessor) CloseFile(file *os.File) error {
+	return file.Close()
+}
+
+func (t *TextFileProcessor) HandleFileContent(file *os.File) error {
+	// 这里可以实现具体的文本解析等操作
+	fmt.Println("正在处理文本文件内容")
+	return nil
+}
+
+// 具体的图像文件处理类
+type ImageFileProcessor struct{}
+
+func (i *ImageFileProcessor) ProcessFile(filePath string) {
+	file, err := i.OpenFile(filePath)
+	if err == nil {
+		if err := i.HandleFileContent(file); err == nil {
+			if err := i.CloseFile(file); err == nil {
+				fmt.Println("文本文件处理成功")
+			} else {
+				fmt.Println("关闭图像文件失败")
+			}
+		} else {
+			fmt.Println("处理图像文件内容失败")
+		}
+	} else {
+		fmt.Println("打开图像文件失败")
+	}
+}
+
+func (i *ImageFileProcessor) OpenFile(filePath string) (*os.File, error) {
+	return os.Open(filePath)
+}
+
+func (i *ImageFileProcessor) CloseFile(file *os.File) error {
+	return file.Close()
+}
+
+func (i *ImageFileProcessor) HandleFileContent(file *os.File) error {
+	// 这里可以实现具体的图像处理等操作
+	fmt.Println("正在处理图像文件内容")
+	return nil
+}
+
+// 客户端代码
+func main() {
+	textFileProcessor := &TextFileProcessor{}
+	textFileProcessor.ProcessFile("test.txt")
+
+	imageFileProcessor := &ImageFileProcessor{}
+	imageFileProcessor.ProcessFile("test.jpg")
+}
+```
+<!-- endtab -->
+{% endtabs %}
+
+#### 访问者模式
+
+访问者模式是一种行为型设计模式，它将数据结构与作用于该数据结构上的操作分离开来。通过定义一个访问者接口，其中包含了对不同类型元素进行访问操作的方法，然后让具体的访问者类实现这些方法来执行特定的操作。而数据结构中的元素则提供一个接受访问者的接口，使得访问者可以遍历数据结构并对其中的元素执行相应操作。
+
+该模式具有以下应用场景：
+
+- 编译器的语法分析：在编译器设计中，需要对抽象语法树（AST）进行遍历并执行各种操作，如语义检查、代码生成等。抽象语法树由不同类型的节点（如表达式节点、语句节点等）组成，形成了一种复杂的数据结构。使用访问者模式，可以定义一个访问者接口，包含针对不同类型节点进行语义检查和代码生成等操作的方法。然后创建具体的访问者类（如语义检查访问者、代码生成访问者等）来实现这些方法，通过让抽象语法树的节点接受这些访问者并遍历自身，实现对整个抽象语法树的相应操作，这样可以将不同的分析和处理逻辑与抽象语法树的结构清晰地分离开来。
+- 图形绘制系统中的图形操作：在图形绘制系统中，存在多种不同类型的图形（如圆形、矩形、三角形等），这些图形组成了一个图形数据结构。当需要对这些图形进行不同的操作，如计算图形面积、绘制图形轮廓、填充图形颜色等时，可以采用访问者模式。定义一个访问者接口，其中有针对不同图形类型进行上述操作的方法。然后创建具体的访问者类（如面积计算访问者、轮廓绘制访问者、颜色填充访问者等）来实现这些方法，让图形对象接受访问者并允许访问者遍历图形数据结构中的各个图形，从而实现对不同图形的相应操作，将操作逻辑与图形数据结构分离开来。
+- 员工组织结构中的数据统计与分析：在企业的员工组织结构中，存在不同层级的部门和员工，形成了一个树形的数据结构。当需要对这个组织结构进行各种统计和分析操作，如计算部门员工总数、统计各部门平均薪资、查找特定技能员工等时，可以运用访问者模式。定义一个访问者接口，包含针对部门和员工进行上述各种统计和分析操作的方法。接着创建具体的访问者类（如员工总数统计访问者、平均薪资统计访问者、特定技能员工查找访问者等）来实现这些方法，让部门和员工对象接受访问者并支持访问者遍历整个组织结构，以便实现对组织结构数据的相应操作，将统计分析逻辑与组织结构数据结构相分离。
+
+该模式具有以下特点：
+
+- 数据结构与操作分离：将对数据结构中元素的操作逻辑从数据结构本身中分离出来，通过定义访问者接口和具体访问者类来实现特定的操作，使得数据结构的定义更加纯粹，专注于存储和组织数据，而操作逻辑则可以独立地进行扩展和修改，互不影响。
+- 可扩展性：当需要添加新的操作类型时，只需创建一个新的访问者类并实现访问者接口中的相应方法即可，无需对现有的数据结构及其元素类进行大规模的修改。同样，当数据结构中新增元素类型时，只需在现有访问者接口中添加针对新元素类型的访问方法，并在相应的具体访问者类中实现这些方法，也能轻松应对，便于系统的扩展。
+- 多态性体现：访问者模式充分利用了多态性，通过让数据结构中的元素接受访问者并调用访问者的相应方法，根据访问者的具体类型执行不同的操作，实现了同一数据结构可以被不同访问者以不同方式处理的效果，增强了代码的灵活性和复用性。
+
+该模式具有以下缺点：
+
+- 违反封装原则风险：在访问者模式中，数据结构中的元素需要向访问者暴露自身的一些内部信息，以便访问者能够进行相应的操作。这可能会在一定程度上违反对象的封装原则，如果处理不当，可能会导致数据结构的稳定性和安全性受到影响，例如外部访问者可能会错误地修改数据结构中的关键信息。
+- 增加复杂性：由于引入了访问者接口、具体访问者类以及数据结构元素接受访问者的相关机制，使得代码的整体结构变得更加复杂，尤其是对于初学者或不熟悉该模式的开发人员来说，理解和维护起来可能会有一定的难度，增加了代码的理解成本。
+- 访问者与元素耦合度：虽然数据结构与操作在一定程度上实现了分离，但具体的访问者类与数据结构中的元素类之间存在一定的耦合度。当数据结构或访问者发生较大变化时，可能需要同时对另一方进行相应的修改，例如当数据结构中的元素类型发生重大改变时，可能需要修改多个访问者类中的相关方法，反之亦然。
+
+该模式遵循以下设计原则：
+
+- 开闭原则（OCP）：访问者模式支持对扩展开放，可以添加新的访问者而不需要修改对象结构。
+- 单一职责原则（SRP）：每个访问者应该只有一个职责，即一个访问者类对应一个操作。
+
+点击[链接](//www.plantuml.com/plantuml/png/fPFDJkf07CNtVOhPNMuQMDtSHHS6unkeSKl6Cj19oaUc0oxKX0qgBZ3H20cA1emXRgg463Lyy3BqWnMlOELF9zMWWhAPF_nFVkSCFOqQ73EUI-dI7-IQmt7LT0j5ktnhdTn8DCq9Is2Le2rgK9vXQ5T2tYV_zYscKgRg90I7WjQcvz-0W16LutJIquX9GUl-65HoHa7e3mhQXCcJxNl9h8k1rM_QntsttN3QtK2o3GrdoImNLbMIvQ4yX5Nyr3D4yMdKFmEGXvZqQjRbWJTBgeuD0-Bx89dXECqP2ahy_mS_B8bshky4MbnPq7Ted6i1k4PeKkC_TnizbzpMgJ0K_vtljuqDyaixKGrm7DURJklUDHkEMHMhcVig8_XzNsIUuLYFOMyHSFssHVBYDP8Nwj7qDXsdqvK26IEHlHNHRmLPvfLJVf0WntG73HCRuJnl2MxpTu14uN3GRZIeku-LIUy8oZWkrDpX8JmFk_9YTyv1yE7DdFHA8iUdHEZWuaG8_mKGQhOSCqhIyLnAVmK0)查看访问者模式UML关系图。
+
+{% tabs 访问者模式 %}
+<!-- tab Rust -->
+```Rust
+// 访问者接口，定义了对不同类型元素进行访问操作的方法
+trait Visitor {
+    fn visit_circle(&mut self, circle: &Circle);
+    fn visit_rectangle(&mut self, rectangle: &Rectangle);
+    fn visit_triangle(&mut self, triangle: &Triangle);
+}
+
+// 图形抽象类，提供接受访问者的接口
+trait Shape {
+    fn accept(&self, visitor: &mut dyn Visitor);
+}
+
+// 具体图形类：圆形
+struct Circle {
+    radius: f64,
+}
+
+impl Shape for Circle {
+    fn accept(&self, visitor: &mut dyn Visitor) {
+        visitor.visit_circle(self);
+    }
+}
+
+// 具体图形类：矩形
+struct Rectangle {
+    width: f64,
+    height: f64,
+}
+
+impl Shape for Rectangle {
+    fn accept(&self, visitor: &mut dyn Visitor) {
+        visitor.visit_rectangle(self);
+    }
+}
+
+// 具体图形类：三角形
+struct Triangle {
+    base: f64,
+    height: f64,
+}
+
+impl Shape for Triangle {
+    fn accept(&self, visitor: &mut dyn Visitor) {
+        visitor.visit_triangle(self);
+    }
+}
+
+// 具体访问者类：面积计算访问者
+struct AreaVisitor {
+    total_area: f64,
+}
+
+impl Visitor for AreaVisitor {
+    fn visit_circle(&mut self, circle: &Circle) {
+        self.total_area += std::f64::consts::PI * circle.radius * circle.radius;
+    }
+
+    fn visit_rectangle(&mut self, rectangle: &Rectangle) {
+        self.total_area += rectangle.width * rectangle.height;
+    }
+
+    fn visit_triangle(&mut self, triangle: &Triangle) {
+        self.total_area += 0.5 * triangle.base * triangle.height;
+    }
+}
+
+// 客户端代码
+fn main() {
+    let circle = Circle { radius: 2.0 };
+    let rectangle = Rectangle { width: 3.0, height: 4.0 };
+    let triangle = Triangle { base: 5.0, height: 6.0 };
+
+    let mut area_visitor = AreaVisitor { total_area: 0.0 };
+
+    circle.accept(&mut area_visitor);
+    rectangle.accept(&mut area_visitor);
+    triangle.accept(&mut area_visitor);
+
+    println!("总面积: {}", area_visitor.total_area);
+}
+```
+<!-- endtab -->
+<!-- tab Go -->
+```Go
+package main
+
+import "fmt"
+
+// 访问者接口，定义了对不同类型元素进行访问操作的方法
+type Visitor interface {
+	VisitCircle(circle *Circle)
+	VisitRectangle(rectangle *Rectangle)
+	VisitTriangle(triangle *Triangle)
+}
+
+// 图形抽象类，提供接受访问者的接口
+type Shape interface {
+	Accept(visitor Visitor)
+}
+
+// 具体图形类：圆形
+type Circle struct {
+	Radius float64
+}
+
+func (c *Circle) Accept(visitor Visitor) {
+	visitor.VisitCircle(c)
+}
+
+// 具体图形类：矩形
+type Rectangle struct {
+	Width  float64
+	Height float64
+}
+
+func (r *Rectangle) Accept(visitor Visitor) {
+	visitor.VisitRectangle(r)
+}
+
+// 具体图形类：三角形
+type Triangle struct {
+	Base   float64
+	Height float64
+}
+
+func (t *Triangle) Accept(visitor Visitor) {
+	visitor.VisitTriangle(t)
+}
+
+// 具体访问者类：面积计算访问者
+type AreaVisitor struct {
+	TotalArea float64
+}
+
+func (a *AreaVisitor) VisitCircle(circle *Circle) {
+	a.TotalArea += 3.141592653589793 * circle.Radius * circle.Radius
+}
+
+func (a *AreaVisitor) VisitRectangle(rectangle *Rectangle) {
+	a.TotalArea += rectangle.Width * rectangle.Height
+}
+
+func (a *AreaVisitor) VisitTriangle(triangle *Triangle) {
+	a.TotalArea += 0.5 * triangle.Base * triangle.Height
+}
+
+// 客户端代码
+func main() {
+	circle := &Circle{Radius: 2.0}
+	rectangle := &Rectangle{Width: 3.0, Height: 4.0}
+	triangle := &Triangle{Base: 5.0, Height: 6.0}
+
+	areaVisitor := &AreaVisitor{TotalArea: 0.0}
+
+	circle.Accept(areaVisitor)
+	rectangle.Accept(areaVisitor)
+	triangle.Accept(areaVisitor)
+
+	fmt.Printf("总面积: %f\n", areaVisitor.TotalArea)
 }
 ```
 <!-- endtab -->
