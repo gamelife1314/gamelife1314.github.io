@@ -269,7 +269,7 @@ let b = &mut v[j]; // error: cannot borrow `v` as mutable
 
 ##### `slice.splitn(n, is_sep)`、`slice.splitn_mut(n, is_sep)`
 
-和 `slice.split(is_sep)` 相同，但是之多 `n` 个子`slcie`，多出来的放在最后的子 `slice` 中；
+和 `slice.split(is_sep)` 相同，但是最多 `n` 个子`slcie`，多出来的放在最后的子 `slice` 中；
 
 ##### `slice.rsplitn(n, is_sep)`、`slice.rsplitn_mut(n, is_sep)`
 
@@ -315,7 +315,7 @@ fn main() {
 
 - `slice.swap(i, j)`：交换 `slice[i]` 和 `slice[j]`；
 
-- `slice_a.swap(&mut slice_b)`：将两个 `slice` 完整交换，它们必须要有相同的长度；
+- `slice_a.swap_slice(&mut slice_b)`：将两个 `slice` 完整交换，它们必须要有相同的长度；
 
 - `vec.swap_remove(i)`：删除并返回 `vec[i]`，并且将最后一个元素填充到 `vec[i]`；
 
@@ -375,7 +375,7 @@ fn main() {
 
     ```rust
     assert_eq!([1, 2, 3, 4].ends_with(&[3, 4]), true);
-    ``
+    ```
 
 #### 随机元素
 
@@ -401,7 +401,7 @@ fn main() {
 
 - `deque.push_front(value)`：用于在队列前面插入值；
 
-- `deque.push_front(value)`：用于在队尾插入值；
+- `deque.push_back(value)`：用于在队尾插入值；
 
 - `deque.pop_front()`：删除队首元素；
 
