@@ -81,7 +81,7 @@ let writer: dyn Write = buf; // error: `Write` does not have a constant size
 ```
 {% endnote %}
 
-但是 `&dyn Trait`，包含指向实现 `Trait` 的值和一个指向拥有该值类型方法表的指针，所以它的大小是确定的，详细请看 [`Trait`对象](/2022/04/29/【Rust】Trait和泛型/#trait-对象)。
+但是 `&dyn Trait`，包含指向实现 `Trait` 的值和一个指向拥有该值类型方法表的指针，所以它的大小是确定的，详细请看 [`Trait`对象](/2022/04/26/Rust/【Rust】Trait和泛型/#trait-对象)。
 
 `Rust` 不能将 `unsized` 值存储到变量或者传递给参数，唯一能使用它们的方式是使用指针，例如：`&str` 和 `Box<dyn Write>`，指向 `unsized` 值的指针是胖指针，包含了指向值的指针和 `size` 信息。
 
