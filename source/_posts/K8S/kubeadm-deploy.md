@@ -10,7 +10,7 @@ categories:
 
 本篇文章介绍使用 `kubeadm` 创建一个多节点的 `K8S`，使用 `containerd` 作为容器运行时，第一步，首先是准备 `3` 个虚拟机节点，使用 [`multipass`](https://multipass.run/) 创建`3`台虚拟机，该镜像中自带 `docker`，无需再安装，使用如下命令创建：
 
-> multipass launch --name ctrlnode -d 40G docke
+> multipass launch --name ctrlnode -d 40G docker
 > multipass launch --name node1 -d 40G docker
 > multipass launch --name node2 -d 40G docker
 

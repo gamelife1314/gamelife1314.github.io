@@ -80,7 +80,7 @@ let my_copy = buffer[4..12].to_vec(); // requires Clone
 
 - `slice.last()`：类似于 `slice.first()`，但返回最后一个；
 
-- `slice.get(index)`：返回第 `index` 个元素索引，不存在返回 `None`：
+- `slice.get(index)`：返回第 `index` 个元素，不存在返回 `None`：
 
     ```rust
     let slice = [0, 1, 2, 3];
@@ -116,7 +116,7 @@ let my_copy = buffer[4..12].to_vec(); // requires Clone
 
 可以通过值或者引用迭代 `vector` 或者 `slice`：
 
-- 如果迭代 `Vec<T>`，将返回 `T`，`vector` 中的值被溢出并且消费；
+- 如果迭代 `Vec<T>`，将返回 `T`，`vector` 中的值被移除并且消费掉所有权；
 
 - 如果迭代 `&[T; N]，&[T]，&Vec<T>`，将返回 `&T`，引用到单独的 `item`，不会转移它们的所有权；
 
