@@ -16,8 +16,6 @@ NAME       STATUS   ROLES           AGE   VERSION
 ctrlnode   Ready    control-plane   72m   v1.28.15
 ```
 
-<!--more-->
-
 ### 创建hostpath目录
 
 这里创建的目录将被用于`PV`卷创建，MySQL服务产生的数据也将保存在这个目录下。如果目录变更，请同步修改后续的`PV`卷的`hostpath`路径：
@@ -46,6 +44,8 @@ Labels:             beta.kubernetes.io/arch=amd64
                     pvtype=hostpath
 ....
 ```
+
+<!--more-->
 
 ### 部署MySQL服务
 将下面的模板保存为 `mysql.yaml`，然后从文件创建`MySQL`服务：
