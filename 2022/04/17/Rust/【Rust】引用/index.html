@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="在 Rust 中，指针按是否有所有权属性可以分为两类，例如 Box&lt;T&gt;，String，或者 Vec 具有所有权属性的指针（owning pointers），可以说它们拥有指向的内存，当它们被删除时，指向的内存也会被被释放掉。但是，也有一种非所有权指针，叫做引用(references)，它们的存在不会影响指向值的生命周期，在 Rust 中创建引用的行为称之为对值的借用。 要注意的是，引">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】引用">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="在 Rust 中，指针按是否有所有权属性可以分为两类，例如 Box&lt;T&gt;，String，或者 Vec 具有所有权属性的指针（owning pointers），可以说它们拥有指向的内存，当它们被删除时，指向的内存也会被被释放掉。但是，也有一种非所有权指针，叫做引用(references)，它们的存在不会影响指向值的生命周期，在 Rust 中创建引用的行为称之为对值的借用。 要注意的是，引">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/ref-to-ref.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/local-r-lifetime.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/local-x-lifetime.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/lifetime-high-and-low.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/lifetime-satisfy-situation.png">
+<meta property="article:published_time" content="2022-04-17T14:45:08.000Z">
+<meta property="article:modified_time" content="2022-04-17T14:45:08.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta property="article:tag" content="引用">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/ref-to-ref.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/","path":"2022/04/17/Rust/【Rust】引用/","title":"【Rust】引用"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】引用 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%95%E7%94%A8%E5%80%BC"><span class="nav-number">1.</span> <span class="nav-text"> 引用值</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E5%BC%95%E7%94%A8"><span class="nav-number">2.</span> <span class="nav-text"> 解引用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%95%E7%94%A8%E6%9B%B4%E6%96%B0"><span class="nav-number">3.</span> <span class="nav-text"> 引用更新</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%95%E7%94%A8%E7%9A%84%E5%BC%95%E7%94%A8"><span class="nav-number">4.</span> <span class="nav-text"> 引用的引用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%95%E7%94%A8%E6%AF%94%E8%BE%83"><span class="nav-number">5.</span> <span class="nav-text"> 引用比较</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%95%E7%94%A8%E6%B0%B8%E4%B8%8D%E4%B8%BA%E7%A9%BA"><span class="nav-number">6.</span> <span class="nav-text"> 引用永不为空</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%8E%E4%BB%BB%E4%BD%95%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%80%9F%E7%94%A8%E5%BC%95%E7%94%A8"><span class="nav-number">7.</span> <span class="nav-text"> 从任何表达式借用引用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%83%96%E6%8C%87%E9%92%88"><span class="nav-number">8.</span> <span class="nav-text"> 胖指针</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%95%E7%94%A8%E5%AE%89%E5%85%A8%E6%80%A7"><span class="nav-number">9.</span> <span class="nav-text"> 引用安全性</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BC%95%E7%94%A8%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F"><span class="nav-number">9.1.</span> <span class="nav-text"> 引用局部变量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E5%85%A8%E5%B1%80%E5%BC%95%E7%94%A8%E5%8F%98%E9%87%8F"><span class="nav-number">9.2.</span> <span class="nav-text"> 更新全局引用变量</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】引用 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】引用
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-04-17 22:45:08" itemprop="dateCreated datePublished" datetime="2022-04-17T22:45:08+08:00">2022-04-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>14 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>在 <code>Rust</code> 中，指针按是否有所有权属性可以分为两类，例如 <code>Box&lt;T&gt;</code>，<code>String</code>，或者 <code>Vec</code> 具有所有权属性的指针（<code>owning pointers</code>），可以说它们拥有指向的内存，当它们被删除时，指向的内存也会被被释放掉。但是，也有一种非所有权指针，叫做引用<code>(references)</code>，它们的存在不会影响指向值的生命周期，在 <code>Rust</code> 中创建引用的行为称之为对值的借用。</p>
+<p>要注意的是，引用决不能超过其引用的值的生命周期。必须在代码中明确指出，任何引用都不可能超过它所指向的值的寿命。为了强调这一点，<code>Rust</code> 将创建对某个值的引用称为<strong>借用</strong>：你所借的东西，最终必须归还给它的所有者。</p>
+<h3 id="引用值"><a class="markdownIt-Anchor" href="#引用值"></a> 引用值</h3>
+<p>在《【Rust】所有权》章节中，我们说到函数传值会转移值得所有权，<code>for</code> 循环也会，例如，对下面的代码，我们在将 <code>table</code> 传递给 <code>show</code> 函数之后，<code>table</code> 就处于未初始化状态：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line"><span class="keyword">type</span> <span class="title class_">Table</span> = HashMap&lt;<span class="type">String</span>, <span class="type">Vec</span>&lt;<span class="type">String</span>&gt;&gt;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">show</span>(table: Table) &#123;</span><br><span class="line">    <span class="keyword">for</span> (artist, works) <span class="keyword">in</span> table &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;works by &#123;&#125;:&quot;</span>, artist); <span class="keyword">for</span> <span class="variable">work</span> <span class="keyword">in</span> works &#123;</span><br><span class="line">            <span class="built_in">println!</span>(<span class="string">&quot;  &#123;&#125;&quot;</span>, work);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">table</span> = Table::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    table.<span class="title function_ invoke__">insert</span>(<span class="string">&quot;Gesualdo&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">                 <span class="built_in">vec!</span>[<span class="string">&quot;many madrigals&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">                      <span class="string">&quot;Tenebrae Responsoria&quot;</span>.<span class="title function_ invoke__">to_string</span>()]);</span><br><span class="line">    table.<span class="title function_ invoke__">insert</span>(<span class="string">&quot;Caravaggio&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">                 <span class="built_in">vec!</span>[<span class="string">&quot;The Musicians&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">                      <span class="string">&quot;The Calling of St. Matthew&quot;</span>.<span class="title function_ invoke__">to_string</span>()]);</span><br><span class="line">    table.<span class="title function_ invoke__">insert</span>(<span class="string">&quot;Cellini&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">                 <span class="built_in">vec!</span>[<span class="string">&quot;Perseus with the head of Medusa&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">                      <span class="string">&quot;a salt cellar&quot;</span>.<span class="title function_ invoke__">to_string</span>()]);</span><br><span class="line">    <span class="title function_ invoke__">show</span>(table);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<div class="note danger"><p>如果在 <code>show</code> 函数之后，我们再想使用 <code>table</code> 变量就会报错，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"><span class="title function_ invoke__">show</span>(table);</span><br><span class="line"><span class="built_in">assert_eq!</span>(table[<span class="string">&quot;Gesualdo&quot;</span>][<span class="number">0</span>], <span class="string">&quot;many madrigals&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p><code>Rust</code> 编译器提示变量 <code>table</code> 已经不可用，<code>show</code> 函数的调用已经转移 <code>table</code> 的所有权：</p>
+<pre><code>error[E0382]: borrow of moved value: `table`
+--&gt; src/main.rs:24:16
+|
+13 |     let mut table = Table::new();
+|         --------- move occurs because `table` has type `HashMap&lt;String, Vec&lt;String&gt;&gt;`, which does not implement the `Copy` trait
+...
+23 |     show(table);
+|          ----- value moved here
+24 |     assert_eq!(table[&quot;Gesualdo&quot;][0], &quot;many madrigals&quot;);
+|                ^^^^^ value borrowed here after move
+</code></pre>
+</div>
+<span id="more"></span>
+<p>正确处理这个问题的方法是使用引用，使用引用不会改变值的所有者，引用有两种类型：</p>
+<ul>
+<li>
+<p><code>shared reference</code>：可以读引用的值，但不能改变它。而且同时可以有多个<code>shared reference</code>。表达式 <code>&amp;e</code> 会生成 <code>e</code> 的<code>shared reference</code>。如果 <code>e</code> 的类型是 <code>T</code>，那么 <code>&amp;e</code> 的类型是 <code>&amp;T</code>，读作 <code>ref T</code>，<strong><code>shared reference</code>是可以复制的</strong>；共享引用借用的值是只读的，在共享引用的整个生命周期中，它的引用对象或从该引用对象可到达的任何东西都不能被改变，就像加了读锁，被冻结了；</p>
+</li>
+<li>
+<p><code>mutable reference</code>：可读可写所引用的值，不能拥有其他任何 <code>shared reference</code> 或者 <code>mutable reference</code>。表达式 <code>&amp;mut e</code> 生成 <code>e</code> 的 <code>mutable reference</code>。如果 <code>e</code> 的类型是 <code>T</code>，那么 <code>&amp;mut e</code> 的类型是 <code>&amp;mut T</code>，读作 <code>ref mute T</code>。 <strong><code>mutable reference</code>是不可以复制的</strong>。可变引用借用的值只能通过该引用访问，在可变引用的整个生命周期中，没有其他可用路径可以到达其引用对象；</p>
+</li>
+</ul>
+<p>因此，我们可以对上面的 <code>show</code> 函数作如下修改，就可以使得代码编译通过。在 <code>show</code> 函数中，<code>table</code> 的类型是 <code>&amp;Table</code>，那么 <code>artist</code> 和 <code>works</code> 的类型就是 <code>&amp;String</code> 和 <code>&amp;Vec&lt;String&gt;</code>，内部的 <code>for</code> 循环中 <code>work</code> 的类型也就变成了 <code>&amp;String</code>。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line"><span class="keyword">type</span> <span class="title class_">Table</span> = HashMap&lt;<span class="type">String</span>, <span class="type">Vec</span>&lt;<span class="type">String</span>&gt;&gt;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">show</span>(table: &amp;Table) &#123;</span><br><span class="line">    <span class="keyword">for</span> (artist, works) <span class="keyword">in</span> table &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;works by &#123;&#125;:&quot;</span>, artist);</span><br><span class="line">        <span class="keyword">for</span> <span class="variable">work</span> <span class="keyword">in</span> works &#123;</span><br><span class="line">            <span class="built_in">println!</span>(<span class="string">&quot;  &#123;&#125;&quot;</span>, work);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">table</span> = Table::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    table.<span class="title function_ invoke__">insert</span>(</span><br><span class="line">        <span class="string">&quot;Gesualdo&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        <span class="built_in">vec!</span>[</span><br><span class="line">            <span class="string">&quot;many madrigals&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">            <span class="string">&quot;Tenebrae Responsoria&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        ],</span><br><span class="line">    );</span><br><span class="line">    table.<span class="title function_ invoke__">insert</span>(</span><br><span class="line">        <span class="string">&quot;Caravaggio&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        <span class="built_in">vec!</span>[</span><br><span class="line">            <span class="string">&quot;The Musicians&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">            <span class="string">&quot;The Calling of St. Matthew&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        ],</span><br><span class="line">    );</span><br><span class="line">    table.<span class="title function_ invoke__">insert</span>(</span><br><span class="line">        <span class="string">&quot;Cellini&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        <span class="built_in">vec!</span>[</span><br><span class="line">            <span class="string">&quot;Perseus with the head of Medusa&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">            <span class="string">&quot;a salt cellar&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        ],</span><br><span class="line">    );</span><br><span class="line">    <span class="title function_ invoke__">show</span>(&amp;table);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(table[<span class="string">&quot;Gesualdo&quot;</span>][<span class="number">0</span>], <span class="string">&quot;many madrigals&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>现在，如果我们 <code>table</code> 中的值进行排序，<code>shared reference</code> 肯定不能满足要求，因为它不允许改变值，所以我们需要一个 <code>mutable reference</code>。可变借用使得 <code>sort_works</code> 有能力读和修改 <code>works</code>。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">sort_works</span>(table: &amp;<span class="keyword">mut</span> Table) &#123;</span><br><span class="line">    <span class="keyword">for</span> (_artist, works) <span class="keyword">in</span> table &#123;</span><br><span class="line">        works.<span class="title function_ invoke__">sort</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="title function_ invoke__">sort_works</span>(&amp;<span class="keyword">mut</span> table);</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当我们将一个值传递给函数时，可以说是将值的所有权转移给了函数，称之为按值传参。但是，如果我们将引用传给函数，我们可以称之为按引用传参，它没有改变值的所有权，只是借用了值。</p>
+<h3 id="解引用"><a class="markdownIt-Anchor" href="#解引用"></a> 解引用</h3>
+<p>在 <code>Rust</code> 中，我们可以通过 <code>&amp;</code> 或者 <code>&amp;mut</code> 创建 <code>shared reference</code> 或者 <code>mutable reference</code>，在机器级别，它们就是个地址。解引用可以通过 <code>*</code> 操作符。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// Back to Rust code from this point onward.</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">x</span> =<span class="number">10</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">r</span> = &amp;x; <span class="comment">// &amp;x is a shared reference to x</span></span><br><span class="line">    <span class="built_in">assert!</span>(*r == <span class="number">10</span>); <span class="comment">// explicitly dereference r</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">y</span>=<span class="number">32</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">m</span> = &amp;<span class="keyword">mut</span> y; <span class="comment">// &amp;mut y is a mutable reference to y</span></span><br><span class="line">    *m += <span class="number">32</span>; <span class="comment">// explicitly dereference m to set y&#x27;s value</span></span><br><span class="line">    <span class="built_in">assert!</span>(*m == <span class="number">64</span>); <span class="comment">// and to see y&#x27;s new value</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果每次访问引用指向的值，都需要 <code>*</code> 操作符，在访问结构体字段的时候，不难想象，体验有点糟糕。所在，<strong>在<code>Rust</code>中，可以通过<code>.</code>操作符隐式地解引用它的左操作数</strong>。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">Anime</span> &#123;</span><br><span class="line">        name: &amp;<span class="symbol">&#x27;static</span> <span class="type">str</span>,</span><br><span class="line">        bechdel_pass: <span class="type">bool</span>,</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">aria</span> = Anime &#123;</span><br><span class="line">        name: <span class="string">&quot;Aria: The Animation&quot;</span>,</span><br><span class="line">        bechdel_pass: <span class="literal">true</span>,</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">anime_ref</span> = &amp;aria;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(anime_ref.name, <span class="string">&quot;Aria: The Animation&quot;</span>);</span><br><span class="line">    <span class="comment">// Equivalent to the above, but with the dereference written out:</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>((*anime_ref).name, <span class="string">&quot;Aria: The Animation&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>除此之外，<strong><code>.</code>操作符还可以隐式地从它的左操作数创建引用</strong>，因此下面两个操作使等价的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">v</span> = <span class="built_in">vec!</span>[<span class="number">1973</span>, <span class="number">1968</span>];</span><br><span class="line">    v.<span class="title function_ invoke__">sort</span>(); <span class="comment">// implicitly borrows a mutable reference to v</span></span><br><span class="line">    (&amp;<span class="keyword">mut</span> v).<span class="title function_ invoke__">sort</span>(); <span class="comment">// equivalent, but more verbose</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="引用更新"><a class="markdownIt-Anchor" href="#引用更新"></a> 引用更新</h3>
+<p>在 <code>C++</code> 中，一旦一个引用被初始化，是不能更改其指向的。但是在 <code>Rust</code> 中是完全允许的，例如下面的代码中，一开始 <code>r</code> 借用了 <code>x</code>，后面又借用了 <code>y</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">x</span> = <span class="number">10</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">y</span> = <span class="number">20</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">r</span> = &amp;x;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(*r, <span class="number">10</span>);</span><br><span class="line">    r = &amp;y;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(*r, <span class="number">20</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="引用的引用"><a class="markdownIt-Anchor" href="#引用的引用"></a> 引用的引用</h3>
+<p>在 <code>C</code> 语言中我们经常听到指向指针的指针，在 <code>Rust</code> 中也是允许的，如下所示，为了清晰，我们写出了每个变量的类型，实际上我们完全可以省略，由 <code>Rust</code> 来推断。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">Point</span> &#123; x: <span class="type">i32</span>, y: <span class="type">i32</span> &#125;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">point</span> = Point &#123; x: <span class="number">1000</span>, y: <span class="number">729</span> &#125;;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">r</span>: &amp;Point = &amp;point;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">rr</span>: &amp;&amp;Point = &amp;r;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">rrr</span>: &amp;&amp;&amp;Point = &amp;rr;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">assert_eq!</span>(rrr.y, <span class="number">729</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然而，<strong><code>.</code></strong> 操作符可以一直向前寻找，直到找到最终的值。这些变量在内存中的分布如下图所示：</p>
+<p><img data-src="ref-to-ref.png" alt="" /></p>
+<h3 id="引用比较"><a class="markdownIt-Anchor" href="#引用比较"></a> 引用比较</h3>
+<p>同 <strong><code>.</code></strong> 操作符一样，比较运算符也有这样的效果，能连续解引用直到找到最终的值，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">x</span> = <span class="number">10</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">y</span> = <span class="number">10</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">rx</span> = &amp;x;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">ry</span> = &amp;y;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">rrx</span> = &amp;rx;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">rry</span> = &amp;ry;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">assert!</span>(rrx &lt;= rry);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(rrx, rry);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这在大多数情况下应该是我们想要的效果，但是如果我们确实想知道两个引用它们指向的内存地址是否相同，我们可以使用 <code>std::ptr::eq</code>，仅仅比较地址而不是指向的值：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(rx, ry);</span><br><span class="line"><span class="built_in">assert!</span>(!std::ptr::<span class="title function_ invoke__">eq</span>(rx, ry));</span><br></pre></td></tr></table></figure>
+<p>但是，无论如何，比较操作符左右两侧的操作数必须要有相同的类型，例如，下面的代码编译失败：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert!</span>(rx == rrx); <span class="comment">// error: type mismatch: `&amp;i32` vs `&amp;&amp;i32` </span></span><br><span class="line"><span class="built_in">assert!</span>(rx == *rrx); <span class="comment">// this is okay</span></span><br></pre></td></tr></table></figure></div>
+<h3 id="引用永不为空"><a class="markdownIt-Anchor" href="#引用永不为空"></a> 引用永不为空</h3>
+<p><code>Rust</code> 中的引用永远不会为空。没有类似于<code>C</code>的<code>NULL</code>或<code>C++</code>的<code>nullptr</code>。引用没有默认初始值（因为任何变量在初始化之前，无论其类型如何，都不能使用），<code>Rust</code> 不会将整数转换为引用（安全代码中），因此无法将<code>0</code>转换为引用。</p>
+<p><code>C</code> 和 <code>C++</code> 代码中使用空指针表示没有值，例如，<code>malloc</code> 函数要么返回一个指向内存块的指针，要么返回 <code>null</code> 表示内存申请失败。</p>
+<p>在 <code>Rust</code> 中，如果你需要用一个值表示引用某个变量的内存，或者没有，可以使用 <code>Option&lt;&amp;T&gt;</code>。在机器层面，<code>Rust</code>将其表示为代表空指针的<code>None</code>或者<code>Some(r)</code>，其中<code>r</code>是<code>&amp;T</code>值，表示为非零地址，因此<code>Option&lt;&amp;T&gt;</code>与<code>C</code>或<code>C++</code>中的可空指针一样有效，但是它更安全：<code>Option</code>类型要求在使用它之前检查它是否为<code>None</code>。</p>
+<h3 id="从任何表达式借用引用"><a class="markdownIt-Anchor" href="#从任何表达式借用引用"></a> 从任何表达式借用引用</h3>
+<p>在<code>C</code>、<code>C++</code>或者其他大多数语言中，我们都是从变量获取引用，也就是 <code>&amp;</code> 运算符后面一般都是紧跟某个变量。但是在 <code>Rust</code> 中，我们可以从任何表达式借用引用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">r</span> = &amp;<span class="title function_ invoke__">factorial</span>(<span class="number">6</span>);</span><br><span class="line">    <span class="comment">// Arithmetic operators can see through one level of references.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(r + &amp;<span class="number">1009</span>, <span class="number">1729</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">factorial</span>(n: <span class="type">usize</span>) <span class="punctuation">-&gt;</span> <span class="type">usize</span> &#123;</span><br><span class="line">    (<span class="number">1</span>..n + <span class="number">1</span>).<span class="title function_ invoke__">product</span>()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这种情况下，<code>Rust</code> 会创建一个持有表达式值的匿名变量，然后再从匿名变量创建一个引用。匿名表达式的生命周期取决于我们怎么使用这个引用：</p>
+<ul>
+<li>
+<p>如果我们是将这个引用用在赋值语句 <code>let</code>，结构体字段或者数组中，那么这个匿名变量的生命周期和我们 <code>let</code> 语句初始化的变量一样，例如上面的 <code>r</code>；</p>
+</li>
+<li>
+<p>否则，这个匿名变量在当前语句结束就会被释放掉，例如上面为 <code>1009</code> 创建的匿名变量在 <code>assert_eq!</code> 结束就会被丢掉；</p>
+</li>
+</ul>
+<h3 id="胖指针"><a class="markdownIt-Anchor" href="#胖指针"></a> 胖指针</h3>
+<p>胖指针，即 <code>fat pointers</code>，指哪些不仅仅是包含了地址的指针，就像 <code>&amp;[T]</code>，引用自 <code>slice</code> 的指针除了包含首元素的地址之外，还包括 <code>slice</code> 的数量；</p>
+<p>另一种胖指针是 <code>trait</code> 类型，详细请看 <a href="/2022/04/26/%E3%80%90Rust%E3%80%91Trait%E5%92%8C%E6%B3%9B%E5%9E%8B/#trait-%E5%AF%B9%E8%B1%A1"><code>Trait</code> 对象</a>。</p>
+<h3 id="引用安全性"><a class="markdownIt-Anchor" href="#引用安全性"></a> 引用安全性</h3>
+<p>截止到目前为止，我们看到的指针都和C中差不多，但是既然这样，我们又如何保证安全性呢？为了保证引用使用的安全性，<code>Rust</code> 为每个应用都会分配一个生命周期，更多请看<a href="/2021/09/14/%E3%80%90Rust%E3%80%91%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">【Rust】生命周期</a>。</p>
+<h4 id="引用局部变量"><a class="markdownIt-Anchor" href="#引用局部变量"></a> 引用局部变量</h4>
+<p>如果我们引用的是一个局部变量，并且我们的引用比局部变量的作用域更大，也就是局部变量释放了之后，我们的程序会如何，来看下面的示例：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">r</span>;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">x</span> = <span class="number">1</span>;</span><br><span class="line">        r = &amp;x;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(*r, <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这段代码编译会失败的，编译器提示：我们引用的值没有引用活得久，因为 <code>x</code> 在内部的括号之后就被释放了，导致 <code>r</code>  成了一个悬垂指针：</p>
+<pre><code>error[E0597]: `x` does not live long enough
+--&gt; src/main.rs:5:13
+|
+5 |         r = &amp;x;
+|             ^^ borrowed value does not live long enough
+6 |     }
+|     - `x` dropped here while still borrowed
+7 |     assert_eq!(*r, 1);
+|     ----------------- borrow later used here
+</code></pre>
+</div>
+<p><code>Rust</code> 编译器是如何确保每个引用都是有效的呢？ <code>Rust</code> 为每个引用都赋予了一个满足其使用范围的 <strong>生命周期</strong>。生命周期是程序的一部分，可以被安全地用于语句，表达式或者变量。但是生命周期完全是<code>Rust</code>编译时虚构的。在运行时，引用只不过是一个地址，其生命周期是其类型的一部分，没有运行时表示。</p>
+<p>在上面的例子中，有三个生命周期，变量 <code>x</code>和 <code>r</code> 的生命周期是从它们初始化到编译器认为它们不再使用为止。第三个生命周期是一个引用类型，我们引用自<code>x</code>并且存储在 <code>r</code> 中。</p>
+<p>正如我们上面看到的，生命周期有一个很明显的约束，就是它不能比它引用的值活的久。因为如果这里 <code>x</code> 出了内部的括号，就会被释放，所有来自于它的引用都会变成一个悬垂指针，所以，<code>Rust</code> 规定 <strong>约束1：值的生命周期必须大于它的引用的生命周期</strong>，上面的示例中，<code>x</code>的生命周期就小于它的引用的生命周期：</p>
+<p><img data-src="local-r-lifetime.png" alt="" /></p>
+<p>还有另外一个约束，<strong>约束2：如果我们将引用存储在一个变量中，那么这个引用必须要覆盖这个变量的整个生命周期，从它的初始化到最后一次使用为止</strong>。上面示例中，<code>x</code> 引用的生命周期没有覆盖到<code>r</code>的使用范围：</p>
+<p><img data-src="local-x-lifetime.png" alt="" /></p>
+<p>第一个约束限制了生命周期的上限，也就是它最大是多大；第二个约束限制了它的下限，也就是它最小应该是多少；<code>Rust</code> 的编译器必须能找到一个能满足所有约束的生命周期，也就是从上限开始到下限为止。然而遗憾的是，我们的示例中，没有这样的生命周期，所以编译失败：</p>
+<p><img data-src="lifetime-high-and-low.png" alt="" /></p>
+<div class="note success"><p>对于我们上面的示例，稍作修改，就可以找到满足的生命周期：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">r</span>;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">x</span> = <span class="number">1</span>;</span><br><span class="line">        r = &amp;x;</span><br><span class="line">        <span class="built_in">assert_eq!</span>(*r, <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>此时 <code>x</code> 引用的生命周期满足我们的使用：</p>
+<p><img data-src="lifetime-satisfy-situation.png" alt="" /></p>
+</div>
+<h4 id="更新全局引用变量"><a class="markdownIt-Anchor" href="#更新全局引用变量"></a> 更新全局引用变量</h4>
+<p>当我们传递一个引用给函数时，<code>Rust</code> 如何保证安全使用呢？假设我们有一个函数 <code>f</code>，接受一个引用作为参数，并且把它存储在全局变量中，例如：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 不能编译</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">mut</span> STASH: &amp;<span class="type">i32</span>; </span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">f</span>(p:&amp;<span class="type">i32</span>)&#123; </span><br><span class="line">    STASH=p;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p><code>Rust</code> 的全局变量时静态创建的，贯穿应用程序的整个生命周期。像任何其他声明一样，<code>Rust</code>的模块系统控制静态变量在什么地方可见，所以它们仅仅是在生命周期里是全局的，而不是可见性。上面的代码是有一些问题的，没有遵循两个规则：</p>
+<ul>
+<li>
+<p>所有的静态变量必须被初始化；</p>
+</li>
+<li>
+<p>可变的静态变量不是线程安全的，因为任何线程任何时候都可以访问静态变量，即使单线程也会引发某些未知的异常；出于这些原因，我们需要放在 <code>unsafe</code> 块中才能访问全局可变静态变量；</p>
+</li>
+</ul>
+<p>根据这两个规则，我们将上面的代码改成下面这个样子：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">mut</span> STASH: &amp;<span class="type">i32</span> = &amp;<span class="number">128</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">f</span>(p: &amp;<span class="type">i32</span>) &#123;</span><br><span class="line">   <span class="keyword">unsafe</span> &#123;</span><br><span class="line">       STASH = p;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>为了让代码更加完善，我们需要手动函数参数的生命周期，这里 <code>'a</code> 读作 <code>tick A</code>，我们将 <code>&lt;'a&gt;</code> 读作 <code>for any lifetime 'a</code>。所以下面的代码定义了一个接受具有任意生命周期 <code>'a</code> 参数 <code>p</code> 的函数 <code>f</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">f</span>&lt;<span class="symbol">&#x27;a</span>&gt;(p: &amp;<span class="symbol">&#x27;a</span> <span class="type">i32</span>) &#123; ... &#125;</span><br></pre></td></tr></table></figure>
+<p>由于 <code>STASH</code> 的生命周期和应用程序一样，所以我们必须赋予它一个具有相同生命周期的引用，<code>Rust</code> 将这种生命周期称之为 <code>'static lifetime</code>，静态生命周期，所以如果参数的 <code>p</code> 的声明是 <code>'a</code>，是不允许的。编译器直接拒绝编译我们的代码：</p>
+<pre><code>error[E0312]: lifetime of reference outlives lifetime of borrowed content...
+--&gt; src/main.rs:5:16
+|
+5 |        STASH = p;
+|                ^
+|
+= note: ...the reference is valid for the static lifetime...
+note: ...but the borrowed content is only valid for the lifetime `'a` as defined here
+</code></pre>
+<p>编译器的提示很明显，<code>f</code> 需要一个具有静态生命周期的参数 <code>p</code>，因此我们现在可以将代码修改成如下的样子：</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">mut</span> STASH: &amp;<span class="type">i32</span> = &amp;<span class="number">128</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> WORTH_POINTING_AT: <span class="type">i32</span> = <span class="number">1000</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">f</span>(p: &amp;<span class="symbol">&#x27;static</span> <span class="type">i32</span>) &#123;</span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        STASH = p;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="title function_ invoke__">f</span>(&amp;WORTH_POINTING_AT);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>从一开始的 <code>f(p: &amp;i32)</code> 到结束时的 <code>f(p: &amp;'static i32)</code>，如果不在函数的签名中反映该意图，我们就无法编写一个将引用固定在全局变量中的函数，我们必须指出引用的生命周期，满足<strong>约束2：如果我们将引用存储在一个变量中，那么这个引用必须要覆盖这个变量的整个生命周期，从它的初始化到最后一次使用为止</strong>。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/" title="【Rust】引用">https://blog.fudenglong.site/2022/04/17/Rust/【Rust】引用/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+              <a href="/tags/%E5%BC%95%E7%94%A8/" rel="tag"># 引用</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/" rel="prev" title="【Rust】所有权">
+                  <i class="fa fa-angle-left"></i> 【Rust】所有权
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/04/20/Rust/%E3%80%90Rust%E3%80%91%E8%A1%A8%E8%BE%BE%E5%BC%8F/" rel="next" title="【Rust】表达式">
+                  【Rust】表达式 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>
