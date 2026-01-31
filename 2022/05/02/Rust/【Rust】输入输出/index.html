@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Rust 用于输入和输出的标准库功能围绕三个Trait组织：Read、BufRead 和 Write：   实现 Read 的值具有面向字节的输入的方法，他们被称为 Reader；   实现 BufRead 的值是缓冲读取器，它们支持 Read 的所有方法，以及读取文本行等的方法；   实现 Write 的值支持面向字节和UTF-8 文本输出，它们被称为 Writer；   在本节中，将解释如何使">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】输入输出">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Rust 用于输入和输出的标准库功能围绕三个Trait组织：Read、BufRead 和 Write：   实现 Read 的值具有面向字节的输入的方法，他们被称为 Reader；   实现 BufRead 的值是缓冲读取器，它们支持 Read 的所有方法，以及读取文本行等的方法；   实现 Write 的值支持面向字节和UTF-8 文本输出，它们被称为 Writer；   在本节中，将解释如何使">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/read-write.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/buffer-reader.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/fileaname-types.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/filesystem-access.png">
+<meta property="article:published_time" content="2022-05-02T11:27:23.000Z">
+<meta property="article:modified_time" content="2022-05-02T11:27:23.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta property="article:tag" content="输入输出">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/read-write.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/","path":"2022/05/02/Rust/【Rust】输入输出/","title":"【Rust】输入输出"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】输入输出 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#readers-writers"><span class="nav-number">1.</span> <span class="nav-text"> Readers、Writers</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#readers"><span class="nav-number">1.1.</span> <span class="nav-text"> Readers</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#buffered-readers"><span class="nav-number">1.2.</span> <span class="nav-text"> Buffered Readers</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#reading-lines"><span class="nav-number">1.3.</span> <span class="nav-text"> Reading Lines</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#writers"><span class="nav-number">1.4.</span> <span class="nav-text"> Writers</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#files"><span class="nav-number">1.5.</span> <span class="nav-text"> Files</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#seeking"><span class="nav-number">1.6.</span> <span class="nav-text"> Seeking</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B6%E4%BB%96%E8%AF%BB%E5%86%99%E7%B1%BB%E5%9E%8B"><span class="nav-number">1.7.</span> <span class="nav-text"> 其他读写类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%95%B0%E6%8D%AE-%E5%8E%8B%E7%BC%A9-%E5%BA%8F%E5%88%97%E5%8C%96"><span class="nav-number">1.8.</span> <span class="nav-text"> 二进制数据、压缩、序列化</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%92%8C%E7%9B%AE%E5%BD%95"><span class="nav-number">2.</span> <span class="nav-text"> 文件和目录</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#osstr-path"><span class="nav-number">2.1.</span> <span class="nav-text"> OsStr、Path</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#path-pathbuf"><span class="nav-number">2.2.</span> <span class="nav-text"> Path、PathBuf</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E8%AE%BF%E9%97%AE"><span class="nav-number">2.3.</span> <span class="nav-text"> 文件系统访问</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%9B%AE%E5%BD%95%E8%AF%BB%E5%8F%96"><span class="nav-number">2.4.</span> <span class="nav-text"> 目录读取</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B9%B3%E5%8F%B0%E7%89%B9%E5%AE%9A%E5%8A%9F%E8%83%BD"><span class="nav-number">2.5.</span> <span class="nav-text"> 平台特定功能</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#networking"><span class="nav-number">3.</span> <span class="nav-text"> Networking</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】输入输出 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】输入输出
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-05-02 19:27:23" itemprop="dateCreated datePublished" datetime="2022-05-02T19:27:23+08:00">2022-05-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>23 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>Rust</code> 用于输入和输出的标准库功能围绕三个<code>Trait</code>组织：<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/trait.Read.html"><code>Read</code></a>、<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/trait.BufRead.html"><code>BufRead</code></a> 和 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/trait.Write.html"><code>Write</code></a>：</p>
+<ul>
+<li>
+<p>实现 <code>Read</code> 的值具有面向字节的输入的方法，他们被称为 <code>Reader</code>；</p>
+</li>
+<li>
+<p>实现 <code>BufRead</code> 的值是缓冲读取器，它们支持 <code>Read</code> 的所有方法，以及读取文本行等的方法；</p>
+</li>
+<li>
+<p>实现 <code>Write</code> 的值支持面向字节和<code>UTF-8</code> 文本输出，它们被称为 <code>Writer</code>；</p>
+</li>
+</ul>
+<p>在本节中，将解释如何使用这些<code>Trait</code>及其方法，涵盖图中所示的读取器和写入器类型，并展示与文件、终端和网络交互的其他方式。</p>
+<p><img data-src="read-write.png" alt="" /></p>
+<h3 id="readers-writers"><a class="markdownIt-Anchor" href="#readers-writers"></a> <code>Readers</code>、<code>Writers</code></h3>
+<p><code>Readers</code> 是内容输入源，可以从哪里读取字节。例如：</p>
+<ul>
+<li>
+<p>使用 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/struct.File.html#method.open"><code>std::fs::File::open</code></a> 打开的文件；</p>
+</li>
+<li>
+<p>可以从 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/net/struct.TcpStream.html"><code>std::net::TcpStream</code></a> 代表的网络连接中读取数据；</p>
+</li>
+<li>
+<p>可以从 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/fn.stdin.html"><code>std::io::stdin()</code></a> 标准输入读取数据；</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/struct.Cursor.html"><code>std::io::Cursor&lt;&amp;[u8]&gt;</code></a> 和 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/struct.Cursor.html"><code>std::io::Cursor&lt;Vec&lt;u8&gt;&gt;</code></a> 值，它们是从已经在内存中的字节数组或<code>vector</code>中“读取”的读取器；</p>
+</li>
+</ul>
+<p><code>Writers</code> 是那些你可以把值写入的地方，例如：</p>
+<ul>
+<li>
+<p>使用 <code>std::fs::File::create</code> 创建的文件；</p>
+</li>
+<li>
+<p>基于网络连接 <code>std::net::TcpStream</code> 传输数据；</p>
+</li>
+<li>
+<p><code>std::io::stdout()</code> 和 <code>std::io:stderr()</code> 可以用于向标准输出和标准错误写入内容；</p>
+</li>
+<li>
+<p><code>std::io::Cursor&lt;Vec&lt;u8&gt;&gt;</code> 类似，但允许读取和写入数据，并在<code>vector</code>中寻找不同的位置；</p>
+</li>
+<li>
+<p><code>std::io::Cursor&lt;&amp;mut [u8]&gt;</code> 和上面的类似，但是不能增长内部的 <code>buffer</code>，因为它仅仅是已存在的字节数组的引用；</p>
+</li>
+</ul>
+<p>由于<code>Reader</code>和<code>Writer</code>有标准的 <code>Trait</code>（<code>std::io::Read</code> 和 <code>std::io::Write</code>），编写适用于各种输入或输出通道的通用代码是很常见的。 例如，这是一个将所有字节从任何读取器复制到任何写入器的函数：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::io::&#123;<span class="keyword">self</span>, ErrorKind, Read, Write&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> DEFAULT_BUF_SIZE: <span class="type">usize</span> = <span class="number">8</span> * <span class="number">1024</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">copy</span>&lt;R: ?<span class="built_in">Sized</span>, W: ?<span class="built_in">Sized</span>&gt;(reader: &amp;<span class="keyword">mut</span> R, writer: &amp;<span class="keyword">mut</span> W) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;<span class="type">u64</span>&gt;</span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    R: Read,</span><br><span class="line">    W: Write,</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">buf</span> = [<span class="number">0</span>; DEFAULT_BUF_SIZE];</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">written</span> = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">loop</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">len</span> = <span class="keyword">match</span> reader.<span class="title function_ invoke__">read</span>(&amp;<span class="keyword">mut</span> buf) &#123;</span><br><span class="line">            <span class="title function_ invoke__">Ok</span>(<span class="number">0</span>) =&gt; <span class="keyword">return</span> <span class="title function_ invoke__">Ok</span>(written),</span><br><span class="line">            <span class="title function_ invoke__">Ok</span>(len) =&gt; len,</span><br><span class="line">            <span class="title function_ invoke__">Err</span>(<span class="keyword">ref</span> e) <span class="keyword">if</span> e.<span class="title function_ invoke__">kind</span>() == ErrorKind::Interrupted =&gt; <span class="keyword">continue</span>,</span><br><span class="line">            <span class="title function_ invoke__">Err</span>(e) =&gt; <span class="keyword">return</span> <span class="title function_ invoke__">Err</span>(e),</span><br><span class="line">        &#125;;</span><br><span class="line">        writer.<span class="title function_ invoke__">write_all</span>(&amp;buf[..len])?;</span><br><span class="line">        written += len <span class="keyword">as</span> <span class="type">u64</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这是 <code>Rust</code> 标准库 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/fn.copy.html"><code>std::io::copy()</code></a> 的实现，因为它是泛型的，所以可以把数据从 <code>File</code> 复制到 <code>TcpStream</code>，或者从 <code>Stdin</code> 到内存中的 <code>Vec&lt;u8&gt;</code>。</p>
+<span id="more"></span>
+<h4 id="readers"><a class="markdownIt-Anchor" href="#readers"></a> <code>Readers</code></h4>
+<p><code>std::io::Read</code> 有几个读取数据逇方法，它们所有都以 <code>&amp;mut self</code> 作为参数。</p>
+<ul>
+<li>
+<p><code>reader.read(&amp;mut buffer)</code>：从数据源读取一些字节并将它们存储在给定的缓冲区中，缓冲区参数的类型是 <code>&amp;mut [u8]</code>，这最多读取 <code>buffer.len()</code> 个字节。返回类型是 <code>io::Result&lt;u64&gt;</code>，它是 <code>Result&lt;u64,io::Error&gt;</code> 的类型别名。成功时，<code>u64</code> 值是读取的字节数，它可能等于或小于 <code>buffer.len()</code>，<code>Ok(0)</code> 表示没有数据要读取。</p>
+<p>出错时，<code>.read()</code> 返回 <code>Err(err)</code>，其中 <code>err</code> 是 <code>io::Error</code> 值。<code>io::Error</code> 是可打印的。对于程序，它有一个 <code>.kind()</code> 方法，该方法返回 <code>io::ErrorKind</code> 类型的错误代码。这个枚举的成员具有 <code>PermissionDenied</code> 和 <code>ConnectionReset</code> 之类的名称，大多数不可忽视的明显错误，但应特别处理一种错误，<code>io::ErrorKind::Interrupted</code> 对应 <code>Unix</code> 错误代码 <code>EINTR</code>，表示读取恰好被信号中断，除非程序被设计成巧妙地处理信号，否则它应该只是重新读去。</p>
+<p><code>.read()</code> 方法非常低级，甚至继承了底层操作系统的怪癖。如果你正在为一种新型数据源实现 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/trait.Read.html"><code>Read</code></a>，这会给你很大的余地，如果你试图读取一些数据，那会很痛苦。因此，<code>Rust</code> 提供了几种更高级的便利方法。它们都具有 <code>.read()</code> 方面的默认实现，它们都处理 <code>ErrorKind::Interrupted</code>，所以你不必这样做。</p>
+</li>
+<li>
+<p><code>reader.read_to_end(&amp;mut byte_vec)</code>：从 <code>Reader</code> 中读取剩余的输入追加到 <code>byte_vec</code>，它是 <code>Vec&lt;u8&gt;</code> 类型，返回 <code>io::Result&lt;usize&gt;</code> 表示读取的数量；</p>
+</li>
+<li>
+<p><code>reader.read_to_string(&amp;mut string)</code>：同上，但是追加数据到 <code>String</code> 中，如果遇到无效的 <code>UTF-8</code>，将返回 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/enum.ErrorKind.html#variant.InvalidData"><code>ErrorKind::InvalidData</code></a>。在某些编程语言中，字节输入和字符输入由不同的类型处理。如今，<code>UTF-8</code> 如此占主导地位，以至于 <code>Rust</code> 承认这一事实标准并在任何地方都支持 <code>UTF-8</code>；</p>
+</li>
+<li>
+<p><code>reader.read_exact(&amp;mut buf)</code>：读取足够的数据以填充给定的缓冲区，参数类型是 <code>&amp;[u8]</code>。如果读取器在读取 <code>buf.len()</code> 字节之前用完数据，则返回 <code>ErrorKind::UnexpectedEof</code> 错误；</p>
+</li>
+<li>
+<p><code>reader.bytes()</code>：返回输入流的按字节迭代器，类型是 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/struct.Bytes.html"><code>std::io::Bytes</code></a>。</p>
+</li>
+<li>
+<p><code>reader.chain(reader2)</code>：将多个 <code>Reader</code> 连接起来，先从当前 <code>reader</code> 读取数据，如果遇到 <code>EOF</code>，则从 <code>reader2</code> 读取；</p>
+</li>
+<li>
+<p><code>reader.take(n)</code>：创建一个适配器，该适配器最多可以从中读取限制字节。此函数返回一个新的 <code>Read</code> 实例，它最多读取<code>n</code>个字节，之后它将始终返回 <code>EOF (Ok(0))</code>。任何读取错误都不会计入读取的字节数，未来对 <code>read()</code> 的调用可能会成功。</p>
+</li>
+</ul>
+<h4 id="buffered-readers"><a class="markdownIt-Anchor" href="#buffered-readers"></a> <code>Buffered Readers</code></h4>
+<p>为了提高效率，可以缓冲读取器和写入器，这仅仅意味着它们有一块内存（缓冲区），用于在内存中保存一些输入或输出数据。这减少了系统调用，如下图所示，应用程序应该从 <code>BufReader</code> 读取数据，在此示例中通过调用其 <code>.read_line()</code> 方法。<code>BufReader</code> 反过来从操作系统获取更大块的输入。</p>
+<p><img data-src="buffer-reader.png" alt="" /></p>
+<p>缓冲 <code>Reader</code> 实现了 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/trait.Read.html"><code>std::io::Read</code></a> 和 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/trait.BufRead.html"><code>std::io::BufRead</code></a> ，后者增加了下面的方法：</p>
+<ul>
+<li>
+<p><code>reader.read_line(&amp;mut line)</code>：读取一行文本追加到 <code>line</code> 中，它是 <code>String</code> 类型，换行符 <code>\n</code> 或者 <code>\r\n</code> 都会追加到 <code>line</code> 中，返回值是 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/type.Result.html"><code>std::io::Result&lt;usize&gt;</code></a> ，表示读取的字节数量，如果 <code>reader</code> 已经读完，则应该保持不变直接返回 <code>Ok(0)</code>；</p>
+</li>
+<li>
+<p><code>reader.lines()</code>：在输入的行上返回一个迭代器，项目类型是 <code>io::Result&lt;String&gt;</code>，换行符不包含在字符串中。如果输入具有 <code>Windows</code> 样式的行尾<code>&quot;\r\n&quot;</code>，则两个字符都将被删除。这种方法几乎总是想要的文本输入，接下来的两节展示了它的一些使用示例；</p>
+</li>
+<li>
+<p><code>reader.read_until(stop_byte, &amp;mut byte_vec)</code>、<code>reader.split(stop_byte)</code>：它们就像 <code>.read_line()</code> 和 <code>.lines()</code>，但面向字节，生成 <code>Vec&lt;u8&gt;</code> 而不是字符串，由调用者选择分隔符 <code>stop_byte</code>；</p>
+</li>
+</ul>
+<p><code>BufRead</code> 还提供了一对低级方法，<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/trait.BufRead.html#tymethod.fill_buf"><code>.fill_buf()</code></a> 和 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/trait.BufRead.html#tymethod.consume"><code>.consume(n)</code></a>，用于直接访问读取器的内部缓冲区。</p>
+<h4 id="reading-lines"><a class="markdownIt-Anchor" href="#reading-lines"></a> <code>Reading Lines</code></h4>
+<p>这里有一个实现类似 <code>grep</code> 的函数，它搜索许多文本行，然后将它传入下一个命令：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::io;</span><br><span class="line"><span class="keyword">use</span> std::io::prelude::*;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">grep</span>(target: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">stdin</span> = io::<span class="title function_ invoke__">stdin</span>();</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">line_result</span> <span class="keyword">in</span> stdin.<span class="title function_ invoke__">lock</span>().<span class="title function_ invoke__">lines</span>() &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">line</span> = line_result?;</span><br><span class="line">        <span class="keyword">if</span> line.<span class="title function_ invoke__">contains</span>(target) &#123;</span><br><span class="line">            <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, line);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由于要调用 <code>.lines()</code>，需要一个实现 <code>BufRead</code> 的输入源。在这种情况下，我们调用 <code>io::stdin()</code> 来获取通过管道传输给我们的数据。但是，<code>Rust</code> 标准库使用互斥锁保护标准输入。我们调用 <code>.lock()</code> 来锁定 <code>stdin</code> 以供当前线程独占使用，它返回一个实现 <code>BufRead</code> 的 <code>StdinLock</code> 值，在循环结束时，<code>StdinLock</code> 被丢弃，释放互斥锁。</p>
+<p>该函数的其余部分很简单，它调用 <code>.lines()</code> 并遍历生成的迭代器。因为这个迭代器产生 <code>Result</code> 值，所以我们使用 <code>?</code> 操作员检查错误。假设我们想让我们的 <code>grep</code> 程序更进一步，并添加对在磁盘上搜索文件的支持。我们可以使这个函数通用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">grep</span>&lt;R&gt;(target: &amp;<span class="type">str</span>, reader: R) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt;</span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    R: BufRead,</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">line_result</span> <span class="keyword">in</span> reader.<span class="title function_ invoke__">lines</span>() &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">line</span> = line_result?;</span><br><span class="line">        <span class="keyword">if</span> line.<span class="title function_ invoke__">contains</span>(target) &#123;</span><br><span class="line">            <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, line);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>现在我们可以向它传递一个 <code>StdinLock</code> 或一个缓冲文件：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">stdin</span> = io::<span class="title function_ invoke__">stdin</span>();</span><br><span class="line"><span class="title function_ invoke__">grep</span>(&amp;target, stdin.<span class="title function_ invoke__">lock</span>())?; <span class="comment">// ok</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">f</span> = File::<span class="title function_ invoke__">open</span>(file)?;</span><br><span class="line"><span class="title function_ invoke__">grep</span>(&amp;target, BufReader::<span class="title function_ invoke__">new</span>(f))?; <span class="comment">// also ok</span></span><br></pre></td></tr></table></figure>
+<p>请注意，文件不会自动缓冲，<code>File</code> 实现 <code>Read</code> 但没有实现 <code>BufRead</code>。但是，为文件或任何其他非缓冲读取器创建缓冲读取器很容易，就像 <code>BufReader::new(reader)</code>。（要设置缓冲区的大小，请使用 <code>BufReader::with_capacity(size, reader)</code>）</p>
+<p>在大多数语言中，默认情况下文件带有缓冲功能，如果你想要无缓冲的输入或输出，你必须弄清楚如何关闭缓冲。在 <code>Rust</code> 中，<code>File</code> 和 <code>BufReader</code> 是两个独立的库功能，因为有时希望文件没有缓冲，有时希望缓冲来自网络的输入。</p>
+<p>完整的程序如下所示：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#![allow(dead_code, unused_imports)]</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> std::error::Error;</span><br><span class="line"><span class="keyword">use</span> std::fs::File;</span><br><span class="line"><span class="keyword">use</span> std::io::prelude::*;</span><br><span class="line"><span class="keyword">use</span> std::io::&#123;<span class="keyword">self</span>, BufReader&#125;;</span><br><span class="line"><span class="keyword">use</span> std::path::PathBuf;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">grep</span>&lt;R&gt;(target: &amp;<span class="type">str</span>, reader: R) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt;</span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    R: BufRead,</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">line_result</span> <span class="keyword">in</span> reader.<span class="title function_ invoke__">lines</span>() &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">line</span> = line_result?;</span><br><span class="line">        <span class="keyword">if</span> line.<span class="title function_ invoke__">contains</span>(target) &#123;</span><br><span class="line">            <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, line);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">grep_main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), <span class="type">Box</span>&lt;<span class="keyword">dyn</span> Error&gt;&gt; &#123;</span><br><span class="line">    <span class="comment">// Get the command-line arguments. The first argument is the</span></span><br><span class="line">    <span class="comment">// string to search for; the rest are filenames.</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">args</span> = std::env::<span class="title function_ invoke__">args</span>().<span class="title function_ invoke__">skip</span>(<span class="number">1</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">target</span> = <span class="keyword">match</span> args.<span class="title function_ invoke__">next</span>() &#123;</span><br><span class="line">        <span class="title function_ invoke__">Some</span>(s) =&gt; s,</span><br><span class="line">        <span class="literal">None</span> =&gt; <span class="title function_ invoke__">Err</span>(<span class="string">&quot;usage: grep PATTERN FILE...&quot;</span>)?,</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">files</span>: <span class="type">Vec</span>&lt;PathBuf&gt; = args.<span class="title function_ invoke__">map</span>(PathBuf::from).<span class="title function_ invoke__">collect</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> files.<span class="title function_ invoke__">is_empty</span>() &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">stdin</span> = io::<span class="title function_ invoke__">stdin</span>();</span><br><span class="line">        <span class="title function_ invoke__">grep</span>(&amp;target, stdin.<span class="title function_ invoke__">lock</span>())?;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> <span class="variable">file</span> <span class="keyword">in</span> files &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">f</span> = File::<span class="title function_ invoke__">open</span>(file)?;</span><br><span class="line">            <span class="title function_ invoke__">grep</span>(&amp;target, BufReader::<span class="title function_ invoke__">new</span>(f))?;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">result</span> = <span class="title function_ invoke__">grep_main</span>();</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Err</span>(err) = result &#123;</span><br><span class="line">        <span class="built_in">eprintln!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, err);</span><br><span class="line">        std::process::<span class="title function_ invoke__">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="writers"><a class="markdownIt-Anchor" href="#writers"></a> <code>Writers</code></h4>
+<p>正如我们所见，输入主要是使用方法完成的，输出有点不同，输出主要用作参数。</p>
+<ul>
+<li>
+<p><code>println!()</code> 和 <code>print!()</code>：都是将信息输出到标准输出，不同的是前者会增加一个换行符，遇到错误都 <code>panic</code>；</p>
+</li>
+<li>
+<p><code>eprintln!()</code> 和 <code>eprint!()</code>：将信息输出到标准错误，不同的是前者会增加一个换行符，遇到错误都 <code>panic</code>；</p>
+</li>
+<li>
+<p><code>writeln!()</code> 和 <code> write!()</code>：将信息输出到第一个参数指定的目的地，不同的是前者会增加一个换行符，返回一个 <code>Result</code>；</p>
+</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/trait.Write.html"><code>std::io::Write</code></a> 有以下方法：</p>
+<ul>
+<li>
+<p><code>writer.write(&amp;buf)</code>：将切片 <code>buf</code> 中的一些字节写入底层流。它返回一个 <code>io::Result&lt;usize&gt;</code>。成功时，返回写入的字节数，可能小于 <code>buf.len()</code>，与 <code>Reader::read()</code> 一样，这是一种低级方法，应避免直接使用；</p>
+</li>
+<li>
+<p><code>writer.write_all(&amp;buf)</code>：写入 <code>buf</code> 所有字节，返回 <code>io::Result&lt;()&gt;</code>；</p>
+</li>
+<li>
+<p><code>writer.flush()</code>：将缓存的所有数据都写入底层的流中，返回 <code>Result&lt;()&gt;</code>；</p>
+</li>
+</ul>
+<p><code>writer</code> 会被自动关闭，当它们被丢弃的时候，可以使用 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/struct.BufWriter.html#method.new"><code>BufWriter::new(writer)</code></a> 基于任何 <code>writer</code> 生成一个带缓冲的 <code>Writer</code>。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">file</span> = File::<span class="title function_ invoke__">create</span>(<span class="string">&quot;tmp.txt&quot;</span>)?;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">writer</span> = BufWriter::<span class="title function_ invoke__">new</span>(file);</span><br></pre></td></tr></table></figure>
+<p>如果要设置 <code>buffer</code> 大小，可以使用 <code> BufWriter::with_capacity(size, writer)</code>。当 <code>BufWriter</code> 被丢弃的时候，所有缓存的数据被写入底层的 <code>Writer</code>，如果这期间发生错误，将被忽略。为了让程序处理所有可能的错误，在丢弃 <code>BufWriter</code> 之前，使用 <code>.flush()</code> 将缓存的数据写到底层的流中。</p>
+<h4 id="files"><a class="markdownIt-Anchor" href="#files"></a> <code>Files</code></h4>
+<p>下面列出常用的文件打开方法：</p>
+<ul>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/struct.File.html#method.open"><code>std::fs::File::open(filename)</code></a>：打开已经存在的文件用于读取，返回 <code>std::io::Result</code>，如果文件返回错误；</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/struct.File.html#method.create"><code>std::fs::File::create(filename)</code></a>：创建一个文件用于写，如果文件已经存在，将会被清空；</p>
+</li>
+</ul>
+<p>如果这些不满足，还可以使用 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/struct.OpenOptions.html"><code>std::fs::OpenOptions</code></a> 在打开文件时，设置更多的参数：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::fs::OpenOptions;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">log</span> = OpenOptions::<span class="title function_ invoke__">new</span>()</span><br><span class="line">    .<span class="title function_ invoke__">append</span>(<span class="literal">true</span>) <span class="comment">// if file exists, add to the end</span></span><br><span class="line">    .<span class="title function_ invoke__">open</span>(<span class="string">&quot;server.log&quot;</span>)?;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">file</span> = OpenOptions::<span class="title function_ invoke__">new</span>()</span><br><span class="line">    .<span class="title function_ invoke__">write</span>(<span class="literal">true</span>)</span><br><span class="line">    .<span class="title function_ invoke__">create_new</span>(<span class="literal">true</span>) <span class="comment">// fail if file exists</span></span><br><span class="line">    .<span class="title function_ invoke__">open</span>(<span class="string">&quot;new_file.txt&quot;</span>)?;</span><br></pre></td></tr></table></figure>
+<p><code>OpenOptions</code> 有几个方法用于打开文件时设置属性：</p>
+<ul>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.append"><code>.append()</code></a>：设置追加模式；</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.create"><code>.create()</code></a>：如果文件存在则打开，不存在则创建；</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.create_new"><code>.create_new()</code></a>：创建新文件，如果文件已经存在则会失败，这个 <code>option</code> 是原子的，另外如果该选项设置，<code>.create()</code> 和 <code>.truncate()</code> 就被忽略；</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.read"><code>.read()</code></a>：设置读权限；</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.truncate"><code>.truncate()</code></a>：如果文件已经存在，清空文件；</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.write"><code>.write()</code></a>：设置写权限；</p>
+</li>
+</ul>
+<h4 id="seeking"><a class="markdownIt-Anchor" href="#seeking"></a> <code>Seeking</code></h4>
+<p><code>File</code> 也实现了 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/trait.Seek.html"><code>std::io::Seek</code></a>，这意味着可以在 <code>File</code> 内跳转，而不是从头到尾一次读取或写入，<code>Seek</code> 是这样定义的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">trait</span> <span class="title class_">Seek</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">seek</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>, pos: SeekFrom) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;<span class="type">u64</span>&gt;;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">enum</span> <span class="title class_">SeekFrom</span> &#123;</span><br><span class="line">    <span class="title function_ invoke__">Start</span>(<span class="type">u64</span>),</span><br><span class="line">    <span class="title function_ invoke__">End</span>(<span class="type">i64</span>),</span><br><span class="line">    <span class="title function_ invoke__">Current</span>(<span class="type">i64</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在文件内跳来跳去效率很低，无论是机械硬盘还是固态硬盘，一次寻址所需的时间都与读取几兆字节的数据一样长。</p>
+<h4 id="其他读写类型"><a class="markdownIt-Anchor" href="#其他读写类型"></a> 其他读写类型</h4>
+<p>这里有其他的读写类型：</p>
+<ul>
+<li>
+<p><a href="std::io::stdin"><code>io::stdin()</code></a>：返回标准输入用于数据读取，返回值的类型是 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/struct.Stdin.html"><code>std::io::Stdin</code></a>，因为这个被所有线程共享，所以每次使用都需要使用互斥锁。</p>
+<p><code>Stdin</code> 的 <code>.lock</code> 方法返回 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/struct.StdinLock.html"><code>io::StdinLock</code></a>，它是一个带缓冲的 <code>Reader</code> 持有互斥锁直到丢弃。</p>
+<p>出于技术原因，<code>io::stdin().lock()</code> 是无效的，锁持有 <code>Stdin</code> 的引用，这意味着 <code>Stdin</code> 必须被存在一个变量中以至于它的生命周期足够长：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">stdin</span> = io::<span class="title function_ invoke__">stdin</span>();</span><br><span class="line"><span class="keyword">let</span> <span class="variable">lines</span> = stdin.<span class="title function_ invoke__">lock</span>().<span class="title function_ invoke__">lines</span>(); <span class="comment">// ok</span></span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/fn.stdout.html"><code>io::stdout()</code></a>、<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/fn.stderr.html"><code>io::stderr()</code></a>：返回标准输出和标准错误用于数据写入，它们也有 <code>.lock</code> 方法；</p>
+</li>
+<li>
+<p><code>Vec&lt;u8&gt;</code>：实现了 <code>std::io::Write</code>，写入数据到 <code>u8</code> 序列；</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/io/struct.Cursor.html"><code>std::io::Cursor::new(buf)</code></a>：创建一个 <code>Cursor</code>，一个从 <code>buf</code> 读取的缓冲读取器，这就是创建读取字符串的阅读器的方式。参数 <code>buf</code> 可以是任何实现 <code>AsRef&lt;[u8]&gt;</code> 的类型，因此也可以传递 <code>&amp;[u8]</code>、<code>&amp;str</code> 或 <code>Vec&lt;u8&gt;</code>。</p>
+<p><code>Cursor</code> 在内部是很简单的，它们只有两个字段：<code>buf</code> 本身和一个整数，即 <code>buf</code> 中下一次读取将开始的偏移量，该位置最初为 <code>0</code>。</p>
+<p><code>Cursor</code> 实现 <code>Read</code>、<code>BufRead</code> 和 <code>Seek</code>，如果 <code>buf</code> 的类型是 <code>&amp;mut [u8]</code> 或 <code>Vec&lt;u8&gt;</code>，那么 <code>Cursor</code> 也会实现 <code>Write</code>。写入 <code>Curosr</code> 会覆盖 <code>buf</code> 中从当前位置开始的字节。如果试图写超出 <code>&amp;mut [u8]</code> 的末尾，会得到一个部分写或一个 <code>io::Error</code>。不过，使用 <code>Curosr</code> 写入 <code>Vec&lt;u8&gt;</code> 的末尾是可以的，它会增大 <code>vector</code>。因此，<code>Cursor&lt;&amp;mut [u8]&gt;</code> 和 <code>Cursor&lt;Vec&lt;u8&gt;&gt;</code> 实现了所有 <code>4</code> 个 <code>std::io::prelude</code> 中的 <code>Trait</code>。</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/net/struct.TcpStream.html"><code>std::net::TcpStream</code></a>：代表底层的 TCP 连接，可读可写；<code>TcpStream::connect((&quot;hostname&quot;, PORT))</code> 尝试去连接到一个 <code>server</code> 并且返回 <code>io::Result&lt;TcpStream&gt;</code>。</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/process/struct.Command.html"><code>std::process::Command</code></a>：支持生成子进程并将数据传输到其标准输入，如下所示：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::error::Error;</span><br><span class="line"><span class="keyword">use</span> std::io::Write;</span><br><span class="line"><span class="keyword">use</span> std::process::&#123;Command, Stdio&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), <span class="type">Box</span>&lt;<span class="keyword">dyn</span> Error + <span class="built_in">Send</span> + <span class="built_in">Sync</span> + <span class="symbol">&#x27;static</span>&gt;&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">child</span> = Command::<span class="title function_ invoke__">new</span>(<span class="string">&quot;grep&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">arg</span>(<span class="string">&quot;-e&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">arg</span>(<span class="string">&quot;a.*e.*i.*o.*u&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">stdin</span>(Stdio::<span class="title function_ invoke__">piped</span>())</span><br><span class="line">        .<span class="title function_ invoke__">spawn</span>()?;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">my_words</span> = <span class="built_in">vec!</span>[<span class="string">&quot;hello&quot;</span>, <span class="string">&quot;world&quot;</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">to_child</span> = child.stdin.<span class="title function_ invoke__">take</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">word</span> <span class="keyword">in</span> my_words &#123;</span><br><span class="line">        <span class="built_in">writeln!</span>(to_child, <span class="string">&quot;&#123;&#125;&quot;</span>, word)?;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">drop</span>(to_child); <span class="comment">// close grep&#x27;s stdin, so it will exit</span></span><br><span class="line">    child.<span class="title function_ invoke__">wait</span>()?;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>child.stdin</code> 的类型是 <code>Option&lt;std::process::ChildStdin&gt;</code>，在这里在设置子进程时使用 <code>.stdin(Stdio::piped())</code>，所以 当 <code>.spawn()</code> 成功时，<code>child.stdin</code> 肯定会被填充。如果没有，<code>child.stdin</code> 将是 <code>None</code>。<code>Command</code> 也有类似的方法 <code>.stdout()</code> 和 <code>.stderr()</code>，可以用来请求 <code>child.stdout</code> 和 <code>child.stderr</code> 中的读取器。</p>
+</li>
+</ul>
+<p><code>std::io</code> 模块还提供了一些返回实验性的的读取器和写入器的函数：</p>
+<ul>
+<li>
+<p><code>io::sink()</code>：没有实际操作，所有写操作返回 <code>Ok</code>，但是数据被丢弃了；</p>
+</li>
+<li>
+<p><code>io::empty()</code>：总是读取成功，但返回属于结束；</p>
+</li>
+<li>
+<p><code>io::repeat(byte)</code>：返回 <code>Reader</code> 无止境地重复给定字节；</p>
+</li>
+</ul>
+<h4 id="二进制数据-压缩-序列化"><a class="markdownIt-Anchor" href="#二进制数据-压缩-序列化"></a> 二进制数据、压缩、序列化</h4>
+<p>许多开源库构建于 <code>std::io</code> 之上提供了很多额外的功能。<a target="_blank" rel="noopener" href="https://crates.io/crates/byteorder"><code>byteorder</code></a> 提供了 <code>ReadBytesExt</code> 和 <code>WriteBytesExt</code> 用于二进制数据的读写：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> byteorder::&#123;ReadBytesExt, WriteBytesExt, LittleEndian&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">n</span> = reader.read_u32::&lt;LittleEndian&gt;()?;</span><br><span class="line">writer.write_i64::&lt;LittleEndian&gt;(n <span class="keyword">as</span> <span class="type">i64</span>)?;</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="https://crates.io/crates/flate2"><code>flate2</code></a> 提供读取压缩数据的方法：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> flate2::read::GzDecoder;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">file</span> = File::<span class="title function_ invoke__">open</span>(<span class="string">&quot;access.log.gz&quot;</span>)?;</span><br><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">gzip_reader</span> = GzDecoder::<span class="title function_ invoke__">new</span>(file);</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="https://crates.io/crates/serde"><code>serde</code></a> 关联的 <a target="_blank" rel="noopener" href="https://crates.io/crates/serde_json"><code>serde_json</code></a> 实现了数据的序列化和反序列化。</p>
+<p><code>serde</code> 也提供了两个关键的 <code>Trait</code> 这用于自动派生序列化和反序列化功能：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> serde::&#123;Deserialize, Serialize&#125;;</span><br><span class="line"><span class="keyword">use</span> std::error::Error;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[derive(Serialize, Deserialize)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Player</span> &#123;</span><br><span class="line">    location: <span class="type">String</span>,</span><br><span class="line">    items: <span class="type">Vec</span>&lt;<span class="type">String</span>&gt;,</span><br><span class="line">    health: <span class="type">u32</span>,</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), <span class="type">Box</span>&lt;<span class="keyword">dyn</span> Error + <span class="built_in">Send</span> + <span class="built_in">Sync</span> + <span class="symbol">&#x27;static</span>&gt;&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">player</span> = Player &#123;</span><br><span class="line">        location: <span class="string">&quot;ShangHai&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        items: <span class="built_in">vec!</span>[<span class="string">&quot;apple&quot;</span>.<span class="title function_ invoke__">to_string</span>()],</span><br><span class="line">        health: <span class="number">32</span>,</span><br><span class="line">    &#125;;</span><br><span class="line">    serde_json::<span class="title function_ invoke__">to_writer</span>(&amp;<span class="keyword">mut</span> std::io::<span class="title function_ invoke__">stdout</span>(), &amp;player)?;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这将输出：</p>
+<pre><code>&#123;&quot;location&quot;:&quot;ShangHai&quot;,&quot;items&quot;:[&quot;apple&quot;],&quot;health&quot;:32&#125;
+</code></pre>
+<p>由于派生代码会使编译时间变长，所以使用这个功能需要显示声明：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[dependencies]</span></span><br><span class="line"><span class="attr">serde</span> = &#123; version = <span class="string">&quot;1.0&quot;</span>, features = [<span class="string">&quot;derive&quot;</span>] &#125;</span><br><span class="line"><span class="attr">serde_json</span> = <span class="string">&quot;1.0&quot;</span></span><br></pre></td></tr></table></figure>
+<h3 id="文件和目录"><a class="markdownIt-Anchor" href="#文件和目录"></a> 文件和目录</h3>
+<p>现在我们已经展示了如何使用读取器和写入器，接下来的几节将介绍 Rust 处理文件和目录的特性，它们位于 <code>std::path</code> 和 <code>std::fs</code> 模块中，所有这些功能都涉及使用文件名，因此我们将从文件名类型开始。</p>
+<h4 id="osstr-path"><a class="markdownIt-Anchor" href="#osstr-path"></a> <code>OsStr</code>、<code>Path</code></h4>
+<p>操作系统不会强制文件名是有效的 <code>Unicode</code>，下面是两个创建文本文件的 <code>shell</code> 命令，只有第一个使用有效的 <code>UTF-8</code> 文件名：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ echo &quot;hello world&quot; &gt; ô.txt</span><br><span class="line">$ echo &quot;O brave new world, that has such filenames in&#x27;t&quot; &gt; $&#x27;\xf4&#x27;.txt</span><br></pre></td></tr></table></figure>
+<p>对于内核，任何字节串（不包括空字节和斜杠）都是可接受的文件名。在 <code>Windows</code> 上也有类似的情况，几乎任何 <code>16</code>位“宽字符”字符串都是可接受的文件名，即使是无效的 <code>UTF-16</code> 字符串也是如此。操作系统处理的其他字符串也是如此，例如命令行参数和环境变量。</p>
+<p><code>Rust</code> 字符串始终是有效的 <code>Unicode</code>，文件名在实践中几乎总是 <code>Unicode</code>，但 <code>Rust</code> 必须以某种方式应对它们不是的情况，这就是 <code>Rust</code> 有 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/ffi/struct.OsStr.html"><code>std::ffi::OsStr</code></a> 和 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/ffi/struct.OsString.html"><code>OsString</code></a> 的原因。</p>
+<p><code>OsStr</code> 是一个字符串类型，它是 <code>UTF-8</code> 的超集。它的工作是能够表示当前系统上的所有文件名、命令行参数和环境变量，无论它们是否是有效的 <code>Unicode</code>。在 <code>Unix</code> 上，一个 <code>OsStr</code> 可以保存任何字节序列。在 <code>Windows</code> 上，<code>OsStr</code> 使用 <code>UTF-8</code> 的扩展存储，该扩展可以编码任何 <code>16</code> 位值序列，包括不匹配的。</p>
+<p>所以我们有两种字符串类型：<code>str</code> 用于实际的 <code>Unicode</code> 字符串；<code>OsStr</code> 用于操作系统可以发出的任何东西。我们将再介绍一个：<code>std::path::Path</code>，用于文件名。<code>Path</code> 与 <code>OsStr</code> 完全相同，但它添加了许多方便的文件名相关方法。</p>
+<p>最后，对于每个字符串类型，都有一个对应的 <code>owning</code> 类型：一个 <code>String</code> 拥有一个堆分配的 <code>str</code>，一个 <code>std::ffi::OsString</code> 拥有一个堆分配的 <code>OsStr</code>，一个 <code>std::path::PathBuf</code> 拥有一个堆分配的 <code>Path</code>。</p>
+<p><img data-src="fileaname-types.png" alt="" /></p>
+<p>所有这三种类型都实现了一个共同的特征，<code>AsRef&lt;Path&gt;</code>，因此我们可以轻松地声明一个接受“任何文件名类型”作为参数的泛型函数。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::io;</span><br><span class="line"><span class="keyword">use</span> std::path::Path;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">swizzle_file</span>&lt;P&gt;(path_arg: P) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt;</span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    P: <span class="built_in">AsRef</span>&lt;Path&gt;,</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">path</span> = path_arg.<span class="title function_ invoke__">as_ref</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="path-pathbuf"><a class="markdownIt-Anchor" href="#path-pathbuf"></a> <code>Path</code>、<code>PathBuf</code></h4>
+<p><code>Path</code> 提供以下方法：</p>
+<ul>
+<li>
+<p><code>Path::new(str)</code>：转换 <code>&amp;str</code> 或者 <code>&amp;OsStr</code> 为 <code>&amp;Path</code>，转换过程中不发生复制，<code>&amp;Path</code> 指向原始 <code>&amp;str</code> 或者 <code>&amp;OsStr</code> 的相同字节；</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::path::Path;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">home_dir</span> = Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/home/fwolfe&quot;</span>);</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>path.parent()</code>：返回路径父目录，以 <code>Option&lt;&amp;Path&gt;</code> 表示，父目录的路径仅仅是当前路径的子串：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/home/fwolfe/program.txt&quot;</span>).<span class="title function_ invoke__">parent</span>(),</span><br><span class="line"><span class="title function_ invoke__">Some</span>(Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/home/fwolfe&quot;</span>)));</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>path.file_name()</code>：返回路径中的最后一个部分，返回类型是 <code>Option&lt;&amp;OsStr&gt;</code>。例如：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::ffi::OsStr;</span><br><span class="line"><span class="built_in">assert_eq!</span>(Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/home/fwolfe/program.txt&quot;</span>).<span class="title function_ invoke__">file_name</span>(),</span><br><span class="line">    <span class="title function_ invoke__">Some</span>(OsStr::<span class="title function_ invoke__">new</span>(<span class="string">&quot;program.txt&quot;</span>)));</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>path.is_absolute(), path.is_relative()</code>：相对路径还是绝对路径；</p>
+</li>
+<li>
+<p><code>path1.join(path2)</code>：连接两个新路径，返回新的 <code>PathBuf</code>：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">path1</span> = Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/usr/share/dict&quot;</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(path1.<span class="title function_ invoke__">join</span>(<span class="string">&quot;words&quot;</span>), Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/usr/share/dict/words&quot;</span>));</span><br></pre></td></tr></table></figure>
+<p>如果 <code>path2</code> 是绝对路径，仅仅返回 <code>path2</code> 的副本，所以这个方法能被用于转换任何路径为绝对路径：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">abs_path</span> = std::env::<span class="title function_ invoke__">current_dir</span>()?.<span class="title function_ invoke__">join</span>(any_path);</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>path.components()</code>：返回一个迭代器，包含给定路径从左至右的所有部分，内容类型是 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/path/enum.Component.html"><code>std::path::Component</code></a>，它是一个枚举，能代表一个文件路径中所有不同的片段：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">enum</span> <span class="title class_">Component</span>&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    <span class="title function_ invoke__">Prefix</span>(PrefixComponent&lt;<span class="symbol">&#x27;a</span>&gt;),</span><br><span class="line">    RootDir,</span><br><span class="line">    CurDir,</span><br><span class="line">    ParentDir,</span><br><span class="line">    <span class="title function_ invoke__">Normal</span>(&amp;<span class="symbol">&#x27;a</span> OsStr),</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>path.ancestors()</code>：返回一个迭代器，返回当前文件或者目录的祖先直到根目录。每个 <code>item</code> 类型是 <code>Path</code>，第一个是它自己：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">file</span> = Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/home/jimb/calendars/calendar-18x18.pdf&quot;</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(</span><br><span class="line">    file.<span class="title function_ invoke__">ancestors</span>().collect::&lt;<span class="type">Vec</span>&lt;_&gt;&gt;(),</span><br><span class="line">    <span class="built_in">vec!</span>[</span><br><span class="line">        Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/home/jimb/calendars/calendar-18x18.pdf&quot;</span>),</span><br><span class="line">        Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/home/jimb/calendars&quot;</span>),</span><br><span class="line">        Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/home/jimb&quot;</span>),</span><br><span class="line">        Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/home&quot;</span>),</span><br><span class="line">        Path::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/&quot;</span>)</span><br><span class="line">    ]</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>这些方法适用于内存中的字符串，<code>Path</code> 也有一些查询文件系统的方法：<code>.exists()</code>、<code>.is_file()</code>、<code>.is_dir()</code>、<code>.read_dir()</code>、.<code>canonicalize()</code> 等等。 将 <code>Path </code>转换为字符串有三种方法，每一个都允许 <code>Path</code> 中出现无效 <code>UTF-8</code> 的可能性：</p>
+<ul>
+<li>
+<p><code>path.to_str()</code>：返回 <code>Option&lt;&amp;str&gt;</code>，如果包含无效的 <code>UTF-8</code>，返回 <code>None</code>；</p>
+</li>
+<li>
+<p><code>path.to_string_lossy()</code>：这基本上是同一件事，但它设法在所有情况下返回某种字符串。如果路径不是有效的 <code>UTF-8</code>，这些方法会创建一个副本，用 <code>Unicode</code> 替换字符 <code>U+FFFD ('�')</code> 替换每个无效的字节序列；</p>
+</li>
+<li>
+<p><code>path.display()</code>：用于路径打印，它返回的值不是字符串，但它实现了 <code>std::fmt::Display</code>，因此它可以与 <code>format!()</code>、<code>println!()</code> 等一起使用。 如果路径不是有效的 <code>UTF-8</code>，则输出可能包含 <code>�</code> 字符。</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;Download found. You put it in: &#123;&#125;&quot;</span>, dir_path.<span class="title function_ invoke__">display</span>());</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="文件系统访问"><a class="markdownIt-Anchor" href="#文件系统访问"></a> 文件系统访问</h4>
+<p>下表列出了 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/index.html#functions"><code>std::fs</code></a> 提供的用于文件系统访问的函数：</p>
+<p><img data-src="filesystem-access.png" alt="" /></p>
+<p><code>Rust</code> 提供了可在 <code>Windows</code> 以及 <code>macOS</code>、<code>Linux</code> 和其他 <code>Unix</code> 系统上行为一致的可移植函数。</p>
+<p>所有这些功能都是通过调用操作系统来实现的，例如，<code>std::fs::canonicalize(path)</code> 不仅仅使用字符串处理来消除 <code>.</code> 和<code>..</code>从给定的路径。它使用当前工作目录解析相对路径，并追踪符号链接，如果路径不存在，则为错误。</p>
+<p>由 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/fn.metadata.html"><code>std::fs::metadata(path)</code></a> 和 <code>std::fs::symlink_metadata(path)</code> 包含文件类型和大小、权限和时间戳等信息。为方便起见，<code>Path</code> 类型有一些内置方法：例如，<code>path.metadata()</code> 与 <code>std::fs::metadata(path)</code> 相同。</p>
+<h4 id="目录读取"><a class="markdownIt-Anchor" href="#目录读取"></a> 目录读取</h4>
+<p>可以使用 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/fn.read_dir.html"><code>std::fs::read_dir</code></a> 列出目录中的内容，或者使用 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/path/struct.Path.html#method.read_dir"><code>path::read_dir()</code></a> :</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> <span class="variable">entry_result</span> <span class="keyword">in</span> path.<span class="title function_ invoke__">read_dir</span>()? &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">entry</span> = entry_result?;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, entry.<span class="title function_ invoke__">file_name</span>().<span class="title function_ invoke__">to_string_lossy</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>注意 <code>?</code> 的两种用法，在这段代码中，第一行检查打开目录的错误，第二行检查读取下一个条目的错误。<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/struct.DirEntry.html"><code>std::fs::DirEntry</code></a> 一些方法：</p>
+<ul>
+<li>
+<p><code>entry.file_name()</code>：目录或者文件的名称，类型是 <code>OsString</code>；</p>
+</li>
+<li>
+<p><code>entry.path()</code>：文件或者目录路径，如果我们正在浏览的目录是 <code>/home/jimb</code>，<code>entry.file_name()</code> 是 <code>&quot;.emacs&quot;</code>，那么 <code>entry.path()</code> 将返回 <code>PathBuf::from(&quot;/home/jimb/.emacs&quot;)</code>；</p>
+</li>
+<li>
+<p><code>entry.file_type()</code>：返回 <code>io::Result&lt;FileType&gt;</code>，<code>FileType</code> 有 <code>.is_file(), .is_dir(), .is_symlink()</code> 方法；</p>
+</li>
+</ul>
+<p>当读取目录的时候，<code>.</code> 和 <code>..</code> 不会包括在内。下面是一个递归复制目录的方法：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::fs;</span><br><span class="line"><span class="keyword">use</span> std::io;</span><br><span class="line"><span class="keyword">use</span> std::path::Path;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Copy the existing directory `src` to the target path `dst`.</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">copy_dir_to</span>(src: &amp;Path, dst: &amp;Path) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> !dst.<span class="title function_ invoke__">is_dir</span>() &#123;</span><br><span class="line">        fs::<span class="title function_ invoke__">create_dir</span>(dst)?;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">entry_result</span> <span class="keyword">in</span> src.<span class="title function_ invoke__">read_dir</span>()? &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">entry</span> = entry_result?;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">file_type</span> = entry.<span class="title function_ invoke__">file_type</span>()?;</span><br><span class="line">        <span class="title function_ invoke__">copy_to</span>(&amp;entry.<span class="title function_ invoke__">path</span>(), &amp;file_type, &amp;dst.<span class="title function_ invoke__">join</span>(entry.<span class="title function_ invoke__">file_name</span>()))?;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Copy wha tever is at `src` to the target path `dst`.</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">copy_to</span>(src: &amp;Path, src_type: &amp;fs::FileType, dst: &amp;Path) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> src_type.<span class="title function_ invoke__">is_file</span>() &#123;</span><br><span class="line">        fs::<span class="title function_ invoke__">copy</span>(src, dst)?;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> src_type.<span class="title function_ invoke__">is_dir</span>() &#123;</span><br><span class="line">        <span class="title function_ invoke__">copy_dir_to</span>(src, dst)?;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="title function_ invoke__">Err</span>(io::Error::<span class="title function_ invoke__">new</span>(</span><br><span class="line">            io::ErrorKind::Other,</span><br><span class="line">            <span class="built_in">format!</span>(<span class="string">&quot;don&#x27;t know how to copy: &#123;&#125;&quot;</span>, src.<span class="title function_ invoke__">display</span>()),</span><br><span class="line">        ));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="平台特定功能"><a class="markdownIt-Anchor" href="#平台特定功能"></a> 平台特定功能</h4>
+<p>上面的例子中，如果我们是在 <code>Unix</code> 系统中，将会遇到符号链接，但是符号链接 <code>Windows</code> 系统又没有，<code>Rust</code> 使用条件编译解决此类问题。对于这个场景，可以使用 <code>use std::os::unix::fs::symlink</code>，下面是完整程序：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::error::Error;</span><br><span class="line"><span class="keyword">use</span> std::fs;</span><br><span class="line"><span class="keyword">use</span> std::io;</span><br><span class="line"><span class="keyword">use</span> std::path::Path;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[cfg(unix)]</span></span><br><span class="line"><span class="keyword">use</span> std::os::unix::fs::symlink;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Copy the existing directory `src` to the target path `dst`.</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">copy_dir_to</span>(src: &amp;Path, dst: &amp;Path) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> !dst.<span class="title function_ invoke__">is_dir</span>() &#123;</span><br><span class="line">        fs::<span class="title function_ invoke__">create_dir</span>(dst)?;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">entry_result</span> <span class="keyword">in</span> src.<span class="title function_ invoke__">read_dir</span>()? &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">entry</span> = entry_result?;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">file_type</span> = entry.<span class="title function_ invoke__">file_type</span>()?;</span><br><span class="line">        <span class="title function_ invoke__">copy_to</span>(&amp;entry.<span class="title function_ invoke__">path</span>(), &amp;file_type, &amp;dst.<span class="title function_ invoke__">join</span>(entry.<span class="title function_ invoke__">file_name</span>()))?;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Copy wha tever is at `src` to the target path `dst`.</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">copy_to</span>(src: &amp;Path, src_type: &amp;fs::FileType, dst: &amp;Path) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> src_type.<span class="title function_ invoke__">is_file</span>() &#123;</span><br><span class="line">        fs::<span class="title function_ invoke__">copy</span>(src, dst)?;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> src_type.<span class="title function_ invoke__">is_dir</span>() &#123;</span><br><span class="line">        <span class="title function_ invoke__">copy_dir_to</span>(src, dst)?;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> src_type.<span class="title function_ invoke__">is_symlink</span>() &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">target</span> = src.<span class="title function_ invoke__">read_link</span>()?;</span><br><span class="line">        <span class="title function_ invoke__">symlink</span>(target, dst)?;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="title function_ invoke__">Err</span>(io::Error::<span class="title function_ invoke__">new</span>(</span><br><span class="line">            io::ErrorKind::Other,</span><br><span class="line">            <span class="built_in">format!</span>(<span class="string">&quot;don&#x27;t know how to copy: &#123;&#125;&quot;</span>, src.<span class="title function_ invoke__">display</span>()),</span><br><span class="line">        ));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Stub implementation of `symlink` for platforms that don&#x27;t provide it.</span></span><br><span class="line"><span class="meta">#[cfg(not(unix))]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">symlink</span>&lt;P: <span class="built_in">AsRef</span>&lt;Path&gt;, Q: <span class="built_in">AsRef</span>&lt;Path&gt;&gt;(src: P, _dst: Q) <span class="punctuation">-&gt;</span> std::io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">    <span class="title function_ invoke__">Err</span>(io::Error::<span class="title function_ invoke__">new</span>(</span><br><span class="line">        io::ErrorKind::Other,</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;can&#x27;t copy symbolic link: &#123;&#125;&quot;</span>, src.<span class="title function_ invoke__">as_ref</span>().<span class="title function_ invoke__">display</span>()),</span><br><span class="line">    ))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用 <code>#[cfg(unix)]</code> 和 <code>#[cfg(not(unix))]</code> 我们区分了 <code>Unix</code> 和 非 <code>Unix</code> 平台。大多数 <code>Unix</code> 特定的特性不是独立的函数，而是向标准库类型添加新方法的扩展特性，有一个 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/os/unix/prelude/index.html"><code>preclude</code></a> 模块可用于一次启用所有这些扩展：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::os::unix::prelude::*;</span><br></pre></td></tr></table></figure>
+<p>例如，在 <code>Unix</code> 上，这会为 <code>std::fs::Permissions</code> 添加一个 <code>.mode()</code> 方法，提供对表示 <code>Unix</code> 权限的底层 <code>u32</code> 值的访问。还有 <code>std::fs::Metadata</code> 在 <code>unix</code> 系统上扩展了 <code>std::os::unix::fs::MetadataExt</code>，能够获取<code>UID</code>，<code>UID</code> 等信息。</p>
+<h3 id="networking"><a class="markdownIt-Anchor" href="#networking"></a> <code>Networking</code></h3>
+<p>对于底层网络代码，从 <code>std::net</code> 模块开始，它为 <code>TCP</code> 和 <code>UDP</code> 网络提供跨平台支持，使用 <code>native_tls crate</code> 来支持 <code>SSL/TLS</code>。</p>
+<p>这些模块为网络上直接的、阻塞的输入和输出提供了构建块，可以用几行代码编写一个简单的服务器，使用 <code>std::net</code> 并为每个连接生成一个线程。 例如，这是一个<code>&quot;echo&quot;</code>服务器：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::io;</span><br><span class="line"><span class="keyword">use</span> std::net::TcpListener;</span><br><span class="line"><span class="keyword">use</span> std::thread::spawn;</span><br><span class="line"><span class="comment">/// Accept connections forever, spawning a thread for each one.</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">echo_main</span>(addr: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">listener</span> = TcpListener::<span class="title function_ invoke__">bind</span>(addr)?;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;listening on &#123;&#125;&quot;</span>, addr);</span><br><span class="line">    <span class="keyword">loop</span> &#123;</span><br><span class="line">        <span class="comment">// Wait for a client to connect.</span></span><br><span class="line">        <span class="keyword">let</span> (<span class="keyword">mut</span> stream, addr) = listener.<span class="title function_ invoke__">accept</span>()?;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;connection received from &#123;&#125;&quot;</span>, addr);</span><br><span class="line">        <span class="comment">// Spawn a thread to handle this client.</span></span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">write_stream</span> = stream.<span class="title function_ invoke__">try_clone</span>()?;</span><br><span class="line">        <span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> || &#123;</span><br><span class="line">            <span class="comment">// Echo everything we receive from `stream` back to it.</span></span><br><span class="line">            io::<span class="title function_ invoke__">copy</span>(&amp;<span class="keyword">mut</span> stream, &amp;<span class="keyword">mut</span> write_stream).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;error in client thread: &quot;</span>);</span><br><span class="line">            <span class="built_in">println!</span>(<span class="string">&quot;connection closed&quot;</span>);</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="title function_ invoke__">echo_main</span>(<span class="string">&quot;127.0.0.1:17007&quot;</span>).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;error: &quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>回显服务器只是简单地重复您发送给它的所有内容，这种代码与用 <code>Java</code> 或 <code>Python</code> 编写的代码没有太大区别。但是，对于高性能服务器，需要使用异步输入和输出，后面将介绍 <code>Rust</code> 对异步编程的支持，并展示了网络客户端和服务器的完整代码。</p>
+<p>第三方 <code>crate</code> 支持更高级别的协议。例如，<a target="_blank" rel="noopener" href="https://crates.io/crates/reqwest"><code>reqwest</code></a> 为 <code>HTTP</code> 客户端提供了一个漂亮的 <code>API</code>。<code>actix-web</code> 提供了高级功能，例如服务和转换特征，它们可以帮助从可插入的部分组成应用程序。<code>websocket</code> 实现了 <code>WebSocket</code> 协议。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/" title="【Rust】输入输出">https://blog.fudenglong.site/2022/05/02/Rust/【Rust】输入输出/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+              <a href="/tags/%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/" rel="tag"># 输入输出</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/" rel="prev" title="【Rust】字符串和文本">
+                  <i class="fa fa-angle-left"></i> 【Rust】字符串和文本
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/" rel="next" title="【Rust】并发">
+                  【Rust】并发 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

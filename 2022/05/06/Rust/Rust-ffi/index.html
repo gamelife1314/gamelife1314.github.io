@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="世界上的每个程序并非都是用 Rust 编写的，我们希望能够在我们的 Rust 程序中使用许多用其他语言实现的关键库和接口。Rust 的外部函数接口 (FFI) 允许 Rust 代码调用用 C 编写的函数，也可以是 C++。由于大多数操作系统都提供 C 接口，Rust 的外部函数接口允许立即访问各种低级功能。 在本章中，我们将编写一个与 libgit2 链接的程序，libgit2 是一个用于与 Gi">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】Foreign Function">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/05/06/Rust/Rust-ffi/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="世界上的每个程序并非都是用 Rust 编写的，我们希望能够在我们的 Rust 程序中使用许多用其他语言实现的关键库和接口。Rust 的外部函数接口 (FFI) 允许 Rust 代码调用用 C 编写的函数，也可以是 C++。由于大多数操作系统都提供 C 接口，Rust 的外部函数接口允许立即访问各种低级功能。 在本章中，我们将编写一个与 libgit2 链接的程序，libgit2 是一个用于与 Gi">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/06/Rust/Rust-ffi/ctype-mapto-rust.png">
+<meta property="article:published_time" content="2022-05-06T10:09:25.000Z">
+<meta property="article:modified_time" content="2022-05-06T10:09:25.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="Foreign Function">
+<meta property="article:tag" content="ffi">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/05/06/Rust/Rust-ffi/ctype-mapto-rust.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/05/06/Rust/Rust-ffi/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/05/06/Rust/Rust-ffi/","path":"2022/05/06/Rust/Rust-ffi/","title":"【Rust】Foreign Function"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】Foreign Function | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E6%95%B0%E6%8D%AE%E8%A1%A8%E7%A4%BA"><span class="nav-number">1.</span> <span class="nav-text"> 通用数据表示</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E5%A4%96%E9%83%A8%E5%87%BD%E6%95%B0%E5%92%8C%E5%8F%98%E9%87%8F"><span class="nav-number">2.</span> <span class="nav-text"> 定义外部函数和变量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E5%BA%93%E4%B8%AD%E7%9A%84%E5%87%BD%E6%95%B0"><span class="nav-number">3.</span> <span class="nav-text"> 使用库中的函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#libgit2-%E7%9A%84%E5%8E%9F%E7%94%9F%E6%8E%A5%E5%8F%A3"><span class="nav-number">4.</span> <span class="nav-text"> libgit2 的原生接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#libgit2-%E7%9A%84%E5%AE%89%E5%85%A8%E6%8E%A5%E5%8F%A3"><span class="nav-number">5.</span> <span class="nav-text"> libgit2 的安全接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">6.</span> <span class="nav-text"> 总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/05/06/Rust/Rust-ffi/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】Foreign Function | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】Foreign Function
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-05-06 18:09:25" itemprop="dateCreated datePublished" datetime="2022-05-06T18:09:25+08:00">2022-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>11k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>40 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>世界上的每个程序并非都是用 <code>Rust</code> 编写的，我们希望能够在我们的 <code>Rust</code> 程序中使用许多用其他语言实现的关键库和接口。<code>Rust</code> 的外部函数接口 (<code>FFI</code>) 允许 <code>Rust</code> 代码调用用 <code>C</code> 编写的函数，也可以是 <code>C++</code>。由于大多数操作系统都提供 <code>C</code> 接口，<code>Rust</code> 的外部函数接口允许立即访问各种低级功能。</p>
+<p>在本章中，我们将编写一个与 <code>libgit2</code> 链接的程序，<code>libgit2</code> 是一个用于与 <code>Git</code> 版本控制系统一起工作的 <code>C</code> 库。首先，我们使用前一章中展示的 <code>unsafe</code> 特性展示直接从 <code>Rust</code> 使用 <code>C</code> 函数的例子，然后，我们将展示如何构建 <code>libgit2</code> 的安全接口，灵感来自开源 <code>git2-rs</code>。本文假设你熟悉 <code>C</code> 以及编译和链接 <code>C</code> 程序的机制，还假设熟悉 <code>Git</code> 版本控制系统。</p>
+<p>现实中确实存在用于与许多其他语言进行通信的 <code>Rust</code> 包，包括 <code>Python</code>、<code>JavaScript</code>、<code>Lua</code> 和 <code>Java</code>。这里没有篇幅介绍它们，但归根结底，所有这些接口都是使用 <code>C</code> 外来函数接口构建的。</p>
+<span id="more"></span>
+<h3 id="通用数据表示"><a class="markdownIt-Anchor" href="#通用数据表示"></a> 通用数据表示</h3>
+<p><code>Rust</code> 和 <code>C</code> 的共同点是机器语言，所以为了预测 <code>Rust</code> 值在 <code>C</code> 代码中的样子，反之亦然，需要考虑它们的机器级表示。在该书中，强调了值是如何在内存中实际表示的，所以可能已经注意到 <code>C</code> 和 <code>Rust</code> 的数据世界有很多共同点：<code>Rust</code> 的 <code>usize</code> 和 <code>C</code> 的 <code>size_t</code> 是相同的，结构体在两种语言中基本上也是相同的。为了在 <code>Rust</code> 和 <code>C</code> 类型之间建立对应关系，我们将从基本类型开始，然后逐步发展到更复杂的类型。</p>
+<p>鉴于其主要用作系统编程语言，<code>C</code> 对其类型的表示一直出人意料地松散，一个 <code>int</code> 通常为 <code>32</code> 位长，但可能更长，或短至 <code>16</code> 位。<code>C</code> <code>char</code> 可以有符号或无符号，等等。为了应对这种可变性，<code>Rust</code> 的 <code>std::os::raw</code> 模块定义了一组 <code>Rust</code> 类型，这些类型保证与某些 <code>C</code> 类型具有相同的表示形式，它们涵盖了原始整数和字符类型。如下图所示：</p>
+<p><img data-src="ctype-mapto-rust.png" alt="" /></p>
+<ul>
+<li>
+<p>除了 <code>c_void</code>，这里所有的 <code>Rust</code> 类型都是一些原始 <code>Rust</code> 类型的别名：例如，<code>c_char</code> 是 <code>i8</code> 或 <code>u8</code>；</p>
+</li>
+<li>
+<p><code>Rust</code> 的 <code>bool</code> 等价于 <code>C/C++</code> 的布尔值；</p>
+</li>
+<li>
+<p><code>Rust</code> 的 <code>32</code> 位 <code>char</code> 类型不是 <code>wchar_t</code> 的类似物，<code>wchar_t</code> 的宽度和编码因实现而异。<code>C</code> 的 <code>char32_t</code> 类型更接近，但它的编码仍然不能保证是 <code>Unicode</code>；</p>
+</li>
+<li>
+<p><code>Rust</code> 的原始 <code>usize</code> 和 <code>isize</code> 类型与 <code>C</code> 的 <code>size_t</code> 和 <code>ptrdiff_t</code> 具有相同的表示；</p>
+</li>
+<li>
+<p><code>C</code> 和 <code>C++</code> 指针和 <code>C++</code> 引用对应于 <code>Rust</code> 的原始指针类型 <code>*mut T</code> 和 <code>*const T</code>；</p>
+</li>
+<li>
+<p>从技术上讲，<code>C</code> 标准允许实现使用 <code>Rust</code> 没有相应类型的表示：<code>36</code> 位整数、带符号值的符号和大小表示等。实际上，在 <code>Rust</code> 被移植到的每个平台上，每个常见的 <code>C</code> 整数类型在 <code>Rust</code> 中都有一个匹配项；</p>
+</li>
+</ul>
+<p>要定义与 <code>C</code> 结构兼容的 <code>Rust</code> 结构类型，可以使用 <code>#[repr(C)]</code> 属性。将 <code>#[repr(C)]</code> 放在结构定义上方要求 <code>Rust</code> 在内存中排布结构体的字段，就像 <code>C </code>编译器排布 <code>C</code> 结构类型一样。例如，<code>libgit2</code> 的 <code>git2/errors.h</code> 头文件定义了以下 <code>C</code> 结构体，以提供有关先前报告的错误的详细信息：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">    <span class="type">char</span> *message;</span><br><span class="line">    <span class="type">int</span> klass;</span><br><span class="line">&#125; git_error;</span><br></pre></td></tr></table></figure>
+<p>可以定义具有相同表示的 <code>Rust</code> 类型，如下所示：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::os::raw::&#123;c_char, c_int&#125;;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">#[repr(C)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">git_error</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> message: *<span class="keyword">const</span> c_char,</span><br><span class="line">    <span class="keyword">pub</span> klass: c_int</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>#[repr(C)]</code> 属性仅影响结构本身的布局，而不影响其各个字段的表示，因此要匹配 <code>C</code> 结构，每个字段也必须使用类 <code>C</code> 类型：<code>*const c_char</code> 对应于 <code>char *</code>，<code>c_int</code> 表示 <code>int</code>等等。</p>
+<p>在这种特殊情况下，<code>#[repr(C)]</code> 属性可能不会改变 <code>git_error</code> 的布局。但是，尽管 <code>C</code> 和 <code>C++</code> 保证结构的成员按照声明的顺序出现在内存中，每个成员都位于不同的地址，但 <code>Rust</code> 对字段重新排序以最小化结构的整体大小，并且零大小的类型不占用空间。<code>#[repr(C)]</code> 属性告诉 <code>Rust</code> 遵循 <code>C</code> 对给定类型的规则。</p>
+<p>还可以使用 <code>#[repr(C)]</code> 来控制 <code>C</code> 风格枚举的表示：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[repr(C)]</span></span><br><span class="line"><span class="meta">#[allow(non_camel_case_types)]</span></span><br><span class="line"><span class="keyword">enum</span> <span class="title class_">git_error_code</span> &#123;</span><br><span class="line">    GIT_OK = <span class="number">0</span>,</span><br><span class="line">    GIT_ERROR = -<span class="number">1</span>,</span><br><span class="line">    GIT_ENOTFOUND = -<span class="number">3</span>,</span><br><span class="line">    GIT_EEXISTS = -<span class="number">4</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果没有 <code>#[repr(C)]</code>，<code>Rust</code> 将使用单个字节来表示 <code>git_error_code</code> 枚举，使用<code>#[repr(C)]</code>，<code>Rust</code> 使用一个 <code>C</code> <code>int</code> 大小的值，就像 <code>C</code> 一样。</p>
+<p>你也可以要求 <code>Rust</code> 给一个枚举与某个整数类型相同的表示。以 <code>#[repr(i16)]</code> 开始前面的定义会给你一个 <code>16</code> 位类型，它与以下 <code>C++</code> 枚举具有相同的表示：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdint.h&gt;</span></span></span><br><span class="line"><span class="keyword">enum</span> <span class="title class_">git_error_code</span>: <span class="type">int16_t</span> &#123;</span><br><span class="line">    GIT_OK = <span class="number">0</span>,</span><br><span class="line">    GIT_ERROR = <span class="number">-1</span>,</span><br><span class="line">    GIT_ENOTFOUND = <span class="number">-3</span>,</span><br><span class="line">    GIT_EEXISTS = <span class="number">-4</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>如前所述，<code>#[repr(C)]</code> 也适用于联合体，<code>#[repr(C)]</code> 联合体的字段总是从联合体内存的第一位开始——索引是 <code>0</code>。</p>
+<p>假设你有一个 <code>C</code> 结构体，它使用一个 <code>union</code> 来保存一些数据和一个 <code>tag</code> 值来指示应该使用 <code>union</code> 的哪个字段，类似于 <code>Rust</code> 枚举。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">enum</span> <span class="title class_">tag</span> &#123;</span><br><span class="line">    FLOAT = <span class="number">0</span>,</span><br><span class="line">    INT = <span class="number">1</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">union</span> <span class="title class_">number</span> &#123;</span><br><span class="line">    <span class="type">float</span> f;</span><br><span class="line">    <span class="type">short</span> i;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">tagged_number</span> &#123;</span><br><span class="line">    tag t;</span><br><span class="line">    number n;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><code>Rust</code> 代码可以通过将 <code>#[repr(C)]</code> 应用于枚举、结构和 <code>union</code> 类型，并使用 <code>match</code> 语句根据<code>tag</code>在更大的结构中选择<code>union</code>字段来与此结构体互操作：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[repr(C)]</span></span><br><span class="line"><span class="keyword">enum</span> <span class="title class_">Tag</span> &#123;</span><br><span class="line">    Float = <span class="number">0</span>,</span><br><span class="line">    Int = <span class="number">1</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[repr(C)]</span></span><br><span class="line"><span class="keyword">union</span> <span class="title class_">FloatOrInt</span> &#123;</span><br><span class="line">    f: <span class="type">f32</span>,</span><br><span class="line">    i: <span class="type">i32</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[repr(C)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Value</span> &#123;</span><br><span class="line">    tag: Tag,</span><br><span class="line">    <span class="keyword">union</span>: FloatOrInt,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">is_zero</span>(v: Value) <span class="punctuation">-&gt;</span> <span class="type">bool</span> &#123;</span><br><span class="line">    <span class="keyword">use</span> self::Tag::*;</span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="keyword">match</span> v &#123;</span><br><span class="line">            Value &#123;</span><br><span class="line">                tag: Int,</span><br><span class="line">                <span class="keyword">union</span>: FloatOrInt &#123; i: <span class="number">0</span> &#125;,</span><br><span class="line">            &#125; =&gt; <span class="literal">true</span>,</span><br><span class="line">            Value &#123;</span><br><span class="line">                tag: Float,</span><br><span class="line">                <span class="keyword">union</span>: FloatOrInt &#123; f: num &#125;,</span><br><span class="line">            &#125; =&gt; (num == <span class="number">0.0</span>),</span><br><span class="line">            _ =&gt; <span class="literal">false</span>,</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用这种技术，即使是复杂的结构体也可以轻松地跨 <code>FFI</code> 边界使用。</p>
+<p>在 <code>Rust</code> 和 <code>C</code> 之间传递字符串有点困难，<code>C</code> 将字符串表示为指向字符数组的指针，并且以空字符终止。另一方面，<code>Rust</code> 将字符串的长度显式存储在字符串的字段或胖引用 <code>&amp;str</code> 的第二个机器字，<code>Rust</code> 字符串不是以 <code>null</code> 结尾的。事实上，它们可能在其内容中包含空字符，就像任何其他字符一样。</p>
+<p>这意味着不能将 <code>Rust</code> 字符串作为 <code>C</code> 字符串借用：如果将 <code>C</code> 代码指针传递给 <code>Rust</code> 字符串，它可能会将嵌入的空字符误认为字符串的结尾，或者在结尾处寻找终止的空字符不在那里。换个方向，你可以借用一个 <code>C</code> 字符串作为 <code>Rust</code> 的 <code>&amp;str</code>，只要它的内容是有效的 <code>UTF-8</code>。</p>
+<p>这种情况有效地迫使 <code>Rust</code> 将 <code>C</code> 字符串视为完全不同于 <code>String</code> 和 <code>&amp;str</code> 的类型。在 <code>std::ffi</code> 模块中，<code>CString</code> 和 <code>CStr</code> 类型表示拥有和借用的以空值结尾的字节数组。与 <code>String</code> 和 <code>str</code> 相比，<code>CString</code> 和 <code>CStr</code> 上的方法相当有限，仅限于构造和转换为其他类型。</p>
+<h3 id="定义外部函数和变量"><a class="markdownIt-Anchor" href="#定义外部函数和变量"></a> 定义外部函数和变量</h3>
+<p><code>extern</code> 块声明了在其他库中定义的函数或变量，最终的 <code>Rust</code> 可执行文件将与之链接。例如，在大多数平台上，每个 <code>Rust</code> 程序都链接到标准 <code>C</code> 库，因此我们可以像这样告诉 <code>Rust</code> 库的 <code>strlen</code> 函数：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::os::raw::c_char;</span><br><span class="line"></span><br><span class="line"><span class="keyword">extern</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">strlen</span>(s: *<span class="keyword">const</span> c_char) <span class="punctuation">-&gt;</span> <span class="type">usize</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这为 <code>Rust</code> 提供了函数的名称和类型，同时将定义留待稍后链接。</p>
+<p><code>Rust</code> 假设在 <code>extern</code> 块中声明的函数使用 <code>C</code> 约定来传递参数和接受返回值，它们被定义为不安全的函数。这些是 <code>strlen</code> 的正确选择：它确实是一个 <code>C</code> 函数，并且它在 <code>C</code> 中的规范要求向它传递一个指向正确终止字符串的有效指针，这是 <code>Rust</code> 无法强制执行的规约。（几乎任何接受原始指针的函数都必须是 <code>unsafe</code>：安全的 <code>Rust</code> 可以从任意整数构造原始指针，而解引用这样的指针将是未定义的行为。）</p>
+<p>使用这个 <code>extern</code> 块，我们可以像调用任何其他 <code>Rust</code> 函数一样调用 <code>strlen</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::os::raw::c_char;</span><br><span class="line"></span><br><span class="line"><span class="keyword">extern</span> <span class="string">&quot;C&quot;</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">strlen</span>(s: *<span class="keyword">const</span> c_char) <span class="punctuation">-&gt;</span> <span class="type">usize</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">use</span> std::ffi::CString;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">rust_str</span> = <span class="string">&quot;I&#x27;ll be back&quot;</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">null_terminated</span> = CString::<span class="title function_ invoke__">new</span>(rust_str).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="built_in">assert_eq!</span>(<span class="title function_ invoke__">strlen</span>(null_terminated.<span class="title function_ invoke__">as_ptr</span>()), <span class="number">12</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>CString::new</code> 函数构建一个以 <code>null</code> 结尾的 <code>C</code> 字符串。它首先检查它的参数是否有嵌入的空字符，因为这些字符不能用 <code>C</code> 字符串表示，如果找到任何字符则返回一个错误。否则，它会在末尾添加一个空字节并返回一个拥有结果字符的 <code>CString</code>。</p>
+<p><code>CString::new</code> 的成本取决于你传递给它的类型，它接受任何实现了<code>Into&lt;Vec&lt;u8&gt;</code>的东西。传递一个<code>&amp;str</code>需要一个分配和一个拷贝，因为转换为<code>Vec&lt;u8&gt;</code>会建立一个堆分配的字符串拷贝给<code>vector</code>来拥有。但是通过值传递一个字符串只是消耗了字符串并接管了它的缓冲区，所以除非附加空字符迫使缓冲区被调整大小，否则转换根本就不需要复制文本或分配。</p>
+<p><code>CString</code> 取消对 <code>CStr</code> 的引用，其 <code>as_ptr</code> 方法返回指向字符串开头的 <code>*const c_char</code>，这是 <code>strlen</code> 期望的类型。在这个例子中，<code>strlen</code> 遍历字符串，找到 <code>CString::new</code> 放置在那里的空字符，并返回长度，作为字节数。</p>
+<p>还可以在外部块中声明全局变量，<code>POSIX</code> 系统有一个名为 <code>environ</code> 的全局变量，它保存进程的环境变量的值。在 <code>C </code>中，它被声明为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="type">char</span> **environ;</span><br></pre></td></tr></table></figure>
+<p>在 <code>Rust</code> 中可以这样做：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::ffi::CStr;</span><br><span class="line"><span class="keyword">use</span> std::os::raw::c_char;</span><br><span class="line"></span><br><span class="line"><span class="keyword">extern</span> <span class="string">&quot;C&quot;</span> &#123;</span><br><span class="line">    <span class="keyword">static</span> environ: *<span class="keyword">mut</span> *<span class="keyword">mut</span> c_char;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> !environ.<span class="title function_ invoke__">is_null</span>() &amp;&amp; !(*environ).<span class="title function_ invoke__">is_null</span>() &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">var</span> = CStr::<span class="title function_ invoke__">from_ptr</span>(*environ);</span><br><span class="line">            <span class="built_in">println!</span>(<span class="string">&quot;first environment variable: &#123;&#125;&quot;</span>, var.<span class="title function_ invoke__">to_string_lossy</span>())</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在确保 <code>environ</code> 有第一个元素之后，代码调用 <code>CStr::from_ptr</code> 来构建一个借用它的 <code>CStr</code>。<code>to_string_lossy</code> 方法返回一个 <code>Cow&lt;str&gt;</code>：如果 <code>C</code> 字符串包含有效的 <code>UTF-8</code>，则 <code>Cow</code> 将其内容作为 <code>&amp;str</code> 借用，不包括终止的空字节。否则，<code>to_string_lossy</code> 会复制堆中的文本，用官方的 <code>Unicode</code> 替换字符 <code>�</code> 替换格式错误的 <code>UTF-8</code> 序列，并以此构建拥有所有权的 <code>Cow</code>。无论哪种方式，结果都会实现 <code>Display</code>，因此可以使用 <code>&#123;&#125;</code> 格式参数打印它。</p>
+<h3 id="使用库中的函数"><a class="markdownIt-Anchor" href="#使用库中的函数"></a> 使用库中的函数</h3>
+<p>要使用特定库提供的函数，可以在 <code>extern</code> 块顶部放置一个 <code>#[link]</code> 属性，该属性命名库 <code>Rust</code> 应该链接可执行文件。例如，这里有一个程序调用 <code>libgit2</code> 的初始化和 <code>shutdown</code> 方法，但没有其他的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::os::raw::c_int;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[link(name = <span class="string">&quot;git2&quot;</span>)]</span></span><br><span class="line"><span class="keyword">extern</span> <span class="string">&quot;C&quot;</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_libgit2_init</span>() <span class="punctuation">-&gt;</span> c_int;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_libgit2_shutdown</span>() <span class="punctuation">-&gt;</span> c_int;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="title function_ invoke__">git_libgit2_init</span>();</span><br><span class="line">        <span class="title function_ invoke__">git_libgit2_shutdown</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>extern</code> 块像以前一样声明了 <code>extern</code> 函数。 <code>#[link(name =&quot;git2&quot;)]</code> 属性在 <code>crate</code> 中留下一个注释，大意是当 <code>Rust</code> 创建最终的可执行文件或共享库时，它应该链接到 <code>git2</code> 库。<code>Rust</code> 使用系统链接器来构建可执行文件，在 <code>Unix</code> 上，这会在链接器命令行上传递参数 <code>-lgit2</code>，在 <code>Windows</code> 上，它通过 <code>git2.LIB</code>。</p>
+<p><code>#[link]</code> 属性也可以在库中使用，当你构建一个依赖于其他 <code>crate</code> 的程序时，<code>Cargo</code> 会从整个依赖图中收集链接注释，并将它们全部包含在最终链接中。</p>
+<p>在此示例中，如果您想在自己的机器上进行操作，则需要自己构建 <code>libgit2</code>。 这里使用了 <code>libgit2</code> 版本 <code>0.25.1</code>。要编译 <code>libgit2</code>，需要安装 <code>CMake</code> 构建工具和 <code>Python</code> 语言，这里我们使用了 <code>CMake</code> 版本 <code>3.8.0</code> 和 <code>Python</code> 版本 <code>2.7.13</code>。</p>
+<p>构建 <code>libgit2</code> 的完整说明可在其网站上找到，但它们非常简单，我们将在此处展示要点。在 <code>Linux</code> 上，假设已经将库的源代码解压缩到目录 <code>/home/jimb/libgit2-0.25.1</code> 中：</p>
+<pre><code>$ cd /home/jimb/libgit2-0.25.1
+$ mkdir build
+$ cd build
+$ cmake ..
+$ cmake --build .
+</code></pre>
+<p>在 <code>Linux</code> 上，这会生成一个共享库 <code>/home/jimb/libgit2-0.25.1/build/libgit2.so.0.25.1</code>，其中包含指向它的通常嵌套的符号链接，包括一个名为 <code>libgit2.so</code> 的文件。在 <code>macOS</code> 上，结果相似，但库名为 <code>libgit2.dylib</code>。</p>
+<p>在 <code>Windows</code> 上，事情也很简单，假设已将源代码解压缩到目录 <code>C:\Users\JimB\libgit2-0.25.1</code>。 在 <code>Visual Studio</code> 命令提示符下：</p>
+<pre><code>&gt; cd C:\Users\JimB\libgit2-0.25.1
+&gt; mkdir build
+&gt; cd build
+&gt; cmake -A x64 ..
+&gt; cmake --build .
+</code></pre>
+<p>这些命令与在 <code>Linux</code> 上使用的命令相同，不同之处在于在第一次运行 <code>CMake</code> 时必须请求 <code>64</code> 位构建以匹配 <code>Rust</code> 编译器。(如果你已经安装了 <code>32</code> 位 <code>Rust</code> 工具链，那么你应该在第一个 <code>cmake</code> 命令中省略 <code>-A x64</code> 标志。）这会在目录 <code>C:\Users\JimB\libgit2-0.25.1\build\Debug</code> 生成一个名为 <code>git2.LIB</code> 和 <code>git2.DLL</code> 的文件。（除了 <code>Windows</code> 有很大不同的地方，其余说明均针对 Unix。）</p>
+<p>在单独的目录中创建 <code>Rust</code> 程序：</p>
+<pre><code>$ cd /home/jimb
+$ cargo new --bin git-toy
+Created binary (application) `git-toy` package
+</code></pre>
+<p>将之前的代码放在 <code>src/main.rs</code> 中，然后尝试构建它，<code>Rust</code> 不知道去哪里找这个 <code>libgit2</code>，所以就会：</p>
+<pre><code>$ cd git-toy
+$ cargo run
+Compiling git-toy v0.1.0 (/home/jimb/git-toy)
+error: linking with `cc` failed: exit code: 1
+|
+= note: /usr/bin/ld: error: cannot find -lgit2
+src/main.rs:11: error: undefined reference to 'git_libgit2_init'
+src/main.rs:12: error: undefined reference to 'git_libgit2_shutdown'
+collect2: error: ld returned 1 exit status
+error: aborting due to previous error
+error: could not compile `git-toy`.
+To learn more, run the command again with --verbose.
+</code></pre>
+<p>可以通过编写构建脚本告诉 <code>Rust</code> 在哪里搜索库，<code>Rust</code> 代码在构建时编译并运行 <code>Cargo</code>。构建脚本可以做各种各样的事情：动态生成代码，编译 <code>C</code> 代码以包含在 <code>crate</code> 中等等。在这种情况下，只需要在可执行文件的链接命令中添加一个库搜索路径。当 <code>Cargo</code> 运行构建脚本时，它会解析构建脚本的输出以获取此类信息，因此构建脚本只需将链接的文件位置信息打印到它的标准输出。</p>
+<p>要创建构建脚本，请在与 <code>Cargo.toml</code> 文件相同的目录中添加一个名为 <code>build.rs</code> 的文件，其内容如下：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line"> <span class="built_in">println!</span>(<span class="string">r&quot;cargo:rustc-link-search=native=/home/jimb/libgit2-0.25.1/build&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这是 <code>Linux</code> 的正确路径，在 <code>Windows</code> 上，您可以将文本 <code>native=</code> 后面的路径更改为 <code>C:\Users\JimB\libgit2-0.25.1\build\Debug</code>。（为了让这个例子简单，我们偷工减料；在实际应用程序中，应该避免在构建脚本中使用绝对路径。我们在本节末尾引用了说明如何执行此操作的文档。）</p>
+<p>现在几乎可以运行该程序了，在 <code>macOS</code> 上它可以立即工作，在 <code>Linux</code> 系统上，您可能会看到类似以下内容：</p>
+<pre><code>$ cargo run
+    Compiling git-toy v0.1.0 (/tmp/rustbook-transcript-tests/git-toy)
+    Finished dev [unoptimized + debuginfo] target(s)
+    Running `target/debug/git-toy`
+target/debug/git-toy: error while loading shared libraries:
+libgit2.so.25: cannot open shared object file: No such file or directory
+</code></pre>
+<p>这意味着，尽管 <code>Cargo</code> 成功地将可执行文件与库链接起来，但它不知道在运行时在哪里可以找到共享库。<code>Windows</code> 通过弹出一个对话框报告此故障。 在 <code>Linux</code> 上，必须设置 <code>LD_LIBRARY_PATH</code> 环境变量：</p>
+<pre><code>$ export LD_LIBRARY_PATH=/home/jimb/libgit2-0.25.1/build:$LD_LIBRARY_PATH
+$ cargo run
+    Finished dev [unoptimized + debuginfo] target(s) in 0.0 secs
+    Running `target/debug/git-toy`
+</code></pre>
+<p>在 <code>MacOS</code> 上可能需要设置 <code> DYLD_LIBRARY_PATH</code>，在 <code>windows</code> 上需要设置 <code>PATH</code> 环境变量：</p>
+<pre><code>&gt; set PATH=C:\Users\JimB\libgit2-0.25.1\build\Debug;%PATH%
+&gt; cargo run
+    Finished dev [unoptimized + debuginfo] target(s) in 0.0 secs
+    Running `target/debug/git-toy`
+&gt;
+</code></pre>
+<p>自然，在已部署的应用程序中，希望避免为了查找库的代码而必须设置环境变量，一种替代方法是将 <code>C</code> 库静态链接到 <code>crate</code> 中。这会将库的目标文件与 <code>crate</code> 的 <code>Rust</code> 代码的目标文件和元数据一起复制到 <code>crate</code> 的 <code>.rlib</code> 文件中。</p>
+<p>根据 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/cargo/reference/build-scripts.html#-sys-packages"><code>Cargo</code> 约定</a>，提供对 <code>C</code> 库的访问的 <code>crate</code> 应命名为 <code>LIB-sys</code>，其中 <code>LIB</code> 是 <code>C</code> 库的名称，例如 <a target="_blank" rel="noopener" href="https://crates.io/crates/libsqlite3-sys"><code>libsqlite3-sys</code></a>。一个 <code>*-sys crate</code> 应该只包含静态链接的库，和包含<code>extern</code>块以及类型定义的 <code>Rust</code> 模块。更高级别的接口则属于依赖于 <code>*-sys</code> 的 <code>crate</code>。这允许多个上游 <code>crate</code> 依赖于同一个 <code>*-sys crate</code>，假设有一个版本的 <code>*-sys crate</code> 可以满足每个人的需求。</p>
+<p>有关 <code>Cargo</code> 支持构建脚本和与系统库链接的完整详细信息，请参阅在线 <code>Cargo</code> 文档。它展示了如何避免构建脚本中的绝对路径、控制编译标志、使用 <code>pkg-config</code> 等工具。<a target="_blank" rel="noopener" href="https://github.com/rust-lang/git2-rs/blob/master/libgit2-sys/build.rs"><code>git2-rs</code></a> 也提供了很好的例子。</p>
+<h3 id="libgit2-的原生接口"><a class="markdownIt-Anchor" href="#libgit2-的原生接口"></a> <code>libgit2</code> 的原生接口</h3>
+<p>弄清楚如何正确使用 <code>libgit2</code> 分为两个问题：</p>
+<ul>
+<li>
+<p>在 <code>Rust</code> 中使用 <code>libgit2</code> 函数需要什么？</p>
+</li>
+<li>
+<p>我们如何围绕它们构建一个安全的 <code>Rust</code> 接口？</p>
+</li>
+</ul>
+<p>我们将一次一个地回答这些问题，在本节中，我们将编写一个程序，该程序本质上是一个巨大的不安全块，其中充满了非惯用的 <code>Rust</code> 代码，反映了混合语言中固有的类型系统和约定的冲突，我们将其称为原生接口，代码会很混乱，但它会让 <code>Rust</code> 代码使用 <code>libgit2</code> 必须执行的所有步骤变得清晰。</p>
+<p>然后，在下一节中，我们将构建一个安全的 <code>libgit2</code> 接口，使用 <code>Rust</code> 的类型来执行 <code>libgit2</code> 强加给用户的规约。幸运的是，<code>libgit2</code> 是一个精心设计的 <code>C</code> 库，所以 <code>Rust</code> 的安全要求迫使我们提出的问题都有很好的答案，我们可以构建一个惯用的 <code>Rust</code> 接口，没有不安全的函数。</p>
+<p>我们将编写的程序非常简单：它将路径作为命令行参数，在那里打开 <code>Git</code> 存储库，并打印出头部提交。对于原生接口，程序最终将需要比我们之前使用的更大的来自 <code>libgit2</code> 的函数和类型集合，因此将 <code>extern</code> 块移动到它自己的模块中是有意义的。我们将在 <code>git-toy/src</code> 中创建一个名为 <code>raw.rs</code> 的文件，其内容如下：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#![allow(non_camel_case_types)]</span></span><br><span class="line"><span class="keyword">use</span> std::os::raw::&#123;c_char, c_int, c_uchar&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[link(name = <span class="string">&quot;git2&quot;</span>)]</span></span><br><span class="line"><span class="keyword">extern</span> <span class="string">&quot;C&quot;</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_libgit2_init</span>() <span class="punctuation">-&gt;</span> c_int;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_libgit2_shutdown</span>() <span class="punctuation">-&gt;</span> c_int;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">giterr_last</span>() <span class="punctuation">-&gt;</span> *<span class="keyword">const</span> git_error;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_repository_open</span>(out: *<span class="keyword">mut</span> *<span class="keyword">mut</span> git_repository, path: *<span class="keyword">const</span> c_char) <span class="punctuation">-&gt;</span> c_int;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_repository_free</span>(repo: *<span class="keyword">mut</span> git_repository);</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_reference_name_to_id</span>(</span><br><span class="line">        out: *<span class="keyword">mut</span> git_oid,</span><br><span class="line">        repo: *<span class="keyword">mut</span> git_repository,</span><br><span class="line">        reference: *<span class="keyword">const</span> c_char,</span><br><span class="line">    ) <span class="punctuation">-&gt;</span> c_int;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_commit_lookup</span>(</span><br><span class="line">        out: *<span class="keyword">mut</span> *<span class="keyword">mut</span> git_commit,</span><br><span class="line">        repo: *<span class="keyword">mut</span> git_repository,</span><br><span class="line">        id: *<span class="keyword">const</span> git_oid,</span><br><span class="line">    ) <span class="punctuation">-&gt;</span> c_int;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_commit_author</span>(commit: *<span class="keyword">const</span> git_commit) <span class="punctuation">-&gt;</span> *<span class="keyword">const</span> git_signature;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_commit_message</span>(commit: *<span class="keyword">const</span> git_commit) <span class="punctuation">-&gt;</span> *<span class="keyword">const</span> c_char;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_commit_free</span>(commit: *<span class="keyword">mut</span> git_commit);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[repr(C)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">git_repository</span> &#123;</span><br><span class="line">    _private: [<span class="type">u8</span>; <span class="number">0</span>],</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[repr(C)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">git_commit</span> &#123;</span><br><span class="line">    _private: [<span class="type">u8</span>; <span class="number">0</span>],</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[repr(C)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">git_error</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> message: *<span class="keyword">const</span> c_char,</span><br><span class="line">    <span class="keyword">pub</span> klass: c_int,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">const</span> GIT_OID_RAWSZ: <span class="type">usize</span> = <span class="number">20</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[repr(C)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">git_oid</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> id: [c_uchar; GIT_OID_RAWSZ],</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">type</span> <span class="title class_">git_time_t</span> = <span class="type">i64</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[repr(C)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">git_time</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> time: git_time_t,</span><br><span class="line">    <span class="keyword">pub</span> offset: c_int,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[repr(C)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">git_signature</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> name: *<span class="keyword">const</span> c_char,</span><br><span class="line">    <span class="keyword">pub</span> email: *<span class="keyword">const</span> c_char,</span><br><span class="line">    <span class="keyword">pub</span> when: git_time,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的每个 <code>item</code> 都是根据 <code>libgit2</code> 自己的头文件中的声明。例如，<code>libgit2-0.25.1/include/git2/repository.h</code> 包含以下声明：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="type">int</span> <span class="title function_">git_repository_open</span><span class="params">(git_repository **out, <span class="type">const</span> <span class="type">char</span> *path)</span>;</span><br></pre></td></tr></table></figure>
+<p>此函数尝试在路径打开 <code>Git</code> 存储库。如果一切顺利，它会创建一个 <code>git_repository</code> 对象，并将指向它的指针存储在 <code>out</code> 指向的位置，等效的 <code>Rust</code> 声明如下：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">git_repository_open</span>(out: *<span class="keyword">mut</span> *<span class="keyword">mut</span> git_repository, path: *<span class="keyword">const</span> c_char) <span class="punctuation">-&gt;</span> c_int;</span><br></pre></td></tr></table></figure>
+<p><code>libgit2</code> 公共头文件使用 <code>typedef</code> 定义了 <code>git_repository</code>，但它是不完整的结构体类型：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">git_repository</span> <span class="title">git_repository</span>;</span></span><br></pre></td></tr></table></figure>
+<p>由于这种类型的详细信息对库来说是私有的，因此公共头文件永远不会定义 <code>struct git_repository</code>，从而确保库的用户永远不能自己构建这种类型的实例。 <code>Rust</code> 中不完整结构类型的一种可能类似物是：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[repr(C)]</span> <span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">git_repository</span> &#123; _private: [<span class="type">u8</span>; <span class="number">0</span>] &#125;</span><br></pre></td></tr></table></figure>
+<p>这是一个结构体类型，包含一个没有元素的数组。 因为 <code>_private</code> 字段不是 <code>pub</code>，所以这种类型的值不能在这个模块之外构造，它完美地反映了只有 <code>libgit2</code> 应该构造的 <code>C</code> 类型，并且只能通过原始指针进行操作。</p>
+<p>手工编写大的外部块可能是一件苦差事。如果您正在为复杂的 <code>C</code> 库创建 <code>Rust</code> 接口，可能想尝试使用 <a target="_blank" rel="noopener" href="https://crates.io/crates/bindgen"><code>bindgen</code></a>，它具有可以从构建脚本中使用的函数来解析 <code>C</code> 头文件并自动生成相应的 <code>Rust</code> 声明。</p>
+<p>接下来我们将完全重写 <code>main.rs</code>。 首先，我们需要声明<code>raw</code>模块：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> raw;</span><br></pre></td></tr></table></figure>
+<p>根据 <code>libgit2</code> 的约定，易错函数返回一个整数代码，成功时为正数或者 <code>0</code>，失败时返回负数。如果发生错误，<code>giterr_last</code> 函数将返回一个指向 <code>git_error</code> 结构体的指针，该结构体提供有关出错的更多详细信息。<code>libgit2</code> 拥有这个结构，所以我们不需要自己释放它，但它可能会被我们进行的下一个库调用覆盖。适当的 <code>Rust</code> 接口将使用 <code>Result</code>，但在原始版本中，我们希望按原样使用 <code>libgit2</code> 函数，因此我们必须让自己的函数来处理错误：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::ffi::CStr;</span><br><span class="line"><span class="keyword">use</span> std::os::raw::c_int;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">check</span>(activity: &amp;<span class="symbol">&#x27;static</span> <span class="type">str</span>, status: c_int) <span class="punctuation">-&gt;</span> c_int &#123;</span><br><span class="line">    <span class="keyword">if</span> status &lt; <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">unsafe</span> &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">error</span> = &amp;*raw::<span class="title function_ invoke__">giterr_last</span>();</span><br><span class="line">            <span class="built_in">println!</span>(</span><br><span class="line">                <span class="string">&quot;error while &#123;&#125;: &#123;&#125; (&#123;&#125;)&quot;</span>,</span><br><span class="line">                activity,</span><br><span class="line">                CStr::<span class="title function_ invoke__">from_ptr</span>(error.message).<span class="title function_ invoke__">to_string_lossy</span>(),</span><br><span class="line">                error.klass</span><br><span class="line">            );</span><br><span class="line">            std::process::<span class="title function_ invoke__">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    status</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>我们将用这个函数检查 <code>libgit2</code> 的调用结果，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="title function_ invoke__">check</span>(<span class="string">&quot;initializing library&quot;</span>, raw::<span class="title function_ invoke__">git_libgit2_init</span>());</span><br></pre></td></tr></table></figure>
+<p>这使用了之前使用的相同 <code>CStr</code> 方法：<code>from_ptr</code> 从 <code>C</code> 字符串构造 <code>CStr</code>，<code>to_string_lossy</code> 将其转换为 <code>Rust</code> 可以打印的东西。接下来，我们需要一个函数来打印<code>commit</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">unsafe</span> <span class="keyword">fn</span> <span class="title function_">show_commit</span>(commit: *<span class="keyword">const</span> raw::git_commit) &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">author</span> = raw::<span class="title function_ invoke__">git_commit_author</span>(commit);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">name</span> = CStr::<span class="title function_ invoke__">from_ptr</span>((*author).name).<span class="title function_ invoke__">to_string_lossy</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">email</span> = CStr::<span class="title function_ invoke__">from_ptr</span>((*author).email).<span class="title function_ invoke__">to_string_lossy</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; &lt;&#123;&#125;&gt;\n&quot;</span>, name, email);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">message</span> = raw::<span class="title function_ invoke__">git_commit_message</span>(commit);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, CStr::<span class="title function_ invoke__">from_ptr</span>(message).<span class="title function_ invoke__">to_string_lossy</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>给定一个指向 <code>git_commit</code> 的指针，<code>show_commit</code> 调用 <code>git_commit_author</code> 和 <code>git_commit_message</code> 来检索它需要的信息。这两个函数遵循 <code>libgit2</code> 文档解释如下的约定：</p>
+<pre><code>If a function returns an object as a return value, that function is a getter and the object’s lifetime is tied to the parent object.
+</code></pre>
+<p>在 <code>Rust</code> 术语中，<code>author</code>和<code>message</code>是从<code>commit</code>中借用的：<code>show_commit</code> 不需要自己释放它们，但在释放<code>commit</code>后它不能保留它们。由于这个 <code>API</code> 使用原生指针，<code>Rust</code> 不会为我们检查它们的生命周期。</p>
+<p>前面的代码假定这些字段包含 <code>UTF-8</code> 文本，这并不总是正确的，<code>Git</code> 也允许其他编码，为简洁起见，我们将在此处忽略这些问题。</p>
+<p>我们程序的<code>main</code>函数如下：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::ffi::CString;</span><br><span class="line"><span class="keyword">use</span> std::mem;</span><br><span class="line"><span class="keyword">use</span> std::os::raw::c_char;</span><br><span class="line"><span class="keyword">use</span> std::ptr;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">path</span> = std::env::<span class="title function_ invoke__">args</span>()</span><br><span class="line">        .<span class="title function_ invoke__">skip</span>(<span class="number">1</span>)</span><br><span class="line">        .<span class="title function_ invoke__">next</span>()</span><br><span class="line">        .<span class="title function_ invoke__">expect</span>(<span class="string">&quot;usage: git-toy PATH&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">path</span> = CString::<span class="title function_ invoke__">new</span>(path).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;path contains null characters&quot;</span>);</span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="title function_ invoke__">check</span>(<span class="string">&quot;initializing library&quot;</span>, raw::<span class="title function_ invoke__">git_libgit2_init</span>());</span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">repo</span> = ptr::<span class="title function_ invoke__">null_mut</span>();</span><br><span class="line">        <span class="title function_ invoke__">check</span>(</span><br><span class="line">            <span class="string">&quot;opening repository&quot;</span>,</span><br><span class="line">            raw::<span class="title function_ invoke__">git_repository_open</span>(&amp;<span class="keyword">mut</span> repo, path.<span class="title function_ invoke__">as_ptr</span>()),</span><br><span class="line">        );</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">c_name</span> = <span class="string">b&quot;HEAD\0&quot;</span>.<span class="title function_ invoke__">as_ptr</span>() <span class="keyword">as</span> *<span class="keyword">const</span> c_char;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">oid</span> = &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">oid</span> = mem::MaybeUninit::<span class="title function_ invoke__">uninit</span>();</span><br><span class="line">            <span class="title function_ invoke__">check</span>(</span><br><span class="line">                <span class="string">&quot;looking up HEAD&quot;</span>,</span><br><span class="line">                raw::<span class="title function_ invoke__">git_reference_name_to_id</span>(oid.<span class="title function_ invoke__">as_mut_ptr</span>(), repo, c_name),</span><br><span class="line">            );</span><br><span class="line">            oid.<span class="title function_ invoke__">assume_init</span>()</span><br><span class="line">        &#125;;</span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">commit</span> = ptr::<span class="title function_ invoke__">null_mut</span>();</span><br><span class="line">        <span class="title function_ invoke__">check</span>(</span><br><span class="line">            <span class="string">&quot;looking up commit&quot;</span>,</span><br><span class="line">            raw::<span class="title function_ invoke__">git_commit_lookup</span>(&amp;<span class="keyword">mut</span> commit, repo, &amp;oid),</span><br><span class="line">        );</span><br><span class="line">        <span class="title function_ invoke__">show_commit</span>(commit);</span><br><span class="line">        raw::<span class="title function_ invoke__">git_commit_free</span>(commit);</span><br><span class="line">        raw::<span class="title function_ invoke__">git_repository_free</span>(repo);</span><br><span class="line">        <span class="title function_ invoke__">check</span>(<span class="string">&quot;shutting down library&quot;</span>, raw::<span class="title function_ invoke__">git_libgit2_shutdown</span>());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这从处理路径参数和初始化库的代码开始，所有这些我们以前都见过。第一个新颖的代码是这样的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">repo</span> = ptr::<span class="title function_ invoke__">null_mut</span>();</span><br><span class="line"><span class="title function_ invoke__">check</span>(<span class="string">&quot;opening repository&quot;</span>, raw::<span class="title function_ invoke__">git_repository_open</span>(&amp;<span class="keyword">mut</span> repo, path.<span class="title function_ invoke__">as_ptr</span>()));</span><br></pre></td></tr></table></figure>
+<p>对 <code>git_repository_open</code> 的调用尝试在给定路径打开 <code>Git</code> 存储库。如果成功，它会为其分配一个新的 <code>git_repository</code> 对象并将 <code>repo</code> 设置为指向该对象。<code>Rust</code> 隐式地将引用强制转换为原始指针，因此在此处传递 <code>&amp;mut repo</code> 提供了调用所期望的 <code>*mut *mut git_repository</code>。</p>
+<p>这显示了另一个正在使用的 <code>libgit2</code> 约定（来自 <code>libgit2</code> 文档）：</p>
+<pre><code>Objects which are returned via the first argument as a pointer-to-pointer are owned by the caller and it is responsible for freeing them.
+</code></pre>
+<p>在 <code>Rust</code> 术语中，像 <code>git_repository_open</code> 这样的函数将新值的所有权传递给调用者。接下来，考虑查找存储库当前最新的 <code>commit</code> 对象<code>hash</code> 的代码：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">oid</span> = &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">oid</span> = mem::MaybeUninit::<span class="title function_ invoke__">uninit</span>();</span><br><span class="line">    <span class="title function_ invoke__">check</span>(</span><br><span class="line">        <span class="string">&quot;looking up HEAD&quot;</span>,</span><br><span class="line">        raw::<span class="title function_ invoke__">git_reference_name_to_id</span>(oid.<span class="title function_ invoke__">as_mut_ptr</span>(), repo, c_name),</span><br><span class="line">    );</span><br><span class="line">    oid.<span class="title function_ invoke__">assume_init</span>()</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><code>git_oid</code> 类型存储一个对象标识符——一个 <code>160</code> 位的哈希码，<code>Git</code> 在内部（以及在其令人愉悦的用户界面中）使用它来识别提交、文件的单个版本等。对 <code>git_reference_name_to_id</code> 的调用会查找当前“HEAD”提交的对象标识符。</p>
+<p>在 <code>C</code> 中，通过将指向变量的指针传递给填充其值的某个函数来初始化变量是完全正常的，这就是 <code>git_reference_name_to_id</code> 期望如何处理它的第一个参数。但是 <code>Rust</code> 不会让我们借用对未初始化变量的引用。我们可以用零初始化 <code>oid</code>，但这是一种浪费：存储在那里的任何值都将被简单地覆盖。</p>
+<p>可以要求 <code>Rust</code> 给我们未初始化的内存，但是因为在任何时候读取未初始化的内存都是即时的未定义行为，<code>Rust</code> 提供了一个抽象，<code>MaybeUninit</code>，以简化它的使用。<code>MaybeUninit&lt;T&gt;</code> 告诉编译器为你的类型 <code>T</code> 留出足够的内存，但不要碰它，直到你说这样做是安全的。虽然此内存归 <code>MaybeUninit</code> 所有，但编译器还将避免某些优化，这些优化可能会导致未定义的行为，即使代码中没有对未初始化内存的任何显式访问。</p>
+<p><code>MaybeUninit</code> 提供了一个方法 <code>as_mut_ptr()</code>，它产生一个 <code>*mut T</code> 指向它包装的可能未初始化的内存。通过将该指针传递给初始化内存的外部函数，然后在 <code>MaybeUninit</code> 上调用 <code>unsafe </code>方法 <code>assume_init</code> 以生成完全初始化的 <code>T</code>，可以避免未定义的行为，而不会产生初始化和立即丢弃值的额外开销。<code>assume_init</code> 是不安全的，因为在不确定内存是否实际初始化的情况下在 <code>MaybeUninit</code> 上调用它会立即导致未定义行为。</p>
+<p>在这种情况下，它是安全的，因为 <code>git_reference_name_to_id</code> 初始化了 <code>MaybeUninit</code> 拥有的内存。我们也可以将 <code>MaybeUninit</code> 用于 <code>repo</code> 和 <code>commit</code> 变量，但由于这些只是单个字，我们只需将它们初始化为 <code>null</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">commit</span> = ptr::<span class="title function_ invoke__">null_mut</span>();</span><br><span class="line"><span class="title function_ invoke__">check</span>(<span class="string">&quot;looking up commit&quot;</span>, raw::<span class="title function_ invoke__">git_commit_lookup</span>(&amp;<span class="keyword">mut</span> commit, repo, &amp;oid));</span><br></pre></td></tr></table></figure>
+<p>这需要<code>commit</code>的对象标识符并查找实际的<code>commit</code>，成功时将一个 <code>git_commit</code> 指针存储在<code>commit</code>中。</p>
+<p><code>main</code> 函数的其余部分应该是不言自明的。它调用前面定义的 <code>show_commit</code> 函数，释放提交和存储库对象，并关闭库。</p>
+<p>现在我们可以在手头的任何 <code>Git</code> 存储库上试用该程序：</p>
+<pre><code>$ cargo run /home/jimb/rbattle
+    Finished dev [unoptimized + debuginfo] target(s) in 0.0 secs
+        Running `target/debug/git-toy /home/jimb/rbattle`
+
+Jim Blandy &lt;jimb@red-bean.com&gt;
+
+Animate goop a bit.
+</code></pre>
+<h3 id="libgit2-的安全接口"><a class="markdownIt-Anchor" href="#libgit2-的安全接口"></a> <code>libgit2</code> 的安全接口</h3>
+<p><code>libgit2</code> 的原始接口是一个<code>unsafe</code>特性的完美示例：它当然可以正确使用，但 <code>Rust</code> 无法强制执行必须遵循的规则。为这样的库设计一个安全的 <code>API</code> 就是识别所有这些规则，然后找到将任何违反它们的行为转变为类型或借用检查错误的方法。</p>
+<p>那么，这里是 <code>libgit2</code> 对程序使用功能的规则：</p>
+<ul>
+<li>
+<p>在使用任何其他库函数之前，必须调用 <code>git_libgit2_init</code>，调用 <code>git_libgit2_shutdown</code> 后不能使用任何库函数；</p>
+</li>
+<li>
+<p>传递给 <code>libgit2</code> 函数的所有值都必须完全初始化，输出参数除外；</p>
+</li>
+<li>
+<p>当调用失败时，传递来保存调用结果的输出参数未初始化，不得使用它们的值；</p>
+</li>
+<li>
+<p><code>git_commit</code> 对象指的是它派生自的 <code>git_repository</code> 对象，因此前者的寿命不能超过后者；</p>
+</li>
+<li>
+<p>类似地，<code>git_signature</code> 总是从给定的 <code>git_commit</code> 借来的，并且前者的寿命不能超过后者；</p>
+</li>
+<li>
+<p>与<code>commit</code>相关的消息以及作者的姓名和电子邮件地址都是从<code>commit</code>中借用的，在提交被释放后不得使用；</p>
+</li>
+<li>
+<p>一旦一个<code>libgit2</code> 对象被释放，它就不能再被使用；</p>
+</li>
+</ul>
+<p>事实证明，可以通过 <code>Rust</code> 的类型系统或通过内部管理细节来构建 <code>libgit2</code> 的 <code>Rust</code> 接口来强制执行所有这些规则。在开始之前，让我们稍微重构一下项目。我们想要一个导出安全接口的 <code>git</code>模块，其中来自之前程序的原始接口是一个私有子模块。</p>
+<p>整个源代码树将如下所示：</p>
+<pre><code>git-toy/
+├── Cargo.toml
+├── build.rs
+└── src/
+    ├── main.rs
+    └── git/
+        ├── mod.rs
+        └── raw.rs
+</code></pre>
+<p>我们将完全重写 <code>main.rs</code>，它应该以 <code>git</code> 模块的定义开始：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> git;</span><br></pre></td></tr></table></figure>
+<p>然后我们创建 <code>git</code> 子目录，将 <code>raw.rs</code> 移入：</p>
+<pre><code>$ cd /home/jimb/git-toy
+$ mkdir src/git
+$ mv src/raw.rs src/git/raw.rs
+</code></pre>
+<p>需要在 <code>src/git/mod.rs</code> 中声明 <code>raw</code> 模块：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> raw;</span><br></pre></td></tr></table></figure>
+<p>因为它不是 <code>pub</code>，所以这个子模块对<code>main</code>程序是不可见的。稍后我们需要使用 <a target="_blank" rel="noopener" href="https://crates.io/crates/libc"><code>libc</code></a> 中的一些函数，因此我们必须在 <code>Cargo.toml</code> 中添加依赖项。完整的文件现在显示：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[package]</span></span><br><span class="line"><span class="attr">name</span> = <span class="string">&quot;git-toy&quot;</span></span><br><span class="line"><span class="attr">version</span> = <span class="string">&quot;0.1.0&quot;</span></span><br><span class="line"><span class="attr">authors</span> = [<span class="string">&quot;You &lt;you@example.com&gt;&quot;</span>]</span><br><span class="line"><span class="attr">edition</span> = <span class="string">&quot;2018&quot;</span></span><br><span class="line"><span class="section">[dependencies]</span></span><br><span class="line"><span class="attr">libc</span> = <span class="string">&quot;0.2&quot;</span></span><br></pre></td></tr></table></figure>
+<p>现在我们已经重构了我们的模块，让我们考虑错误处理。甚至<code>libgit2</code>的初始化函数也会返回一个错误码，所以我们需要先把它整理好才能开始。 一个惯用的 <code>Rust</code> 接口需要它自己的 <code>Errortype</code> 来捕获 <code>libgit2</code> 故障代码以及来自 <code>giterr_last</code> 的错误消息和类。正确的错误类型必须实现通常的<code>Error</code>、<code>Display</code>和<code>Debug</code>。然后，它需要自己的 <code>Result</code> 类型来使用这个 <code>Error</code> 类型。 以下是 <code>src/git/mod.rs</code> 中必要的定义：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::error;</span><br><span class="line"><span class="keyword">use</span> std::fmt;</span><br><span class="line"><span class="keyword">use</span> std::result;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Error</span> &#123;</span><br><span class="line">    code: <span class="type">i32</span>,</span><br><span class="line">    message: <span class="type">String</span>,</span><br><span class="line">    class: <span class="type">i32</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">fmt</span>::Display <span class="keyword">for</span> <span class="title class_">Error</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">fmt</span>(&amp;<span class="keyword">self</span>, f: &amp;<span class="keyword">mut</span> fmt::Formatter) <span class="punctuation">-&gt;</span> result::<span class="type">Result</span>&lt;(), fmt::Error&gt; &#123;</span><br><span class="line">        <span class="comment">// Displaying an `Error` simply displays the message from libgit2.</span></span><br><span class="line">        <span class="keyword">self</span>.message.<span class="title function_ invoke__">fmt</span>(f)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">error</span>::Error <span class="keyword">for</span> <span class="title class_">Error</span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">type</span> <span class="title class_">Result</span>&lt;T&gt; = result::<span class="type">Result</span>&lt;T, Error&gt;;</span><br></pre></td></tr></table></figure>
+<p>要检查原始库调用的结果，模块需要一个将 <code>libgit2</code> 返回代码转换为<code>Result</code>的函数：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::ffi::CStr;</span><br><span class="line"><span class="keyword">use</span> std::os::raw::c_int;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">check</span>(code: c_int) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;c_int&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> code &gt;= <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="title function_ invoke__">Ok</span>(code);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">error</span> = raw::<span class="title function_ invoke__">giterr_last</span>();</span><br><span class="line">        <span class="comment">// libgit2 ensures that (*error).message is always non-null and null</span></span><br><span class="line">        <span class="comment">// terminated, so this call is safe.</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">message</span> = CStr::<span class="title function_ invoke__">from_ptr</span>((*error).message)</span><br><span class="line">            .<span class="title function_ invoke__">to_string_lossy</span>()</span><br><span class="line">            .<span class="title function_ invoke__">into_owned</span>();</span><br><span class="line">        <span class="title function_ invoke__">Err</span>(Error &#123;</span><br><span class="line">            code: code <span class="keyword">as</span> <span class="type">i32</span>,</span><br><span class="line">            message,</span><br><span class="line">            class: (*error).klass <span class="keyword">as</span> <span class="type">i32</span>,</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个和原始版本中的 <code>check</code> 函数之间的主要区别在于，它构造了一个<code>Error</code>值，而不是打印<code>Errir</code>消息并立即退出。</p>
+<p>现在我们已经准备好处理 <code>libgit2</code> 的初始化了。安全接口将提供一个代表开放 <code>Git</code> 存储库的 <code>Repository</code> 类型，以及用于解析引用、查找提交等的方法。继续 <code>git/mod.rs</code>，这里是 <code>Repository</code> 的定义：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// A Git repository.</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Repository</span> &#123;</span><br><span class="line">    <span class="comment">// This must always be a pointer to a live `git_repository` structure.</span></span><br><span class="line">    <span class="comment">// No other `Repository` may point to it.</span></span><br><span class="line">    raw: *<span class="keyword">mut</span> raw::git_repository</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>Repository</code> 的 <code>raw</code> 字段不是公开的。由于只有此模块中的代码可以访问 <code>raw::git_repository</code> 指针，因此正确获取此模块应确保始终正确使用指针。</p>
+<p>如果创建<code>Repository</code>的唯一方法是成功打开一个新的 <code>Git</code> 仓库，这将确保每个<code>Repository</code>都指向一个不同的 <code>git_repository</code> 对象：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::path::Path;</span><br><span class="line"><span class="keyword">use</span> std::ptr;</span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Repository</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">open</span>&lt;P: <span class="built_in">AsRef</span>&lt;Path&gt;&gt;(path: P) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;Repository&gt; &#123;</span><br><span class="line">        <span class="title function_ invoke__">ensure_initialized</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">path</span> = <span class="title function_ invoke__">path_to_cstring</span>(path.<span class="title function_ invoke__">as_ref</span>())?;</span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">repo</span> = ptr::<span class="title function_ invoke__">null_mut</span>();</span><br><span class="line">        <span class="keyword">unsafe</span> &#123;</span><br><span class="line">            <span class="title function_ invoke__">check</span>(raw::<span class="title function_ invoke__">git_repository_open</span>(&amp;<span class="keyword">mut</span> repo, path.<span class="title function_ invoke__">as_ptr</span>()))?;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(Repository &#123; raw: repo &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由于使用安全接口做任何事情的唯一方法是从 <code>Repository</code> 值开始，并且 <code>Repository::open</code> 以调用 <code>ensure_initialized</code> 开始，我们可以确信 <code>ensure_initialized</code> 将在任何 <code>libgit2</code> 函数之前被调用。其定义如下：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">ensure_initialized</span>() &#123;</span><br><span class="line">    <span class="keyword">static</span> ONCE: std::sync::Once = std::sync::Once::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    ONCE.<span class="title function_ invoke__">call_once</span>(|| <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="title function_ invoke__">check</span>(raw::<span class="title function_ invoke__">git_libgit2_init</span>()).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;initializing libgit2 failed&quot;</span>);</span><br><span class="line">        <span class="built_in">assert_eq!</span>(libc::<span class="title function_ invoke__">atexit</span>(shutdown), <span class="number">0</span>);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">extern</span> <span class="string">&quot;C&quot;</span> <span class="keyword">fn</span> <span class="title function_">shutdown</span>() &#123;</span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Err</span>(e) = <span class="title function_ invoke__">check</span>(raw::<span class="title function_ invoke__">git_libgit2_shutdown</span>()) &#123;</span><br><span class="line">            <span class="built_in">eprintln!</span>(<span class="string">&quot;shutting down libgit2 failed: &#123;&#125;&quot;</span>, e);</span><br><span class="line">            std::process::<span class="title function_ invoke__">abort</span>();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>std::sync::Once</code> 类型有助于以线程安全的方式运行初始化代码。只有第一个调用 <code>ONCE.call_once</code> 的线程运行给定的闭包。此线程或任何其他线程的任何后续调用都会阻塞，直到第一个调用完成，然后立即返回，而无需再次运行闭包。闭包完成后，调用 <code>ONCE.call_once</code> 很便宜，只需要对存储在 <code>ONCE</code> 中的标志进行原子加载即可。</p>
+<p>在前面的代码中，初始化闭包调用<code>git_libgit2_init</code>并检查结果。它稍作调整，只是使用 <code>expect</code> 来确保初始化成功，而不是试图将错误传播回给调用者。</p>
+<p>为了确保程序调用 <code>git_libgit2_shutdown</code>，初始化闭包使用 <code>C</code> 库的 <code>atexit</code> 函数，该函数接受一个指向函数的指针以在进程退出之前调用。 <code>Rust</code> 闭包不能用作 <code>C</code> 函数指针：闭包是某种匿名类型的值，带有它捕获或引用的任何变量的值，<code>C</code>函数指针只是一个指针。但是，<code>Rust</code> <code>fn</code> 类型可以正常工作，只要将它们声明为 <code>extern</code> 以便 <code>Rust</code> 知道使用 <code>C</code> 调用约定。本地函数 <code>shutdown</code> 符合要求，并确保 <code>libgit2</code> 正确关闭。</p>
+<p>在之前我们提到恐慌跨越语言边界是未定义的行为。从<code>atexit</code> 到<code>shutdown</code> 的调用就是这样一个边界，所以<code>shutdown</code> 不要<code>panic</code> 是很重要的。这就是为什么 <code>shutdown</code> 不能简单地使用 <code>.expect</code> 来处理从 <code>raw::git_libgit2_shutdown</code> 报告的错误。相反，它必须报告错误并终止进程本身。<code>POSIX</code> 禁止在 <code>atexit</code> 处理程序中调用 <code>exit</code>，因此 <code>shutdown</code> 调用 <code>std::process::abort</code> 以突然终止程序。</p>
+<p>也许可以安排尽快调用 <code>git_libgit2_shutdown</code> ——比如说，当最后一个 <code>Repository</code> 值被删除时。但无论我们如何安排，调用 <code>git_libgit2_shutdown</code> 必须是安全 <code>API</code> 的职责。在调用它的那一刻，任何现存的 <code>libgit2</code> 对象都会变得不安全，因此安全的 <code>API</code> 不能直接暴露这个函数。</p>
+<p><code>Repository</code>的原始指针必须始终指向一个活动的 <code>git_repository</code> 对象。这意味着关闭<code>存储库</code>的唯一方法是删除拥有它的 <code>Repository</code> 值：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span> <span class="title class_">Drop</span> <span class="keyword">for</span> <span class="title class_">Repository</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">drop</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>) &#123;</span><br><span class="line">        <span class="keyword">unsafe</span> &#123;</span><br><span class="line">            raw::<span class="title function_ invoke__">git_repository_free</span>(<span class="keyword">self</span>.raw);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过仅在指向 <code>raw::git_repository</code> 的唯一指针即将消失时调用 <code>git_repository_free</code>，<code>Repository</code> 类型还确保指针在被释放后永远不会被使用。 <code>Repository::open</code> 方法使用一个名为 <code>path_to_cstring</code> 的私有函数，它有两个定义——一个用于类 <code>Unix</code> 系统，一个用于 <code>Windows</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::ffi::CString;</span><br><span class="line"><span class="meta">#[cfg(unix)]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">path_to_cstring</span>(path: &amp;Path) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;CString&gt; &#123;</span><br><span class="line">    <span class="comment">// The `as_bytes` method exists only on Unix-like systems.</span></span><br><span class="line">    <span class="keyword">use</span> std::os::unix::ffi::OsStrExt;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(CString::<span class="title function_ invoke__">new</span>(path.<span class="title function_ invoke__">as_os_str</span>().<span class="title function_ invoke__">as_bytes</span>())?)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[cfg(windows)]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">path_to_cstring</span>(path: &amp;Path) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;CString&gt; &#123;</span><br><span class="line">    <span class="comment">// Try to convert to UTF-8. If this fails, libgit2 can&#x27;t handle the path</span></span><br><span class="line">    <span class="comment">// anyway.</span></span><br><span class="line">    <span class="keyword">match</span> path.<span class="title function_ invoke__">to_str</span>() &#123;</span><br><span class="line">        <span class="title function_ invoke__">Some</span>(s) =&gt; <span class="title function_ invoke__">Ok</span>(CString::<span class="title function_ invoke__">new</span>(s)?),</span><br><span class="line">        <span class="literal">None</span> =&gt; &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">message</span> = <span class="built_in">format!</span>(<span class="string">&quot;Couldn&#x27;t convert path &#x27;&#123;&#125;&#x27; to UTF-8&quot;</span>, path.<span class="title function_ invoke__">display</span>());</span><br><span class="line">            <span class="title function_ invoke__">Err</span>(message.<span class="title function_ invoke__">into</span>())</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>libgit2</code> 接口使这段代码有点棘手。在所有平台上，<code>libgit2</code> 都接受路径为以空字符结尾的 <code>C</code> 字符串。在 <code>Windows</code> 上，<code>libgit2</code> 假定这些 <code>C</code> 字符串保存有效的 <code>UTF-8</code>，并在内部将它们转换为 <code>Windows</code> 实际需要的 <code>16</code> 位路径。这通常有效，但并不理想。<code>Windows</code> 允许文件名不是有效的 <code>Unicode</code>，因此无法以 <code>UTF-8</code> 表示。如果你有这样的文件，就不可能把它的名字传给 <code>libgit2</code>。</p>
+<p>在 <code>Rust</code> 中，文件系统路径的正确表示是 <code>std::path::Path</code>，它经过精心设计以处理可能出现在 <code>Windows</code> 或 <code>POSIX</code> 上的任何路径。这意味着 <code>Windows</code> 上的路径值无法传递给 <code>libgit2</code>，因为它们不是有效的 <code>UTF-8</code>。因此，尽管 <code>path_to_cstring</code> 的行为不太理想，但考虑到 <code>libgit2</code> 的接口，这实际上是我们能做的最好的事情。</p>
+<p>刚刚显示的两个 <code>path_to_cstring</code> 定义依赖于对我们的<code>Error</code>类型的转换：<code>?</code>运算符尝试进行此类转换，并且 <code>Windows</code> 版本显式调用 <code>.into()</code>。这些转换是不起眼的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span> <span class="title class_">From</span>&lt;<span class="type">String</span>&gt; <span class="keyword">for</span> <span class="title class_">Error</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">from</span>(message: <span class="type">String</span>) <span class="punctuation">-&gt;</span> Error &#123;</span><br><span class="line">        Error &#123;</span><br><span class="line">            code: -<span class="number">1</span>,</span><br><span class="line">            message,</span><br><span class="line">            class: <span class="number">0</span>,</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// NulError is what `CString::new` returns if a string</span></span><br><span class="line"><span class="comment">// has embedded zero bytes.</span></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">From</span>&lt;std::ffi::NulError&gt; <span class="keyword">for</span> <span class="title class_">Error</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">from</span>(e: std::ffi::NulError) <span class="punctuation">-&gt;</span> Error &#123;</span><br><span class="line">        Error &#123;</span><br><span class="line">            code: -<span class="number">1</span>,</span><br><span class="line">            message: e.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">            class: <span class="number">0</span>,</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来，让我们弄清楚如何将 <code>Git</code> 引用解析为对象标识符。由于对象标识符只是一个 <code>20</code> 字节的哈希值，因此可以在安全 <code>API</code> 中公开它：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// The identifier of some sort of object stored in the Git object</span></span><br><span class="line"><span class="comment">/// database: a commit, tree, blob, tag, etc. This is a wide hash of the</span></span><br><span class="line"><span class="comment">/// object&#x27;s contents.</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Oid</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> raw: raw::git_oid</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们将给 <code>Repository</code> 添加一个用于查找的方法：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::mem;</span><br><span class="line"><span class="keyword">use</span> std::os::raw::c_char;</span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Repository</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">reference_name_to_id</span>(&amp;<span class="keyword">self</span>, name: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;Oid&gt; &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">name</span> = CString::<span class="title function_ invoke__">new</span>(name)?;</span><br><span class="line">        <span class="keyword">unsafe</span> &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">oid</span> = &#123;</span><br><span class="line">                <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">oid</span> = mem::MaybeUninit::<span class="title function_ invoke__">uninit</span>();</span><br><span class="line">                <span class="title function_ invoke__">check</span>(raw::<span class="title function_ invoke__">git_reference_name_to_id</span>(</span><br><span class="line">                    oid.<span class="title function_ invoke__">as_mut_ptr</span>(),</span><br><span class="line">                    <span class="keyword">self</span>.raw,</span><br><span class="line">                    name.<span class="title function_ invoke__">as_ptr</span>() <span class="keyword">as</span> *<span class="keyword">const</span> c_char,</span><br><span class="line">                ))?;</span><br><span class="line">                oid.<span class="title function_ invoke__">assume_init</span>()</span><br><span class="line">            &#125;;</span><br><span class="line">            <span class="title function_ invoke__">Ok</span>(Oid &#123; raw: oid &#125;)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>尽管 <code>oid</code> 在查找失败时未初始化，但此函数保证其调用者永远不会看到未初始化的值，只需遵循 <code>Rust</code> 的 <code>Result</code> 习惯用法：调用者要么得到一个带有正确初始化的 <code>Oid</code> 值的 <code>Ok</code>，要么得到一个 <code>Err</code>。</p>
+<p>接下来，该模块需要一种从<code>Git</code>仓库中检索<code>commit</code>的方法。我们将定义一个 <code>Commit</code> 类型，如下所示：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::marker::PhantomData;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Commit</span>&lt;<span class="symbol">&#x27;repo</span>&gt; &#123;</span><br><span class="line">    <span class="comment">// This must always be a pointer to a usable `git_commit` structure.</span></span><br><span class="line">    raw: *<span class="keyword">mut</span> raw::git_commit,</span><br><span class="line">    _marker: PhantomData&lt;&amp;<span class="symbol">&#x27;repo</span> Repository&gt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>正如我们之前提到的，一个 <code>git_commit</code> 对象永远不能比它从中检索到的 <code>git_repository</code> 对象寿命长。<code>Rust</code> 的生命周期让代码准确地捕捉到了这条规则。</p>
+<p>本文前面的 <code>RefWithFlag</code> 示例使用 <code>PhantomData</code> 字段告诉 <code>Rust</code> 将类型视为包含具有给定生命周期的引用，即使该类型显然不包含此类引用，<code>Commit</code> 类型需要做类似的事情。在这种情况下，<code>_marker</code> 字段的类型是 <code>PhantomData&lt;&amp;'repo Repository&gt;</code>，这表明 <code>Rust</code> 应该将 <code>Commit&lt;'repo&gt;</code> 视为它持有对某个 <code>Repository</code> 的生命周期 <code>'repo</code> 的引用。</p>
+<p>查找<code>Commit</code>的方法如下：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span> <span class="title class_">Repository</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">find_commit</span>(&amp;<span class="keyword">self</span>, oid: &amp;Oid) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;Commit&gt; &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">commit</span> = ptr::<span class="title function_ invoke__">null_mut</span>();</span><br><span class="line">        <span class="keyword">unsafe</span> &#123;</span><br><span class="line">            <span class="title function_ invoke__">check</span>(raw::<span class="title function_ invoke__">git_commit_lookup</span>(&amp;<span class="keyword">mut</span> commit, <span class="keyword">self</span>.raw, &amp;oid.raw))?;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(Commit &#123;</span><br><span class="line">            raw: commit,</span><br><span class="line">            _marker: PhantomData,</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这如何将 <code>Commit</code> 的生命周期与 <code>Repository</code> 的生命周期联系起来？ 根据之前概述的规则，<code>find_commit</code> 的签名省略了所涉及的引用的生命周期（<a href="/2021/09/14/%E3%80%90Rust%E3%80%91%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/#rule3">看这里</a>）。如果我们要写出生命周期，完整的签名将显示为：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">find_commit</span>&lt;<span class="symbol">&#x27;repo</span>, <span class="symbol">&#x27;id</span>&gt;(&amp;<span class="symbol">&#x27;repo</span> <span class="keyword">self</span>, oid: &amp;<span class="symbol">&#x27;id</span> Oid) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;Commit&lt;<span class="symbol">&#x27;repo</span>&gt;&gt;</span><br></pre></td></tr></table></figure>
+<p>这正是我们想要的：<code>Rust</code> 将返回的 <code>Commit</code> 视为从自身（即 <code>Repository</code>）借来的东西。当一个 <code>Commit</code> 被丢弃时，它必须释放它的 <code>raw::git_commit</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span>&lt;<span class="symbol">&#x27;repo</span>&gt; <span class="built_in">Drop</span> <span class="keyword">for</span> <span class="title class_">Commit</span>&lt;<span class="symbol">&#x27;repo</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">drop</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>) &#123;</span><br><span class="line">        <span class="keyword">unsafe</span> &#123;</span><br><span class="line">            raw::<span class="title function_ invoke__">git_commit_free</span>(<span class="keyword">self</span>.raw);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从<code>Commit</code>中，可以借用<code>Signature</code>（姓名和电子邮件地址）和提交消息的文本：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Signature</span>&lt;<span class="symbol">&#x27;text</span>&gt; &#123;</span><br><span class="line">    raw: *<span class="keyword">const</span> raw::git_signature,</span><br><span class="line">    _marker: PhantomData&lt;&amp;<span class="symbol">&#x27;text</span> <span class="type">str</span>&gt;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;<span class="symbol">&#x27;repo</span>&gt; Commit&lt;<span class="symbol">&#x27;repo</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">author</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> Signature &#123;</span><br><span class="line">        <span class="keyword">unsafe</span> &#123;</span><br><span class="line">            Signature &#123;</span><br><span class="line">                raw: raw::<span class="title function_ invoke__">git_commit_author</span>(<span class="keyword">self</span>.raw),</span><br><span class="line">                _marker: PhantomData,</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">message</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;&amp;<span class="type">str</span>&gt; &#123;</span><br><span class="line">        <span class="keyword">unsafe</span> &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">message</span> = raw::<span class="title function_ invoke__">git_commit_message</span>(<span class="keyword">self</span>.raw);</span><br><span class="line">            <span class="title function_ invoke__">char_ptr_to_str</span>(<span class="keyword">self</span>, message)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>一个 <code>git_signature</code> 对象总是从别处借用它的文本；特别是 <code>git_commit_author</code> 返回的<code>Signature</code>从 <code>git_commit</code> 借用了它们的文本。所以我们的安全 <code>Signature</code> 类型包含一个 <code>PhantomData&lt;&amp;'text str&gt;</code> 来告诉 <code>Rust</code> 表现得好像它包含一个 <code>&amp;str</code> 的生命周期为 '<code>text</code>.。就像以前一样，<code>Commit::author</code> 正确地将它返回的<code>Signature</code>的文本生命周期连接到<code>Commit</code>的生命周期，而我们不需要编写任何东西，<code>Commit::message</code> 方法对保存提交消息的 <code>Option&lt;&amp;str&gt;</code> 是同理的。</p>
+<p><code>Signature</code> 包括检索作者姓名和电子邮件地址的方法：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span>&lt;<span class="symbol">&#x27;text</span>&gt; Signature&lt;<span class="symbol">&#x27;text</span>&gt; &#123;</span><br><span class="line">    <span class="comment">/// Return the author&#x27;s name as a `&amp;str`,</span></span><br><span class="line">    <span class="comment">/// or `None` if it is not well-formed UTF-8.</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">name</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;&amp;<span class="type">str</span>&gt; &#123;</span><br><span class="line">        <span class="keyword">unsafe</span> &#123; <span class="title function_ invoke__">char_ptr_to_str</span>(<span class="keyword">self</span>, (*<span class="keyword">self</span>.raw).name) &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/// Return the author&#x27;s email as a `&amp;str`,</span></span><br><span class="line">    <span class="comment">/// or `None` if it is not well-formed UTF-8.</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">email</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;&amp;<span class="type">str</span>&gt; &#123;</span><br><span class="line">        <span class="keyword">unsafe</span> &#123; <span class="title function_ invoke__">char_ptr_to_str</span>(<span class="keyword">self</span>, (*<span class="keyword">self</span>.raw).email) &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述方法依赖于私有实用函数 <code>char_ptr_to_str</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// Try to borrow a `&amp;str` from `ptr`, given that `ptr` may be null or</span></span><br><span class="line"><span class="comment">/// refer to ill-formed UTF-8. Give the result a lifetime as if it were</span></span><br><span class="line"><span class="comment">/// borrowed from `_owner`.</span></span><br><span class="line"><span class="comment">///</span></span><br><span class="line"><span class="comment">/// Safety: if `ptr` is non-null, it must point to a null-terminated C</span></span><br><span class="line"><span class="comment">/// string that is safe to access for at least as long as the lifetime of</span></span><br><span class="line"><span class="comment">/// `_owner`.</span></span><br><span class="line"><span class="keyword">unsafe</span> <span class="keyword">fn</span> <span class="title function_">char_ptr_to_str</span>&lt;T&gt;(_owner: &amp;T, ptr: *<span class="keyword">const</span> c_char) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;&amp;<span class="type">str</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> ptr.<span class="title function_ invoke__">is_null</span>() &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">None</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        CStr::<span class="title function_ invoke__">from_ptr</span>(ptr).<span class="title function_ invoke__">to_str</span>().<span class="title function_ invoke__">ok</span>()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>_owner</code> 参数的值从未使用，但它有生命周期，如果显示声明是这样的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">char_ptr_to_str</span>&lt;<span class="symbol">&#x27;o</span>, T: <span class="symbol">&#x27;o</span>&gt;(_owner: &amp;<span class="symbol">&#x27;o</span> T, ptr: *<span class="keyword">const</span> c_char) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;&amp;<span class="symbol">&#x27;o</span> <span class="type">str</span>&gt;</span><br></pre></td></tr></table></figure>
+<p><code>CStr::from_ptr</code> 函数返回一个 <code>&amp;CStr</code>，它的生命周期是完全无界的，因为它是从一个解引用的原始指针中借来的。无限生命周期几乎总是不准确的，因此最好尽快约束它们。包含 <code>_owner</code> 参数会导致 <code>Rust</code> 将其生命周期归因于返回值的类型，因此调用者可以获得更准确的有界引用。</p>
+<p>尽管 <code>libgit2</code> 的文档非常好，但从 <code>libgit2</code> 文档中不清楚 <code>git_signature</code> 的电子邮件和作者指针是否可以为空。作者在源代码中挖掘了一段时间，但无法以某种方式说服自己，最终决定 <code>char_ptr_to_str</code> 可能为空，以防万一。但是在 <code>Rust</code> 中，类型会立即回答这类问题：如果是 <code>&amp;str</code>，则可以指望字符串存​​在；如果是 <code>Option&lt;&amp;str&gt;</code>，则为可选。</p>
+<p>最后，我们为我们需要的所有功能提供了安全接口。 <code>src/main.rs</code> 中的新 <code>main</code> 函数被精简了很多，看起来像真正的 <code>Rust</code> 代码：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">path</span> = std::env::<span class="title function_ invoke__">args_os</span>()</span><br><span class="line">        .<span class="title function_ invoke__">skip</span>(<span class="number">1</span>)</span><br><span class="line">        .<span class="title function_ invoke__">next</span>()</span><br><span class="line">        .<span class="title function_ invoke__">expect</span>(<span class="string">&quot;usage: git-toy PATH&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">repo</span> = git::Repository::<span class="title function_ invoke__">open</span>(&amp;path).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;opening repository&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">commit_oid</span> = repo</span><br><span class="line">        .<span class="title function_ invoke__">reference_name_to_id</span>(<span class="string">&quot;HEAD&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">expect</span>(<span class="string">&quot;looking up &#x27;HEAD&#x27; reference&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">commit</span> = repo.<span class="title function_ invoke__">find_commit</span>(&amp;commit_oid).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;looking up commit&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">author</span> = commit.<span class="title function_ invoke__">author</span>();</span><br><span class="line">    <span class="built_in">println!</span>(</span><br><span class="line">        <span class="string">&quot;&#123;&#125; &lt;&#123;&#125;&gt;\n&quot;</span>,</span><br><span class="line">        author.<span class="title function_ invoke__">name</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;(none)&quot;</span>),</span><br><span class="line">        author.<span class="title function_ invoke__">email</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;none&quot;</span>)</span><br><span class="line">    );</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, commit.<span class="title function_ invoke__">message</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;(none)&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在本文中，我们已经从不提供安全保证的简单接口转变为安全 <code>API</code>，通过将任何违反后者规约的行为，改由 <code>Rust</code> 类型错误来包装本质上不安全的 <code>API</code>。 结果是 <code>Rust</code> 可以确保正确使用接口。在大多数情况下，我们让 <code>Rust</code> 强制执行的规则是 <code>C</code> 和 <code>C++</code> 程序员最终强加给自己的那种规则。 让 <code>Rust</code> 感觉比 <code>C</code> 和 <code>C++</code> 严格得多的原因不是规则如此陌生，而是这种执行是机械的和全面的。</p>
+<h3 id="总结"><a class="markdownIt-Anchor" href="#总结"></a> 总结</h3>
+<p><code>Rust</code> 不是一门简单的语言，它的目标是跨越两个截然不同的世界，它是一种现代编程语言，设计安全，具有闭包和迭代器等便利性，但它旨在让我们以最小的运行时开销控制运行它的机器的原始功能。</p>
+<p>语言的轮廓由这些目标决定，<code>Rust</code> 设法用安全代码弥合了大部分差距。它的借用检查器和零成本抽象使我们尽可能接近裸机，而不会冒未定义行为的风险。当这还不够时，或者当想利用现有的 <code>C</code> 代码时，不安全的代码和外部函数接口已准备就绪。但同样，该语言不仅仅为我们提供这些不安全的功能，目标始终是使用不安全的特性来构建安全的 <code>API</code>，这就是我们对 <code>libgit2</code> 所做的。这也是 <code>Rust</code> 团队对 <code>Box</code>、<code>Vec</code>、其他集合、<code>Chaneel</code>等所做的事情：标准库充满了安全抽象，在幕后用一些不安全的代码实现。</p>
+<p>具有 <code>Rust</code> 雄心壮志的语言，或许注定不会成为最简单的工具，但 <code>Rust</code> 是安全、快速、并发且有效的。使用它来构建大型、快速、安全、稳健的系统，充分利用它们所运行的硬件的全部功能，用它来让软件变得更好。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/05/06/Rust/Rust-ffi/" title="【Rust】Foreign Function">https://blog.fudenglong.site/2022/05/06/Rust/Rust-ffi/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Foreign-Function/" rel="tag"># Foreign Function</a>
+              <a href="/tags/ffi/" rel="tag"># ffi</a>
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/05/05/Rust/%E3%80%90Rust%E3%80%91Unsafe-%E4%BB%A3%E7%A0%81/" rel="prev" title="【Rust】unsafe 代码">
+                  <i class="fa fa-angle-left"></i> 【Rust】unsafe 代码
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/05/11/Rust/anyhow-and-thiserror/" rel="next" title="【Rust】anyhow & thiserror">
+                  【Rust】anyhow & thiserror <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/05/06/Rust/Rust-ffi/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>
