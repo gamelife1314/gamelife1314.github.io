@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Macvlan 和 ipvlan 是 Linux 网络驱动程序，可将底层或主机接口直接暴露给主机中运行的虚拟机或容器。在运行裸机服务器时，主机联网可以很简单，只需几个以太网接口和一个默认网关即可提供外部连接。但是当在一台主机上运行多个虚拟机时，就需要在主机内和主机间提供虚拟机之间的连接。单个主机中的虚拟机数量平均不超过 15-20 个。在主机中运行容器时，单个主机中的容器数量很容易超过 100 个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux 虚拟网络之MACVLAN &amp; IPVLAN">
+<meta property="og:url" content="https://blog.fudenglong.site/2024/03/08/Network/linux-macvlan/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Macvlan 和 ipvlan 是 Linux 网络驱动程序，可将底层或主机接口直接暴露给主机中运行的虚拟机或容器。在运行裸机服务器时，主机联网可以很简单，只需几个以太网接口和一个默认网关即可提供外部连接。但是当在一台主机上运行多个虚拟机时，就需要在主机内和主机间提供虚拟机之间的连接。单个主机中的虚拟机数量平均不超过 15-20 个。在主机中运行容器时，单个主机中的容器数量很容易超过 100 个">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/08/Network/linux-macvlan/arch.png">
+<meta property="article:published_time" content="2024-03-08T03:22:53.000Z">
+<meta property="article:modified_time" content="2024-03-08T03:22:53.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="MACVLAN">
+<meta property="article:tag" content="IPVLAN">
+<meta property="article:tag" content="VLAN">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2024/03/08/Network/linux-macvlan/arch.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2024/03/08/Network/linux-macvlan/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2024/03/08/Network/linux-macvlan/","path":"2024/03/08/Network/linux-macvlan/","title":"Linux 虚拟网络之MACVLAN & IPVLAN"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Linux 虚拟网络之MACVLAN & IPVLAN | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#macvlan"><span class="nav-number">1.</span> <span class="nav-text"> MACVLAN</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#docker-macvlan-%E7%BD%91%E7%BB%9C"><span class="nav-number">1.1.</span> <span class="nav-text"> Docker Macvlan 网络</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#docker%E5%A4%9Amacvalan%E7%BD%91%E7%BB%9C"><span class="nav-number">1.2.</span> <span class="nav-text"> Docker多Macvalan网络</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ipvlan"><span class="nav-number">2.</span> <span class="nav-text"> ipvlan</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#l2"><span class="nav-number">2.1.</span> <span class="nav-text"> L2</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#l3"><span class="nav-number">2.2.</span> <span class="nav-text"> L3</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#docker"><span class="nav-number">2.3.</span> <span class="nav-text"> docker</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#benchmark"><span class="nav-number">3.</span> <span class="nav-text"> benchmark</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BD%91%E5%8D%A1%E6%B7%B7%E6%9D%82%E6%A8%A1%E5%BC%8F"><span class="nav-number">4.</span> <span class="nav-text"> 网卡混杂模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="nav-number">5.</span> <span class="nav-text"> 参考链接</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2024/03/08/Network/linux-macvlan/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Linux 虚拟网络之MACVLAN & IPVLAN | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux 虚拟网络之MACVLAN & IPVLAN
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-03-08 11:22:53" itemprop="dateCreated datePublished" datetime="2024-03-08T11:22:53+08:00">2024-03-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Linux/Network/" itemprop="url" rel="index"><span itemprop="name">Network</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>28 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>Macvlan</code> 和 <code>ipvlan</code> 是 <code>Linux</code> 网络驱动程序，可将底层或主机接口直接暴露给主机中运行的虚拟机或容器。在运行裸机服务器时，主机联网可以很简单，只需几个以太网接口和一个默认网关即可提供外部连接。但是当在一台主机上运行多个虚拟机时，就需要在主机内和主机间提供虚拟机之间的连接。单个主机中的虚拟机数量平均不超过 <code>15-20</code> 个。在主机中运行容器时，单个主机中的容器数量很容易超过 <code>100</code> 个，这就需要有复杂的机制来实现容器之间的互联。容器或虚拟机之间的通信大致有两种方式，在底层网络中，通常使用网桥、macvlan、ipvlan将虚拟机或容器直接暴露于主机网络。但是在用于跨主机通信的<code>overlay</code>网络中，会使用 <code>VXLAN</code> 这样的技术进行额外的封装。</p>
+<p>在安装 <code>docekr</code> 之后，会默认创建 <code>docker0</code> 这样的网桥，这也是<code>docker</code>默认的<a href="/2023/12/09/Network/container-network-single-host">容器网络</a>实现方式，连接同一个网桥上的容器，处于相同的网络之内，可以直接在二层实现网络互通，对于外部访问则通过网桥实现。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ ifconfig docker0</span><br><span class="line">docker0: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500</span><br><span class="line">    inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255</span><br><span class="line">    inet6 fe80::42:92ff:feb9:e637  prefixlen 64  scopeid 0x20&lt;link&gt;</span><br><span class="line">    ether 02:42:92:b9:e6:37  txqueuelen 0  (Ethernet)</span><br><span class="line">    RX packets 15861  bytes 835715 (835.7 KB)</span><br><span class="line">    RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">    TX packets 31502  bytes 48605473 (48.6 MB)</span><br><span class="line">    TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br></pre></td></tr></table></figure>
+<p>而<code>macvlan</code>和 <code>ipvlan</code>允许单个物理接口创建出多个子接口，其中每个<code>macvlan</code>子都有唯一的<code>MAC</code>和<code>IP</code>地址，并直接暴露在底层网络中。<code>macvlan</code> 接口通常用于虚拟化应用，每个 <code>macvlan</code> 接口都连接到一个容器或虚拟机。<code>macvlan</code> 有<code>4</code>种类型（<code>Private</code>、<code>VEPA</code>、<code>Bridge</code>、<code>Passthru</code>），常用的类型是 <code>Bridge</code>，它允许单个主机中的实体在数据包不离开主机的情况下相互通信。对于外部连接，则使用底层网络，下图显示两个容器使用 <code>macvlan</code> 网桥相互通信并与外界通信，两个容器都将使用 <code>macvlan</code> 子接口直接接入底层网络。</p>
+<p><code>ipvlan</code> 与 <code>macvlan</code> 类似，区别在于每个子接口具有相同的 <code>mac</code> 地址，<code>ipvlan</code> 支持 <code>L2</code> 和 <code>L3</code> 模式，父接口只能选择其中一种工作模式，在 <code>ipvlan l2</code> 模式下，父接口作为交换机来转发子接口的数据，同一个网络的子接口可以通过父接口来转发数据，而如果想发送到其他网络，报文则会通过父接口的路由转发出去。<code>L3</code> 模式下，<code>ipvlan</code> 有点像路由器的功能，它在各个虚拟网络和主机网络之间进行不同网络报文的路由转发工作。只要父接口相同，即使虚拟机/容器不在同一个网络，也可以互相 <code>ping</code> 通对方，因为 <code>ipvlan</code> 会在中间做报文的转发工作。</p>
+<img data-src="/2024/03/08/Network/linux-macvlan/arch.png" class="">
+<span id="more"></span>
+<h3 id="macvlan"><a class="markdownIt-Anchor" href="#macvlan"></a> MACVLAN</h3>
+<p>可以使用 <code>ip</code> 命令来创建 <code>macvlan</code> 设备：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ip link add link eth0 name macvlan1 type macvlan mode bridge</span><br><span class="line">ip link add link eth0 name macvlan2 type macvlan mode bridge</span><br></pre></td></tr></table></figure>
+<p>创建两个网络命名空间，将 <code>macvlan</code> 设备分别放入，模拟容器之间的通信，而且将它们的名字在两个命名空间之中都修改为了 <code>eth0</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ip netns add net1</span><br><span class="line">ip netns add net2</span><br><span class="line">ip link set macvlan1 netns net1</span><br><span class="line">ip link set macvlan2 netns net2</span><br><span class="line">ip netns exec net1 ip link set macvlan1 name eth0</span><br><span class="line">ip netns exec net2 ip link set macvlan2 name eth0</span><br></pre></td></tr></table></figure>
+<p>然后设置<code>IP</code>地址并且启用，要注意的是设置的<code>IP</code>地址和<code>eth0</code>必须在同一网段内，例如，这里 <code>eth0</code> 的网络是 <code>172.19.96.0/20</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ ip addr show eth0</span><br><span class="line">2: eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc mq state UP group default qlen 1000</span><br><span class="line">    link/ether 00:15:5d:41:e5:36 brd ff:ff:ff:ff:ff:ff</span><br><span class="line">    inet 172.28.252.45/20 brd 172.28.255.255 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet6 fe80::215:5dff:fe41:e536/64 scope link</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br></pre></td></tr></table></figure>
+<p>所以，可以将两个 <code>macvlan</code> 设备的地址分别设置为 <code>172.28.248.10</code> 和 <code>172.28.248.9</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">ip netns exec net1 ip addr add 172.28.248.10/20 dev eth0</span><br><span class="line">ip netns exec net2 ip addr add 172.28.248.9/20 dev eth0</span><br><span class="line">ip netns exec net1 ip link set eth0 up</span><br><span class="line">ip netns exec net2 ip link set eth0 up</span><br><span class="line">ip netns exec net1 ip -detail link show eth0</span><br><span class="line">28: eth0@if2: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000</span><br><span class="line">    link/ether 8e:c0:cd:f7:cb:3b brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65521</span><br><span class="line">    macvlan mode bridge bcqueuelen 1000 usedbcqueuelen 1000 addrgenmode eui64 numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">$ ip netns exec net2 ip -detail link show eth0</span><br><span class="line">29: eth0@if2: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000</span><br><span class="line">    link/ether 5e:54:bb:4c:55:b6 brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65521</span><br><span class="line">    macvlan mode bridge bcqueuelen 1000 usedbcqueuelen 1000 addrgenmode eui64 numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">$  ip netns exec net1 ip a s eth0</span><br><span class="line">28: eth0@if2: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default qlen 1000</span><br><span class="line">    link/ether 8e:c0:cd:f7:cb:3b brd ff:ff:ff:ff:ff:ff link-netnsid 0</span><br><span class="line">    inet 172.28.248.10/20 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet6 fe80::8cc0:cdff:fef7:cb3b/64 scope link</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">$ ip netns exec net2 ip a s eth0</span><br><span class="line">29: eth0@if2: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default qlen 1000</span><br><span class="line">    link/ether 5e:54:bb:4c:55:b6 brd ff:ff:ff:ff:ff:ff link-netnsid 0</span><br><span class="line">    inet 172.28.248.9/20 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet6 fe80::5c54:bbff:fe4c:55b6/64 scope link</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br></pre></td></tr></table></figure>
+<p>测试命名空间之间的网络连通性：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ ip netns exec net2 ping -c 3 172.28.248.10</span><br><span class="line">PING 172.28.248.10 (172.28.248.10) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.248.10: icmp_seq=1 ttl=64 time=0.035 ms</span><br><span class="line">64 bytes from 172.28.248.10: icmp_seq=2 ttl=64 time=0.023 ms</span><br><span class="line">64 bytes from 172.28.248.10: icmp_seq=3 ttl=64 time=0.024 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.248.10 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2058ms</span><br><span class="line">rtt min/avg/max/mdev = 0.023/0.027/0.035/0.005 ms</span><br><span class="line">$ ip netns exec net1 ping -c 3 172.28.248.9</span><br><span class="line">PING 172.28.248.9 (172.28.248.9) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.248.9: icmp_seq=1 ttl=64 time=0.016 ms</span><br><span class="line">64 bytes from 172.28.248.9: icmp_seq=2 ttl=64 time=0.022 ms</span><br><span class="line">64 bytes from 172.28.248.9: icmp_seq=3 ttl=64 time=0.021 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.248.9 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2098ms</span><br><span class="line">rtt min/avg/max/mdev = 0.016/0.019/0.022/0.002 ms</span><br></pre></td></tr></table></figure>
+<p>但是此时从主机无法访问命名空间的网络，从命名空间也无法访问主机网络：</p>
+<div class="note danger"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ ping -c 3 172.28.248.10</span><br><span class="line">PING 172.28.248.10 (172.28.248.10) 56(84) bytes of data.</span><br><span class="line">From 172.28.252.45 icmp_seq=1 Destination Host Unreachable</span><br><span class="line">From 172.28.252.45 icmp_seq=2 Destination Host Unreachable</span><br><span class="line">From 172.28.252.45 icmp_seq=3 Destination Host Unreachable</span><br><span class="line"></span><br><span class="line">--- 172.28.248.10 ping statistics ---</span><br><span class="line">3 packets transmitted, 0 received, +3 errors, 100% packet loss, time 2079ms</span><br><span class="line">pipe 3</span><br><span class="line">$ ip netns exec net1 ping -c 3 172.28.252.45</span><br><span class="line">PING 172.28.252.45 (172.28.252.45) 56(84) bytes of data.</span><br><span class="line"></span><br><span class="line">--- 172.28.252.45 ping statistics ---</span><br><span class="line">3 packets transmitted, 0 received, 100% packet loss, time 2098ms</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+<p>这个是 <code>macvlan</code> 网络的限制，解决方案参见<a target="_blank" rel="noopener" href="https://blog.oddbit.com/post/2018-03-12-using-docker-macvlan-networks/">这里</a>，通过在主机上再创建一个<code>macvlan</code>子接口，通过它和 <code>net1</code> 和 <code>net2</code> 的网络打通：</p>
+<div class="note success"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">ip link add mynet-shim link eth0 type macvlan mode bridge</span><br><span class="line">ip addr add 172.28.248.254/32 dev mynet-shim</span><br><span class="line">ip link set mynet-shim up</span><br><span class="line">ip route add 172.28.248.0/21 dev mynet-shim</span><br><span class="line">$ ping -c 3 172.28.248.9</span><br><span class="line">PING 172.28.248.9 (172.28.248.9) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.248.9: icmp_seq=1 ttl=64 time=0.075 ms</span><br><span class="line">64 bytes from 172.28.248.9: icmp_seq=2 ttl=64 time=0.047 ms</span><br><span class="line">64 bytes from 172.28.248.9: icmp_seq=3 ttl=64 time=0.029 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.248.9 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2082ms</span><br><span class="line">rtt min/avg/max/mdev = 0.029/0.050/0.075/0.018 ms</span><br><span class="line">$ ip netns exec net1 ping -c 3 172.28.252.45</span><br><span class="line">PING 172.28.252.45 (172.28.252.45) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=1 ttl=64 time=0.057 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=2 ttl=64 time=0.037 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=3 ttl=64 time=0.034 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.252.45 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2052ms</span><br><span class="line">rtt min/avg/max/mdev = 0.034/0.042/0.057/0.010 ms</span><br></pre></td></tr></table></figure></div>
+<p>清理测试现场使用：</p>
+<blockquote>
+<p><code>ip netns delete net1</code><br />
+<code>ip netns delete net2</code><br />
+<code>ip link delete mynet-shim</code></p>
+</blockquote>
+<h4 id="docker-macvlan-网络"><a class="markdownIt-Anchor" href="#docker-macvlan-网络"></a> <code>Docker Macvlan</code> 网络</h4>
+<p><code>docker</code> 默认的容器网络实现方式是通过<code>docker0</code>网桥将容器都连接起来，实现容器之间的互通，也可以通过 <code>macvlan</code> 实现容器网络。首先在 <code>docker</code> 中需要创建基于 <code>macvlan</code> 的网络，限定容器只能分配 <code>172.28.244.0/22</code> 之内的地址，并且保留地址 <code>172.28.244.254</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ docker network create -d macvlan --subnet=172.28.240.0/20 --gateway=172.28.240.1 --ip-range 172.28.244.0/22 --aux-address &#x27;host=172.28.244.254&#x27; -o parent=eth0 macvlan</span><br><span class="line">$ docker network ls</span><br><span class="line">NETWORK ID     NAME      DRIVER    SCOPE</span><br><span class="line">8599456a5481   bridge    bridge    local</span><br><span class="line">72f3e075f337   host      host      local</span><br><span class="line">c2567c18f640   macvlan   macvlan   local</span><br><span class="line">5daaac101de2   none      null      local</span><br></pre></td></tr></table></figure>
+<p>依然要注意的是这里的子网 <code>172.28.240.0/20</code> 必须和 <code>eth0</code> 同属一个网络内，或者必须是它的子集，<code>eth0</code> 的网络是 <code>172.28.240.0/20</code>。为避免<code>IP</code>冲突，通过指定 <code>ip</code> 的方式创建两个容器，镜像 <code>ubuntu:local</code> 是本地构建的添加了很多网络测试工具：</p>
+<blockquote>
+<p><code>docker run -itd --name ubuntu1 --ip=172.28.244.2 --network macvlan ubuntu:local</code><br />
+<code>docker run -itd --name ubuntu2 --ip=172.28.244.3 --network macvlan ubuntu:local</code></p>
+</blockquote>
+<p>查看容器的 <code>eth0</code> 网口详细信息并测试网络连通性：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ docker exec -it ubuntu1 ip -detail addr show eth0</span><br><span class="line">33: eth0@if2: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default</span><br><span class="line">    link/ether 02:42:ac:1c:f4:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65521</span><br><span class="line">    macvlan mode bridge bcqueuelen 1000 usedbcqueuelen 1000 numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet 172.28.244.2/22 brd 172.28.247.255 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">$ docker exec -it ubuntu2 ip -detail addr show eth0</span><br><span class="line">34: eth0@if2: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default</span><br><span class="line">    link/ether 02:42:ac:1c:f4:03 brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65521</span><br><span class="line">    macvlan mode bridge bcqueuelen 1000 usedbcqueuelen 1000 numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet 172.28.244.3/22 brd 172.28.247.255 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">$ docker exec -it ubuntu2 ping -c 3 172.28.244.2</span><br><span class="line">PING 172.28.244.2 (172.28.244.2) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=1 ttl=64 time=0.061 ms</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=2 ttl=64 time=0.025 ms</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=3 ttl=64 time=0.028 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.244.2 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2069ms</span><br><span class="line">rtt min/avg/max/mdev = 0.025/0.038/0.061/0.016 ms</span><br></pre></td></tr></table></figure>
+<p>和上面的示例一样，此时从<code>Host</code>访问荣日和和从容器访问<code>Host</code>都会失败：</p>
+<div class="note danger"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ docker exec -it ubuntu2 ping -c 3 172.28.252.45</span><br><span class="line">PING 172.28.252.45 (172.28.252.45) 56(84) bytes of data.</span><br><span class="line">From 172.28.244.3 icmp_seq=1 Destination Host Unreachable</span><br><span class="line">From 172.28.244.3 icmp_seq=2 Destination Host Unreachable</span><br><span class="line">From 172.28.244.3 icmp_seq=3 Destination Host Unreachable</span><br><span class="line"></span><br><span class="line">--- 172.28.252.45 ping statistics ---</span><br><span class="line">3 packets transmitted, 0 received, +3 errors, 100% packet loss, time 2063ms</span><br><span class="line">pipe 3</span><br><span class="line">$ ping 172.28.244.2</span><br><span class="line">PING 172.28.244.2 (172.28.244.2) 56(84) bytes of data.</span><br><span class="line">From 172.28.252.45 icmp_seq=1 Destination Host Unreachable</span><br><span class="line">From 172.28.252.45 icmp_seq=2 Destination Host Unreachable</span><br><span class="line">From 172.28.252.45 icmp_seq=3 Destination Host Unreachable</span><br><span class="line">^C</span><br><span class="line">--- 172.28.244.2 ping statistics ---</span><br><span class="line">5 packets transmitted, 0 received, +3 errors, 100% packet loss, time 4161ms</span><br><span class="line">pipe 4</span><br></pre></td></tr></table></figure></div>
+<p>同样添加如下的设备用于打通主机和容器之间的网络，容器网络和主机网络的网络地址都是一样的，但是在添加路由时只限定了容器网络地址段的地址通过 <code>mynet-shim</code> 进行路由：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ip link add mynet-shim link eth0 type macvlan mode bridge</span><br><span class="line">ip addr add 172.28.244.254/32 dev mynet-shim</span><br><span class="line">ip link set mynet-shim up</span><br><span class="line">ip route add 172.28.244.0/22 dev mynet-shim</span><br></pre></td></tr></table></figure>
+<p>然后进行测试网络连通正常：</p>
+<div class="note success"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ ping -c 3 172.28.244.2</span><br><span class="line">PING 172.28.244.2 (172.28.244.2) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=1 ttl=64 time=0.040 ms</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=2 ttl=64 time=0.034 ms</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=3 ttl=64 time=0.030 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.244.2 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2109ms</span><br><span class="line">rtt min/avg/max/mdev = 0.030/0.034/0.040/0.004 ms</span><br><span class="line">$ docker exec -it ubuntu2 ping -c 3 172.28.252.45</span><br><span class="line">PING 172.28.252.45 (172.28.252.45) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=1 ttl=64 time=0.081 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=2 ttl=64 time=0.032 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=3 ttl=64 time=0.039 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.252.45 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2058ms</span><br><span class="line">rtt min/avg/max/mdev = 0.032/0.050/0.081/0.021 ms</span><br></pre></td></tr></table></figure></div>
+<h4 id="docker多macvalan网络"><a class="markdownIt-Anchor" href="#docker多macvalan网络"></a> <code>Docker</code>多<code>Macvalan</code>网络</h4>
+<p>如果想在单个主机上创建多个 <code>macvlan</code> 网络时会创建失败，因为 <code>Docker</code> 的 <code>Macvlan</code> 网络会独占整个物理网卡：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker network create -d macvlan --subnet=172.19.104.0/22 --gateway=172.19.104.1 -o parent=eth0 macvlan1</span><br><span class="line">Error response from daemon: network dm-f46f08bb4d34 is already using parent interface eth0</span><br></pre></td></tr></table></figure>
+<p>但是 <code>macvlan</code> 支持 <code>VLAN</code>，所以可以通过 <code>VLAN</code> 将 <code>eth0</code> 划分为不同的网络，然后基于 <code>VLAN</code> 再创建 <code>macvlan</code> 的网络。首先清除之前创建的 <code>macvlan</code> 网络：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker stop ubuntu1 ubuntu2</span><br><span class="line">docker container prune</span><br><span class="line">docker network rm macvlan </span><br></pre></td></tr></table></figure>
+<details class="note danger"><summary><p>可以完全不执行这段命令，使用docker创建网络的命令能够自动创建vlan</p>
+</summary>
+<p>创建 <code>VLAN</code>，设置<code>IP</code>，并启用，如果对网络地址、子网、广播地址不会计算，可以点击<a target="_blank" rel="noopener" href="https://tool.chinaz.com/tools/subnetmask">这里</a>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">ip link add link eth0 name eth0.10 type vlan id 10</span><br><span class="line">ip link add link eth0 name eth0.20 type vlan id 20 </span><br><span class="line">ip addr add 172.28.244.1/24 brd 172.28.244.255 dev eth0.10</span><br><span class="line">ip addr add 172.19.248.1/24 brd 172.28.248.255 dev eth0.20</span><br><span class="line">ip link set dev eth0.10 up</span><br><span class="line">ip link set dev eth0.20 up</span><br><span class="line">$ ip -d a s eth0.10</span><br><span class="line">42: eth0.10@eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default qlen 1000</span><br><span class="line">    link/ether 00:15:5d:41:e5:36 brd ff:ff:ff:ff:ff:ff promiscuity 0 minmtu 0 maxmtu 65535</span><br><span class="line">    vlan protocol 802.1Q id 10 &lt;REORDER_HDR&gt; numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet 172.28.244.1/24 brd 172.28.244.255 scope global eth0.10</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet6 fe80::215:5dff:fe41:e536/64 scope link tentative</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">$ ip -d a s eth0.20</span><br><span class="line">43: eth0.20@eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default qlen 1000</span><br><span class="line">    link/ether 00:15:5d:41:e5:36 brd ff:ff:ff:ff:ff:ff promiscuity 0 minmtu 0 maxmtu 65535</span><br><span class="line">    vlan protocol 802.1Q id 20 &lt;REORDER_HDR&gt; numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet 172.19.248.1/24 brd 172.28.244.255 scope global eth0.20</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet6 fe80::215:5dff:fe41:e536/64 scope link</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br></pre></td></tr></table></figure>
+
+</details>
+<p>然后创建两个 <code>Docker macvlan</code> 网络，这里的父接口指定的是 <code>eth0.10</code> 不再是 <code>eth0</code>，实际上它是一个 <code>VLAN</code>，<code>docker</code> 能够自动识别并且创建<code>vlan</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">$ docker network create -d macvlan --subnet=172.28.244.0/24 --gateway=172.28.244.1 --aux-address &#x27;host=172.28.244.254&#x27; -o parent=eth0.10 macvlan1-net</span><br><span class="line">$ docker network create -d macvlan --subnet=172.28.248.0/24 --gateway=172.28.248.1 --aux-address &#x27;host=172.28.248.254&#x27; -o parent=eth0.20 macvlan2-net</span><br><span class="line">$ docker network ls</span><br><span class="line">NETWORK ID     NAME           DRIVER    SCOPE</span><br><span class="line">8599456a5481   bridge         bridge    local</span><br><span class="line">72f3e075f337   host           host      local</span><br><span class="line">934949bed44c   macvlan1-net   macvlan   local</span><br><span class="line">b49e873d9e89   macvlan2-net   macvlan   local</span><br><span class="line">5daaac101de2   none           null      local</span><br><span class="line">$ ip -d addr show type vlan</span><br><span class="line">44: eth0.10@eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default</span><br><span class="line">    link/ether 00:15:5d:41:e5:36 brd ff:ff:ff:ff:ff:ff promiscuity 0 minmtu 0 maxmtu 65535</span><br><span class="line">    vlan protocol 802.1Q id 10 &lt;REORDER_HDR&gt; numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet6 fe80::215:5dff:fe41:e536/64 scope link</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">45: eth0.20@eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default</span><br><span class="line">    link/ether 00:15:5d:41:e5:36 brd ff:ff:ff:ff:ff:ff promiscuity 0 minmtu 0 maxmtu 65535</span><br><span class="line">    vlan protocol 802.1Q id 20 &lt;REORDER_HDR&gt; numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet6 fe80::215:5dff:fe41:e536/64 scope link</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br></pre></td></tr></table></figure>
+<p>基于两个不同的 <code>macvlan</code> 网络创建两个容器，发现他们之间并不互通，因为它们处于不同的 <code>vlan</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker run -itd --name ubuntu1 --ip=172.28.244.2 --network macvlan1-net ubuntu:local</span><br><span class="line">docker run -itd --name ubuntu2 --ip=172.28.244.3 --network macvlan1-net ubuntu:local</span><br><span class="line">docker run -itd --name ubuntu3 --ip=172.28.248.2 --network macvlan2-net ubuntu:local</span><br><span class="line">docker run -itd --name ubuntu4 --ip=172.28.248.3 --network macvlan2-net ubuntu:local</span><br></pre></td></tr></table></figure>
+<p>相同 <code>vlan</code> 之间的容器网络互通：</p>
+<div class="tabs" id="相同-vlan-容器互通"><ul class="nav-tabs"><li class="tab active"><a href="#相同-vlan-容器互通-1">eth.10</a></li><li class="tab"><a href="#相同-vlan-容器互通-2">eth.20</a></li></ul><div class="tab-content"><div class="tab-pane active" id="相同-vlan-容器互通-1"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ docker exec -it ubuntu1 ip -d addr show eth0</span><br><span class="line">46: eth0@if44: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default</span><br><span class="line">    link/ether 02:42:ac:1c:f4:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65535</span><br><span class="line">    macvlan mode bridge bcqueuelen 1000 usedbcqueuelen 1000 numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet 172.28.244.2/24 brd 172.28.244.255 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">$ docker exec -it ubuntu2 ip -d addr show eth0</span><br><span class="line">47: eth0@if44: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default</span><br><span class="line">    link/ether 02:42:ac:1c:f4:03 brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65535</span><br><span class="line">    macvlan mode bridge bcqueuelen 1000 usedbcqueuelen 1000 numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet 172.28.244.3/24 brd 172.28.244.255 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">$ docker exec -it ubuntu1 ping -c 3 172.28.244.3</span><br><span class="line">PING 172.28.244.3 (172.28.244.3) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.244.3: icmp_seq=1 ttl=64 time=0.026 ms</span><br><span class="line">64 bytes from 172.28.244.3: icmp_seq=2 ttl=64 time=0.025 ms</span><br><span class="line">64 bytes from 172.28.244.3: icmp_seq=3 ttl=64 time=0.028 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.244.3 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2060ms</span><br><span class="line">rtt min/avg/max/mdev = 0.025/0.026/0.028/0.001 ms</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="相同-vlan-容器互通-2"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ docker exec -it ubuntu3 ip -d addr show eth0</span><br><span class="line">48: eth0@if45: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default</span><br><span class="line">    link/ether 02:42:ac:1c:f8:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65535</span><br><span class="line">    macvlan mode bridge bcqueuelen 1000 usedbcqueuelen 1000 numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet 172.28.248.2/24 brd 172.28.248.255 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">$ docker exec -it ubuntu4 ip -d addr show eth0</span><br><span class="line">49: eth0@if45: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default</span><br><span class="line">    link/ether 02:42:ac:1c:f8:03 brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65535</span><br><span class="line">    macvlan mode bridge bcqueuelen 1000 usedbcqueuelen 1000 numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet 172.28.248.3/24 brd 172.28.248.255 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">$ docker exec -it ubuntu4 ping -c 3 172.28.248.2</span><br><span class="line">PING 172.28.248.2 (172.28.248.2) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.248.2: icmp_seq=1 ttl=64 time=0.079 ms</span><br><span class="line">64 bytes from 172.28.248.2: icmp_seq=2 ttl=64 time=0.025 ms</span><br><span class="line">64 bytes from 172.28.248.2: icmp_seq=3 ttl=64 time=0.025 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.248.2 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2065ms</span><br><span class="line">rtt min/avg/max/mdev = 0.025/0.043/0.079/0.025 ms</span><br></pre></td></tr></table></figure></div></div></div>
+<p>但是不同 <code>vlan</code> 之间的网络相互隔离，不能互通：</p>
+<div class="note danger"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ docker exec -it ubuntu4 ping -c 3 172.28.244.2</span><br><span class="line">PING 172.28.244.2 (172.28.244.2) 56(84) bytes of data.</span><br><span class="line">From 172.28.248.3 icmp_seq=1 Destination Host Unreachable</span><br><span class="line">From 172.28.248.3 icmp_seq=2 Destination Host Unreachable</span><br><span class="line">From 172.28.248.3 icmp_seq=3 Destination Host Unreachable</span><br><span class="line"></span><br><span class="line">--- 172.28.244.2 ping statistics ---</span><br><span class="line">3 packets transmitted, 0 received, +3 errors, 100% packet loss, time 2071ms</span><br><span class="line">pipe 3</span><br></pre></td></tr></table></figure></div>
+<p>如果想要实现容器和主机的互通，可以使用如下的方法：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ip link add macvlan1-shim link eth0.10 type macvlan mode bridge</span><br><span class="line">ip addr add 172.28.244.254/32 dev macvlan1-shim</span><br><span class="line">ip link set macvlan1-shim up</span><br><span class="line">ip route add 172.28.244.0/24 dev macvlan1-shim</span><br><span class="line">ip link add macvlan2-shim link eth0.20 type macvlan mode bridge</span><br><span class="line">ip addr add 172.28.248.254/32 dev macvlan2-shim</span><br><span class="line">ip link set macvlan2-shim up</span><br><span class="line">ip route add 172.28.248.0/24 dev macvlan2-shim</span><br></pre></td></tr></table></figure>
+<p>测试主机到容器的网络连通性：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">$ ping -c 2 172.28.244.2</span><br><span class="line">PING 172.28.244.2 (172.28.244.2) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=1 ttl=64 time=0.050 ms</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=2 ttl=64 time=0.045 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.244.2 ping statistics ---</span><br><span class="line">2 packets transmitted, 2 received, 0% packet loss, time 1061ms</span><br><span class="line">rtt min/avg/max/mdev = 0.045/0.047/0.050/0.002 ms</span><br><span class="line">$ ping -c 2 172.28.248.2</span><br><span class="line">PING 172.28.248.2 (172.28.248.2) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.248.2: icmp_seq=1 ttl=64 time=0.047 ms</span><br><span class="line">64 bytes from 172.28.248.2: icmp_seq=2 ttl=64 time=0.037 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.248.2 ping statistics ---</span><br><span class="line">2 packets transmitted, 2 received, 0% packet loss, time 1059ms</span><br><span class="line">rtt min/avg/max/mdev = 0.037/0.042/0.047/0.005 ms</span><br></pre></td></tr></table></figure>
+<p>如果还没有为 <code>vlan</code> 设置 <code>IP</code> 地址，执行如下的命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ip addr add 172.28.244.1/24 dev eth0.10</span><br><span class="line">ip addr add 172.28.248.1/24 dev eth0.20</span><br><span class="line">ip route delete 172.28.248.0/24 dev eth0.20</span><br><span class="line">ip route delete 172.28.244.0/24 dev eth0.10</span><br></pre></td></tr></table></figure>
+<p>此时系统的路由如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">0.0.0.0         172.28.240.1    0.0.0.0         UG    0      0        0 eth0</span><br><span class="line">10.42.0.0       0.0.0.0         255.255.255.0   U     0      0        0 cni0</span><br><span class="line">172.17.0.0      0.0.0.0         255.255.0.0     U     0      0        0 docker0</span><br><span class="line">172.28.240.0    0.0.0.0         255.255.240.0   U     0      0        0 eth0</span><br><span class="line">172.28.244.0    0.0.0.0         255.255.255.0   U     0      0        0 macvlan1-shim</span><br><span class="line">172.28.248.0    0.0.0.0         255.255.255.0   U     0      0        0 macvlan2-shim</span><br></pre></td></tr></table></figure>
+<p>再测试容器到主机的网络连通情况：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">$ docker exec -it ubuntu1 ping -c 2 172.28.252.45</span><br><span class="line">PING 172.28.252.45 (172.28.252.45) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=1 ttl=64 time=0.071 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=2 ttl=64 time=0.037 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.252.45 ping statistics ---</span><br><span class="line">2 packets transmitted, 2 received, 0% packet loss, time 1040ms</span><br><span class="line">rtt min/avg/max/mdev = 0.037/0.054/0.071/0.017 ms</span><br><span class="line">$ docker exec -it ubuntu4 ping -c 2 172.28.252.45</span><br><span class="line">PING 172.28.252.45 (172.28.252.45) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=1 ttl=64 time=0.081 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=2 ttl=64 time=0.027 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.252.45 ping statistics ---</span><br><span class="line">2 packets transmitted, 2 received, 0% packet loss, time 1036ms</span><br><span class="line">rtt min/avg/max/mdev = 0.027/0.054/0.081/0.027 ms</span><br></pre></td></tr></table></figure>
+<p>清理现场使用如下方式，<code>vlan</code> 和 <code>macvlan</code> 设备会被自动删除：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker stop ubuntu1 ubuntu2 ubuntu3 ubuntu4</span><br><span class="line">docker container prune</span><br><span class="line">docker network rm macvlan1-net macvlan2-net</span><br></pre></td></tr></table></figure>
+<p>可以使用下面的命令验证是否有设备残留：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ip link show type vlan</span><br><span class="line">ip link show type macvlan</span><br></pre></td></tr></table></figure>
+<h3 id="ipvlan"><a class="markdownIt-Anchor" href="#ipvlan"></a> ipvlan</h3>
+<p><a target="_blank" rel="noopener" href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_networking/getting-started-with-ipvlan_configuring-and-managing-networking">ipvlan</a> 主要有两种不同的模式：<code>L2</code> 和 <code>L3</code>。一个父接口只能选择一种模式，依附于它的所有虚拟接口都运行在这个模式下，不能混用模式。<code>ipvlan L2</code> 模式和 <code>macvlan bridge</code> 模式工作原理很相似，父接口作为交换机来转发子接口的数据，同一个网络的子接口可以通过父接口来转发数据，而如果想发送到其他网络，报文则会通过父接口的路由转发出去。<code>L3</code> 模式下，<code>ipvlan</code> 有点像路由器的功能，它在各个虚拟网络和主机网络之间进行不同网络报文的路由转发工作。只要父接口相同，即使虚拟机/容器不在同一个网络，也可以互相 <code>ping</code> 通对方，因为 <code>ipvlan</code> 会在中间做报文的转发工作。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ ifconfig eth0</span><br><span class="line">eth0: flags=4419&lt;UP,BROADCAST,RUNNING,PROMISC,MULTICAST&gt;  mtu 1500</span><br><span class="line">    inet 172.28.252.45  netmask 255.255.240.0  broadcast 172.28.255.255</span><br><span class="line">    inet6 fe80::215:5dff:fe41:e536  prefixlen 64  scopeid 0x20&lt;link&gt;</span><br><span class="line">    ether 00:15:5d:41:e5:36  txqueuelen 1000  (Ethernet)</span><br><span class="line">    RX packets 1098707  bytes 1348388965 (1.3 GB)</span><br><span class="line">    RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">    TX packets 690040  bytes 42806080 (42.8 MB)</span><br><span class="line">    TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br></pre></td></tr></table></figure>
+<h4 id="l2"><a class="markdownIt-Anchor" href="#l2"></a> L2</h4>
+<p>创建三个个 <code>ipvlan</code> 子接口，设置<code>l2</code>工作模式：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ip link add link eth0 name ipvlan1 type ipvlan mode l2</span><br><span class="line">ip link add link eth0 name ipvlan2 type ipvlan mode l2</span><br><span class="line">ip link add link eth0 name ipvlan3 type ipvlan mode l2</span><br></pre></td></tr></table></figure>
+<p>创建三个命名空间，将新创建的子接口移入且重命名：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">ip netns add net1</span><br><span class="line">ip netns add net2</span><br><span class="line">ip netns add net3</span><br><span class="line">ip link set ipvlan1 netns net1</span><br><span class="line">ip link set ipvlan2 netns net2</span><br><span class="line">ip link set ipvlan3 netns net3</span><br><span class="line">ip netns exec net1 ip link set ipvlan1 name eth0</span><br><span class="line">ip netns exec net2 ip link set ipvlan2 name eth0</span><br><span class="line">ip netns exec net3 ip link set ipvlan3 name eth0</span><br></pre></td></tr></table></figure>
+<p>为子接口设置<code>IP</code>地址，其中<code>net1</code> 和 <code>net2</code> 在同一个网络内，<code>net3</code> 属于其他网络：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ip netns exec net1 ip addr add 172.28.248.2/24 dev eth0</span><br><span class="line">ip netns exec net2 ip addr add 172.28.248.3/24 dev eth0</span><br><span class="line">ip netns exec net3 ip addr add 172.28.244.2/24 dev eth0</span><br><span class="line">ip netns exec net1 ip link set eth0 up</span><br><span class="line">ip netns exec net2 ip link set eth0 up</span><br><span class="line">ip netns exec net3 ip link set eth0 up</span><br></pre></td></tr></table></figure>
+<p><code>net1</code> 和 <code>net2</code> 网络连通性正常：</p>
+<div class="note success"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ ip netns exec net1 route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">172.28.248.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0</span><br><span class="line">$ ip netns exec net1 ping -c 3 172.28.248.3</span><br><span class="line">PING 172.28.248.3 (172.28.248.3) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.248.3: icmp_seq=1 ttl=64 time=0.306 ms</span><br><span class="line">64 bytes from 172.28.248.3: icmp_seq=2 ttl=64 time=0.029 ms</span><br><span class="line">64 bytes from 172.28.248.3: icmp_seq=3 ttl=64 time=0.021 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.248.3 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2103ms</span><br><span class="line">rtt min/avg/max/mdev = 0.021/0.118/0.306/0.132 ms</span><br></pre></td></tr></table></figure></div>
+<p><code>net1</code> 和 <code>net3</code> 由于在不同的网络内，即使手动添加路由，网络也不能连通：</p>
+<div class="note danger"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ ip netns exec net1 ip route add default via 172.28.248.1</span><br><span class="line">$ ip netns exec net1 route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">0.0.0.0         172.28.248.1    0.0.0.0         UG    0      0        0 eth0</span><br><span class="line">172.28.248.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0</span><br><span class="line">$ ip netns exec net1 ping -c 3 172.28.244.2</span><br><span class="line">PING 172.28.244.2 (172.28.244.2) 56(84) bytes of data.</span><br><span class="line"></span><br><span class="line">--- 172.28.244.2 ping statistics ---</span><br><span class="line">3 packets transmitted, 0 received, 100% packet loss, time 2077ms</span><br></pre></td></tr></table></figure></div>
+<p>此时从命名空间内也是无法访问到主机的：</p>
+<div class="note danger"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ ip netns exec net1 ping -c 3 172.28.252.45</span><br><span class="line">PING 172.28.252.45 (172.28.252.45) 56(84) bytes of data.</span><br><span class="line"></span><br><span class="line">--- 172.28.252.45 ping statistics ---</span><br><span class="line">3 packets transmitted, 0 received, 100% packet loss, time 2062ms</span><br></pre></td></tr></table></figure></div>
+<p>但是和主机的连通性可以通过在主机上创建另外一个<code>ipvlan</code>设备当做跳板：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ip link add link eth0 name ipvlan_shim type ipvlan mode l3</span><br><span class="line">ip addr add 172.28.248.222/32 dev ipvlan_shim</span><br><span class="line">ip link set ipvlan_shim up</span><br><span class="line">ip route add 172.28.248.0/24 dev ipvlan_shim</span><br><span class="line">ip route add 172.28.244.0/24 dev ipvlan_shim</span><br></pre></td></tr></table></figure>
+<p>再次测试网络连通性，正常：</p>
+<div class="note success"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ ip netns exec net1 ping -c 3 172.28.252.45</span><br><span class="line">PING 172.28.252.45 (172.28.252.45) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=1 ttl=64 time=0.130 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=2 ttl=64 time=0.039 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=3 ttl=64 time=0.036 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.252.45 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2110ms</span><br><span class="line">rtt min/avg/max/mdev = 0.036/0.068/0.130/0.043 ms</span><br></pre></td></tr></table></figure></div>
+<p>清理现场使用如下方式：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ip netns delete net1</span><br><span class="line">ip netns delete net2</span><br><span class="line">ip netns delete net3</span><br><span class="line">ip link delete ipvlan_shim</span><br></pre></td></tr></table></figure>
+<h4 id="l3"><a class="markdownIt-Anchor" href="#l3"></a> L3</h4>
+<p>创建两个 <code>ipvlan</code> 子接口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ip link add link eth0 name ipvlan1 type ipvlan mode l3</span><br><span class="line">ip link add link eth0 name ipvlan2 type ipvlan mode l3</span><br><span class="line">ip link add link eth0 name ipvlan3 type ipvlan mode l3</span><br></pre></td></tr></table></figure>
+<p>创建两个命名空间，将新创建的子接口移入且重命名：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">ip netns add net1</span><br><span class="line">ip netns add net2</span><br><span class="line">ip netns add net3</span><br><span class="line">ip link set ipvlan1 netns net1</span><br><span class="line">ip link set ipvlan2 netns net2</span><br><span class="line">ip link set ipvlan3 netns net3</span><br><span class="line">ip netns exec net1 ip link set ipvlan1 name eth0</span><br><span class="line">ip netns exec net2 ip link set ipvlan2 name eth0</span><br><span class="line">ip netns exec net3 ip link set ipvlan3 name eth0</span><br></pre></td></tr></table></figure>
+<p>为两个子接口设置<code>IP</code>地址，而且他们不在同一个网络内：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ip netns exec net1 ip addr add 172.28.248.2/24 dev eth0</span><br><span class="line">ip netns exec net2 ip addr add 172.28.248.3/24 dev eth0</span><br><span class="line">ip netns exec net3 ip addr add 172.28.244.2/24 dev eth0</span><br><span class="line">ip netns exec net1 ip link set eth0 up</span><br><span class="line">ip netns exec net2 ip link set eth0 up</span><br><span class="line">ip netns exec net3 ip link set eth0 up</span><br></pre></td></tr></table></figure>
+<p><code>net1</code> 和 <code>net2</code> 处于相同的网络，网络连通性正常：</p>
+<div class="note success"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ ip netns exec net1 route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">172.28.248.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0</span><br><span class="line">$ ip netns exec net1 ping -c 3 172.28.248.3</span><br><span class="line">PING 172.28.248.3 (172.28.248.3) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.248.3: icmp_seq=1 ttl=64 time=0.023 ms</span><br><span class="line">64 bytes from 172.28.248.3: icmp_seq=2 ttl=64 time=0.022 ms</span><br><span class="line">64 bytes from 172.28.248.3: icmp_seq=3 ttl=64 time=0.024 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.248.3 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2107ms</span><br><span class="line">rtt min/avg/max/mdev = 0.022/0.023/0.024/0.000 ms</span><br></pre></td></tr></table></figure></div>
+<p><code>net1</code> 和 <code>net3</code> 不在同一个命名空间内网络不能互通：</p>
+<div class="note danger"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ ip netns exec net1 ping -c 3 172.28.244.3</span><br><span class="line">ping: connect: Network is unreachable</span><br></pre></td></tr></table></figure></div>
+<p>但是 <code>l3</code> 模式下，可以通过设置默认路由的方式让两个网络互通：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ip netns exec net2 ip route add default via 172.28.248.1</span><br><span class="line">ip netns exec net1 ip route add default via 172.28.248.1</span><br><span class="line">ip netns exec net3 ip route add default via 172.28.244.1</span><br></pre></td></tr></table></figure>
+<p>验证 <code>net1</code> 和 <code>net3</code> 之间的连通性：</p>
+<div class="note success"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ ip netns exec net1 ping -c 3 172.28.244.2</span><br><span class="line">PING 172.28.244.2 (172.28.244.2) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=1 ttl=64 time=0.029 ms</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=2 ttl=64 time=0.022 ms</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=3 ttl=64 time=0.029 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.244.2 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2112ms</span><br><span class="line">rtt min/avg/max/mdev = 0.022/0.026/0.029/0.003 ms</span><br><span class="line">$ ip netns exec net3 ping -c 3 172.28.248.3</span><br><span class="line">PING 172.28.248.3 (172.28.248.3) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.248.3: icmp_seq=1 ttl=64 time=0.022 ms</span><br><span class="line">64 bytes from 172.28.248.3: icmp_seq=2 ttl=64 time=0.021 ms</span><br><span class="line">64 bytes from 172.28.248.3: icmp_seq=3 ttl=64 time=0.022 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.248.3 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2109ms</span><br><span class="line">rtt min/avg/max/mdev = 0.021/0.021/0.022/0.000 ms</span><br></pre></td></tr></table></figure></div>
+<p>如果想要从命名空间内访问到主机，需要额外创建一个 <code>ipvlan</code> 设备用作跳板：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ip link add link eth0 name ipvlan_shim type ipvlan mode l3</span><br><span class="line">ip addr add 172.28.248.222/32 dev ipvlan_shim</span><br><span class="line">ip link set ipvlan_shim up</span><br><span class="line">ip route add 172.28.248.0/24 dev ipvlan_shim</span><br><span class="line">ip route add 172.28.244.0/24 dev ipvlan_shim</span><br></pre></td></tr></table></figure>
+<p>测试从命名空间到达宿主机的网络连通性：</p>
+<div class="note success"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ ip netns exec net3 ping -c 3 172.28.252.45</span><br><span class="line">PING 172.28.252.45 (172.28.252.45) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=1 ttl=64 time=0.047 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=2 ttl=64 time=0.029 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=3 ttl=64 time=0.052 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.252.45 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2050ms</span><br><span class="line">rtt min/avg/max/mdev = 0.029/0.042/0.052/0.009 ms</span><br><span class="line">$ ip netns exec net1 ping -c 3 172.28.252.45</span><br><span class="line">PING 172.28.252.45 (172.28.252.45) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=1 ttl=64 time=0.057 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=2 ttl=64 time=0.038 ms</span><br><span class="line">64 bytes from 172.28.252.45: icmp_seq=3 ttl=64 time=0.036 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.252.45 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2068ms</span><br><span class="line">rtt min/avg/max/mdev = 0.036/0.043/0.057/0.009 ms</span><br></pre></td></tr></table></figure></div>
+<p>清理现场：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ip netns delete net1</span><br><span class="line">ip netns delete net2</span><br><span class="line">ip netns delete net3</span><br><span class="line">ip link delete ipvlan_shim</span><br></pre></td></tr></table></figure>
+<h4 id="docker"><a class="markdownIt-Anchor" href="#docker"></a> docker</h4>
+<p>创建基于 <code>ipvlan</code> 的容器网络：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ docker network create -d ipvlan --subnet=172.28.240.0/20 --gateway=172.28.240.1 --ip-range 172.28.244.0/22 \</span><br><span class="line">&gt; --aux-address &#x27;host=172.28.244.254&#x27; -o parent=eth0 -o ipvlan_mode=l2 ipvlan_l2</span><br><span class="line">$ docker network ls</span><br><span class="line">NETWORK ID     NAME        DRIVER    SCOPE</span><br><span class="line">8599456a5481   bridge      bridge    local</span><br><span class="line">72f3e075f337   host        host      local</span><br><span class="line">b92fa8a5d1eb   ipvlan_l2   ipvlan    local</span><br><span class="line">5daaac101de2   none        null      local</span><br></pre></td></tr></table></figure>
+<p>基于 <code>ipvlan</code> 网络创建两个容器：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker run -itd --name ubuntu1 --ip=172.28.244.2 --network ipvlan_l2 ubuntu:local</span><br><span class="line">docker run -itd --name ubuntu2 --ip=172.28.244.3 --network ipvlan_l2 ubuntu:local</span><br></pre></td></tr></table></figure>
+<p>查看容器的 eth0 网口详细信息并测试网络连通性：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ docker exec -it ubuntu1 ip -detail addr show eth0</span><br><span class="line">135: eth0@if2: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UNKNOWN group default</span><br><span class="line">    link/ether 00:15:5d:41:e5:36 brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65535</span><br><span class="line">    ipvlan  mode l2 bridge numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet 172.28.244.2/20 brd 172.28.255.255 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">$ docker exec -it ubuntu2 ip -detail addr show eth0</span><br><span class="line">136: eth0@if2: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UNKNOWN group default</span><br><span class="line">    link/ether 00:15:5d:41:e5:36 brd ff:ff:ff:ff:ff:ff link-netnsid 0 promiscuity 0 minmtu 68 maxmtu 65535</span><br><span class="line">    ipvlan  mode l2 bridge numtxqueues 1 numrxqueues 1 gso_max_size 62780 gso_max_segs 65535</span><br><span class="line">    inet 172.28.244.3/20 brd 172.28.255.255 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">$ docker exec -it ubuntu2 ping -c 3 172.28.244.2</span><br><span class="line">PING 172.28.244.2 (172.28.244.2) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=1 ttl=64 time=0.071 ms</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=2 ttl=64 time=0.041 ms</span><br><span class="line">64 bytes from 172.28.244.2: icmp_seq=3 ttl=64 time=0.039 ms</span><br><span class="line"></span><br><span class="line">--- 172.28.244.2 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2048ms</span><br><span class="line">rtt min/avg/max/mdev = 0.039/0.050/0.071/0.014 ms</span><br></pre></td></tr></table></figure>
+<p>清除现场：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker stop ubuntu1 ubuntu2</span><br><span class="line">docker container prune</span><br><span class="line">docker network rm ipvlan_l2 </span><br></pre></td></tr></table></figure>
+<h3 id="benchmark"><a class="markdownIt-Anchor" href="#benchmark"></a> benchmark</h3>
+<p>使用 <a target="_blank" rel="noopener" href="https://github.com/HewlettPackard/netperf">betperf</a> 测试工具对容器三种组网方式的性能进行压测，测试机条件：</p>
+<blockquote>
+<p><code>12Core Intel(R) Core(TM) i7-8700 CPU @ 3.20GHz 5.15.146.1-microsoft-standard-WSL2+</code></p>
+</blockquote>
+<div class="tabs" id="压测"><ul class="nav-tabs"><li class="tab active"><a href="#压测-1">bridge</a></li><li class="tab"><a href="#压测-2">macvlan</a></li><li class="tab"><a href="#压测-3">ipvlan</a></li></ul><div class="tab-content"><div class="tab-pane active" id="压测-1"><p>启动 <code>Server</code>：</p>
+<blockquote>
+<p><code>docker run -it --rm --name perfserver alectolytic/netperf /usr/bin/netserver -D -p 4444</code></p>
+</blockquote>
+<p>启动客户端之前需要知道<code>Server</code>的<code>IP</code>地址：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ docker run -it --rm --name perfclient alectolytic/netperf netperf -H 172.17.0.3 -p 4444 -t TCP_STREAM -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient alectolytic/netperf netperf -H 172.17.0.3 -p 4444 -t UDP_STREAM -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient alectolytic/netperf netperf -H 172.17.0.3 -p 4444 -t TCP_RR -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient alectolytic/netperf netperf -H 172.17.0.3 -p 4444 -t TCP_CRR -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient alectolytic/netperf netperf -H 172.17.0.3 -p 4444 -t UDP_RR -l 60</span><br></pre></td></tr></table></figure>
+<p>清理现场：</p>
+<blockquote>
+<p><code>docker stop perfserver</code></p>
+</blockquote></div><div class="tab-pane" id="压测-2"><p>创建网络：</p>
+<blockquote>
+<p><code>docker network create -d macvlan --subnet=172.28.240.0/20 --gateway=172.28.240.1 --ip-range 172.28.244.0/22 --aux-address 'host=172.28.244.254' -o parent=eth0 macvlan</code></p>
+</blockquote>
+<p>启动 <code>Server</code>：</p>
+<blockquote>
+<p><code>docker run -it --rm --name perfserver --ip=172.28.244.2 --network macvlan alectolytic/netperf /usr/bin/netserver -D -p 4444</code></p>
+</blockquote>
+<p>启动客户端测试：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network macvlan alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_STREAM -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network macvlan alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t UDP_STREAM -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network macvlan alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_RR -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network macvlan alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_CRR -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network macvlan alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t UDP_RR -l 60</span><br></pre></td></tr></table></figure>
+<p>清理现场：</p>
+<blockquote>
+<p><code>docker stop perfserver</code><br />
+<code>docker network rm macvlan</code></p>
+</blockquote></div><div class="tab-pane" id="压测-3"><p>创建网络：</p>
+<blockquote>
+<p><code>docker network create -d ipvlan --subnet=172.28.240.0/20 --gateway=172.28.240.1 --ip-range 172.28.244.0/22 -o parent=eth0 -o ipvlan_mode=l2 ipvlan_l2</code></p>
+</blockquote>
+<p>启动 <code>Server</code>：</p>
+<blockquote>
+<p><code>docker run -it --rm --name perfserver --ip=172.28.244.2 --network ipvlan_l2 alectolytic/netperf /usr/bin/netserver -D -p 4444</code></p>
+</blockquote>
+<p>启动客户端测试：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_STREAM -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t UDP_STREAM -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_RR -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t TCP_CRR -l 60</span><br><span class="line">$ docker run -it --rm --name perfclient --ip=172.28.244.3 --network ipvlan_l2 alectolytic/netperf netperf -H 172.28.244.2 -p 4444 -t UDP_RR -l 60</span><br></pre></td></tr></table></figure>
+<p>清理现场：</p>
+<blockquote>
+<p><code>docker stop perfserver</code><br />
+<code>docker network rm ipvlan_l2</code></p>
+</blockquote></div></div></div>
+<p>测试结果如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">容器组网方式</th>
+<th style="text-align:center">TCP_STREAM</th>
+<th style="text-align:center">UDP_STREAM</th>
+<th style="text-align:center">TCP_RR</th>
+<th style="text-align:center">TCP_CRR</th>
+<th style="text-align:center">UDP_RR</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>bridge</code></td>
+<td style="text-align:center">14739.80 Mbit/s</td>
+<td style="text-align:center">6560.40 Mbit/s、6559.54 Mbit/s</td>
+<td style="text-align:center">14782.62次/s</td>
+<td style="text-align:center">6819.55次/s</td>
+<td style="text-align:center">15110.83次/s</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>macvlan（bridge）</code></td>
+<td style="text-align:center">21311.05 Mbit/s</td>
+<td style="text-align:center">9805.24 Mbit/s、9801.57 Mbit/s</td>
+<td style="text-align:center">16331.71次/s</td>
+<td style="text-align:center">8798.79次/s</td>
+<td style="text-align:center">16847.11次/s</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>ipvlan（l2）</code></td>
+<td style="text-align:center">22691.55 Mbit/s</td>
+<td style="text-align:center">10500.90 Mbit/s、10488.34 Mbit/s</td>
+<td style="text-align:center">16573.58次/s</td>
+<td style="text-align:center">8875.21次/s</td>
+<td style="text-align:center">17010.19次/s</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>ipvlan（l3）</code></td>
+<td style="text-align:center">22535.93 Mbit/s</td>
+<td style="text-align:center">10598.59 Mbit/s、10592.38 Mbit/s</td>
+<td style="text-align:center">16412.51次/s</td>
+<td style="text-align:center">9049.53次/s</td>
+<td style="text-align:center">16898.77次/s</td>
+</tr>
+</tbody>
+</table>
+<p>指标介绍：</p>
+<ol>
+<li>TCP_STREAM：用来测试进行TCP批量传输时的网络性能，结果表示吞吐量大小；</li>
+<li>UDP_STREAM：用来测试进行UDP批量传输时的网络性能。UDP_STREAM方式的结果中有两组数据，分别表示客户端发送和服务端接收的能力；</li>
+<li>TCP_RR：TCP_RR方式的测试对象是多次TCP request和response的交易过程，但发生在同一个TCP连接中，这种模式常常出现在数据库应用中。数据库的client程序与server程序建立一个TCP连接以后，就在这个连接中传送数据库的多次交易过程；</li>
+<li>TCP_CRR：TCP_CRR的测试对象是多次TCP request和response的交易过程，但为每次交易建立一个新的TCP连接。最典型的应用就是HTTP，每次HTTP交易是在一条单独的TCP连接中进行的。因此，由于需要不停地建立新的TCP连接，并且在交易结束后拆除TCP连接，交易率一定会受到很大的影响；</li>
+<li>UDP_RR：使用UDP分组进行request/response的交易过程。由于没有TCP连接所带来的负担，所以相比TCP_RR交易率一定会有相应的提升；</li>
+</ol>
+<h3 id="网卡混杂模式"><a class="markdownIt-Anchor" href="#网卡混杂模式"></a> 网卡混杂模式</h3>
+<p>使用如下命令设置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ ifconfig eth0 promisc</span><br><span class="line">$ 或者</span><br><span class="line">$ ip link set eth0 promisc on</span><br></pre></td></tr></table></figure>
+<p>取消设置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ ifconfig eth0 -promisc</span><br><span class="line">$ 或者</span><br><span class="line">$ ip link set eth0 promisc off</span><br></pre></td></tr></table></figure>
+<h3 id="参考链接"><a class="markdownIt-Anchor" href="#参考链接"></a> 参考链接</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://sreeninet.wordpress.com/2016/05/29/macvlan-and-ipvlan/">https://sreeninet.wordpress.com/2016/05/29/macvlan-and-ipvlan/</a></li>
+<li><a target="_blank" rel="noopener" href="https://wiki.archlinux.org/title/VLAN">https://wiki.archlinux.org/title/VLAN</a></li>
+<li><a target="_blank" rel="noopener" href="https://hicu.be/docker-networking-macvlan-vlan-configuration">https://hicu.be/docker-networking-macvlan-vlan-configuration</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.oddbit.com/post/2018-03-12-using-docker-macvlan-networks/">https://blog.oddbit.com/post/2018-03-12-using-docker-macvlan-networks/</a></li>
+<li><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1432601">https://cloud.tencent.com/developer/article/1432601</a></li>
+<li><a target="_blank" rel="noopener" href="https://kiosk007.top/post/%E4%BD%BF%E7%94%A8open-vswitch%E6%9E%84%E5%BB%BA%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C/">https://kiosk007.top/post/使用open-vswitch构建虚拟网络/</a></li>
+<li><a target="_blank" rel="noopener" href="https://bbs.huaweicloud.com/blogs/228744">Netperf网络性能测试工具详解教程</a></li>
+</ol>
+<div class="pdf-container" data-target="https://events.static.linuxfound.org/sites/events/files/slides/LinuxConJapan2014_makita_0.pdf" data-height="800px"></div>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2024/03/08/Network/linux-macvlan/" title="Linux 虚拟网络之MACVLAN &amp; IPVLAN">https://blog.fudenglong.site/2024/03/08/Network/linux-macvlan/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/MACVLAN/" rel="tag"># MACVLAN</a>
+              <a href="/tags/IPVLAN/" rel="tag"># IPVLAN</a>
+              <a href="/tags/VLAN/" rel="tag"># VLAN</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/03/04/K8S/istio/" rel="prev" title="Istio 实践笔记">
+                  <i class="fa fa-angle-left"></i> Istio 实践笔记
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/03/14/eBPF/common-tools-install/" rel="next" title="常用的eBPF工具安装及简单介绍">
+                  常用的eBPF工具安装及简单介绍 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2024/03/08/Network/linux-macvlan/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

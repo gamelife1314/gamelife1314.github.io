@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="ELF(Executable and Linking Format) 是linux系统下可执行文件，目标文件，共享链接库和内核转储文件的格式。维基百科中是这样描述的：  在计算机科学中，ELF文件是一种用于可执行文件、目标文件、共享库和核心转储（core dump）的标准文件格式。其中核心转储是指： 操作系统在进程收到某些信号而终止时，将此时进程地址空间的内容以及有关进程状态的其他信息写出的一个磁">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Linux】可执行和可链接文件格式--ELF">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/02/16/%E3%80%90Linux%E3%80%91%E5%8F%AF%E6%89%A7%E8%A1%8C%E5%92%8C%E5%8F%AF%E9%93%BE%E6%8E%A5%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F-ELF/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="ELF(Executable and Linking Format) 是linux系统下可执行文件，目标文件，共享链接库和内核转储文件的格式。维基百科中是这样描述的：  在计算机科学中，ELF文件是一种用于可执行文件、目标文件、共享库和核心转储（core dump）的标准文件格式。其中核心转储是指： 操作系统在进程收到某些信号而终止时，将此时进程地址空间的内容以及有关进程状态的其他信息写出的一个磁">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/16/%E3%80%90Linux%E3%80%91%E5%8F%AF%E6%89%A7%E8%A1%8C%E5%92%8C%E5%8F%AF%E9%93%BE%E6%8E%A5%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F-ELF/Elf-layout--en.svg.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/16/%E3%80%90Linux%E3%80%91%E5%8F%AF%E6%89%A7%E8%A1%8C%E5%92%8C%E5%8F%AF%E9%93%BE%E6%8E%A5%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F-ELF/ELF_Executable_and_Linkable_Format_diagram_by_Ange_Albertini.png">
+<meta property="article:published_time" content="2022-02-16T14:59:17.000Z">
+<meta property="article:modified_time" content="2022-02-16T14:59:17.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="ELF">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/02/16/%E3%80%90Linux%E3%80%91%E5%8F%AF%E6%89%A7%E8%A1%8C%E5%92%8C%E5%8F%AF%E9%93%BE%E6%8E%A5%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F-ELF/Elf-layout--en.svg.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/02/16/%E3%80%90Linux%E3%80%91%E5%8F%AF%E6%89%A7%E8%A1%8C%E5%92%8C%E5%8F%AF%E9%93%BE%E6%8E%A5%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F-ELF/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/02/16/%E3%80%90Linux%E3%80%91%E5%8F%AF%E6%89%A7%E8%A1%8C%E5%92%8C%E5%8F%AF%E9%93%BE%E6%8E%A5%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F-ELF/","path":"2022/02/16/【Linux】可执行和可链接文件格式-ELF/","title":"【Linux】可执行和可链接文件格式--ELF"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Linux】可执行和可链接文件格式--ELF | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#elf-header"><span class="nav-number">1.</span> <span class="nav-text"> ELF Header</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#section"><span class="nav-number">2.</span> <span class="nav-text"> Section</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#section-header-table"><span class="nav-number">3.</span> <span class="nav-text"> Section Header Table</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#program-header-table"><span class="nav-number">4.</span> <span class="nav-text"> Program Header Table</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%E6%BC%94%E7%BB%83"><span class="nav-number">5.</span> <span class="nav-text"> 实战演练</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="nav-number">6.</span> <span class="nav-text"> 参考文章</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/02/16/%E3%80%90Linux%E3%80%91%E5%8F%AF%E6%89%A7%E8%A1%8C%E5%92%8C%E5%8F%AF%E9%93%BE%E6%8E%A5%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F-ELF/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Linux】可执行和可链接文件格式--ELF | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Linux】可执行和可链接文件格式--ELF
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-02-16 22:59:17" itemprop="dateCreated datePublished" datetime="2022-02-16T22:59:17+08:00">2022-02-16</time>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>14 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>ELF(Executable and Linking Format)</code> 是linux系统下可执行文件，目标文件，共享链接库和内核转储文件的格式。维基百科中是这样描述的：</p>
+<blockquote class="blockquote-center">
+<p>在计算机科学中，ELF文件是一种用于可执行文件、目标文件、共享库和核心转储（core dump）的标准文件格式。其中核心转储是指： 操作系统在进程收到某些信号而终止时，将此时进程地址空间的内容以及有关进程状态的其他信息写出的一个磁盘文件。这种信息往往用于调试。</p>
+
+</blockquote>
+<ul>
+<li><code>可重定位文件（relocatable file）</code> 它保存了一些可以和其他目标文件链接并生成可执行文件或者共享库的二进制代码和数据；</li>
+<li><code>可执行文件（excutable file）</code> 它保存了适合直接加载到内存中执行的二进制程序；</li>
+<li><code>共享库文件（shared object file</code> 一种特殊的可重定位目标文件，可以在加载或者运行时被动态的加载进内存并链接。</li>
+<li><code>核心转储文件（core dump）</code> 是操作系统在进程收到某些信号而终止运行时，将此时进程地址空间的内容以及有关进程状态的其他信息写入一个磁盘文件。这种信息往往用于调试。</li>
+</ul>
+<p><code>ELF</code>文件主要由四部分组成：</p>
+<ul>
+<li>
+<p><code>ELF Header</code>：主要包括文件的类型，架构，程序入口地址，<code>Program Header</code> 和 <code>Section Header</code> 的大小，数量，偏移量等；</p>
+</li>
+<li>
+<p><code>Programe Header</code>：列举所有有效的 <code>segments</code> 的属性，描述如何创建进程运行时内存镜像，当内核看到这些 <code>segments</code> 时，使用 <code>mmap</code> 将他们映射到虚拟地址空间，为程序的运行准备；</p>
+</li>
+<li>
+<p><code>Section</code>：在<code>ELF</code>文件中，数据和代码分开存放的，这样可以按照其功能属性分成一些区域，比如程序、数据、符号表等。这些分离存放的区域在ELF文件中反映成<code>section</code>；</p>
+</li>
+<li>
+<p><code>Section Header</code>：定义ELF文件中所有的 <code>section</code>，用于链接和重定位。对于可执行文件，有四个主要部分：<code>.text</code>、<code>.data</code>、<code>.rodata</code> 和 <code>.bss</code>；</p>
+</li>
+</ul>
+<p>ELF 文件各个部分的布局如下：</p>
+<p><img data-src="Elf-layout--en.svg.png" alt="" /></p>
+<span id="more"></span>
+<p>这里有一个ARM上二进制文件的详细示例，可以参考下图：</p>
+<p><img data-src="ELF_Executable_and_Linkable_Format_diagram_by_Ange_Albertini.png" alt="" /></p>
+<h3 id="elf-header"><a class="markdownIt-Anchor" href="#elf-header"></a> ELF Header</h3>
+<p>在C语言中，<code>ELF Header</code> 定义为如下的结构体：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> EI_NIDENT 16</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">        <span class="type">unsigned</span> <span class="type">char</span>   e_ident[EI_NIDENT];</span><br><span class="line">        Elf32_Half      e_type;</span><br><span class="line">        Elf32_Half      e_machine;</span><br><span class="line">        Elf32_Word      e_version;</span><br><span class="line">        Elf32_Addr      e_entry;</span><br><span class="line">        Elf32_Off       e_phoff;</span><br><span class="line">        Elf32_Off       e_shoff;</span><br><span class="line">        Elf32_Word      e_flags;</span><br><span class="line">        Elf32_Half      e_ehsize;</span><br><span class="line">        Elf32_Half      e_phentsize;</span><br><span class="line">        Elf32_Half      e_phnum;</span><br><span class="line">        Elf32_Half      e_shentsize;</span><br><span class="line">        Elf32_Half      e_shnum;</span><br><span class="line">        Elf32_Half      e_shstrndx;</span><br><span class="line">&#125; Elf32_Ehdr;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">        <span class="type">unsigned</span> <span class="type">char</span>   e_ident[EI_NIDENT];</span><br><span class="line">        Elf64_Half      e_type;</span><br><span class="line">        Elf64_Half      e_machine;</span><br><span class="line">        Elf64_Word      e_version;</span><br><span class="line">        Elf64_Addr      e_entry;</span><br><span class="line">        Elf64_Off       e_phoff;</span><br><span class="line">        Elf64_Off       e_shoff;</span><br><span class="line">        Elf64_Word      e_flags;</span><br><span class="line">        Elf64_Half      e_ehsize;</span><br><span class="line">        Elf64_Half      e_phentsize;</span><br><span class="line">        Elf64_Half      e_phnum;</span><br><span class="line">        Elf64_Half      e_shentsize;</span><br><span class="line">        Elf64_Half      e_shnum;</span><br><span class="line">        Elf64_Half      e_shstrndx;</span><br><span class="line">&#125; Elf64_Ehdr;</span><br></pre></td></tr></table></figure>
+<p>其中:</p>
+<pre><code>ElfN_Addr       Unsigned program address, uintN_t
+ElfN_Off        Unsigned file offset, uintN_t
+</code></pre>
+<p>上述结构体中各个字段的含义如下所示：</p>
+<ul>
+<li><code>e_ident</code>：  包含一个 <code>magic number</code>、<code>ABI</code>信息，该文件使用的平台、大小端规则</li>
+<li><code>e_type</code>：   文件类型, 表示该文件属于可执行文件、可重定位文件、core dump文件或者共享库</li>
+<li><code>e_machine</code>：机器类型</li>
+<li><code>e_version</code>：通常都是1</li>
+<li><code>e_entry</code>：  表示程序执行的入口地址</li>
+<li><code>e_phoff</code>：  表示<code>Program Header</code>的入口偏移量（以字节为单位）</li>
+<li><code>e_shoff</code>：  表示<code>Section Header</code>的入口偏移量（以字节为单位）</li>
+<li><code>e_flags</code>：  保存了这个<code>ELF</code>文件相关的特定处理器的<code>flag</code></li>
+<li><code>e_ehsize</code>： 表示<code>ELF Header</code>大小（以字节为单位）</li>
+<li><code>e_phentsize</code>： 表示<code>Program Header</code>大小（以字节为单位）</li>
+<li><code>e_phnum</code>：     表示<code>Program Header</code>的数量 （十进制数字）</li>
+<li><code>e_shentsize</code>： 表示<code>Section Header</code>大小（以字节为单位）</li>
+<li><code>e_shnum</code>：     表示<code>Section Header</code>的数量 （十进制数字）</li>
+<li><code>e_shstrndx</code>：  表示字符串表的索引，字符串表用来保存<code>ELF</code>文件中的字符串，比如段名、变量名。 然后通过字符串在表中的偏移访问字符串。</li>
+</ul>
+<h3 id="section"><a class="markdownIt-Anchor" href="#section"></a> Section</h3>
+<p>在<code>ELF</code>文件中，数据和代码分开存放的，这样可以按照其功能属性分成一些区域，比如程序、数据、符号表等。这些分离存放的区域在ELF文件中反映成<code>section</code>。ELF文件中典型的<code>section</code>如下：</p>
+<ul>
+<li><code>.text</code>: 已编译程序的二进制代码</li>
+<li><code>.rodata</code>: 只读数据段，比如常量</li>
+<li><code>.data</code>: 已初始化的全局变量和静态变量</li>
+<li><code>.bss</code>: 未初始化的全局变量和静态变量，所有被初始化成0的全局变量和静态变量</li>
+<li><code>.sysmtab</code>: 符号表，它存放了程序中定义和引用的函数和全局变量的信息</li>
+<li><code>.debug</code>: 调试符号表，它需要以’-g’选项编译才能得到，里面保存了程序中定义的局部变量和类型定义，程序中定义和引用的全局变量，以及原始的C文件</li>
+<li><code>.line</code>: 原始的C文件行号和.text节中机器指令之间的映射</li>
+<li><code>.strtab</code>: 字符串表，内容包括 <code>.symtab</code> 和 <code>.debug</code> 节中的符号表</li>
+</ul>
+<p>其他特殊的 <code>section</code>：</p>
+<p>1）对于可重定位的文件，由于在编译时，并不能确定它引用的外部函数和变量的地址信息，因此，编译器在生成目标文件时，增加了两个·section·：</p>
+<ul>
+<li><code>.rel.text</code> 保存了程序中引用的外部函数的重定位信息，这些信息用于在链接时重定位其对应的符号。</li>
+<li><code>.rel.data</code> 保存了被模块引用或定义的所有全局变量的重定位信息，这些信息用于在链接时重定位其对应的全局变量。</li>
+</ul>
+<p>2）对于可执行文件，由于它已经全部完成了重定位工作，可以直接加载到内存中执行，所以它不存在<code>.rel.text</code>和<code>.rel.data</code>这两个<code>section</code>。但是，它增加了一个<code>section</code>：</p>
+<p><code>.init</code>： 这个<code>section</code>里面保存了程序运行前的初始化代码</p>
+<p>上述描述的各个文件中包含的这些section是必须存在的，当然除了这些section，每种文件还有一些其他的section用来存放编译器或者链接器所需要的辅助信息。</p>
+<h3 id="section-header-table"><a class="markdownIt-Anchor" href="#section-header-table"></a> Section Header Table</h3>
+<p>上述各个section的大小和位置等具体信息的存放是由Section Header Table来描述的。Section Header Table是一个结构体数组，对应的结构体定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">    <span class="type">uint32_t</span>   sh_name;</span><br><span class="line">    <span class="type">uint32_t</span>   sh_type;</span><br><span class="line">    <span class="type">uint64_t</span>   sh_flags;</span><br><span class="line">    Elf64_Addr sh_addr;</span><br><span class="line">    Elf64_Off  sh_offset;</span><br><span class="line">    <span class="type">uint64_t</span>   sh_size;</span><br><span class="line">    <span class="type">uint32_t</span>   sh_link;</span><br><span class="line">    <span class="type">uint32_t</span>   sh_info;</span><br><span class="line">    <span class="type">uint64_t</span>   sh_addralign;</span><br><span class="line">    <span class="type">uint64_t</span>   sh_entsize;</span><br><span class="line">&#125; Elf64_Shdr;</span><br></pre></td></tr></table></figure>
+<p>其中各成员的意义如下：</p>
+<ul>
+<li><code>sh_name</code>：  表示该<code>section</code>的名字相对于<code>.shstrtab section</code>的地址偏移量。</li>
+<li><code>sh_type</code>：  表示该<code>section</code>中存放的内容类型，比如符号表，可重定位段等。</li>
+<li><code>sh_flags</code>： 表示该<code>section</code>的一些属性，比如是否可写，可执行等。</li>
+<li><code>sh_addr</code>：  表示该<code>section</code>在程序运行时的内存地址</li>
+<li><code>sh_offset</code>： 表示该<code>section</code>相对于ELF文件起始地址的偏移量</li>
+<li><code>sh_size</code>：   表示该<code>section</code>的大小</li>
+<li><code>sh_link</code>：   配合<code>sh_info</code>保存<code>section</code>的额外信息</li>
+<li><code>sh_info</code>：   保存该<code>section</code>相关的一些额外信息</li>
+<li><code>sh_addralign</code>：表示该<code>section</code>需要的地址对齐信息</li>
+<li><code>sh_entsize</code>：  有些<code>section</code>里保存的是一些固定长度的条目，比如符号表。对于这些<code>section</code>来讲，<code>sh_entsize</code>里保存的就是条目的长度。</li>
+</ul>
+<h3 id="program-header-table"><a class="markdownIt-Anchor" href="#program-header-table"></a> Program Header Table</h3>
+<p><code>section</code>基本是按照目标文件内容的功能来划分的一些区域，而根据其内容在内存中是否可读写等属性，又可以将不同的<code>section</code>划分成不同的<code>segment</code>。其中每个<code>segment</code>可以由一个或多个<code>section</code>组成。</p>
+<p>在可执行文件中，<code>ELF header</code>下面紧接着就是<code>Program Header Table</code>。它描述了各个 <code>segment</code> 在 <code>ELF</code> 文件中的位置以及在程序执行过程中系统需要准备的其他信息。它也是用一个结构体数组来表示的。具体代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="type">uint64_t</span>  Elf64_Addr;</span><br><span class="line"><span class="keyword">typedef</span> <span class="type">uint64_t</span>  Elf64_Off;</span><br><span class="line"><span class="keyword">typedef</span> <span class="type">uint32_t</span>  Elf64_Word;</span><br><span class="line"><span class="keyword">typedef</span> <span class="type">uint64_t</span>  Elf64_Xword;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">    Elf64_Word      p_type;         <span class="comment">// 4</span></span><br><span class="line">    Elf64_Word      p_flags;        <span class="comment">// 4</span></span><br><span class="line">    Elf64_Off       p_offset;       <span class="comment">// 8</span></span><br><span class="line">    Elf64_Addr      p_vaddr;        <span class="comment">// 8</span></span><br><span class="line">    Elf64_Addr      p_paddr;        <span class="comment">// 8</span></span><br><span class="line">    Elf64_Xword     p_filesz;       <span class="comment">// 8</span></span><br><span class="line">    Elf64_Xword     p_memsz;        <span class="comment">// 8</span></span><br><span class="line">    Elf64_Xword     p_align;        <span class="comment">// 8</span></span><br><span class="line">&#125; Elf64_Phdr;</span><br></pre></td></tr></table></figure>
+<p>各个字段的具体含义如下：</p>
+<ul>
+<li><code>p_type</code>：  描述了当前<code>segment</code>是何种类型的或者如何解释当前<code>segment</code>，比如是动态链接相关的或者可加载类型的等</li>
+<li><code>p_flags</code>： 保存了该<code>segment</code>的flag</li>
+<li><code>p_offset</code>：表示从<code>ELF</code>文件到该<code>segment</code>第一个字节的偏移量</li>
+<li><code>p_vaddr</code>： 表示该<code>segment</code>的第一个字节在内存中的虚拟地址</li>
+<li><code>p_paddr</code>： 对于使用物理地址的系统来讲，这个成员表示该<code>segment</code>的物理地址</li>
+<li><code>p_filesz</code>：表示该<code>segment</code>的大小，以字节表示</li>
+<li><code>p_memsz</code>： 表示该<code>segment</code>在内存中的大小，以字节表示</li>
+<li><code>p_align</code>： 表示该<code>segment</code>在文件中或者内存中需要以多少字节对齐</li>
+</ul>
+<h3 id="实战演练"><a class="markdownIt-Anchor" href="#实战演练"></a> 实战演练</h3>
+<p>分析ELF文件经常用到的工具有：<code>readelf</code>，<code>objdump</code>，<code>hexdump</code> 等，我们将下面Go语言编写的 <code>hello world</code> 代码编写成二进制进行分析：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(<span class="string">&quot;hello world&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>GOOS=linux go build -o helloworld main.go</p>
+</blockquote>
+<p>首先使用 <code>readelf -h</code> 获取文件 <code>ELF Header</code> 信息，使用 <code>hexdump -n 64</code> 获取前<code>64</code>个字节：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">user@kwephis296327:~/fdl/elftest$ ll helloworld</span><br><span class="line">-rw-r--r-- 1 user root 1933415 Feb 19 14:38 helloworld</span><br><span class="line">user@kwephis296327:~/fdl/elftest$ file helloworld</span><br><span class="line">helloworld: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, not stripped</span><br><span class="line">user@kwephis296327:~/fdl/elftest$ readelf -h helloworld</span><br><span class="line">ELF Header:</span><br><span class="line">  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00</span><br><span class="line">  Class:                             ELF64</span><br><span class="line">  Data:                              2&#x27;s complement, little endian</span><br><span class="line">  Version:                           1 (current)</span><br><span class="line">  OS/ABI:                            UNIX - System V</span><br><span class="line">  ABI Version:                       0</span><br><span class="line">  Type:                              EXEC (Executable file)</span><br><span class="line">  Machine:                           Advanced Micro Devices X86-64</span><br><span class="line">  Version:                           0x1</span><br><span class="line">  Entry point address:               0x465860</span><br><span class="line">  Start of program headers:          64 (bytes into file)</span><br><span class="line">  Start of section headers:          456 (bytes into file)</span><br><span class="line">  Flags:                             0x0</span><br><span class="line">  Size of this header:               64 (bytes)</span><br><span class="line">  Size of program headers:           56 (bytes)</span><br><span class="line">  Number of program headers:         7</span><br><span class="line">  Size of section headers:           64 (bytes)</span><br><span class="line">  Number of section headers:         23</span><br><span class="line">  Section header string table index: 3</span><br><span class="line">user@kwephis296327:~/fdl/elftest$ hexdump -n 64 helloworld</span><br><span class="line">0000000 457f 464c 0102 0001 0000 0000 0000 0000</span><br><span class="line">0000010 0002 003e 0001 0000 5860 0046 0000 0000</span><br><span class="line">0000020 0040 0000 0000 0000 01c8 0000 0000 0000</span><br><span class="line">0000030 0000 0000 0040 0038 0007 0040 0017 0003</span><br><span class="line">0000040</span><br></pre></td></tr></table></figure>
+<p>根据以上的输出我们获得以下信息：</p>
+<ul>
+<li>
+<p><code>文件标识</code>：<code>7f 45 4c 46</code> 代表 <code>.ELF</code> 是该文件类型的特殊标识；</p>
+</li>
+<li>
+<p><code>Class</code>：声明该文件是32位还是64位，<strong>32位=01</strong>，<strong>64位=02</strong>；</p>
+</li>
+<li>
+<p><code>Data</code>：大端序还是小端序，<strong>01=LSB(Least Significant Bit)</strong>，<strong>02=<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Bit_numbering#Bit_significance_and_indexing">MSB(Most Significant Bit, big-endian)</a></strong>；</p>
+</li>
+<li>
+<p><code>Version</code>： 目前固定是01；</p>
+</li>
+<li>
+<p><code>OS/ABI</code>：每个操作系统在通用功能上都有很大的重叠。 此外，它们中的每一个都有特定的，或者它们之间至少有细微的差异。 正确集的定义是通过<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Application_binary_interface">应用程序二进制接口 (ABI)</a> 完成的。 通过这种方式，操作系统和应用程序都知道期望什么，并且功能被正确转发。 这两个字段描述了使用的 ABI 和相关版本。 在这种情况下，该值为 00，这意味着没有使用特定的扩展名。 输出将其显示为 <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/UNIX_System_V">System V</a>；</p>
+</li>
+<li>
+<p><code>ABI version</code>： ABI 版本号；</p>
+</li>
+<li>
+<p><code>Machine</code>：机器类型；</p>
+</li>
+<li>
+<p><code>Type</code>：<code>type</code> 字段告诉我们文件的用途是什么。有几种常见的文件类型。</p>
+<ul>
+<li><code>CORE</code> (value 4)</li>
+<li><code>DYN</code> (Shared object file), for libraries (value 3)</li>
+<li><code>EXEC</code> (Executable file), for binaries (value 2)</li>
+<li><code>REL</code> (Relocatable file), before linked into an executable file (value 1)</li>
+</ul>
+</li>
+<li>
+<p>入口地址，代表程序运行时的第一个函数，我们通过 <code>objdump</code> 反汇编工具查看Go程序的入口函数是 <code>_rt0_amd64_linux</code>，并不是我们定义的 <code>main</code> 函数，因为Go语言是具有 <code>runtime</code>，在运行我们的 <code>main</code> 函数之前，首先要启动并且初始化自己的调度系统：</p>
+ <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">user@kwephis296327:~/fdl/elftest$ objdump -D helloworld |grep 465860</span><br><span class="line">0000000000465860 &lt;_rt0_amd64_linux&gt;:</span><br><span class="line">  465860:       e9 5b ca ff ff          jmpq   4622c0 &lt;_rt0_amd64&gt;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>程序头的起始位置是第<code>64</code>字节，一共有<code>7</code>个程序头，每个大小为<code>56</code>字节；</p>
+</li>
+<li>
+<p>节头的起始位置是第<code>456</code>字节，一共有23个<code>section</code>，每个大小为<code>64</code>字节；</p>
+</li>
+<li>
+<p><code>ELF Header</code> 的大小为 64字节；</p>
+</li>
+</ul>
+<p>通过 <code>readelf --program-headers</code> 命令我们可以获取 <code>ELF</code> 文件的程序头表，以及每个 <code>segment</code> 对应哪些 <code>section</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">user@kwephis296327:~/fdl/elftest$ readelf --program-headers helloworld</span><br><span class="line"></span><br><span class="line">Elf file type is EXEC (Executable file)</span><br><span class="line">Entry point 0x465860</span><br><span class="line">There are 7 program headers, starting at offset 64</span><br><span class="line"></span><br><span class="line">Program Headers:</span><br><span class="line">  Type           Offset             VirtAddr           PhysAddr</span><br><span class="line">                 FileSiz            MemSiz              Flags  Align</span><br><span class="line">  PHDR           0x0000000000000040 0x0000000000400040 0x0000000000400040</span><br><span class="line">                 0x0000000000000188 0x0000000000000188  R      0x1000</span><br><span class="line">  NOTE           0x0000000000000f9c 0x0000000000400f9c 0x0000000000400f9c</span><br><span class="line">                 0x0000000000000064 0x0000000000000064  R      0x4</span><br><span class="line">  LOAD           0x0000000000000000 0x0000000000400000 0x0000000000400000</span><br><span class="line">                 0x00000000000977ea 0x00000000000977ea  R E    0x1000</span><br><span class="line">  LOAD           0x0000000000098000 0x0000000000498000 0x0000000000498000</span><br><span class="line">                 0x000000000009be60 0x000000000009be60  R      0x1000</span><br><span class="line">  LOAD           0x0000000000134000 0x0000000000534000 0x0000000000534000</span><br><span class="line">                 0x0000000000015aa0 0x0000000000048510  RW     0x1000</span><br><span class="line">  GNU_STACK      0x0000000000000000 0x0000000000000000 0x0000000000000000</span><br><span class="line">                 0x0000000000000000 0x0000000000000000  RW     0x8</span><br><span class="line">  LOOS+0x5041580 0x0000000000000000 0x0000000000000000 0x0000000000000000</span><br><span class="line">                 0x0000000000000000 0x0000000000000000         0x8</span><br><span class="line"></span><br><span class="line"> Section to Segment mapping:</span><br><span class="line">  Segment Sections...</span><br><span class="line">   00</span><br><span class="line">   01     .note.go.buildid</span><br><span class="line">   02     .text .note.go.buildid</span><br><span class="line">   03     .rodata .typelink .itablink .gosymtab .gopclntab</span><br><span class="line">   04     .go.buildinfo .noptrdata .data .bss .noptrbss</span><br><span class="line">   05</span><br><span class="line">   06</span><br></pre></td></tr></table></figure>
+<p>通过 <code>readelf --section-headers</code> 我们可以看到文件所有的 <code>section</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line">user@kwephis296327:~/fdl/elftest$ readelf --section-headers helloworld</span><br><span class="line">There are 23 section headers, starting at offset 0x1c8:</span><br><span class="line"></span><br><span class="line">Section Headers:</span><br><span class="line">  [Nr] Name              Type             Address           Offset</span><br><span class="line">       Size              EntSize          Flags  Link  Info  Align</span><br><span class="line">  [ 0]                   NULL             0000000000000000  00000000</span><br><span class="line">       0000000000000000  0000000000000000           0     0     0</span><br><span class="line">  [ 1] .text             PROGBITS         0000000000401000  00001000</span><br><span class="line">       00000000000967ea  0000000000000000  AX       0     0     32</span><br><span class="line">  [ 2] .rodata           PROGBITS         0000000000498000  00098000</span><br><span class="line">       0000000000043bc4  0000000000000000   A       0     0     32</span><br><span class="line">  [ 3] .shstrtab         STRTAB           0000000000000000  000dbbe0</span><br><span class="line">       000000000000017a  0000000000000000           0     0     1</span><br><span class="line">  [ 4] .typelink         PROGBITS         00000000004dbd60  000dbd60</span><br><span class="line">       000000000000072c  0000000000000000   A       0     0     32</span><br><span class="line">  [ 5] .itablink         PROGBITS         00000000004dc4a0  000dc4a0</span><br><span class="line">       0000000000000050  0000000000000000   A       0     0     32</span><br><span class="line">  [ 6] .gosymtab         PROGBITS         00000000004dc4f0  000dc4f0</span><br><span class="line">       0000000000000000  0000000000000000   A       0     0     1</span><br><span class="line">  [ 7] .gopclntab        PROGBITS         00000000004dc500  000dc500</span><br><span class="line">       0000000000057960  0000000000000000   A       0     0     32</span><br><span class="line">  [ 8] .go.buildinfo     PROGBITS         0000000000534000  00134000</span><br><span class="line">       0000000000000020  0000000000000000  WA       0     0     16</span><br><span class="line">  [ 9] .noptrdata        PROGBITS         0000000000534020  00134020</span><br><span class="line">       000000000000e2c4  0000000000000000  WA       0     0     32</span><br><span class="line">  [10] .data             PROGBITS         0000000000542300  00142300</span><br><span class="line">       0000000000007790  0000000000000000  WA       0     0     32</span><br><span class="line">  [11] .bss              NOBITS           0000000000549aa0  00149aa0</span><br><span class="line">       000000000002d750  0000000000000000  WA       0     0     32</span><br><span class="line">  [12] .noptrbss         NOBITS           0000000000577200  00177200</span><br><span class="line">       0000000000005310  0000000000000000  WA       0     0     32</span><br><span class="line">  [13] .zdebug_abbrev    PROGBITS         000000000057d000  0014a000</span><br><span class="line">       0000000000000119  0000000000000000           0     0     1</span><br><span class="line">  [14] .zdebug_line      PROGBITS         000000000057d119  0014a119</span><br><span class="line">       000000000001c418  0000000000000000           0     0     1</span><br><span class="line">  [15] .zdebug_frame     PROGBITS         0000000000599531  00166531</span><br><span class="line">       0000000000005b4e  0000000000000000           0     0     1</span><br><span class="line">  [16] .debug_gdb_script PROGBITS         000000000059f07f  0016c07f</span><br><span class="line">       0000000000000022  0000000000000000           0     0     1</span><br><span class="line">  [17] .zdebug_info      PROGBITS         000000000059f0a1  0016c0a1</span><br><span class="line">       0000000000033324  0000000000000000           0     0     1</span><br><span class="line">  [18] .zdebug_loc       PROGBITS         00000000005d23c5  0019f3c5</span><br><span class="line">       00000000000177bc  0000000000000000           0     0     1</span><br><span class="line">  [19] .zdebug_ranges    PROGBITS         00000000005e9b81  001b6b81</span><br><span class="line">       00000000000091a5  0000000000000000           0     0     1</span><br><span class="line">  [20] .note.go.buildid  NOTE             0000000000400f9c  00000f9c</span><br><span class="line">       0000000000000064  0000000000000000   A       0     0     4</span><br><span class="line">  [21] .symtab           SYMTAB           0000000000000000  001bfd28</span><br><span class="line">       000000000000cb88  0000000000000018          22   124     8</span><br><span class="line">  [22] .strtab           STRTAB           0000000000000000  001cc8b0</span><br><span class="line">       000000000000b7b7  0000000000000000           0     0     1</span><br><span class="line">Key to Flags:</span><br><span class="line">  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),</span><br><span class="line">  L (link order), O (extra OS processing required), G (group), T (TLS),</span><br><span class="line">  C (compressed), x (unknown), o (OS specific), E (exclude),</span><br><span class="line">  l (large), p (processor specific)</span><br></pre></td></tr></table></figure>
+<p>我们通过最后一个section的地址和大小可以算出该文件的大小为 <code>0x001cc8b0 + 0x000000000000b7b7 = 0x1D8067 = 1933415</code> 字节，可以通过 <code>ls -l</code> 指令进行验证：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">user@kwephis296327:~/fdl/elftest$ ls -l helloworld</span><br><span class="line">-rw-r--r-- 1 user root 1933415 Feb 19 14:38 helloworld</span><br></pre></td></tr></table></figure>
+<p>以 <code>.zdebug</code> 开头的 <code>section</code> 包含的都是调试信息，在程序真正运行时这些信息是没有意义的，可以通过 <code>strip</code> 工具对二进制文件进行瘦身，去掉调试信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">user@kwephis296327:~/fdl/elftest$ strip helloworld</span><br><span class="line">user@kwephis296327:~/fdl/elftest$</span><br><span class="line">user@kwephis296327:~/fdl/elftest$</span><br><span class="line">user@kwephis296327:~/fdl/elftest$ readelf --section-headers helloworld</span><br><span class="line">There are 14 section headers, starting at offset 0x149b18:</span><br><span class="line"></span><br><span class="line">Section Headers:</span><br><span class="line">  [Nr] Name              Type             Address           Offset</span><br><span class="line">       Size              EntSize          Flags  Link  Info  Align</span><br><span class="line">  [ 0]                   NULL             0000000000000000  00000000</span><br><span class="line">       0000000000000000  0000000000000000           0     0     0</span><br><span class="line">  [ 1] .text             PROGBITS         0000000000401000  00001000</span><br><span class="line">       00000000000967ea  0000000000000000  AX       0     0     32</span><br><span class="line">  [ 2] .rodata           PROGBITS         0000000000498000  00098000</span><br><span class="line">       0000000000043bc4  0000000000000000   A       0     0     32</span><br><span class="line">  [ 3] .typelink         PROGBITS         00000000004dbd60  000dbd60</span><br><span class="line">       000000000000072c  0000000000000000   A       0     0     32</span><br><span class="line">  [ 4] .itablink         PROGBITS         00000000004dc4a0  000dc4a0</span><br><span class="line">       0000000000000050  0000000000000000   A       0     0     32</span><br><span class="line">  [ 5] .gosymtab         PROGBITS         00000000004dc4f0  000dc4f0</span><br><span class="line">       0000000000000000  0000000000000000   A       0     0     1</span><br><span class="line">  [ 6] .gopclntab        PROGBITS         00000000004dc500  000dc500</span><br><span class="line">       0000000000057960  0000000000000000   A       0     0     32</span><br><span class="line">  [ 7] .go.buildinfo     PROGBITS         0000000000534000  00134000</span><br><span class="line">       0000000000000020  0000000000000000  WA       0     0     16</span><br><span class="line">  [ 8] .noptrdata        PROGBITS         0000000000534020  00134020</span><br><span class="line">       000000000000e2c4  0000000000000000  WA       0     0     32</span><br><span class="line">  [ 9] .data             PROGBITS         0000000000542300  00142300</span><br><span class="line">       0000000000007790  0000000000000000  WA       0     0     32</span><br><span class="line">  [10] .bss              NOBITS           0000000000549aa0  00149a90</span><br><span class="line">       000000000002d750  0000000000000000  WA       0     0     32</span><br><span class="line">  [11] .noptrbss         NOBITS           0000000000577200  00149a90</span><br><span class="line">       0000000000005310  0000000000000000  WA       0     0     32</span><br><span class="line">  [12] .note.go.buildid  NOTE             0000000000400f9c  00000f9c</span><br><span class="line">       0000000000000064  0000000000000000   A       0     0     4</span><br><span class="line">  [13] .shstrtab         STRTAB           0000000000000000  00149a90</span><br><span class="line">       0000000000000081  0000000000000000           0     0     1</span><br><span class="line">Key to Flags:</span><br><span class="line">  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),</span><br><span class="line">  L (link order), O (extra OS processing required), G (group), T (TLS),</span><br><span class="line">  C (compressed), x (unknown), o (OS specific), E (exclude),</span><br><span class="line">  l (large), p (processor specific)</span><br><span class="line">user@kwephis296327:~/fdl/elftest$ ls -l helloworld</span><br><span class="line">-rw-r--r-- 1 user root 1351320 Feb 19 15:16 helloworld</span><br></pre></td></tr></table></figure>
+<h3 id="参考文章"><a class="markdownIt-Anchor" href="#参考文章"></a> 参考文章</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://linux-audit.com/elf-binaries-on-linux-understanding-and-analysis/#elf-sections">The 101 of ELF files on Linux: Understanding and Analysis<br />
+</a></li>
+<li><a target="_blank" rel="noopener" href="https://refspecs.linuxfoundation.org/elf/gabi4+/ch4.eheader.html">ELF Header</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.oracle.com/cd/E19455-01/806-3773/elf-2/index.html">Section Header</a></li>
+<li><a target="_blank" rel="noopener" href="https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/elf-em.h#L31">LINUX_ELF_EM_H</a></li>
+<li><a target="_blank" rel="noopener" href="https://refspecs.linuxbase.org/elf/gabi4+/ch5.pheader.html">Program Header</a></li>
+<li><a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man5/elf.5.html">ELF man page</a></li>
+<li><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E5%8F%AF%E5%9F%B7%E8%A1%8C%E8%88%87%E5%8F%AF%E9%8F%88%E6%8E%A5%E6%A0%BC%E5%BC%8F">可执行与可链接格式</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/corkami/pics/tree/28cb0226093ed57b348723bc473cea0162dad366/binary/elf101">elf101</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/02/16/%E3%80%90Linux%E3%80%91%E5%8F%AF%E6%89%A7%E8%A1%8C%E5%92%8C%E5%8F%AF%E9%93%BE%E6%8E%A5%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F-ELF/" title="【Linux】可执行和可链接文件格式--ELF">https://blog.fudenglong.site/2022/02/16/【Linux】可执行和可链接文件格式-ELF/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/ELF/" rel="tag"># ELF</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/" rel="prev" title="UML 统一建模语言">
+                  <i class="fa fa-angle-left"></i> UML 统一建模语言
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/02/23/Go/%E3%80%90Golang%E3%80%91%E5%BD%B1%E5%93%8Druntime%E8%A1%8C%E4%B8%BA%E7%9A%84%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/" rel="next" title="【Golang】影响runtime行为的环境变量">
+                  【Golang】影响runtime行为的环境变量 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/02/16/%E3%80%90Linux%E3%80%91%E5%8F%AF%E6%89%A7%E8%A1%8C%E5%92%8C%E5%8F%AF%E9%93%BE%E6%8E%A5%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F-ELF/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>
