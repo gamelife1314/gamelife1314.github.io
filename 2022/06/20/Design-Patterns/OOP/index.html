@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="几年前在面试的时候，还经常被面试官问 OOP 的四个特征是什么以及他们背后代表的意思，几年过去了，除了不支持面向对象的语言之外，面向对象编程思想已经深入到了每个开发者的灵魂，只是做的好与不好罢了。 面向对象编程中有两个非常基础的概念，类和对象，面向对象编程是一种编程范式或者说编程风格，它以类或者对象作为组织代码的基本单元，并将封装，继承，抽象，多态作为代码设计和实现的基石，不像面向过程编程语言，以">
+<meta property="og:type" content="article">
+<meta property="og:title" content="面向对象">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/06/20/Design-Patterns/OOP/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="几年前在面试的时候，还经常被面试官问 OOP 的四个特征是什么以及他们背后代表的意思，几年过去了，除了不支持面向对象的语言之外，面向对象编程思想已经深入到了每个开发者的灵魂，只是做的好与不好罢了。 面向对象编程中有两个非常基础的概念，类和对象，面向对象编程是一种编程范式或者说编程风格，它以类或者对象作为组织代码的基本单元，并将封装，继承，抽象，多态作为代码设计和实现的基石，不像面向过程编程语言，以">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/06/20/Design-Patterns/OOP/%E7%BB%A7%E6%89%BF%E7%88%86%E7%82%B8.png">
+<meta property="article:published_time" content="2022-06-20T04:34:32.000Z">
+<meta property="article:modified_time" content="2022-06-20T04:34:32.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="面向对象">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/06/20/Design-Patterns/OOP/%E7%BB%A7%E6%89%BF%E7%88%86%E7%82%B8.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/06/20/Design-Patterns/OOP/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/06/20/Design-Patterns/OOP/","path":"2022/06/20/Design-Patterns/OOP/","title":"面向对象"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>面向对象 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%B9%E5%BE%81"><span class="nav-number">1.</span> <span class="nav-text"> 特征</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B0%81%E8%A3%85"><span class="nav-number">1.1.</span> <span class="nav-text"> 封装</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8A%BD%E8%B1%A1"><span class="nav-number">1.2.</span> <span class="nav-text"> 抽象</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BB%A7%E6%89%BF"><span class="nav-number">1.3.</span> <span class="nav-text"> 继承</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%9A%E6%80%81"><span class="nav-number">1.4.</span> <span class="nav-text"> 多态</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%8E%A5%E5%8F%A3%E5%AE%9E%E7%8E%B0%E5%A4%9A%E6%80%81"><span class="nav-number">1.4.1.</span> <span class="nav-text"> 接口实现多态</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#duck-typing-%E5%AE%9E%E7%8E%B0%E5%A4%9A%E6%80%81"><span class="nav-number">1.4.2.</span> <span class="nav-text"> duck-typing 实现多态</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BC%98%E5%8A%BF"><span class="nav-number">2.</span> <span class="nav-text"> 优势</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%A8%E6%84%8F"><span class="nav-number">3.</span> <span class="nav-text"> 注意</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%A5%E5%8F%A3-%E6%8A%BD%E8%B1%A1%E7%B1%BB"><span class="nav-number">4.</span> <span class="nav-text"> 接口、抽象类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E4%BA%8E%E6%8E%A5%E5%8F%A3%E7%BC%96%E7%A8%8B"><span class="nav-number">5.</span> <span class="nav-text"> 基于接口编程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%84%E5%90%88%E6%88%96%E8%AE%B8%E4%BC%98%E4%BA%8E%E7%BB%A7%E6%89%BF"><span class="nav-number">6.</span> <span class="nav-text"> 组合或许优于继承</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B1%BB%E4%B9%8B%E9%97%B4%E7%9A%84%E4%BA%A4%E4%BA%92%E5%85%B3%E7%B3%BB"><span class="nav-number">7.</span> <span class="nav-text"> 类之间的交互关系</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/06/20/Design-Patterns/OOP/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="面向对象 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          面向对象
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-06-20 12:34:32" itemprop="dateCreated datePublished" datetime="2022-06-20T12:34:32+08:00">2022-06-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99/" itemprop="url" rel="index"><span itemprop="name">设计原则</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>9.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>34 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>几年前在面试的时候，还经常被面试官问 <code>OOP</code> 的四个特征是什么以及他们背后代表的意思，几年过去了，除了不支持面向对象的语言之外，面向对象编程思想已经深入到了每个开发者的灵魂，只是做的好与不好罢了。</p>
+<p>面向对象编程中有两个非常基础的概念，类和对象，面向对象编程是一种编程范式或者说编程风格，它以类或者对象作为组织代码的基本单元，并将封装，继承，抽象，多态作为代码设计和实现的基石，不像面向过程编程语言，以函数为程序中的基本单元。</p>
+<p>面向对象编程只是一种编程思想，可以用不同的语言进行实现，即使我们用面向对象语言，也完全可以写出面向过程风格的代码。至于什么是面向对象编程语言，并没有严格的定义，只要它能实现 <code>OOP</code> 的四大特性，那它就是面向对象编程语言，例如：<code>Rust</code>，<code>C++</code>，<code>GO</code>，<code>Java</code>，<code>Python</code> 以及 <code>PHP</code> 等，</p>
+<p>面向对象编程的前提是面向对象分析（<code>OOA</code>）和面向对象设计（<code>OOD</code>），这样才能进行面向对象编程（<code>OOP</code>），具备完整的面向对象编程的思维。面向对象分析和设计两个阶段的产物应该是类的设计，包括应用程序应该被分为哪些类，每个类该有哪些属性和方法，类与类之间如何交互等等，它们比较贴近代码，非常具体，容易落地实现。</p>
+<p>在 <code>OOA</code> 和 <code>OOD</code> 的过程中，我们会经常用到 <code>UML（Unified Model Language）</code> 工具辅助我们进行工作。<code>UML</code> 是一种比较复杂的工具，除了包括我们常见的类图，还有用例图，顺序图，活动图，状态图，组件图等，即使是类图，类之间的关系就有泛化，实现，关联，聚合，组合以及依赖等，熟练掌握难度比较大，即便你掌握了，你同事不一定掌握，沟通成本依然很高，大多时候，我们会用草图实现我们的设计过程。</p>
+<span id="more"></span>
+<h3 id="特征"><a class="markdownIt-Anchor" href="#特征"></a> 特征</h3>
+<p>这四大特性，光知道它们的定义是不够的，我们还要知道每个特性存在的意义和目的，以及它们能解决哪些编程问题。对于这四大特性，尽管大部分面向对象编程语言都提供了相应的语法机制来支持，但不同的编程语言实现这四大特性的语法机制可能会有所不同。</p>
+<h4 id="封装"><a class="markdownIt-Anchor" href="#封装"></a> 封装</h4>
+<p>封装，也叫做信息隐藏或者数据访问保护。类通过暴露有限的访问接口，授权外部仅能通过类提供的方法来访问内部信息或者数据。下面是一个钱包的 <code>Java</code> 实现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Wallet</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> String id;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">long</span> createTime;</span><br><span class="line">    <span class="keyword">private</span> BigDecimal balance;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">long</span> balanceLastModifiedTime;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">Wallet</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.id = IdGenerator.getInstance().generate();</span><br><span class="line">        <span class="built_in">this</span>.createTime = System.currentTimeMillis();</span><br><span class="line">        <span class="built_in">this</span>.balance = BigDecimal.ZERO;</span><br><span class="line">        <span class="built_in">this</span>.balanceLastModifiedTime = System.currentTimeMillis();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> String <span class="title function_">getId</span><span class="params">()</span> &#123; <span class="keyword">return</span> <span class="built_in">this</span>.id; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">long</span> <span class="title function_">getCreateTime</span><span class="params">()</span> &#123; <span class="keyword">return</span> <span class="built_in">this</span>.createTime; &#125;</span><br><span class="line">    <span class="keyword">public</span> BigDecimal <span class="title function_">getBalance</span><span class="params">()</span> &#123; <span class="keyword">return</span> <span class="built_in">this</span>.balance; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">long</span> <span class="title function_">getBalanceLastModifiedTime</span><span class="params">()</span> &#123; <span class="keyword">return</span> <span class="built_in">this</span>.balanceLastModifiedTime;  &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">increaseBalance</span><span class="params">(BigDecimal increasedAmount)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (increasedAmount.compareTo(BigDecimal.ZERO) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">InvalidAmountException</span>(<span class="string">&quot;...&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">this</span>.balance.add(increasedAmount);</span><br><span class="line">        <span class="built_in">this</span>.balanceLastModifiedTime = System.currentTimeMillis();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">decreaseBalance</span><span class="params">(BigDecimal decreasedAmount)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (decreasedAmount.compareTo(BigDecimal.ZERO) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">InvalidAmountException</span>(<span class="string">&quot;...&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (decreasedAmount.compareTo(<span class="built_in">this</span>.balance) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">InsufficientAmountException</span>(<span class="string">&quot;...&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">this</span>.balance.subtract(decreasedAmount);</span><br><span class="line">        <span class="built_in">this</span>.balanceLastModifiedTime = System.currentTimeMillis();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从代码中，我们可以发现，<code>Wallet</code>类主要有四个属性（也可以叫作成员变量），也就是我们前面定义中提到的信息或者数据。其中，<code>id</code> 表示钱包的唯一编号，<code>createTime</code> 表示钱包创建的时间，<code>balance</code> 表示钱包中的余额，<code>balanceLastModifiedTime</code> 表示上次钱包余额变更的时间。</p>
+<p>我们根据封装的目的，对钱包的这四个属性的访问方式进行了限制，调用者只允许通过上面六个方法来访问或者修改钱包里的数据。之所以这样设计，是因为从业务的角度来说，<code>id</code>、<code>createTime</code>在创建钱包的时候就确定好了，之后不应该再被改动，所以，我们并没有在<code>Wallet</code>类中，暴露<code>id</code>、<code>createTime</code>这两个属性的任何修改方法，比如<code>set</code>方法。而且，这两个属性的初始化设置，对于<code>Wallet</code>类的调用者来说，也应该是透明的，所以，我们在<code>Wallet</code>类的构造函数内部将其初始化设置好，而不是通过构造函数的参数来外部赋值。</p>
+<p>封装意味着我们需要控制类的灵活性，仅通过暴露必要的操作，提高类的易用性。</p>
+<h4 id="抽象"><a class="markdownIt-Anchor" href="#抽象"></a> 抽象</h4>
+<p>封装的目的是隐藏数据和信息，抽象的目的是隐藏方法实现，让调用这只需知道类提供了哪些能力，而不关注其具体实现。在不同的语言中，对于抽象有不同的实现，例如，<code>Go</code> 和 <code>Java</code> 中的接口，<code>Rust</code> 中的 <code>Trait</code> 或者其他语言中的抽象类。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Picture <span class="keyword">struct</span> &#123;</span><br><span class="line">	Id <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> PictureStorager <span class="keyword">interface</span> &#123;</span><br><span class="line">	SavePicture(picture *Picture)</span><br><span class="line">	GetPicture(id <span class="type">string</span>) *Picture</span><br><span class="line">	DeletePicture(id <span class="type">string</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> MemoryStorage <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *MemoryStorage)</span></span> SavePicture(picture *Picture) &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *MemoryStorage)</span></span> GetPicture(id <span class="type">string</span>) *Picture &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Picture&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *MemoryStorage)</span></span> DeletePicture(id <span class="type">string</span>) &#123;&#125;</span><br></pre></td></tr></table></figure>
+<p>在上面的这段代码中，对于调用者而言，在使用图片存储功能的时候，只需要了解 <code>PictureStorager</code> 这个接口暴露了哪些方法，而不用去查看具体类对应方法的实现逻辑。</p>
+<p>抽象作为一个非常宽泛的设计思想，在代码设计中，起到了非常重要的指导作用，很多设计原则都体现了抽象这种设计思想，比如基于接口而非实现编程、开闭原则，代码解耦等。我们在定义（或者叫命名）类的方法的时候，也要有抽象思维，不要在方法定义中，暴露太多的实现细节，以保证在某个时间点需要改变方法的实现逻辑的时候，不用去修改其定义。举个简单例子，比如<code>getAliyunPictureUrl()</code>就不是一个具有抽象思维的命名，因为某一天如果我们不再把图片存储在阿里云上，而是存储在私有云上，那这个命名也要随之被修改。相反，如果我们定义一个比较抽象的函数，比如叫作<code>getPictureUrl()</code>，那即便内部存储方式修改了，我们也不需要修改命名。</p>
+<h4 id="继承"><a class="markdownIt-Anchor" href="#继承"></a> 继承</h4>
+<p>继承最大的一个好处就是代码复用。假如两个类有一些相同的属性和方法，我们就可以将这些相同的部分，抽取到父类中，让两个子类继承父类。这样，两个子类就可以重用父类中的代码，避免代码重复写多遍。不过，这一点也并不是继承所独有的，我们也可以通过其他方式来解决这个代码复用的问题，比如利用组合关系而不是继承关系。</p>
+<p>集成呈现的是一种 <code>is-a</code> 关系，我们通过继承来关联两个类，反应真实世界中的这种关系，非常符合人类的认知，而且，从设计的角度来说，也有一种结构美感。例如，我们代码中有一个猫类，有一个哺乳动物类，猫属于哺乳动物，它们之间就属于集成关系。</p>
+<p>从继承关系上来讲，继承可以分为两种模式，单继承和多继承。单继承表示一个子类只继承一个父类，多继承表示一个子类可以继承多个父类，比如猫既是哺乳动物，又是爬行动物。</p>
+<p>为了实现继承这个特性，编程语言需要提供特殊的语法机制来支持，比如<code>Java</code>使用<code>extends</code>关键字来实现继承，<code>C++</code>使用冒号（<code>class B : public A</code>），<code>Python</code>使用<code>parentheses ()</code>，<code>Ruby</code>使用<code>&lt;</code>。</p>
+<h4 id="多态"><a class="markdownIt-Anchor" href="#多态"></a> 多态</h4>
+<p>多态是指，子类可以替换父类，在实际的代码运行过程中，调用子类的方法实现。举个例子：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">DynamicArray</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">DEFAULT_CAPACITY</span> <span class="operator">=</span> <span class="number">10</span>;</span><br><span class="line">  <span class="keyword">protected</span> <span class="type">int</span> <span class="variable">size</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">protected</span> <span class="type">int</span> <span class="variable">capacity</span> <span class="operator">=</span> DEFAULT_CAPACITY;</span><br><span class="line">  <span class="keyword">protected</span> Integer[] elements = <span class="keyword">new</span> <span class="title class_">Integer</span>[DEFAULT_CAPACITY];</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">size</span><span class="params">()</span> &#123; <span class="keyword">return</span> <span class="built_in">this</span>.size; &#125;</span><br><span class="line">  <span class="keyword">public</span> Integer <span class="title function_">get</span><span class="params">(<span class="type">int</span> index)</span> &#123; <span class="keyword">return</span> elements[index];&#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">add</span><span class="params">(Integer e)</span> &#123;</span><br><span class="line">    ensureCapacity();</span><br><span class="line">    elements[size++] = e;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">ensureCapacity</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">//...如果数组满了就扩容...代码省略...</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SortedDynamicArray</span> <span class="keyword">extends</span> <span class="title class_">DynamicArray</span> &#123;</span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">add</span><span class="params">(Integer e)</span> &#123;</span><br><span class="line">    ensureCapacity();</span><br><span class="line">    <span class="type">int</span> i;</span><br><span class="line">    <span class="keyword">for</span> (i = size-<span class="number">1</span>; i&gt;=<span class="number">0</span>; --i) &#123; <span class="comment">//保证数组中的数据有序</span></span><br><span class="line">      <span class="keyword">if</span> (elements[i] &gt; e) &#123;</span><br><span class="line">        elements[i+<span class="number">1</span>] = elements[i];</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    elements[i+<span class="number">1</span>] = e;</span><br><span class="line">    ++size;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Example</span> &#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">test</span><span class="params">(DynamicArray dynamicArray)</span> &#123;</span><br><span class="line">    dynamicArray.add(<span class="number">5</span>);</span><br><span class="line">    dynamicArray.add(<span class="number">1</span>);</span><br><span class="line">    dynamicArray.add(<span class="number">3</span>);</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; dynamicArray.size(); ++i) &#123;</span><br><span class="line">      System.out.println(dynamicArray.get(i));</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String args[])</span> &#123;</span><br><span class="line">    <span class="type">DynamicArray</span> <span class="variable">dynamicArray</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SortedDynamicArray</span>();  <span class="comment">// 使用子类替换父类</span></span><br><span class="line">    test(dynamicArray); <span class="comment">// 打印结果：1、3、5</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>多态这种特性也需要编程语言提供特殊的语法机制来实现。在上面的例子中，我们用到了三个语法机制来实现多态。</p>
+<ol>
+<li>编程语言要支持父类对象可以引用子类对象，也就是可以将<code>SortedDynamicArray</code>传递给<code>DynamicArray</code>；</li>
+<li>编程语言要支持继承，也就是<code>SortedDynamicArray</code>继承了<code>DynamicArray</code>，才能将<code>SortedDyamicArray</code>传递给<code>DynamicArray</code>；</li>
+<li>编程语言要支持子类可以重写（<code>override</code>）父类中的方法，也就是<code>SortedDyamicArray</code>重写了<code>DynamicArray</code>中的<code>add()</code>方法；</li>
+</ol>
+<p>对于多态特性的实现方式，除了利用“继承加方法重写”这种实现方式之外，我们还有其他两种比较常见的的实现方式，一个是利用接口类语法，另一个是利用<code>duck-typing</code>语法。不过，并不是每种编程语言都支持接口类或者<code>duck-typing</code>这两种语法机制，比如<code>C++</code>就不支持接口类语法，而<code>duck-typing</code>只有一些动态语言才支持，比如<code>Python</code>、<code>JavaScript</code>等。</p>
+<h5 id="接口实现多态"><a class="markdownIt-Anchor" href="#接口实现多态"></a> 接口实现多态</h5>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">Iterator</span> &#123;</span><br><span class="line">  <span class="type">boolean</span> <span class="title function_">hasNext</span><span class="params">()</span>;</span><br><span class="line">  String <span class="title function_">next</span><span class="params">()</span>;</span><br><span class="line">  String <span class="title function_">remove</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Array</span> <span class="keyword">implements</span> <span class="title class_">Iterator</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> String[] data;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">hasNext</span><span class="params">()</span> &#123; ... &#125;</span><br><span class="line">  <span class="keyword">public</span> String <span class="title function_">next</span><span class="params">()</span> &#123; ... &#125;</span><br><span class="line">  <span class="keyword">public</span> String <span class="title function_">remove</span><span class="params">()</span> &#123; ... &#125;</span><br><span class="line">  <span class="comment">//...省略其他方法...</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">LinkedList</span> <span class="keyword">implements</span> <span class="title class_">Iterator</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> LinkedListNode head;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">hasNext</span><span class="params">()</span> &#123; ... &#125;</span><br><span class="line">  <span class="keyword">public</span> String <span class="title function_">next</span><span class="params">()</span> &#123; ... &#125;</span><br><span class="line">  <span class="keyword">public</span> String <span class="title function_">remove</span><span class="params">()</span> &#123; ... &#125;</span><br><span class="line">  <span class="comment">//...省略其他方法... </span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Demo</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">print</span><span class="params">(Iterator iterator)</span> &#123;</span><br><span class="line">    <span class="keyword">while</span> (iterator.hasNext()) &#123;</span><br><span class="line">      System.out.println(iterator.next());</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">    <span class="type">Iterator</span> <span class="variable">arrayIterator</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Array</span>();</span><br><span class="line">    print(arrayIterator);</span><br><span class="line">    </span><br><span class="line">    <span class="type">Iterator</span> <span class="variable">linkedListIterator</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">LinkedList</span>();</span><br><span class="line">    print(linkedListIterator);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在这段代码中，<code>Iterator</code>是一个接口类，定义了一个可以遍历集合数据的迭代器。<code>Array</code>和<code>LinkedList</code>都实现了接口类<code>Iterator</code>。我们通过传递不同类型的实现类（<code>Array</code>、<code>LinkedList</code>）到<code>print(Iterator iterator)</code>函数中，支持动态的调用不同的<code>next()</code>、<code>hasNext()</code>实现。</p>
+<h5 id="duck-typing-实现多态"><a class="markdownIt-Anchor" href="#duck-typing-实现多态"></a> duck-typing 实现多态</h5>
+<p><code>duck-typing</code> 实现多态的方式非常灵活，即使两个没有继承关系，也没有接口实现关系，只要有相同的方法就能表示它们有相同的特征。也就是说，只要两个类具有相同的方法，就可以实现多态，并不要求两个类之间有任何关系，这就是所谓的<code>duck-typing</code>，是一些动态语言所特有的语法机制。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Logger</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">record</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(“I write a log into file.”)</span><br><span class="line">        </span><br><span class="line"><span class="keyword">class</span> <span class="title class_">DB</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">record</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="built_in">print</span>(“I insert data into db. ”)</span><br><span class="line">        </span><br><span class="line"><span class="keyword">def</span> <span class="title function_">test</span>(<span class="params">recorder</span>):</span><br><span class="line">    recorder.record()</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">demo</span>():</span><br><span class="line">    logger = Logger()</span><br><span class="line">    db = DB()</span><br><span class="line">    test(logger)</span><br><span class="line">    test(db)</span><br></pre></td></tr></table></figure>
+<h3 id="优势"><a class="markdownIt-Anchor" href="#优势"></a> 优势</h3>
+<p>面向对象编程是一种编程范式或编程风格。它以类或对象作为组织代码的基本单元，并将封装、抽象、继承、多态四个特性，作为代码设计和实现的基石 。面向对象编程语言是支持类或对象的语法机制，并有现成的语法机制，能方便地实现面向对象编程四大特性（封装、抽象、继承、多态）的编程语言。</p>
+<p>相比之下，面向过程编程也是一种编程范式或编程风格。它以过程（可以理解为方法、函数、操作）作为组织代码的基本单元，以数据（可以理解为成员变量、属性）与方法相分离为最主要的特点。面向过程风格是一种流程化的编程风格，通过拼接一组顺序执行的方法来操作数据完成一项功能。面向过程编程语言最大的特点是不支持类和对象两个语法概念，不支持丰富的面向对象编程特性（比如继承、多态、封装），仅支持面向过程编程。</p>
+<p>从代码示例中可以看出，面向过程和面向对象最基本的区别就是，代码的组织方式不同。面向过程风格的代码被组织成了一组方法集合及其数据结构，方法和数据结构的定义是分开的。面向对象风格的代码被组织成一组类，方法和数据结构被绑定一起，定义在类中。</p>
+<div class="tabs" id="面向对象和面向过程"><ul class="nav-tabs"><li class="tab active"><a href="#面向对象和面向过程-1">面向过程</a></li><li class="tab"><a href="#面向对象和面向过程-2">面向对象</a></li></ul><div class="tab-content"><div class="tab-pane active" id="面向对象和面向过程-1"><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">User</span> &#123;</span></span><br><span class="line">  <span class="type">char</span> name[<span class="number">64</span>];</span><br><span class="line">  <span class="type">int</span> age;</span><br><span class="line">  <span class="type">char</span> gender[<span class="number">16</span>];</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> User <span class="title function_">parse_to_user</span><span class="params">(<span class="type">char</span>* text)</span> &#123;</span><br><span class="line">  <span class="comment">// 将text(“小王&amp;28&amp;男”)解析成结构体struct User</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">char</span>* <span class="title function_">format_to_text</span><span class="params">(<span class="keyword">struct</span> User user)</span> &#123;</span><br><span class="line">  <span class="comment">// 将结构体struct User格式化成文本（&quot;小王\t28\t男&quot;）</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">sort_users_by_age</span><span class="params">(<span class="keyword">struct</span> User users[])</span> &#123;</span><br><span class="line">  <span class="comment">// 按照年龄从小到大排序users</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="面向对象和面向过程-2"><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">User</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> String name;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">int</span> age;</span><br><span class="line">  <span class="keyword">private</span> String gender;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="title function_">User</span><span class="params">(String name, <span class="type">int</span> age, String gender)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.name = name;</span><br><span class="line">    <span class="built_in">this</span>.age = age;</span><br><span class="line">    <span class="built_in">this</span>.gender = gender;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> User <span class="title function_">praseFrom</span><span class="params">(String userInfoText)</span> &#123;</span><br><span class="line">    <span class="comment">// 将text(“小王&amp;28&amp;男”)解析成类User</span></span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> String <span class="title function_">formatToText</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// 将类User格式化成文本（&quot;小王\t28\t男&quot;）</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div></div></div>
+<p>对于简单程序的开发来说，不管是用面向过程编程风格，还是用面向对象编程风格，差别确实不会很大，甚至有的时候，面向过程的编程风格反倒更有优势。因为需求足够简单，整个程序的处理流程只有一条主线，很容易被划分成顺序执行的几个步骤，然后逐句翻译成代码，这就非常适合采用面向过程这种面条式的编程风格来实现。</p>
+<p>相比起面向过程语言，面向对象语言有以下优势：</p>
+<ol>
+<li>
+<p>思维方式上的变更，在面向过程语言的编程中，我们首先考虑的是流程的划分，将整个程序要实现的功能分成几大模块，模块内的流程该如何划分。面向对象编程是以类为思考对象，在进行面向对象编程的时候，先去思考如何给业务建模，如何将需求翻译为类，如何给类之间建立交互关系。当我们有了类的设计之后，然后再像搭积木一样，按照处理流程，将类组装起来形成整个程序。这种开发模式、思考问题的方式，能让我们在应对复杂程序开发的时候，思路更加清晰；</p>
+</li>
+<li>
+<p>面向对象编程还提供了一种更加清晰的、更加模块化的代码组织方式。类就是一种非常好的组织些函数和数据结构的方式，是一种将代码模块化的有效手段；</p>
+</li>
+<li>
+<p>代码更加容易维护，封装特性是面向对象编程相比于面向过程编程的一个最基本的区别，因为它基于的是面向对象编程中最基本的类的概念。面向对象编程通过类这种组织代码的方式，将数据和方法绑定在一起，通过访问权限控制，只允许外部调用者通过类暴露的有限方法访问数据，而不会像面向过程编程那样，数据可以被任意方法随意修改。因此，面向对象编程提供的封装特性更有利于提高代码的易维护性；</p>
+</li>
+<li>
+<p>代码更加容易扩展，借助面向对象的抽象特性，我们隐藏函数的具体实现，在使用函数的时候，只需要了解函数具有什么功能，而不需要了解它是怎么实现的。从这一点上，不管面向过程编程还是是面向对象编程，都支持抽象特性。不过，面向对象编程还提供了其他抽象特性的实现方式。这些实现方式是面向过程编程所不具备的，比如基于接口实现的抽象。基于接口的抽象，可以让我们在不改变原有实现的情况下，轻松替换新的实现逻辑，提高了代码的可扩展性；</p>
+</li>
+<li>
+<p>代码更容易复用，继承特性是面向对象编程相比于面向过程编程所特有的两个特性之一（另一个是多态）。如果两个类有一些相同的属性和方法，我们就可以将这些相同的代码，抽取到父类中，让两个子类继承父类。这样两个子类也就可以重用父类中的代码，避免了代码重复写多遍，提高了代码的复用性；</p>
+</li>
+<li>
+<p>基于多态特性，在需要修改一个功能实现的时候，可以通过实现一个新的子类的方式，在子类中重写原来的功能逻辑，用子类替换父类。在实际的代码运行过程中，调用子类新的功能逻辑，而不是在原有代码上做修改。这就遵从了“对修改关闭、对扩展开放”的设计原则，提高代码的扩展性。除此之外，利用多态特性，不同的类对象可以传递给相同的方法，执行不同的代码逻辑，提高了代码的复用性；</p>
+</li>
+</ol>
+<h3 id="注意"><a class="markdownIt-Anchor" href="#注意"></a> 注意</h3>
+<p>有几个在面向对象编程中常犯的错误，会导致最终写出的代码跟面向过程没什么却别。</p>
+<ol>
+<li>
+<p>不要滥用 <code>getter</code> 和 <code>setter</code> 方法，面向对象语言提供了封装特性，可以将一些数据进行隐藏，不对外公开，为的是对重要数据的保护。但是如果我们对所有内部状态都提供一个 <code>getter</code> 和 <code>setter</code> 方法，相当于公开属性了。例如：</p>
+ <div class="note warning"><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ShoppingCart</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">int</span> itemsCount;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">double</span> totalPrice;</span><br><span class="line">  <span class="keyword">private</span> List&lt;ShoppingCartItem&gt; items = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getItemsCount</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">this</span>.itemsCount;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setItemsCount</span><span class="params">(<span class="type">int</span> itemsCount)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.itemsCount = itemsCount;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="type">double</span> <span class="title function_">getTotalPrice</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">this</span>.totalPrice;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setTotalPrice</span><span class="params">(<span class="type">double</span> totalPrice)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.totalPrice = totalPrice;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> List&lt;ShoppingCartItem&gt; <span class="title function_">getItems</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">this</span>.items;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">addItem</span><span class="params">(ShoppingCartItem item)</span> &#123;</span><br><span class="line">    items.add(item);</span><br><span class="line">    itemsCount++;</span><br><span class="line">    totalPrice += item.getPrice();</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// ...省略其他方法...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p><code>itemsCount</code>和<code>totalPrice</code>。虽然我们将它们定义成<code>private</code>私有属性，但是提供了<code>public</code>的<code>getter</code>、<code>setter</code>方法，这就跟将这两个属性定义为<code>public</code>公有属性，没有什么两样了。外部可以通过<code>setter</code>方法随意地修改这两个属性的值。除此之外，任何代码都可以随意调用<code>setter</code>方法，来重新设置<code>itemsCount</code>、<code>totalPrice</code>属性的值，这也会导致其跟<code>items</code>属性的值不一致。</p>
+<p>面向对象封装的定义是：通过访问权限控制，隐藏内部数据，外部仅能通过类提供的有限的接口访问、修改内部数据。所以，暴露不应该暴露的<code>setter</code>方法，明显违反了面向对象的封装特性。</p>
+<p>对于<code>items</code>这个属性，我们定义了它的<code>getter</code>方法和<code>addItem()</code>方法，并没有定义它的<code>setter</code>方法。这样的设计貌似看起来没有什么问题，但实际上并不是。对于<code>itemsCount</code>和<code>totalPrice</code>这两个属性来说，定义一个<code>public</code>的<code>getter</code>方法，确实无伤大雅，毕竟<code>getter</code>方法不会修改数据。但是，对于<code>items</code>属性就不一样了，这是因为<code>items</code>属性的<code>getter</code>方法，返回的是一个<code>List</code>集合容器。外部调用者在拿到这个容器之后，是可以操作容器内部数据的，也就是说，外部代码还是能修改<code>items</code>中的数据：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ShoppingCart</span> <span class="variable">cart</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ShoppCart</span>();</span><br><span class="line">...</span><br><span class="line">cart.getItems().clear(); <span class="comment">// 清空购物车</span></span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>不要滥用全局变量和全局方法。在使用<code>C</code>语言这样的面向过程语言开发时，应该随处可见全局变量和全局方法。在面向对象编程中，常见的全局变量有单例类对象、静态成员变量、常量等，常见的全局方法有静态方法。单例类对象在全局代码中只有一份，所以，它相当于一个全局变量。静态成员变量是归属于类上的数据，被所有的实例化对象所共享，也相当于一定程度上的全局变量。而常量是一种非常常见的全局变量，比如一些代码中的配置参数，一般都设置为常量，放到一个 <code>Constants</code> 类中，静态方法一般用来操作静态变量或者外部数据。静态方法将方法与数据分离，破坏了封装特性，是典型的面向过程风格。当然不能说面向过程风格就不好，有时候一些必要的 <code>Utils</code> 类（没有自己的属性），定义了一大部分静态方法处理公共数据能极大提高我们的开发效率。</p>
+</li>
+<li>
+<p>不要定义数据和方法分离的类。不过话虽这么说，干<code>WEB</code>的程序员应该都知道，前后端分离的项目一般被分为：<code>Controller</code>层、<code>Service</code>层、<code>Repository</code>层，<code>Controller</code>层负责暴露接口给前端调用，<code>Service</code>层负责核心业务逻辑，<code>Repository</code>层负责数据读写。而在每一层中，我们又会定义相应的<code>VO（View Object）</code>、<code>BO（Business Object）</code>、<code>Entity</code>。一般情况下，<code>VO</code>、<code>BO</code>、<code>Entity</code>中只会定义数据，不会定义方法，所有操作这些数据的业务逻辑都定义在对应的<code>Controller</code>类、<code>Service</code>类、<code>Repository</code>类中。这就是典型的面向过程的编程风格。</p>
+</li>
+</ol>
+<h3 id="接口-抽象类"><a class="markdownIt-Anchor" href="#接口-抽象类"></a> 接口、抽象类</h3>
+<p>不同的编程语言对接口和抽象类的定义可能有些区别，但是大多数面向对象语言都支持接口。抽象类有以下特点：</p>
+<ul>
+<li>抽象类不允许被实例化，只能被继承；</li>
+<li>抽象类可以包含属性和方法，方法既可以包含代码实现，也可以不包含代码实现，不包含代码实现的方法叫作抽象方法；</li>
+<li>子类继承抽象类，必须实现抽象类中的所有抽象方法；</li>
+</ul>
+<p>相比抽象类，接口简单很多：</p>
+<ul>
+<li>接口不能包含属性（也就是成员变量）；</li>
+<li>接口只能声明方法，方法不能包含代码实现；</li>
+<li>类实现接口的时候，必须实现接口中声明的所有方法；</li>
+</ul>
+<p>抽象类也是为代码复用而生的。多个子类可以继承抽象类中定义的属性和方法，避免在子类中，重复编写相同的代码，结合了抽象和继承的优点。</p>
+<p>如果我们要表示一种<code>is-a</code>的关系，并且是为了解决代码复用的问题，我们就用抽象类；如果我们要表示一种<code>has-a</code>关系，并且是为了解决抽象而非代码复用的问题，那我们就可以使用接口。</p>
+<p>从类的继承层次上来看，抽象类是一种自下而上的设计思路，先有子类的代码重复，然后再抽象成上层的父类（也就是抽象类）。而接口正好相反，它是一种自上而下的设计思路。我们在编程的时候，一般都是先设计接口，再去考虑具体的实现。</p>
+<h3 id="基于接口编程"><a class="markdownIt-Anchor" href="#基于接口编程"></a> 基于接口编程</h3>
+<p>基于接口而非实现编程这条原则的另一个表述方式，是基于抽象而非实现编程。后者的表述方式其实更能体现这条原则的设计初衷。在软件开发中，最大的挑战之一就是需求的不断变化，这也是考验代码设计好坏的一个标准。越抽象、越顶层、越脱离具体某一实现的设计，越能提高代码的灵活性，越能应对未来的需求变化。好的代码设计，不仅能应对当下的需求，而且在将来需求发生变化的时候，仍然能够在不破坏原有代码设计的情况下灵活应对。而抽象就是提高代码扩展性、灵活性、可维护性最有效的手段之一。</p>
+<p>举个例子，假设我们的系统中有很多涉及图片处理和存储的业务逻辑。图片经过处理之后被上传到阿里云上。为了代码复用，我们封装了图片存储相关的代码逻辑，提供了一个统一的<code>AliyunImageStore</code>类，供整个系统来使用。具体的代码实现如下所示：</p>
+<div class="note warning"><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AliyunImageStore</span> &#123;</span><br><span class="line">  <span class="comment">//...省略属性、构造函数等...</span></span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">createBucketIfNotExisting</span><span class="params">(String bucketName)</span> &#123;</span><br><span class="line">    <span class="comment">// ...创建bucket代码逻辑...</span></span><br><span class="line">    <span class="comment">// ...失败会抛出异常..</span></span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> String <span class="title function_">generateAccessToken</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// ...根据accesskey/secrectkey等生成access token</span></span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> String <span class="title function_">uploadToAliyun</span><span class="params">(Image image, String bucketName, String accessToken)</span> &#123;</span><br><span class="line">    <span class="comment">//...上传图片到阿里云...</span></span><br><span class="line">    <span class="comment">//...返回图片存储在阿里云上的地址(url）...</span></span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> Image <span class="title function_">downloadFromAliyun</span><span class="params">(String url, String accessToken)</span> &#123;</span><br><span class="line">    <span class="comment">//...从阿里云下载图片...</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// AliyunImageStore类的使用举例</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ImageProcessingJob</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BUCKET_NAME</span> <span class="operator">=</span> <span class="string">&quot;ai_images_bucket&quot;</span>;</span><br><span class="line">  <span class="comment">//...省略其他无关代码...</span></span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">process</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">Image</span> <span class="variable">image</span> <span class="operator">=</span> ...; <span class="comment">//处理图片，并封装为Image对象</span></span><br><span class="line">    <span class="type">AliyunImageStore</span> <span class="variable">imageStore</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AliyunImageStore</span>(<span class="comment">/*省略参数*/</span>);</span><br><span class="line">    imageStore.createBucketIfNotExisting(BUCKET_NAME);</span><br><span class="line">    <span class="type">String</span> <span class="variable">accessToken</span> <span class="operator">=</span> imageStore.generateAccessToken();</span><br><span class="line">    imagestore.uploadToAliyun(image, BUCKET_NAME, accessToken);</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>整个上传流程包含三个步骤：创建<code>bucket</code>（你可以简单理解为存储目录）、生成<code>access token</code>访问凭证、携带<code>access token</code>上传图片到指定的<code>bucket</code>中。代码实现非常简单，类中的几个方法定义得都很干净，用起来也很清晰，乍看起来没有太大问题，完全能满足我们将图片存储在阿里云的业务需求。</p>
+<p>但是，如果随着需求的变化，我们要将图片上传到私有云，所以我们可能会实现一个 <code>PrivateImageStore</code> 类，并且将原来的 <code>AliyunImageStore</code> 替换，这样的修改听起来并不复杂，只是简单替换而已，对整个代码的改动并不大。不过，我们经常说细节是魔鬼。这句话在软件开发中特别适用。实际上，刚刚的设计实现方式，就隐藏了很多容易出问题的魔鬼细节：</p>
+<ul>
+<li>
+<p><code>AliyunImageStore</code>类中有些函数命名暴露了实现细节，比如，<code>uploadToAliyun()</code>和<code>downloadFromAliyun()</code>。如果开发这个功能的同事没有接口意识、抽象思维，那这种暴露实现细节的命名方式就不足为奇了，毕竟最初我们只考虑将图片存储在阿里云上。而我们把这种包含“aliyun”字眼的方法，照抄到<code>PrivateImageStore</code>类中，显然是不合适的；如果我们在新类中重新命名<code>uploadToAliyun()</code>、<code>downloadFromAliyun()</code>这些方法，那就意味着，我们要修改项目中所有使用到这两个方法的代码，代码修改量可能就会很大；</p>
+</li>
+<li>
+<p>其次，将图片存储到阿里云的流程，跟存储到私有云的流程，可能并不是完全一致的。比如，阿里云的图片上传和下载的过程中，需要生产<code>access token</code>，而私有云不需要<code>access token</code>。一方面，<code>AliyunImageStore</code>中定义的<code>generateAccessToken()</code>方法不能照抄到<code>PrivateImageStore</code>中；另一方面，我们在使用<code>AliyunImageStore</code>上传、下载图片的时候，代码中用到了<code>generateAccessToken()</code>方法，如果要改为私有云的上传下载流程，这些代码都需要做调整；</p>
+</li>
+</ul>
+<p>解决这个问题的根本方法就是，在编写代码的时候，要遵从基于接口而非实现编程的原则，具体来讲，我们需要做到下面这<code>3</code>点：</p>
+<ol>
+<li>函数的命名不能暴露任何实现细节。比如，前面提到的<code>uploadToAliyun()</code>就不符合要求，应该改为去掉<code>aliyun</code>这样的字眼，改为更加抽象的命名方式，比如：<code>upload()</code>；</li>
+<li>封装具体的实现细节。比如，跟阿里云相关的特殊上传（或下载）流程不应该暴露给调用者。我们对上传（或下载）流程进行封装，对外提供一个包裹所有上传（或下载）细节的方法，给调用者使用；</li>
+<li>为实现类定义抽象的接口。具体的实现类都依赖统一的接口定义，遵从一致的上传功能协议。使用者依赖接口，而不是具体的实现类来编程；</li>
+</ol>
+<p>重构之后的代码如下：</p>
+<div class="note success"><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">ImageStore</span> &#123;</span><br><span class="line">  String <span class="title function_">upload</span><span class="params">(Image image, String bucketName)</span>;</span><br><span class="line">  Image <span class="title function_">download</span><span class="params">(String url)</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AliyunImageStore</span> <span class="keyword">implements</span> <span class="title class_">ImageStore</span> &#123;</span><br><span class="line">  <span class="comment">//...省略属性、构造函数等...</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> String <span class="title function_">upload</span><span class="params">(Image image, String bucketName)</span> &#123;</span><br><span class="line">    createBucketIfNotExisting(bucketName);</span><br><span class="line">    <span class="type">String</span> <span class="variable">accessToken</span> <span class="operator">=</span> generateAccessToken();</span><br><span class="line">    <span class="comment">//...上传图片到阿里云...</span></span><br><span class="line">    <span class="comment">//...返回图片在阿里云上的地址(url)...</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> Image <span class="title function_">download</span><span class="params">(String url)</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">accessToken</span> <span class="operator">=</span> generateAccessToken();</span><br><span class="line">    <span class="comment">//...从阿里云下载图片...</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">createBucketIfNotExisting</span><span class="params">(String bucketName)</span> &#123;</span><br><span class="line">    <span class="comment">// ...创建bucket...</span></span><br><span class="line">    <span class="comment">// ...失败会抛出异常..</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> String <span class="title function_">generateAccessToken</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// ...根据accesskey/secrectkey等生成access token</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 上传下载流程改变：私有云不需要支持access token</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">PrivateImageStore</span> <span class="keyword">implements</span> <span class="title class_">ImageStore</span>  &#123;</span><br><span class="line">  <span class="keyword">public</span> String <span class="title function_">upload</span><span class="params">(Image image, String bucketName)</span> &#123;</span><br><span class="line">    createBucketIfNotExisting(bucketName);</span><br><span class="line">    <span class="comment">//...上传图片到私有云...</span></span><br><span class="line">    <span class="comment">//...返回图片的url...</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">public</span> Image <span class="title function_">download</span><span class="params">(String url)</span> &#123;</span><br><span class="line">    <span class="comment">//...从私有云下载图片...</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">createBucketIfNotExisting</span><span class="params">(String bucketName)</span> &#123;</span><br><span class="line">    <span class="comment">// ...创建bucket...</span></span><br><span class="line">    <span class="comment">// ...失败会抛出异常..</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ImageStore的使用举例</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ImageProcessingJob</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">BUCKET_NAME</span> <span class="operator">=</span> <span class="string">&quot;ai_images_bucket&quot;</span>;</span><br><span class="line">  <span class="comment">//...省略其他无关代码...</span></span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">process</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">Image</span> <span class="variable">image</span> <span class="operator">=</span> ...;<span class="comment">//处理图片，并封装为Image对象</span></span><br><span class="line">    <span class="type">ImageStore</span> <span class="variable">imageStore</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">PrivateImageStore</span>(...);</span><br><span class="line">    imagestore.upload(image, BUCKET_NAME);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>基于接口而非实现编程，并不是说需要给每个实现类都定义对应的接口，过度使用这条原则，非得给每个类都定义接口，接口满天飞，也会导致不必要的开发负担。</p>
+<p>至于什么时候，该为某个类定义接口，实现基于接口的编程，什么时候不需要定义接口，直接使用实现类编程，我们做权衡的根本依据，还是要回归到设计原则诞生的初衷上来。只要搞清楚了这条原则是为了解决什么样的问题而产生的，你就会发现，很多之前模棱两可的问题，都会变得豁然开朗。</p>
+<p>前面我们也提到，这条原则的设计初衷是，将接口和实现相分离，封装不稳定的实现，暴露稳定的接口。上游系统面向接口而非实现编程，不依赖不稳定的实现细节，这样当实现发生变化的时候，上游系统的代码基本上不需要做改动，以此来降低代码间的耦合性，提高代码的扩展性。</p>
+<p>从这个设计初衷上来看，如果在我们的业务场景中，某个功能只有一种实现方式，未来也不可能被其他实现方式替换，那我们就没有必要为其设计接口，也没有必要基于接口编程，直接使用实现类就可以了。</p>
+<p>除此之外，越是不稳定的系统，我们越是要在代码的扩展性、维护性上下功夫。相反，如果某个系统特别稳定，在开发完之后，基本上不需要做维护，那我们就没有必要为其扩展性，投入不必要的开发时间。</p>
+<h3 id="组合或许优于继承"><a class="markdownIt-Anchor" href="#组合或许优于继承"></a> 组合或许优于继承</h3>
+<p>继承是面向对象的四大特性之一，用来表示类之间的 <code>is-a</code> 关系，可以解决代码复用的问题，但是如果继承层次过深，过复杂，继承了不必要的功能，也会影响到代码的可维护性。</p>
+<p>举个例子，我们如果要写一个关于鸟的类，首先定义一个 <code>AbsctractBird</code>，具体的麻雀，鸽子，乌鸦都会继承自这个类，那么我们能否在这个抽象类中定义一个 <code>fly()</code> 方法？当然不能，因为还有不会飞的鸟，比如说鸵鸟。如果鸵鸟类继承自 <code>AbsctractBird</code>，鸵鸟就能飞了，不符合事实。有人可能说，我们重写 <code>fly()</code> 让它抛出异常岂不是就可以了，可以是可以，但是不够优雅：</p>
+<div class="note warning"><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">AbsctractBird</span> &#123;</span><br><span class="line">  <span class="comment">// ... 省略其他方法</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fly</span><span class="params">()</span> &#123; </span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Ostrich</span> <span class="keyword">extends</span> <span class="title class_">AbsctractBird</span> &#123;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fly</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">UnSupportedMethodException</span>(<span class="string">&quot;I cant&#x27;t fly&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>而且，不会飞的鸟有很多，还有企鹅，我们都需要重写 <code>fly()</code> 方法，抛出异常。到这里，支持继承的一方可能还会提出，可将鸟类分成能飞的鸟（<code>AbsctractFlyableBird</code>），和不能飞的鸟（<code>AbsctractUnFlyableBird</code>），它们都继承自 <code>AbsctractBird</code>，那么再实现具体类，这个时候继承深度已经达到三层了。如果再要区分能不能下蛋，能不能叫，我们就得设计能飞能下蛋能叫的鸟这种抽象类，继承爆炸：</p>
+<p><img data-src="%E7%BB%A7%E6%89%BF%E7%88%86%E7%82%B8.png" alt="" /></p>
+<p>如何使用组合来优化这种继承爆炸的问题呢？我们可以将飞，叫，下蛋定义为一种能力，哪种鸟有就给哪种鸟加上。我们会使用接口，组合，委托的技术来实现我们的诉求：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">Flyable</span> &#123;</span><br><span class="line">  <span class="keyword">void</span> <span class="title function_">fly</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">Tweetable</span> &#123;</span><br><span class="line">  <span class="keyword">void</span> <span class="title function_">tweet</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">EggLayable</span> &#123;</span><br><span class="line">  <span class="keyword">void</span> <span class="title function_">layEgg</span><span class="params">()</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">FlyAbility</span> <span class="keyword">implements</span> <span class="title class_">Flyable</span> &#123;</span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fly</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 省略，TweetAbility 和 EgglayAbility 的实现</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Pigeon</span> <span class="keyword">implements</span> <span class="title class_">Tweetable</span>, EggLayable, Flyable &#123;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">private</span> <span class="type">FlyAbility</span> <span class="variable">flyAbility</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">FlyAbility</span>();</span><br><span class="line">  <span class="keyword">private</span> <span class="type">TweetAbility</span> <span class="variable">tweetAbility</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">TweetAbility</span>();</span><br><span class="line">  <span class="keyword">private</span> <span class="type">EgglayAbility</span> <span class="variable">egglayAbility</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">EgglayAbility</span>();</span><br><span class="line"></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fly</span><span class="params">()</span> &#123;</span><br><span class="line">    flyAbility.fly();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">tweet</span><span class="params">()</span> &#123;</span><br><span class="line">    tweetAbility.tweet();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">layEgg</span><span class="params">()</span> &#123;</span><br><span class="line">    egglayAbility.layEgg();  <span class="comment">// 委托</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>继承的三个作用：表示 <code>is-a</code> 关系，支持多态，代码复用。这三个作用都可以通过其他技术手段来实现。例如，我们可以用组合和接口的 <code>has-a</code> 来实现 <code>is-a</code>，多态可以用接口来实现；代码复用可以用组合和委托来实现。</p>
+<p>上面的例子虽然证明了组合优于继承，但不是说继承一无是处。如果类的继承结构稳定，继承层次比较浅，继承关系也不复杂，我们可以用继承。反之，如果系统不稳定，继承层次还比较深，继承关系比较复杂，我们就考虑使用组合替换它。</p>
+<p>关于继承可以实现代码复用，需要就具体情况具体分析，因为继承首先表明一种 <code>is-a</code> 关系，然后才考虑复用，例如，我们可以将能飞的鸟，飞，这个功能提取到父类中，实现代码复用。但是，对于 <code>Crawler</code> 和 <code>PageAnalyzer</code> 这两个都用到了 <code>URL</code> 拼接功能的类，我们没法抽象出一个父类，将这个公共的方法提取到父类中达到代码复用的目的，因为这个两个类不同宗也不同源，没有任何关系，硬生生扯出一个公共的类，只会影响代码的可读性。</p>
+<p>所以，结论是，虽然鼓励多用组合少用继承，但组合也并不完美，继承也不是说一无是处，实际项目中，还要根据具体的情况进行分析。</p>
+<h3 id="类之间的交互关系"><a class="markdownIt-Anchor" href="#类之间的交互关系"></a> 类之间的交互关系</h3>
+<p><code>UML</code> 统一建模语言中定义了六种类之间的关系：泛化、实现、关联、聚合、组合、依赖。其中泛化可以理解位简单的继承关系：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">A</span> &#123;...&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">B</span> <span class="keyword">extends</span> <span class="title class_">A</span> &#123;...&#125;</span><br></pre></td></tr></table></figure>
+<p>实现指的是接口和实现类之间的关系：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">A</span> &#123;...&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">B</span> <span class="keyword">implements</span> <span class="title class_">A</span> &#123;...&#125;</span><br></pre></td></tr></table></figure>
+<p>聚合是一种包含关系，<code>A</code> 类的对象包含 <code>B</code> 类的对象，<code>B</code> 类对象的生命周期可以不依赖 <code>A</code> 类对象的生命周期，也就是说可以单独销毁 <code>A</code> 类对象但是不影响 <code>B</code> 类对象，比如学生和课程之间的关系：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">A</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> B b;</span><br><span class="line">  <span class="keyword">public</span> <span class="title function_">A</span><span class="params">(B b)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.b = b;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>组合也是一种包含关系，但是如果 <code>A</code> 类对象包含 <code>B</code> 类对象，<code>B</code> 类对象的生命周期依赖 <code>A</code> 类对象的生命周期，<code>B</code> 类对象不可以单独存在，比如，鸟和翅膀的关系：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">A</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> B b;</span><br><span class="line">  <span class="keyword">public</span> <span class="title function_">A</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.b = <span class="keyword">new</span> <span class="title class_">B</span>();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关联是一种非常弱的关系，包含聚合和组合两种关系，具体到代码里面，如果 <code>B</code> 类对象是 <code>A</code> 类对象的成员变量，那 <code>B</code> 类和 <code>A</code> 类就是关联关系。具体到 <code>Java</code> 代码就是下面这样：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">A</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> B b;</span><br><span class="line">  <span class="keyword">public</span> <span class="title function_">A</span><span class="params">(B b)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.b = b;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 或者</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">A</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> B b;</span><br><span class="line">  <span class="keyword">public</span> <span class="title function_">A</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.b = <span class="keyword">new</span> <span class="title class_">B</span>();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>依赖是一种比关联关系更加弱的关系，包含关联关系。不管是 <code>B</code> 类对象是 <code>A</code> 类对象的成员变量，还是 <code>A</code> 类的方法使用 <code>B</code> 类对象作为参数或者返回值、局部变量，只要 <code>A</code> 类对象使用到了 <code>B</code> 类对象，我们都称它们有依赖关系。具体到 <code>Java</code> 代码就是下面这样：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">A</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> B b;</span><br><span class="line">  <span class="keyword">public</span> <span class="title function_">A</span><span class="params">(B b)</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.b = b;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 或者</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">A</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> B b;</span><br><span class="line">  <span class="keyword">public</span> <span class="title function_">A</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.b = <span class="keyword">new</span> <span class="title class_">B</span>();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 或者</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">A</span> &#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">func</span><span class="params">(B b)</span> &#123;...&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从实用的角度来说，我们只保留泛化、实现、依赖和组合即可。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/06/20/Design-Patterns/OOP/" title="面向对象">https://blog.fudenglong.site/2022/06/20/Design-Patterns/OOP/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1/" rel="tag"># 面向对象</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/06/19/Leetcode-Rust/minimum-size-subarray-sum-0209/" rel="prev" title="【Leetcode-Rust】长度最小的子数组(0209)">
+                  <i class="fa fa-angle-left"></i> 【Leetcode-Rust】长度最小的子数组(0209)
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/07/19/Design-Patterns/solid-design-principles/" rel="next" title="SOLID 设计原则">
+                  SOLID 设计原则 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/06/20/Design-Patterns/OOP/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

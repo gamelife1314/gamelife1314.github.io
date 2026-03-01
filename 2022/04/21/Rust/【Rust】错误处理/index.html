@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Rust 的错误处理方法非常不同寻常，本节介绍了 Rust 中两种不同类型的错误处理：panic 和 Result。  Panic 当程序遇到,数组越界，除0，这样很严重的bug时就会panic，在 Result 上调用 .expect() 遇到错误以及断言失败都会发生panic。还有宏 panic!()，用于在代码发现它出错是，想要直接退出。panic!() 接受可选的 println!() 样">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】错误处理">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/04/21/Rust/%E3%80%90Rust%E3%80%91%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Rust 的错误处理方法非常不同寻常，本节介绍了 Rust 中两种不同类型的错误处理：panic 和 Result。  Panic 当程序遇到,数组越界，除0，这样很严重的bug时就会panic，在 Result 上调用 .expect() 遇到错误以及断言失败都会发生panic。还有宏 panic!()，用于在代码发现它出错是，想要直接退出。panic!() 接受可选的 println!() 样">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-04-21T09:17:46.000Z">
+<meta property="article:modified_time" content="2022-04-21T09:17:46.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta property="article:tag" content="错误处理">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/04/21/Rust/%E3%80%90Rust%E3%80%91%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/04/21/Rust/%E3%80%90Rust%E3%80%91%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/","path":"2022/04/21/Rust/【Rust】错误处理/","title":"【Rust】错误处理"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】错误处理 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#panic"><span class="nav-number">1.</span> <span class="nav-text"> Panic</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#result"><span class="nav-number">2.</span> <span class="nav-text"> Result</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8D%95%E8%8E%B7%E9%94%99%E8%AF%AF"><span class="nav-number">3.</span> <span class="nav-text"> 捕获错误</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#result-%E5%88%AB%E5%90%8D"><span class="nav-number">4.</span> <span class="nav-text"> Result 别名</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%99%E8%AF%AF%E6%89%93%E5%8D%B0"><span class="nav-number">5.</span> <span class="nav-text"> 错误打印</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%99%E8%AF%AF%E4%BC%A0%E6%92%AD"><span class="nav-number">6.</span> <span class="nav-text"> 错误传播</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%84%E7%90%86%E4%B8%8D%E5%90%8C%E7%B1%BB%E5%9E%8B%E9%94%99%E8%AF%AF"><span class="nav-number">7.</span> <span class="nav-text"> 处理不同类型错误</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BF%BD%E7%95%A5%E9%94%99%E8%AF%AF"><span class="nav-number">8.</span> <span class="nav-text"> 忽略错误</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%84%E7%90%86-main-%E5%87%BD%E6%95%B0%E4%B8%AD%E7%9A%84%E9%94%99%E8%AF%AF"><span class="nav-number">9.</span> <span class="nav-text"> 处理 main 函数中的错误</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%99%E8%AF%AF%E5%AE%9A%E4%B9%89"><span class="nav-number">10.</span> <span class="nav-text"> 错误定义</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/04/21/Rust/%E3%80%90Rust%E3%80%91%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】错误处理 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】错误处理
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-04-21 17:17:46" itemprop="dateCreated datePublished" datetime="2022-04-21T17:17:46+08:00">2022-04-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>12 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>Rust</code> 的错误处理方法非常不同寻常，本节介绍了 Rust 中两种不同类型的错误处理：<code>panic</code> 和 <code>Result</code>。</p>
+<h3 id="panic"><a class="markdownIt-Anchor" href="#panic"></a> <code>Panic</code></h3>
+<p>当程序遇到,数组越界，除<code>0</code>，这样很严重的<code>bug</code>时就会<code>panic</code>，在 <code>Result</code> 上调用 <code>.expect()</code> 遇到错误以及断言失败都会发生<code>panic</code>。还有宏 <code>panic!()</code>，用于在代码发现它出错是，想要直接退出。<code>panic!()</code> 接受可选的 <code>println!()</code> 样式参数，用于构建错误消息。</p>
+<p>这些都是程序员的错，但我们都会犯错，当这些不该发生的错误发生时，<code>Rust</code> 可以终止进程。来看一个除<code>0</code>的示例：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="title function_ invoke__">pirate_share</span>(<span class="number">100</span>, <span class="number">0</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">pirate_share</span>(total: <span class="type">u64</span>, crew_size: <span class="type">usize</span>) <span class="punctuation">-&gt;</span> <span class="type">u64</span> &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">half</span> = total / <span class="number">2</span>;</span><br><span class="line">    half / crew_size <span class="keyword">as</span> <span class="type">u64</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>运行这段代码，程序会奔溃的并且打印出调用栈，还提示我们可以设置 <code>RUST_BACKTRACE=full</code> 获得更多的信息：</p>
+<pre><code>/Users/fudenglong/.cargo/bin/cargo run --color=always --package mandelbrot --bin mandelbrot
+    Finished dev [unoptimized + debuginfo] target(s) in 0.00s
+    Running `target/debug/mandelbrot`
+thread 'main' panicked at 'attempt to divide by zero', src/main.rs:7:5
+stack backtrace:
+0: rust_begin_unwind
+            at /rustc/4ca19e09d302a4cbde14f9cb1bc109179dc824cd/library/std/src/panicking.rs:584:5
+1: core::panicking::panic_fmt
+            at /rustc/4ca19e09d302a4cbde14f9cb1bc109179dc824cd/library/core/src/panicking.rs:142:14
+2: core::panicking::panic
+            at /rustc/4ca19e09d302a4cbde14f9cb1bc109179dc824cd/library/core/src/panicking.rs:48:5
+3: mandelbrot::pirate_share
+            at ./src/main.rs:7:5
+4: mandelbrot::main
+            at ./src/main.rs:2:5
+5: core::ops::function::FnOnce::call_once
+            at /rustc/4ca19e09d302a4cbde14f9cb1bc109179dc824cd/library/core/src/ops/function.rs:248:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+Process finished with exit code 101
+</code></pre>
+</div>
+<p>线程之间的 <code>panic</code> 是相互独立的，也可以调用 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/panic/fn.catch_unwind.html"><code>std::panic::catch_unwind()</code></a> 捕获异常，并且让程序执行。默认发生 <code>panic</code> 时会展开调用栈，此外有两种情况 <code>Rust</code> 不会尝试展开调用栈：</p>
+<ul>
+<li>
+<p>如果 <code>.drop()</code> 方法触发了第二次恐慌，而 <code>Rust</code> 在第一次之后仍在尝试清理，这被认为是致命的，<code>Rust</code> 停止展开并中止整个进程；</p>
+</li>
+<li>
+<p><code>Rust</code> 的恐慌行为是可定制的。如果使用 <code>-C panic=abort</code> 编译，程序中的第一个 <code>panic</code> 会立即中止进程。（使用这个选项，<code>Rust</code> 不需要知道如何展开调用栈，因此这可以减少编译代码的大小。）</p>
+</li>
+</ul>
+<span id="more"></span>
+<h3 id="result"><a class="markdownIt-Anchor" href="#result"></a> <code>Result</code></h3>
+<p><code>Rust</code> 中没有异常，而是在会出现错误的函数中会返回一个 <code>Result</code> 类型，它预示着函数会预期执行成功，也可能因异常执失败。当我们调用函数 <code>get_weather</code> 的时候，要么成功返回 <code>Ok(weather)</code>，<code>weather</code> 是 <code>WeatherReport</code> 的一个实例。或者出现错误时返回 <code>Err(error_value)</code>，其中 <code>error_value</code> 是 <code>io:Error</code> 类型。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">get_weather</span>(location: LatLng) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;WeatherReport, io::Error&gt;</span><br></pre></td></tr></table></figure>
+<p>每当我们调用这个函数时，<code>Rust</code> 要求我们编写错误处理程序。如果不对 <code>Result</code> 做一些处理，我们就无法获取 <code>WeatherReport</code>，如果未使用 <code>Result</code> 值，编译器就会警告。</p>
+<h3 id="捕获错误"><a class="markdownIt-Anchor" href="#捕获错误"></a> 捕获错误</h3>
+<p>处理 <code>Result</code> 类型最直接的方式是使用 <code>match</code> 表达式，这类似于其他语言中 <code>try/catch</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">match</span> <span class="title function_ invoke__">get_weather</span>(hometown) &#123;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(report) =&gt; &#123;</span><br><span class="line">        <span class="title function_ invoke__">display_weather</span>(hometown, &amp;report);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Err</span>(err) =&gt; &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;error querying the weather: &#123;&#125;&quot;</span>, err);</span><br><span class="line">        <span class="title function_ invoke__">schedule_weather_retry</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>match</code> 可以处理，但看起来似乎有点冗长。因此 <code>Result&lt;T, E&gt;</code> 提供了很多方法使用，全部方法可以阅读 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/result/enum.Result.html"><code>https://doc.rust-lang.org/std/result/enum.Result.html</code></a>，下面是一些常用的方法列表：</p>
+<ul>
+<li>
+<p><code>result.is_ok(), result.is_err()</code>：返回一个 <code>bool</code> 表示执行成功还是遇到错误；</p>
+</li>
+<li>
+<p><code>result.ok()</code>：以 <code>Option(T)</code> 的形式返回成功值，如果结果是成功的则返回 <code>Some(success_value)</code>，否则返回 <code>None</code>；</p>
+</li>
+<li>
+<p><code>result.err()</code>：以 <code>Option(T)</code> 的返回错误值；</p>
+</li>
+<li>
+<p><code>result.unwrap_or(fallback)</code>：如果有的话返回成功值，否则返回备选值，丢掉错误；</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">   </span><br><span class="line"><span class="comment">// A fairly safe prediction for Southern California.</span></span><br><span class="line"><span class="keyword">const</span> THE_USUAL: WeatherReport = WeatherReport::<span class="title function_ invoke__">Sunny</span>(<span class="number">72</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Get a real weather report, if possible.</span></span><br><span class="line"><span class="comment">// If not, fall back on the usual.</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">report</span> = <span class="title function_ invoke__">get_weather</span>(los_angeles).<span class="title function_ invoke__">unwrap_or</span>(THE_USUAL);</span><br><span class="line"><span class="title function_ invoke__">display_weather</span>(los_angeles, &amp;report);</span><br></pre></td></tr></table></figure>
+<p>相比 <code>.ok()</code> 来说它是比较好的，因为返回的是 <code>T</code> 而不是 <code>Option&lt;T&gt;</code>，但是只有在存在备选值得时候才有效。</p>
+</li>
+<li>
+<p><code>result.unwrap_or_else(fallback_fn)</code>：和前面的方法是一样的，不同的是，它需要传递一个函数或闭包。这适用于在错误时有自定义逻辑处理的情况：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">report</span> =</span><br><span class="line">    <span class="title function_ invoke__">get_weather</span>(hometown)</span><br><span class="line">    .<span class="title function_ invoke__">unwrap_or_else</span>(|_err| <span class="title function_ invoke__">vague_prediction</span>(hometown));</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>result.unwrap()</code>：如果 <code>result</code> 是成功的，则返回成功值，否则将会 <code>panic</code>；</p>
+</li>
+<li>
+<p><code>result.expect(message)</code>：类似于 <code>unwrap()</code>，但是允许提供一个信息在 <code>panic</code> 时打印；</p>
+</li>
+<li>
+<p><code>result.as_ref()</code>：将 <code>Result&lt;T, E&gt;</code> 转换为 <code>Result&lt;&amp;T, &amp;E&gt;</code>；</p>
+</li>
+<li>
+<p><code>result.as_mut()</code>：将 <code>Result&lt;T, E&gt;</code> 转换为 <code>Result&lt;&amp;mut T, &amp;mut E&gt;</code>；</p>
+</li>
+</ul>
+<p>最后这两个方法和除 <code>.is_ok()</code> 和 <code>.is_err()</code> 之外的方法不同，其他的都会消耗 <code>result</code> 的值，也就是它们会获取 <code>result</code> 的所有权，它们都是接受 <code>self</code> 作为参数。但是有时候我们想在不破坏数据的情况下访问数据，例如，我们想调用 <code>result.ok()</code>，又想保持 <code>result</code> 在我们调用之后任然可用，所以我们可以编写 <code>result.as_ref().ok()</code>，他只是借用 <code>result</code> 而不获取它的所有权，当然返回的也就是 <code>Option&lt;&amp;T&gt;</code> 不再是 <code>Option&lt;T&gt;</code>。</p>
+<h3 id="result-别名"><a class="markdownIt-Anchor" href="#result-别名"></a> <code>Result</code> 别名</h3>
+<p>我们可以给 <code>Result&lt;T, E&gt;</code> 起个别名，让写起来更加简单，就像 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fs/fn.remove_file.html"><code>std::fs::remove_file</code></a> 函数：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">remove_file</span>&lt;P: <span class="built_in">AsRef</span>&lt;Path&gt;&gt;(path: P) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;()&gt;</span><br></pre></td></tr></table></figure>
+<p>模块通常定义一个 <code>Result</code> 类型别名，以避免必须重复模块中几乎每个函数都一致使用的错误类型。例如，标准库的 <code>std::io</code> 模块包括这行代码：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">type</span> <span class="title class_">Result</span>&lt;T&gt; = result::<span class="type">Result</span>&lt;T, Error&gt;;</span><br></pre></td></tr></table></figure>
+<p>这定义了一个公共类型 <code>std::io::Result&lt;T&gt;</code>，它是 <code>Result&lt;T, E&gt;</code> 的别名，但将 <code>std::io::Error</code> 硬编码为错误类型。实际上，这意味着<code>Rust</code> 会将 <code>std::io::Result&lt;String&gt;</code> 理解为 <code>std::io::Result&lt;String, std::io::Error&gt;</code> 的简写。</p>
+<h3 id="错误打印"><a class="markdownIt-Anchor" href="#错误打印"></a> 错误打印</h3>
+<p>我们经常处理错误的方式就是将错误信息打印出来，然后程序继续执行。我们之前都是用 <code>println!()</code> 这个宏来完成的，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;error querying the weather: &#123;&#125;&quot;</span>, err);</span><br></pre></td></tr></table></figure>
+<p>标注库里面提供了很多错误类型，例如 <code>std::io::Error</code>，<code>std::fmt::Error</code> 和 <code>std::str::Utf8Error</code> 等等，但是它们都实现了 <code>std::error::Error</code>，这意味着所有的错误都有下面的接口：</p>
+<ul>
+<li>
+<p><code>println!()</code>：所有错误类型都可以使用它打印。 使用 <code>&#123;&#125;</code> 格式说明符打印错误通常只显示简短的错误消息。 或者可以使用 <code>&#123;:?&#125;</code> ，以获取错误的调试视图， 这对用户不太友好，但包含额外的技术信息；</p>
+  <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">// result of `println!(&quot;error: &#123;&#125;&quot;, err);`</span><br><span class="line">error: failed to lookup address information: No address associated with</span><br><span class="line">hostname</span><br><span class="line"></span><br><span class="line">// result of `println!(&quot;error: &#123;:?&#125;&quot;, err);`</span><br><span class="line">error: Error &#123; repr: Custom(Custom &#123; kind: Other, error: StringError(</span><br><span class="line">&quot;failed to lookup address information: No address associated with</span><br><span class="line">hostname&quot;) &#125;) &#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>err.to_string()</code>：返回一个错误信息作为 <code>String</code>；</p>
+</li>
+<li>
+<p><code>err.source()</code>：返回底层的 <code>err</code>。例如，网络原因导致银行交易失败，然后又导致你的转账被取消，那么 <code>err.souce()</code> 可以返回下层的错误。</p>
+</li>
+</ul>
+<p>打印错误值不会同时打印出其来源。如果想确保打印所有可用信息，使用下面的代码示例：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::error::Error;</span><br><span class="line"><span class="keyword">use</span> std::io::&#123;Write, stderr&#125;;</span><br><span class="line"><span class="comment">/// Dump an error message to `stderr`.</span></span><br><span class="line"><span class="comment">///</span></span><br><span class="line"><span class="comment">/// If another error happens while building the error message or</span></span><br><span class="line"><span class="comment">/// writing to `stderr`, it is ignored.</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">print_error</span>(<span class="keyword">mut</span> err: &amp;<span class="keyword">dyn</span> Error) &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">_</span> = <span class="built_in">writeln!</span>(<span class="title function_ invoke__">stderr</span>(), <span class="string">&quot;error: &#123;&#125;&quot;</span>, err);</span><br><span class="line">    <span class="keyword">while</span> <span class="keyword">let</span> <span class="variable">Some</span>(source) = err.<span class="title function_ invoke__">source</span>() &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">_</span> = <span class="built_in">writeln!</span>(<span class="title function_ invoke__">stderr</span>(), <span class="string">&quot;caused by: &#123;&#125;&quot;</span>, source);</span><br><span class="line">        err = source;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>writeln!</code> 宏的工作方式与 <code>println!</code> 类似，不同之处在于它将数据写入你选择的流。在这里，我们将错误消息写入标准错误流 <code>std::io::stderr</code>。我们可以使用 <code>eprintln!</code> 宏做同样的事情，但 <code>eprintln!</code> 如果发生错误会 <code>panic</code>。</p>
+<h3 id="错误传播"><a class="markdownIt-Anchor" href="#错误传播"></a> 错误传播</h3>
+<p><code>Rust</code> 中有个 <code>?</code> 操作符，用于向上传播错误。主要的应用场景是，当我们调用函数遇到错误，但又不想立即处理，只是想把这个错误继续往外传播，让最外层的调用者处理，我们就可以使用它：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">weather</span> = <span class="title function_ invoke__">get_weather</span>(hometown)?;</span><br></pre></td></tr></table></figure>
+<p><code>?</code> 这个操作符的行为取决于 <code>get_weather</code> 函数返回成功结果还是错误结果：</p>
+<ul>
+<li>
+<p>成功时，它会获取里面成功的值，也就是获取 <code>WeatherReport</code>，而不是 <code>Result&lt;WeatherReport, io::Error&gt;</code>；</p>
+</li>
+<li>
+<p>出错时，它会立即返回，为了确保有效，<code>?</code> 只能用于具有 <code>Result</code> 返回类型的函数；</p>
+</li>
+</ul>
+<p><code>?</code> 可以看做是 <code>match</code> 的一种简化方式：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">weather</span> = <span class="keyword">match</span> <span class="title function_ invoke__">get_weather</span>(hometown) &#123;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(success_value) =&gt; success_value,</span><br><span class="line">    <span class="title function_ invoke__">Err</span>(err) =&gt; <span class="keyword">return</span> <span class="title function_ invoke__">Err</span>(err)</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>在 <code>Rust</code> 较老的代码中，这个干工作是用 <code>try!</code> 宏处理的，直到 <code>1.13</code> 引入 <code>?</code>。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">weather</span> = <span class="built_in">try!</span>(<span class="title function_ invoke__">get_weather</span>(hometown))</span><br></pre></td></tr></table></figure>
+<p>错误在程序中是非常普遍，尤其是在与操作系统接口的代码中， 因此 <code>?</code> 运算符可能会出现在函数的每一行：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::fs;</span><br><span class="line"><span class="keyword">use</span> std::io;</span><br><span class="line"><span class="keyword">use</span> std::path::Path;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">move_all</span>(src: &amp;Path, dst: &amp;Path) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">entry_result</span> <span class="keyword">in</span> src.<span class="title function_ invoke__">read_dir</span>()? &#123; <span class="comment">// opening dir could fail</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">entry</span> = entry_result?; <span class="comment">// reading dir could fail</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">dst_file</span> = dst.<span class="title function_ invoke__">join</span>(entry.<span class="title function_ invoke__">file_name</span>());</span><br><span class="line">        fs::<span class="title function_ invoke__">rename</span>(entry.<span class="title function_ invoke__">path</span>(), dst_file)?; <span class="comment">// renaming could fail</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(()) <span class="comment">// phew!</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>?</code> 也可以用于 <code>Option</code> 类型，道理和 <code>Result</code> 是相同的。</p>
+<h3 id="处理不同类型错误"><a class="markdownIt-Anchor" href="#处理不同类型错误"></a> 处理不同类型错误</h3>
+<p>有时候，在一个函数中会遇到多种类型的错误，而函数的返回类型是固定的，如果我们使用 <code>?</code> 向上传播错误就会遇到问题，错误类型不匹配，例如：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::io::&#123;<span class="keyword">self</span>, BufRead&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Read integers from a text file.</span></span><br><span class="line"><span class="comment">/// The file should have one number on each line.</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">read_numbers</span>(file: &amp;<span class="keyword">mut</span> <span class="keyword">dyn</span> BufRead) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;<span class="type">Vec</span>&lt;<span class="type">i64</span>&gt;, io::Error&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">numbers</span> = <span class="built_in">vec!</span>[];</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">line_result</span> <span class="keyword">in</span> file.<span class="title function_ invoke__">lines</span>() &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">line</span> = line_result?; <span class="comment">// reading lines can fail</span></span><br><span class="line">        numbers.<span class="title function_ invoke__">push</span>(line.<span class="title function_ invoke__">parse</span>()?); <span class="comment">// parsing integers can fail</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(numbers)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>编译这段代码，会看到如下的错误，总结来说就是 <code>line.parse()</code> 返回的错误没法转换成 <code>io::Error</code>，因为 <code>line.parse()</code> 返回的是 <code>Result&lt;i64 std::num::ParseIntError&gt;</code>，<code>ParseIntError</code> 没法转换成 <code>io::Error</code>：</p>
+<pre><code>error[E0277]: `?` couldn't convert the error to `std::io::Error`
+--&gt; src/main.rs:9:34
+|
+5 | fn read_numbers(file: &amp;mut dyn BufRead) -&gt; Result&lt;Vec&lt;i64&gt;, io::Error&gt; {
+|                                            --------------------------- expected `std::io::Error` because of this
+...
+9 |         numbers.push(line.parse()?); // parsing integers can fail
+|                                  ^ the trait `From&lt;ParseIntError&gt;` is not implemented for `std::io::Error`
+|
+= note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+= help: the following other types implement trait `From&lt;T&gt;`:
+            &lt;std::io::Error as From&lt;ErrorKind&gt;&gt;
+            &lt;std::io::Error as From&lt;IntoInnerError&lt;W&gt;&gt;&gt;
+            &lt;std::io::Error as From&lt;alloc::ffi::c_str::NulError&gt;&gt;
+= note: required because of the requirements on the impl of `FromResidual&lt;Result&lt;Infallible, ParseIntError&gt;&gt;` for `Result&lt;Vec&lt;i64&gt;, std::io::Error&gt;`
+</code></pre>
+</div>
+<p>这里介绍一种错误的处理方法，<code>Rust</code> 标准库中的所有错误都可以转换为 <code>Box&lt;dyn std::error::Error + Send + Sync + 'static&gt;</code> 类型，其中：</p>
+<ul>
+<li>
+<p><code>dyn std::error::Error</code>：表示任意错误；</p>
+</li>
+<li>
+<p><code>Send + Sync + 'static</code>：能够在多线程之间安全传递；</p>
+</li>
+</ul>
+<p>出于方便，我们可以下面的类型，并且对 <code>read_numbers()</code> 函数进行整改，</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::io::&#123;<span class="keyword">self</span>, BufRead&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> <span class="title class_">GenericError</span> = <span class="type">Box</span>&lt;<span class="keyword">dyn</span> std::error::Error + <span class="built_in">Send</span> + <span class="built_in">Sync</span> + <span class="symbol">&#x27;static</span>&gt;;</span><br><span class="line"><span class="keyword">type</span> <span class="title class_">GenericResult</span>&lt;T&gt; = <span class="type">Result</span>&lt;T, GenericError&gt;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Read integers from a text file.</span></span><br><span class="line"><span class="comment">/// The file should have one number on each line.</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">read_numbers</span>(file: &amp;<span class="keyword">mut</span> <span class="keyword">dyn</span> BufRead) <span class="punctuation">-&gt;</span> GenericResult&lt;<span class="type">Vec</span>&lt;<span class="type">i64</span>&gt;&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">numbers</span> = <span class="built_in">vec!</span>[];</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">line_result</span> <span class="keyword">in</span> file.<span class="title function_ invoke__">lines</span>() &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">line</span> = line_result?; <span class="comment">// reading lines can fail</span></span><br><span class="line">        numbers.<span class="title function_ invoke__">push</span>(line.<span class="title function_ invoke__">parse</span>()?); <span class="comment">// parsing integers can fail</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(numbers)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果想从一个返回 <code>GenericResult</code> 的函数，找到一种特定类型的错误处理，但让其他错误传播出去，可以使用泛型方法 <code>error.downcast_ref::&lt;ErrorType&gt;()</code>。 如果它恰好是要查找的特定类型的错误，它会借用对错误的引用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">loop</span> &#123;</span><br><span class="line">    <span class="keyword">match</span> <span class="title function_ invoke__">compile_project</span>() &#123;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(()) =&gt; <span class="keyword">return</span> <span class="title function_ invoke__">Ok</span>(()),</span><br><span class="line">        <span class="title function_ invoke__">Err</span>(err) =&gt; &#123;</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Some</span>(mse) = err.downcast_ref::&lt;MissingSemicolonError&gt;() &#123;</span><br><span class="line">                <span class="title function_ invoke__">insert_semicolon_in_source_code</span>(mse.<span class="title function_ invoke__">file</span>(), mse.<span class="title function_ invoke__">line</span>())?;</span><br><span class="line">                <span class="keyword">continue</span>; <span class="comment">// try again!</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="title function_ invoke__">Err</span>(err);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>还有一种处理方式是使用 <a target="_blank" rel="noopener" href="https://docs.rs/thiserror/latest/thiserror/"><code>thiserror</code></a> 帮我自动实现 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/error/trait.Error.html"><code>std::error::Error</code></a>。</p>
+<h3 id="忽略错误"><a class="markdownIt-Anchor" href="#忽略错误"></a> 忽略错误</h3>
+<p>有时候，我们可能就是想忽略一个错误，因为某个函数执行成功与否关系不大，例如写日志到 <code>stderr</code>，但是我们如果不处理，编译器会报告警：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">writeln!</span>(<span class="title function_ invoke__">stderr</span>(), <span class="string">&quot;error: &#123;&#125;&quot;</span>, err); <span class="comment">// warning: unused result</span></span><br></pre></td></tr></table></figure>
+<p>不过可以使用 <code>let _ = ...</code> 消除这个告警：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">_</span> = <span class="built_in">writeln!</span>(<span class="title function_ invoke__">stderr</span>(), <span class="string">&quot;error: &#123;&#125;&quot;</span>, err); <span class="comment">// ok, ignore result</span></span><br></pre></td></tr></table></figure>
+<h3 id="处理-main-函数中的错误"><a class="markdownIt-Anchor" href="#处理-main-函数中的错误"></a> 处理 <code>main</code> 函数中的错误</h3>
+<p>使用 <code>?</code> 向上传递错误大多时候是比较正确的行为，可是当错误传播到 <code>main</code> 函数的时候我们就需要处理。大多时候，我们看到的 <code>main</code> 函数签名都是下面这个样子，它的返回值类型是 <code>()</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以我们不能使用 <code>?</code> 传播错误：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="title function_ invoke__">calculate_tides</span>()?; <span class="comment">// error: can&#x27;t pass the buck any further</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最简单的方式是使用 <code>.expect()</code>，检查是否调用成功，如果失败就打印错误信息：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="title function_ invoke__">calculate_tides</span>().<span class="title function_ invoke__">expect</span>(<span class="string">&quot;error&quot;</span>); <span class="comment">// the buck stops here</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>不过，我们也可以更改这个 <code>main</code> 函数的签名，让它返回 <code>Result</code> 类型，使用 <code>?</code> 传递错误：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), TideCalcError&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">tides</span> = <span class="title function_ invoke__">calculate_tides</span>()?;</span><br><span class="line">    <span class="title function_ invoke__">print_tides</span>(tides);</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是这种方式打印的错误信息不是很详细，如果想自定义错误输出，还需要自己处理错误：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Err</span>(err) = <span class="title function_ invoke__">calculate_tides</span>() &#123;</span><br><span class="line">        <span class="title function_ invoke__">print_error</span>(&amp;err);</span><br><span class="line">        std::process::<span class="title function_ invoke__">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="错误定义"><a class="markdownIt-Anchor" href="#错误定义"></a> 错误定义</h3>
+<p>标注库里面的错误不可能满足所有情况，大多时候我们需要自定义错误：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Debug, Clone)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">JsonError</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> message: <span class="type">String</span>,</span><br><span class="line">    <span class="keyword">pub</span> line: <span class="type">usize</span>,</span><br><span class="line">    <span class="keyword">pub</span> column: <span class="type">usize</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是如果我们希望和标准的错误类型表现一样，我们还需要做点适配：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::fmt;</span><br><span class="line"><span class="comment">// Errors should be printable.</span></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">fmt</span>::Display <span class="keyword">for</span> <span class="title class_">JsonError</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">fmt</span>(&amp;<span class="keyword">self</span>, f: &amp;<span class="keyword">mut</span> fmt::Formatter) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), fmt::Error&gt; &#123;</span><br><span class="line">        <span class="built_in">write!</span>(f, <span class="string">&quot;&#123;&#125; (&#123;&#125;:&#123;&#125;)&quot;</span>, <span class="keyword">self</span>.message, <span class="keyword">self</span>.line, <span class="keyword">self</span>.column)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Errors should implement the std::error::Error trait,</span></span><br><span class="line"><span class="comment">// but the default definitions for the Error methods are fine.</span></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">std</span>::error::Error <span class="keyword">for</span> <span class="title class_">JsonError</span> &#123; &#125;</span><br></pre></td></tr></table></figure>
+<p>不过，每次都实现这些 <code>trait</code> 是很头疼的，所以我们可使用 <a target="_blank" rel="noopener" href="https://docs.rs/thiserror/latest/thiserror/"><code>thiserror</code></a>，帮我自动实现：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> thiserror::Error;</span><br><span class="line"><span class="meta">#[derive(Error, Debug)]</span></span><br><span class="line"><span class="meta">#[error(<span class="string">&quot;&#123;message:&#125; (&#123;line:&#125;, &#123;column&#125;)&quot;</span>)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">JsonError</span> &#123;</span><br><span class="line">    message: <span class="type">String</span>,</span><br><span class="line">    line: <span class="type">usize</span>,</span><br><span class="line">    column: <span class="type">usize</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/04/21/Rust/%E3%80%90Rust%E3%80%91%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/" title="【Rust】错误处理">https://blog.fudenglong.site/2022/04/21/Rust/【Rust】错误处理/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+              <a href="/tags/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/" rel="tag"># 错误处理</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/04/20/Rust/%E3%80%90Rust%E3%80%91%E8%A1%A8%E8%BE%BE%E5%BC%8F/" rel="prev" title="【Rust】表达式">
+                  <i class="fa fa-angle-left"></i> 【Rust】表达式
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/" rel="next" title="【Rust】Crate 和 Module">
+                  【Rust】Crate 和 Module <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/04/21/Rust/%E3%80%90Rust%E3%80%91%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

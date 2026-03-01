@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="ABI（Application Binary Interface），即应用程序二进制接口，定义了函数调用时参数和返回值如何传递。就像C语言 x86-64 系统中，返回值保存在寄存器 %rax 中，前6个参数分别通过寄存器 %rdi，%rsi，%rdx，%rcx，%r8 以及 %r9 传递。 但是 Go 语言使用了一套跨架构通用 ABI 设计，它定义了数据在内存上的布局和函数之间的调用规约，这个调用">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Golang】Application Binary Interface">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/03/24/Go/%E3%80%90Golang%E3%80%91Application-Binary-Interface/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="ABI（Application Binary Interface），即应用程序二进制接口，定义了函数调用时参数和返回值如何传递。就像C语言 x86-64 系统中，返回值保存在寄存器 %rax 中，前6个参数分别通过寄存器 %rdi，%rsi，%rdx，%rcx，%r8 以及 %r9 传递。 但是 Go 语言使用了一套跨架构通用 ABI 设计，它定义了数据在内存上的布局和函数之间的调用规约，这个调用">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/03/24/Go/%E3%80%90Golang%E3%80%91Application-Binary-Interface/go1.17-abi.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/03/24/Go/%E3%80%90Golang%E3%80%91Application-Binary-Interface/go1.16-abi.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/03/24/Go/%E3%80%90Golang%E3%80%91Application-Binary-Interface/abiinternal-call-abi0.png">
+<meta property="article:published_time" content="2022-03-24T09:03:17.000Z">
+<meta property="article:modified_time" content="2022-03-24T09:03:17.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/03/24/Go/%E3%80%90Golang%E3%80%91Application-Binary-Interface/go1.17-abi.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/03/24/Go/%E3%80%90Golang%E3%80%91Application-Binary-Interface/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/03/24/Go/%E3%80%90Golang%E3%80%91Application-Binary-Interface/","path":"2022/03/24/Go/【Golang】Application-Binary-Interface/","title":"【Golang】Application Binary Interface"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Golang】Application Binary Interface | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#go-version-go1178-linuxamd64"><span class="nav-number">1.</span> <span class="nav-text"> go version go1.17.8 linux&#x2F;amd64</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#go-version-go11615-linuxamd64"><span class="nav-number">2.</span> <span class="nav-text"> go version go1.16.15 linux&#x2F;amd64</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#abiinternal-%E8%B0%83%E7%94%A8-abi0-%E5%87%BD%E6%95%B0"><span class="nav-number">3.</span> <span class="nav-text"> ABIInternal 调用 ABI0 函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E9%93%BE%E6%8E%A5"><span class="nav-number">4.</span> <span class="nav-text"> 相关链接</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/03/24/Go/%E3%80%90Golang%E3%80%91Application-Binary-Interface/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Golang】Application Binary Interface | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Golang】Application Binary Interface
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-03-24 17:03:17" itemprop="dateCreated datePublished" datetime="2022-03-24T17:03:17+08:00">2022-03-24</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>9 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>ABI（Application Binary Interface）</code>，即应用程序二进制接口，定义了函数调用时参数和返回值如何传递。就像C语言 <code>x86-64</code> 系统中，返回值保存在寄存器 <code>%rax</code> 中，前6个参数分别通过寄存器 <code>%rdi</code>，<code>%rsi</code>，<code>%rdx</code>，<code>%rcx</code>，<code>%r8</code> 以及 <code>%r9</code> 传递。</p>
+<p>但是 <code>Go</code> 语言使用了一套跨架构通用 <code>ABI</code> 设计，它定义了数据在内存上的布局和函数之间的调用规约，这个调用规约是不稳定的，是会随着 <code>Go</code> 的版本进行变换的，称之为 <code>ABIInternal</code>。如果我们想开发汇编代码，应该使用<a target="_blank" rel="noopener" href="https://go.dev/doc/asm">稳定的 <code>ABI0</code></a>。所有原代码中定义的 <code>Go</code> 函数都遵循 <code>ABIInternal</code>，两种调用规约下的函数可以通过透明的 <code>wrapper</code> 相互调用。</p>
+<p>之所以有两套调用规约，并且一个是稳定的（<code>ABI0</code>，承诺向后兼容），一个是不稳定的（<code>ABIInternal</code>，不承诺向后兼容）是因为一开始<code>Go</code>的调用规约约定所有的参数和返回值都通过栈传递，并且很多<code>Go</code>内部的包中有很多基于这个机制编写的汇编代码，例如 <code>math/big</code>，如果现在想升级调用规约，那么这么多汇编代码都得重写，显然不是很现实。所以，比较好的办法是引入一种新的私有约定，不承诺向后兼容，但可以在多个调用规约之间透明互调。私有的调用规约用于<code>Go</code>代码最终汇编的生成，稳定的调用规约用于汇编代码开发，由编译器完成两者之间的自动互调用。更多的内容可以查看 <a target="_blank" rel="noopener" href="https://go.googlesource.com/proposal/+/master/design/27539-internal-abi.md"><code>Proposal: Create an undefined internal calling convention</code></a>。</p>
+<p><a target="_blank" rel="noopener" href="https://go.dev/doc/go1.17#compiler"><code>Go1.17 Release Notes Compiler</code></a> 就对原有的调用规约做了更新，从基于栈的参数传递更新成基于寄存器，基准测试发现，性能有 <code>5%</code> 的提升，二进制大小减少 <code>2%</code>，但是 <code>Go1.17</code> 只在 <code>Amd64</code> 平台上实现了。</p>
+<p><a target="_blank" rel="noopener" href="https://go.dev/doc/go1.18#compiler"><code>Go1.18 Release Notes Compiler</code></a> 开始支持 <code>GOARCH=arm64</code>，<code>OARCH=ppc64, ppc64le</code>。在 <code>64</code> 位 <code>ARM</code> 和 <code>64</code> 位 <code>PowerPC</code> 系统上，基准测试显示性能提升 <code>10%</code> 或更多。</p>
+<p>也就是说，在<code>Go</code>的调用规约中，我们需要遵循以下这些点：</p>
+<ul>
+<li>如果想写汇编代码，那么可以基于 <code>ABI0</code>，通过栈传递参数，汇编中使用 <code>FP</code> 等伪寄存器传递和访问参数以及返回值；</li>
+<li><code>ABI0</code> 是当前的调用约定，它在堆栈上传递参数和结果，在调用时破坏所有寄存器，并且有一些平台相关的固定寄存器；</li>
+<li><code>ABIInternal</code> 不稳定，可能会随版本变化。最初的时候它是与 <code>ABI0</code> 相同的，但 <code>ABIInternal</code> 为扩展提供了更多的可能性；</li>
+</ul>
+<span id="more"></span>
+<p>为了测试Go不同版本的调用规约，我们使用下面的示例代码：</p>
+<figure class="highlight go"><figcaption><span>abi.go</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> abi</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">//go:noinline</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">add</span><span class="params">(a, b, c, d, e, f, g, h, i, j <span class="type">int</span>)</span></span> (<span class="type">int</span>, <span class="type">int</span>, <span class="type">int</span>, <span class="type">int</span>, <span class="type">int</span>, <span class="type">int</span>, <span class="type">int</span>, <span class="type">int</span>, <span class="type">int</span>, <span class="type">int</span>) &#123;</span><br><span class="line">	sum := a + b + c + d + e + f + g + h + i + j</span><br><span class="line">	<span class="keyword">return</span> sum, <span class="number">999</span>, <span class="number">888</span>, <span class="number">777</span>, <span class="number">666</span>, <span class="number">555</span>, <span class="number">444</span>, <span class="number">333</span>, <span class="number">222</span>, <span class="number">111</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//go:nosplit</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">callAdd</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(add(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">9</span>, <span class="number">10</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>测试机的系统信息如下：</p>
+<blockquote>
+<p>Linux ecs-335906 4.18.0-348.7.1.el8_5.x86_64 #1 SMP Wed Dec 22 13:25:12 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux</p>
+</blockquote>
+<p>使用下面的指令获取Go的汇编代码：</p>
+<blockquote>
+<p>go tool compile -S -l abi.go</p>
+</blockquote>
+<h3 id="go-version-go1178-linuxamd64"><a class="markdownIt-Anchor" href="#go-version-go1178-linuxamd64"></a> go version go1.17.8 linux/amd64</h3>
+<p>从下面的汇编代码中可以看出，<code>Go1.17</code> 中，前9个参数是通过寄存器传递的分别是 <code>AX</code>，<code>BX</code>，<code>CX</code>，<code>DI</code>，<code>SI</code>，<code>R8</code>，<code>R9</code>，<code>R10</code>以及<code>R11</code>，从第10个开始在栈上传递；返回值的传递使用相同的规则。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">&quot;&quot;.add STEXT nosplit size=88 args=0x58 locals=0x0 funcid=0x0</span><br><span class="line">	0x0000 00000 (abi.go:6)	TEXT	&quot;&quot;.add(SB), NOSPLIT|ABIInternal, $0-88</span><br><span class="line">	0x0000 00000 (abi.go:6)	FUNCDATA	$0, gclocals·33cdeccccebe80329f1fdbee7f5874cb(SB)</span><br><span class="line">	0x0000 00000 (abi.go:6)	FUNCDATA	$1, gclocals·33cdeccccebe80329f1fdbee7f5874cb(SB)</span><br><span class="line">	0x0000 00000 (abi.go:6)	FUNCDATA	$5, &quot;&quot;.add.arginfo1(SB)</span><br><span class="line">	0x0000 00000 (abi.go:8)	MOVQ	$111, &quot;&quot;.~r19+16(SP) // 返回值10</span><br><span class="line">	0x0009 00009 (abi.go:7)	LEAQ	(BX)(AX*1), DX // 计算 a + b，LEAQ指令的特殊运用，可以用来求和</span><br><span class="line">	0x000d 00013 (abi.go:7)	ADDQ	CX, DX         // 计算 a + b + c</span><br><span class="line">	0x0010 00016 (abi.go:7)	ADDQ	DI, DX         // 计算 a + b + c + d</span><br><span class="line">	0x0013 00019 (abi.go:7)	ADDQ	SI, DX         // 计算 a + b + c + d + e</span><br><span class="line">	0x0016 00022 (abi.go:7)	ADDQ	R8, DX         // 计算 a + b + c + d + e + f</span><br><span class="line">	0x0019 00025 (abi.go:7)	ADDQ	R9, DX         // 计算 a + b + c + d + e + f + g</span><br><span class="line">	0x001c 00028 (abi.go:7)	ADDQ	R10, DX        // 计算 a + b + c + d + e + f + g + h</span><br><span class="line">	0x001f 00031 (abi.go:7)	ADDQ	R11, DX        // 计算 a + b + c + d + e + f + g + h + i 放到DX中</span><br><span class="line">	0x0022 00034 (abi.go:7)	MOVQ	&quot;&quot;.j+8(SP), R12 // 读取参数10，j，放到R12中</span><br><span class="line">	0x0027 00039 (abi.go:7)	LEAQ	(R12)(DX*1), AX // 计算 DX + j，放到AX中返回</span><br><span class="line">	0x002b 00043 (abi.go:8)	MOVL	$999, BX        // 返回值2</span><br><span class="line">	0x0030 00048 (abi.go:8)	MOVL	$888, CX        // 返回值3</span><br><span class="line">	0x0035 00053 (abi.go:8)	MOVL	$777, DI        // 返回值4</span><br><span class="line">	0x003a 00058 (abi.go:8)	MOVL	$666, SI        // 返回值5</span><br><span class="line">	0x003f 00063 (abi.go:8)	MOVL	$555, R8        // 返回值6</span><br><span class="line">	0x0045 00069 (abi.go:8)	MOVL	$444, R9        // 返回值7</span><br><span class="line">	0x004b 00075 (abi.go:8)	MOVL	$333, R10       // 返回值8</span><br><span class="line">	0x0051 00081 (abi.go:8)	MOVL	$222, R11       // 返回值9</span><br><span class="line">	0x0057 00087 (abi.go:8)	RET</span><br><span class="line"></span><br><span class="line">&quot;&quot;.callAdd STEXT nosplit size=558 args=0x0 locals=0x148 funcid=0x0</span><br><span class="line">	0x0000 00000 (abi.go:12)	TEXT	&quot;&quot;.callAdd(SB), NOSPLIT|ABIInternal, $328-0</span><br><span class="line">	0x0000 00000 (abi.go:12)	SUBQ	$328, SP</span><br><span class="line">	0x0007 00007 (abi.go:12)	MOVQ	BP, 320(SP)</span><br><span class="line">	0x000f 00015 (abi.go:12)	LEAQ	320(SP), BP</span><br><span class="line">	0x0017 00023 (abi.go:12)	FUNCDATA	$0, gclocals·69c1753bd5f81501d95132d08af04464(SB)</span><br><span class="line">	0x0017 00023 (abi.go:12)	FUNCDATA	$1, gclocals·a9e740cbf6936fdd3f94716bd5034c63(SB)</span><br><span class="line">	0x0017 00023 (abi.go:12)	FUNCDATA	$2, &quot;&quot;.callAdd.stkobj(SB)</span><br><span class="line">	0x0017 00023 (abi.go:13)	PCDATA	$0, $-2</span><br><span class="line">	0x0017 00023 (abi.go:13)	MOVQ	$10, (SP)  // 参数j</span><br><span class="line">	0x001f 00031 (abi.go:13)	MOVL	$1, AX     // 参数a</span><br><span class="line">	0x0024 00036 (abi.go:13)	MOVL	$2, BX     // 参数b</span><br><span class="line">	0x0029 00041 (abi.go:13)	MOVL	$3, CX     // 参数c</span><br><span class="line">	0x002e 00046 (abi.go:13)	MOVL	$4, DI     // 参数d</span><br><span class="line">	0x0033 00051 (abi.go:13)	MOVL	$5, SI     // 参数e</span><br><span class="line">	0x0038 00056 (abi.go:13)	MOVL	$6, R8     // 参数f</span><br><span class="line">	0x003e 00062 (abi.go:13)	MOVL	$7, R9     // 参数g</span><br><span class="line">	0x0044 00068 (abi.go:13)	MOVL	$8, R10    // 参数h</span><br><span class="line">	0x004a 00074 (abi.go:13)	MOVL	$9, R11    // 参数i</span><br><span class="line">	0x0050 00080 (abi.go:13)	PCDATA	$1, $0</span><br><span class="line">	0x0050 00080 (abi.go:13)	CALL	&quot;&quot;.add(SB)</span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+<p>当调用函数 <code>add</code> 时，此时的栈结构如下图所示:</p>
+<p><img data-src="go1.17-abi.png" alt="" /></p>
+<h3 id="go-version-go11615-linuxamd64"><a class="markdownIt-Anchor" href="#go-version-go11615-linuxamd64"></a> go version go1.16.15 linux/amd64</h3>
+<p>可以很明显的看出这个版本中指令较多，参数传递都是通过栈来传递，需要计算的时候再复制到寄存器中进行运算。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line">&quot;&quot;.add STEXT nosplit size=179 args=0xa0 locals=0x0 funcid=0x0</span><br><span class="line">	0x0000 00000 (abi.go:6)	TEXT	&quot;&quot;.add(SB), NOSPLIT|ABIInternal, $0-160</span><br><span class="line">	0x0000 00000 (abi.go:6)	FUNCDATA	$0, gclocals·33cdeccccebe80329f1fdbee7f5874cb(SB)</span><br><span class="line">	0x0000 00000 (abi.go:6)	FUNCDATA	$1, gclocals·33cdeccccebe80329f1fdbee7f5874cb(SB)</span><br><span class="line">	0x0000 00000 (abi.go:7)	MOVQ	&quot;&quot;.a+8(SP), AX    // 参数 a -&gt; AX</span><br><span class="line">	0x0005 00005 (abi.go:7)	MOVQ	&quot;&quot;.b+16(SP), CX   // 参数 b -&gt; CX</span><br><span class="line">	0x000a 00010 (abi.go:7)	ADDQ	CX, AX            // a+b -&gt; AX</span><br><span class="line">	0x000d 00013 (abi.go:7)	MOVQ	&quot;&quot;.c+24(SP), CX   // 参数 c -&gt; CX</span><br><span class="line">	0x0012 00018 (abi.go:7)	ADDQ	CX, AX            // a+b+c -&gt; AX</span><br><span class="line">	0x0015 00021 (abi.go:7)	MOVQ	&quot;&quot;.d+32(SP), CX   // 参数 d -&gt; CX</span><br><span class="line">	0x001a 00026 (abi.go:7)	ADDQ	CX, AX            // a+b+c+d -&gt; AX</span><br><span class="line">	0x001d 00029 (abi.go:7)	MOVQ	&quot;&quot;.e+40(SP), CX   // 参数 e -&gt; CX</span><br><span class="line">	0x0022 00034 (abi.go:7)	ADDQ	CX, AX            // a+b+c+d+e -&gt; AX</span><br><span class="line">	0x0025 00037 (abi.go:7)	MOVQ	&quot;&quot;.f+48(SP), CX   // 参数 f -&gt; CX</span><br><span class="line">	0x002a 00042 (abi.go:7)	ADDQ	CX, AX            // a+b+c+d+e+f -&gt; AX</span><br><span class="line">	0x002d 00045 (abi.go:7)	MOVQ	&quot;&quot;.g+56(SP), CX   // 参数 g -&gt; CX</span><br><span class="line">	0x0032 00050 (abi.go:7)	ADDQ	CX, AX            // a+b+c+d+e+f+g -&gt; AX</span><br><span class="line">	0x0035 00053 (abi.go:7)	MOVQ	&quot;&quot;.h+64(SP), CX   // 参数 h -&gt; CX</span><br><span class="line">	0x003a 00058 (abi.go:7)	ADDQ	CX, AX            // a+b+c+d+e+f+g+h -&gt; AX</span><br><span class="line">	0x003d 00061 (abi.go:7)	MOVQ	&quot;&quot;.i+72(SP), CX   // 参数 i -&gt; CX</span><br><span class="line">	0x0042 00066 (abi.go:7)	ADDQ	CX, AX            // a+b+c+d+e+f+g+h+i -&gt; AX</span><br><span class="line">	0x0045 00069 (abi.go:7)	MOVQ	&quot;&quot;.j+80(SP), CX   // 参数 j -&gt; CX</span><br><span class="line">	0x004a 00074 (abi.go:7)	ADDQ	CX, AX            // a+b+c+d+e+f+g+h+i+j -&gt; AX</span><br><span class="line">	0x004d 00077 (abi.go:8)	MOVQ	AX, &quot;&quot;.~r10+88(SP)    // 返回值sum</span><br><span class="line">	0x0052 00082 (abi.go:8)	MOVQ	$999, &quot;&quot;.~r11+96(SP)</span><br><span class="line">	0x005b 00091 (abi.go:8)	MOVQ	$888, &quot;&quot;.~r12+104(SP)</span><br><span class="line">	0x0064 00100 (abi.go:8)	MOVQ	$777, &quot;&quot;.~r13+112(SP)</span><br><span class="line">	0x006d 00109 (abi.go:8)	MOVQ	$666, &quot;&quot;.~r14+120(SP)</span><br><span class="line">	0x0076 00118 (abi.go:8)	MOVQ	$555, &quot;&quot;.~r15+128(SP)</span><br><span class="line">	0x0082 00130 (abi.go:8)	MOVQ	$444, &quot;&quot;.~r16+136(SP)</span><br><span class="line">	0x008e 00142 (abi.go:8)	MOVQ	$333, &quot;&quot;.~r17+144(SP)</span><br><span class="line">	0x009a 00154 (abi.go:8)	MOVQ	$222, &quot;&quot;.~r18+152(SP)</span><br><span class="line">	0x00a6 00166 (abi.go:8)	MOVQ	$111, &quot;&quot;.~r19+160(SP)</span><br><span class="line">	0x00b2 00178 (abi.go:8)	RET</span><br><span class="line"></span><br><span class="line">&quot;&quot;.callAdd STEXT nosplit size=789 args=0x0 locals=0x190 funcid=0x0</span><br><span class="line">	0x0000 00000 (abi.go:12)	TEXT	&quot;&quot;.callAdd(SB), NOSPLIT|ABIInternal, $400-0</span><br><span class="line">	0x0000 00000 (abi.go:12)	SUBQ	$400, SP</span><br><span class="line">	0x0007 00007 (abi.go:12)	MOVQ	BP, 392(SP)</span><br><span class="line">	0x000f 00015 (abi.go:12)	LEAQ	392(SP), BP</span><br><span class="line">	0x0017 00023 (abi.go:12)	FUNCDATA	$0, gclocals·69c1753bd5f81501d95132d08af04464(SB)</span><br><span class="line">	0x0017 00023 (abi.go:12)	FUNCDATA	$1, gclocals·a9e740cbf6936fdd3f94716bd5034c63(SB)</span><br><span class="line">	0x0017 00023 (abi.go:12)	FUNCDATA	$2, &quot;&quot;.callAdd.stkobj(SB)</span><br><span class="line">	0x0017 00023 (abi.go:13)	PCDATA	$0, $-2</span><br><span class="line">	0x0017 00023 (abi.go:13)	MOVQ	$1, (SP)   // 参数 a</span><br><span class="line">	0x001f 00031 (abi.go:13)	MOVQ	$2, 8(SP)  // 参数 b</span><br><span class="line">	0x0028 00040 (abi.go:13)	MOVQ	$3, 16(SP) // 参数 c</span><br><span class="line">	0x0031 00049 (abi.go:13)	MOVQ	$4, 24(SP) // 参数 d</span><br><span class="line">	0x003a 00058 (abi.go:13)	MOVQ	$5, 32(SP) // 参数 e</span><br><span class="line">	0x0043 00067 (abi.go:13)	MOVQ	$6, 40(SP) // 参数 f</span><br><span class="line">	0x004c 00076 (abi.go:13)	MOVQ	$7, 48(SP) // 参数 g</span><br><span class="line">	0x0055 00085 (abi.go:13)	MOVQ	$8, 56(SP) // 参数 h</span><br><span class="line">	0x005e 00094 (abi.go:13)	MOVQ	$9, 64(SP) // 参数 i</span><br><span class="line">	0x0067 00103 (abi.go:13)	MOVQ	$10, 72(SP)// 参数 j</span><br><span class="line">	0x0070 00112 (abi.go:13)	PCDATA	$1, $0</span><br><span class="line">	0x0070 00112 (abi.go:13)	CALL	&quot;&quot;.add(SB)</span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+<p>栈结构如下图所示：</p>
+<p><img data-src="go1.16-abi.png" alt="" /></p>
+<h3 id="abiinternal-调用-abi0-函数"><a class="markdownIt-Anchor" href="#abiinternal-调用-abi0-函数"></a> <code>ABIInternal</code> 调用 <code>ABI0</code> 函数</h3>
+<p>假设我们有下面的<code>Go</code>程序，并且使用汇编实现函数<code>p</code>和函数<code>q</code>，并且采用栈传参的调用规约 <code>ABI0</code>，但是我们使用 <code>Go 1.17</code> 版本编译改代码，发现编译器会自动生成<code>Wrapper</code>函数。</p>
+<p>编译方法，把 <code>main.go</code> 和 <code>asm.s</code> 保存在 <code>msa</code> 目录中，放在 <code>GOPATH</code> 目录下，使用下面的指令编译：</p>
+<blockquote>
+<p>go version go1.17.8 linux/amd64<br />
+go build -o testmsa -gcflags=“-S -l” msa</p>
+</blockquote>
+<div class="tabs" id="abi互调示例"><ul class="nav-tabs"><li class="tab active"><a href="#abi互调示例-1">生成的wrapper函数</a></li><li class="tab"><a href="#abi互调示例-2">main.go</a></li><li class="tab"><a href="#abi互调示例-3">asm.s</a></li></ul><div class="tab-content"><div class="tab-pane active" id="abi互调示例-1"><p>Go编译器生成了新的函数 <code>p</code> 和 <code>q</code>，分别调用我们汇编中的函数，这样就有两个同名的函数，所以使用了 <code>DUPOK</code> 这个标记，允许存在多个同名函数，<code>ABIWRAPPER</code> 表明这只是一个 <code>ABI</code> 包装器。</p>
+<p><img data-src="abiinternal-call-abi0.png" alt="" /></p></div><div class="tab-pane" id="abi互调示例-2"><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> numa, numb <span class="type">uint32</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">p</span><span class="params">()</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">q</span><span class="params">(a, b <span class="type">uint32</span>)</span></span> (ret0, ret1 <span class="type">uint32</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	fmt.Println(numa, numb)</span><br><span class="line">	p()</span><br><span class="line">	fmt.Println(numa, numb)</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="abi互调示例-3"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">#include &quot;textflag.h&quot;</span><br><span class="line"></span><br><span class="line">DATA  ·numa+0(SB)/4, $1</span><br><span class="line">GLOBL ·numa(SB),NOPTR,$4</span><br><span class="line"></span><br><span class="line">DATA  ·numb+0(SB)/4, $2</span><br><span class="line">GLOBL ·numb(SB),NOPTR,$4</span><br><span class="line"></span><br><span class="line">TEXT ·p(SB), NOSPLIT, $40-0</span><br><span class="line">    SUBQ  $40, SP</span><br><span class="line">    MOVQ  BP, 32(SP)</span><br><span class="line">    LEAQ  32(SP), BP</span><br><span class="line"></span><br><span class="line">    MOVQ ·numa(SB), AX</span><br><span class="line">    MOVQ AX, a-40(SP)</span><br><span class="line"></span><br><span class="line">    MOVQ ·numb(SB), BX</span><br><span class="line">    MOVQ BX, b-32(SP)</span><br><span class="line"></span><br><span class="line">    CALL ·q(SB)</span><br><span class="line"></span><br><span class="line">    MOVQ ret0-24(SP), AX</span><br><span class="line">    MOVQ ret1-16(SP), CX</span><br><span class="line">    MOVQ AX, ·numa(SB)</span><br><span class="line">    MOVQ CX, ·numb(SB)</span><br><span class="line"></span><br><span class="line">    MOVQ 32(SP), BP</span><br><span class="line">    ADDQ $40, SP</span><br><span class="line"></span><br><span class="line">    RET</span><br><span class="line"></span><br><span class="line">TEXT ·q(SB), NOSPLIT, $0-24</span><br><span class="line">    MOVQ a+0(FP), DI</span><br><span class="line">    MOVQ DI, ret1+24(FP)</span><br><span class="line"></span><br><span class="line">    MOVQ b+8(FP), SI</span><br><span class="line">    MOVQ SI, ret0+16(FP)</span><br><span class="line"></span><br><span class="line">    RET</span><br><span class="line"></span><br></pre></td></tr></table></figure></div></div></div>
+<h3 id="相关链接"><a class="markdownIt-Anchor" href="#相关链接"></a> 相关链接</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://go.googlesource.com/go/+/refs/heads/master/src/cmd/compile/abi-internal.md">Go internal ABI specification</a></li>
+<li><a target="_blank" rel="noopener" href="https://go.googlesource.com/proposal/+/master/design/27539-internal-abi.md">Proposal: Create an undefined internal calling convention</a></li>
+<li><a target="_blank" rel="noopener" href="https://go.dev/doc/go1.18#compiler">go1.18 编译器改动</a></li>
+<li><a target="_blank" rel="noopener" href="https://go.dev/doc/go1.17#compiler">go1.17 编译器改动</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/03/24/Go/%E3%80%90Golang%E3%80%91Application-Binary-Interface/" title="【Golang】Application Binary Interface">https://blog.fudenglong.site/2022/03/24/Go/【Golang】Application-Binary-Interface/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/03/23/HTTPS/" rel="prev" title="HTTPS">
+                  <i class="fa fa-angle-left"></i> HTTPS
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/03/28/Go/%E3%80%90Golang%E3%80%91Dependency-Injection/" rel="next" title="【Golang】Dependency Injection">
+                  【Golang】Dependency Injection <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/03/24/Go/%E3%80%90Golang%E3%80%91Application-Binary-Interface/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

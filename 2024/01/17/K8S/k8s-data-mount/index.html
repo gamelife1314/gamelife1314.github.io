@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Pod中的容器它里面的文件在磁盘上是临时存放的，当容器崩溃或停止时，kubelet 会以干净的状态重新启动容器，在容器生命周期内创建或修改的所有文件都将丢失。另外Pod在运行期间，需要为它注入一些必要的配置信息，以满足其运行。在这些场景的要求下，卷 就应需而生，为了持久化存放容器里的数据，为容器运行提供配置。所有这些卷可以分为3类：  持久卷（Persistent Volume）：和节点一样，属于">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8S 数据挂载">
+<meta property="og:url" content="https://blog.fudenglong.site/2024/01/17/K8S/k8s-data-mount/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Pod中的容器它里面的文件在磁盘上是临时存放的，当容器崩溃或停止时，kubelet 会以干净的状态重新启动容器，在容器生命周期内创建或修改的所有文件都将丢失。另外Pod在运行期间，需要为它注入一些必要的配置信息，以满足其运行。在这些场景的要求下，卷 就应需而生，为了持久化存放容器里的数据，为容器运行提供配置。所有这些卷可以分为3类：  持久卷（Persistent Volume）：和节点一样，属于">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-01-17T02:32:22.000Z">
+<meta property="article:modified_time" content="2024-01-17T02:32:22.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="Secret">
+<meta property="article:tag" content="ConfigMap">
+<meta property="article:tag" content="Downward API">
+<meta property="article:tag" content="ServiceAccountToken">
+<meta property="article:tag" content="持久卷">
+<meta property="article:tag" content="投射卷">
+<meta property="article:tag" content="临时卷">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2024/01/17/K8S/k8s-data-mount/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2024/01/17/K8S/k8s-data-mount/","path":"2024/01/17/K8S/k8s-data-mount/","title":"K8S 数据挂载"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>K8S 数据挂载 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#secret"><span class="nav-number">1.</span> <span class="nav-text"> Secret</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#opaque"><span class="nav-number">1.1.</span> <span class="nav-text"> Opaque</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E8%BA%AB%E4%BB%BD%E8%AE%A4%E8%AF%81"><span class="nav-number">1.2.</span> <span class="nav-text"> 基本身份认证</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ssh-%E8%BA%AB%E4%BB%BD%E8%AE%A4%E8%AF%81-secret"><span class="nav-number">1.3.</span> <span class="nav-text"> SSH 身份认证 Secret</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tls-secret"><span class="nav-number">1.4.</span> <span class="nav-text"> TLS Secret</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B8%85%E7%90%86%E7%8E%B0%E5%9C%BA"><span class="nav-number">1.5.</span> <span class="nav-text"> 清理现场</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#configmap"><span class="nav-number">2.</span> <span class="nav-text"> ConfigMap</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#downwardapi"><span class="nav-number">3.</span> <span class="nav-text"> DownwardAPI</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="nav-number">3.1.</span> <span class="nav-text"> 参考链接</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#serviceaccounttoken"><span class="nav-number">4.</span> <span class="nav-text"> ServiceAccountToken</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%BB%98%E8%AE%A4serviceaccount"><span class="nav-number">4.1.</span> <span class="nav-text"> 默认ServiceAccount</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89serviceaccount"><span class="nav-number">4.2.</span> <span class="nav-text"> 自定义ServiceAccount</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B8%85%E7%90%86%E7%8E%B0%E5%9C%BA-2"><span class="nav-number">4.3.</span> <span class="nav-text"> 清理现场</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5-2"><span class="nav-number">4.4.</span> <span class="nav-text"> 参考链接</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#emptydir"><span class="nav-number">5.</span> <span class="nav-text"> emptyDir</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hostpath"><span class="nav-number">6.</span> <span class="nav-text"> hostPath</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%81%E4%B9%85%E5%8D%B7"><span class="nav-number">7.</span> <span class="nav-text"> 持久卷</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#hoatpath"><span class="nav-number">7.1.</span> <span class="nav-text"> hoatpath</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#local"><span class="nav-number">7.2.</span> <span class="nav-text"> local</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2024/01/17/K8S/k8s-data-mount/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="K8S 数据挂载 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          K8S 数据挂载
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-01-17 10:32:22" itemprop="dateCreated datePublished" datetime="2024-01-17T10:32:22+08:00">2024-01-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>22 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>Pod</code>中的容器它里面的文件在磁盘上是临时存放的，当容器崩溃或停止时，<code>kubelet</code> 会以干净的状态重新启动容器，在容器生命周期内创建或修改的所有文件都将丢失。另外<code>Pod</code>在运行期间，需要为它注入一些必要的配置信息，以满足其运行。在这些场景的要求下，<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/storage/volumes/">卷</a> 就应需而生，为了持久化存放容器里的数据，为容器运行提供配置。所有这些卷可以分为3类：</p>
+<ul>
+<li><code>持久卷（Persistent Volume）</code>：和节点一样，属于集群资源，可以由管理员事先制备，或者使用存储类来动态制备，使用时通过<code>PVC</code>申请，就像其名字表述的一样，为了持久化数据；</li>
+<li><code>投射卷（Projected Volumes）</code>：为<code>Pod</code>运行注入必要的配置信息；</li>
+<li><code>临时卷（Ephemeral Volume）</code>：应用程序需要额外的存储，但并不关心数据在重启后是否仍然可用，随Pod而生，随Pod而灭。例如，<code>Redis</code>缓存服务经常受限于内存大小，而且可以将不常用的数据转移到比内存慢的存储中，对总体性能的影响并不大；</li>
+</ul>
+<p>这些卷以及它们的分类、涉及的概念如下：</p>
+<pre>
+<code class="mermaid">
+mindmap
+卷
+    投射卷
+        Secret
+        DownwardAPI
+        Configmap
+        ServiceAccountToken
+    持久卷
+        PV
+        PVC
+        StorageClass
+    临时卷
+        emptyDir
+        CSI 临时卷
+        通用临时卷
+</code>
+</pre>
+<span id="more"></span>
+<h3 id="secret"><a class="markdownIt-Anchor" href="#secret"></a> Secret</h3>
+<p><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/configuration/secret/">Secret</a> 是一种包含少量敏感信息例如密码、令牌或密钥的对象，通过 <code>Secret</code> 我们就不用将一些机密数据硬编码到代码中了。<code>K8S</code>提供了一些内置的<code>Secret</code>类型，并且针对其中某些类型专门提供了<code>kubectl</code>命令进行管理，不同的类型对数据有不同的要求。</p>
+<h4 id="opaque"><a class="markdownIt-Anchor" href="#opaque"></a> Opaque</h4>
+<p>可以直接从命令创建创建任意数据的<code>Secret</code>，首先创建命名空间用于测试：</p>
+<blockquote>
+<p><code>kubectl create ns secret-test</code></p>
+</blockquote>
+<p>然后使用<code>kubectl</code>创建<code>Secret</code>：</p>
+<blockquote>
+<p><code>kubectl -n secret-test create secret generic db-user-pass --from-literal=username=admin --from-literal=password='S!B\*d$zDsb='</code></p>
+</blockquote>
+<p>或者从文件创建，默认键名为文件名，也可以自定义：</p>
+<blockquote>
+<p><code>echo -n 'admin' &gt; ./username.txt</code><br />
+<code>echo -n 'S!B\*d$zDsb=' &gt; ./password.txt</code><br />
+<code>kubectl -n secret-test create secret generic db-user-pass-v1 --from-file=./username.txt --from-file=./password.txt</code></p>
+<p><code>kubectl -n secret-test create secret generic db-user-pass-v2 --from-file=user=./username.txt --from-file=pass=./password.txt</code></p>
+</blockquote>
+<p>也可以使用<code>Yaml</code>文件组织<code>Secret</code>对象，这个对象中的<code>data</code>字段内容必须使用<code>base64</code>编码，如果想提供明文数据，则需要将其写入<code>stringData</code>字段中。首先使用 <code>base64</code> 编码数据，``：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> -n <span class="string">&quot;admin&quot;</span> | <span class="built_in">base64</span></span></span><br><span class="line">YWRtaW4=</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> -n <span class="string">&quot;123456&quot;</span> | <span class="built_in">base64</span></span></span><br><span class="line">MTIzNDU2</span><br></pre></td></tr></table></figure>
+<p>然后使用下面的对象提交<code>Secret</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Secret</span><br><span class="line">metadata:</span><br><span class="line">  name: db-user-pass-v3</span><br><span class="line">  namespace: secret-test</span><br><span class="line">type: Opaque</span><br><span class="line">data:</span><br><span class="line">  user: YWRtaW4=</span><br><span class="line">  pass: MTIzNDU2</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>查看已经创建的<code>Secret</code>对象：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get secret -n secret-test</span><br><span class="line">NAME              TYPE     DATA   AGE</span><br><span class="line">db-user-pass      Opaque   2      12m</span><br><span class="line">db-user-pass-v1   Opaque   2      7m18s</span><br><span class="line">db-user-pass-v2   Opaque   2      5m50s</span><br><span class="line">db-user-pass-v3   Opaque   2      57s</span><br></pre></td></tr></table></figure>
+<p>然后将创建的<code>Secret</code>挂载到<code>Pod</code>中，<code>Secret</code>不仅可以挂载到容器中的目录，还可以绑定到环境变量中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: nettool</span><br><span class="line">  namespace: secret-test</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">    - name: nettool</span><br><span class="line">      image: praqma/network-multitool</span><br><span class="line">      imagePullPolicy: IfNotPresent</span><br><span class="line">      command: [&quot;sleep&quot;]</span><br><span class="line">      args: [&quot;86400&quot;]</span><br><span class="line">      volumeMounts:</span><br><span class="line">        - name: db-user-pass</span><br><span class="line">          mountPath: &quot;/run/db-user-pass&quot;</span><br><span class="line">          readOnly: true</span><br><span class="line">        - name: db-user-pass-v1-to-v3</span><br><span class="line">          mountPath: &quot;/run/db-user-pass-v1-to-v3&quot;</span><br><span class="line">          readOnly: true</span><br><span class="line">      env:</span><br><span class="line">        - name: DB_USER_NAME</span><br><span class="line">          valueFrom:</span><br><span class="line">            secretKeyRef:</span><br><span class="line">              name: db-user-pass-v3</span><br><span class="line">              key: user</span><br><span class="line">        - name: DB_USER_PASS</span><br><span class="line">          valueFrom:</span><br><span class="line">            secretKeyRef:</span><br><span class="line">              name: db-user-pass-v3</span><br><span class="line">              key: pass</span><br><span class="line">  volumes:</span><br><span class="line">    - name: db-user-pass</span><br><span class="line">      secret:</span><br><span class="line">        secretName: db-user-pass</span><br><span class="line">    - name: db-user-pass-v1-to-v3</span><br><span class="line">      projected:</span><br><span class="line">        sources:</span><br><span class="line">          - secret:</span><br><span class="line">             name: db-user-pass-v1</span><br><span class="line">             items:</span><br><span class="line">               - key: username.txt</span><br><span class="line">                 path: v1/username</span><br><span class="line">          - secret:</span><br><span class="line">             name: db-user-pass-v2</span><br><span class="line">             items:</span><br><span class="line">               - key: pass</span><br><span class="line">                 path: v2/pass</span><br><span class="line">          - secret:</span><br><span class="line">             name: db-user-pass-v3</span><br><span class="line">             items:</span><br><span class="line">               - key: user</span><br><span class="line">                 path: v3/user</span><br><span class="line">               - key: pass</span><br><span class="line">                 path: v3/pass</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>执行命令进入到容器查看挂载的密码文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl exec nettool -n secret-test -it -c nettool -- /bin/bash</span><br><span class="line">bash-5.1# alias ll=&quot;ls -alh&quot;</span><br><span class="line">bash-5.1# cat /run/db-user-pass/username</span><br><span class="line">admin</span><br><span class="line">bash-5.1# cat /run/db-user-pass/password</span><br><span class="line">S!B\*d$zDsb=</span><br><span class="line">bash-5.1# cat /run/db-user-pass-v1-to-v3/v1/username</span><br><span class="line">admin</span><br><span class="line">bash-5.1# cat /run/db-user-pass-v1-to-v3/v2/pass</span><br><span class="line">S!B\*d$zDsb=</span><br><span class="line">bash-5.1# cat /run/db-user-pass-v1-to-v3/v3/user</span><br><span class="line">admin</span><br><span class="line">bash-5.1# cat /run/db-user-pass-v1-to-v3/v3/pass</span><br><span class="line">123456</span><br><span class="line">bash-5.1# env | grep DB_USER</span><br><span class="line">DB_USER_NAME=admin</span><br><span class="line">DB_USER_PASS=123456</span><br></pre></td></tr></table></figure>
+<h4 id="基本身份认证"><a class="markdownIt-Anchor" href="#基本身份认证"></a> 基本身份认证</h4>
+<p><code>kubernetes.io/basic-auth</code> 类型用来存放用于基本身份认证所需的凭据信息。 使用这种 <code>Secret</code> 类型时，<code>Secret</code> 的 <code>data</code> 字段必须包含以下两个键之一：</p>
+<ul>
+<li><code>username</code>: 用于身份认证的用户名；</li>
+<li><code>password</code>: 用于身份认证的密码或令牌。</li>
+</ul>
+<p>以上两个键的键值都是 <code>base64</code> 编码的字符串。 当然你也可以使用 <code>stringData</code> 字段来提供明文形式的内容：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Secret</span><br><span class="line">metadata:</span><br><span class="line">  name: secret-basic-auth</span><br><span class="line">  namespace: secret-test</span><br><span class="line">type: kubernetes.io/basic-auth</span><br><span class="line">data:</span><br><span class="line">  user: YWRtaW4=</span><br><span class="line">  pass: MTIzNDU2</span><br><span class="line">stringData:</span><br><span class="line">  username: admin</span><br><span class="line">  password: t0p-Secret</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>不过<code>StringData</code>字段的内容只是作为输入，它会被编码合并到<code>data</code>字段中，而且通过<code>kubectl</code>命令是无法查看到明文，所以查看上面的对象，可以看到<code>data</code>中有<code>4</code>个字段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl describe secret -n secret-test secret-basic-auth</span><br><span class="line">Name:         secret-basic-auth</span><br><span class="line">Namespace:    secret-test</span><br><span class="line">Labels:       &lt;none&gt;</span><br><span class="line">Annotations:  &lt;none&gt;</span><br><span class="line"></span><br><span class="line">Type:  kubernetes.io/basic-auth</span><br><span class="line"></span><br><span class="line">Data</span><br><span class="line">====</span><br><span class="line">username:  5 bytes</span><br><span class="line">pass:      6 bytes</span><br><span class="line">password:  10 bytes</span><br><span class="line">user:      5 bytes</span><br></pre></td></tr></table></figure>
+<h4 id="ssh-身份认证-secret"><a class="markdownIt-Anchor" href="#ssh-身份认证-secret"></a> SSH 身份认证 Secret</h4>
+<p><code>kubernetes.io/ssh-auth</code> 用来存放 <code>SSH</code> 身份认证中所需要的凭据。 使用这种 <code>Secret</code> 类型时，必须在其 <code>data</code> （或 <code>stringData</code>）字段中提供一个 <code>ssh-privatekey</code> 键值对。如下所示，创建 <code>Secret</code> 并且绑定到容器中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Secret</span><br><span class="line">metadata:</span><br><span class="line">  name: secret-ssh-auth</span><br><span class="line">  namespace: secret-test</span><br><span class="line">type: kubernetes.io/ssh-auth</span><br><span class="line">stringData:</span><br><span class="line">  ssh-privatekey: |</span><br><span class="line">    -----BEGIN OPENSSH PRIVATE KEY-----</span><br><span class="line">    b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn</span><br><span class="line">    ...</span><br><span class="line">    Cy+8IKMq7Has21UTY/hw+3BHe6GtoIEx7uuyqMJTOaGmzBvu5MOp+tE4xRNd3D6bn3/P++</span><br><span class="line">    0qD3uLsedBZBMAAAARcm9vdEBGMDA1OTYxMDctUFgBAg==</span><br><span class="line">    -----END OPENSSH PRIVATE KEY-----</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: nettool-ssh</span><br><span class="line">  namespace: secret-test</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">    - name: nettool</span><br><span class="line">      image: praqma/network-multitool</span><br><span class="line">      imagePullPolicy: IfNotPresent</span><br><span class="line">      command: [&quot;sleep&quot;]</span><br><span class="line">      args: [&quot;86400&quot;]</span><br><span class="line">      volumeMounts:</span><br><span class="line">        - name: secret-ssh-auth</span><br><span class="line">          mountPath: &quot;/root/.ssh&quot;</span><br><span class="line">          readOnly: true</span><br><span class="line">  volumes:</span><br><span class="line">    - name: secret-ssh-auth</span><br><span class="line">      secret:</span><br><span class="line">        secretName: secret-ssh-auth</span><br><span class="line">        items:</span><br><span class="line">          - key: ssh-privatekey</span><br><span class="line">            path: id_rsa </span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>进入到容器中进行验证：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl exec nettool-ssh -n secret-test -it -c nettool -- /bin/bash</span><br><span class="line">bash-5.1# cat /root/.ssh/id_rsa</span><br><span class="line">-----BEGIN OPENSSH PRIVATE KEY-----</span><br><span class="line">b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn</span><br><span class="line">...</span><br><span class="line">Cy+8IKMq7Has21UTY/hw+3BHe6GtoIEx7uuyqMJTOaGmzBvu5MOp+tE4xRNd3D6bn3/P++</span><br><span class="line">0qD3uLsedBZBMAAAARcm9vdEBGMDA1OTYxMDctUFgBAg==</span><br><span class="line">-----END OPENSSH PRIVATE KEY-----</span><br><span class="line">bash-5.1#</span><br></pre></td></tr></table></figure>
+<h4 id="tls-secret"><a class="markdownIt-Anchor" href="#tls-secret"></a> TLS Secret</h4>
+<p><code>kubernetes.io/tls</code> <code>Secret</code> 类型用来存放 <code>TLS</code> 场合通常要使用的证书及其相关密钥。当使用此类型的 <code>Secret</code> 时，<code>Secret</code> 配置中的 <code>data</code> （或 <code>stringData</code>）字段必须包含 <code>tls.key</code> 和 <code>tls.crt</code> 主键，而且可以通过<code>kubectl</code>命令直接创建<code>tls</code>类型的<code>Secret</code>。下面演示使用 <a target="_blank" rel="noopener" href="https://github.com/FiloSottile/mkcert">mkcert</a> 来生成证书，如果本地没有安装<code>go</code>，可以下载它的预编译版本：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ go install filippo.io/mkcert@latest</span><br><span class="line">$ mkcert -key-file key.pem -cert-file cert.pem svc.local.cluster *.svc.local.cluster</span><br><span class="line">$ kubectl -n secret-test create secret tls my-tls-secret --cert=cert.pem --key=key.pem</span><br><span class="line">$ kubectl describe secret -n secret-test my-tls-secret</span><br><span class="line">Name:         my-tls-secret</span><br><span class="line">Namespace:    secret-test</span><br><span class="line">Labels:       &lt;none&gt;</span><br><span class="line">Annotations:  &lt;none&gt;</span><br><span class="line"></span><br><span class="line">Type:  kubernetes.io/tls</span><br><span class="line"></span><br><span class="line">Data</span><br><span class="line">====</span><br><span class="line">tls.key:  1708 bytes</span><br><span class="line">tls.crt:  1505 bytes</span><br></pre></td></tr></table></figure>
+<h4 id="清理现场"><a class="markdownIt-Anchor" href="#清理现场"></a> 清理现场</h4>
+<p>清理现场使用如下命令：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade secret-test</code></p>
+</blockquote>
+<h3 id="configmap"><a class="markdownIt-Anchor" href="#configmap"></a> ConfigMap</h3>
+<p><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-pod-configmap/">ConfigMap</a>与 <code>Secret</code> 类似，区别是不需要加密，常用于应用的配置，可以从文件或者<code>yaml</code>对象文件进行创建。</p>
+<p>首先，创建命名空间用于测试，方便后续清理现场：</p>
+<blockquote>
+<p><code>kubectl create ns configmap-test</code></p>
+</blockquote>
+<p>准备<code>2</code>个配置文件，存放于<code>properties</code>目录下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ cat properties/ui1.properties</span><br><span class="line">color.good=purple</span><br><span class="line">color.bad=yellow</span><br><span class="line">allow.textmode=true</span><br><span class="line">how.nice.to.look=fairlyNice</span><br><span class="line">$ cat properties/ui2.properties</span><br><span class="line">color.good=purple</span><br><span class="line">color.bad=yellow</span><br><span class="line">allow.textmode=true</span><br><span class="line">how.nice.to.look=fairlyNice</span><br></pre></td></tr></table></figure>
+<p>从目录创建<code>ConfigMap</code>，目录下的所有文件都将创建到<code>ConfigMap</code>中：</p>
+<blockquote>
+<p><code>kubectl -n configmap-test create configmap game-config1 --from-file=properties/</code></p>
+</blockquote>
+<p>从具体的文件创建<code>ConfigMap</code>，如果需要指定建明，则需要使用 <code>--from-file=&lt;我的键名&gt;=&lt;文件路径&gt;</code> 格式:</p>
+<blockquote>
+<p><code>kubectl -n configmap-test create configmap game-config2 --from-file=properties/ui1.properties</code></p>
+</blockquote>
+<p>可以同时从多个数据源创建<code>ConfigMap</code>：</p>
+<blockquote>
+<p><code>kubectl -n configmap-test create configmap game-config3 --from-file=properties/ui1.properties --from-file=properties/ui2.properties</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n configmap-test get configmap game-config3 -o yaml</span><br><span class="line">apiVersion: v1</span><br><span class="line">data:</span><br><span class="line">  ui1.properties: |</span><br><span class="line">    color.good=purple</span><br><span class="line">    color.bad=yellow</span><br><span class="line">    allow.textmode=true</span><br><span class="line">    how.nice.to.look=fairlyNice</span><br><span class="line">  ui2.properties: |</span><br><span class="line">    color.good=purple</span><br><span class="line">    color.bad=yellow</span><br><span class="line">    allow.textmode=true</span><br><span class="line">    how.nice.to.look=fairlyNice</span><br><span class="line">kind: ConfigMap</span><br><span class="line">metadata:</span><br><span class="line">  creationTimestamp: &quot;2024-01-18T02:29:01Z&quot;</span><br><span class="line">  name: game-config3</span><br><span class="line">  namespace: configmap-test</span><br><span class="line">  resourceVersion: &quot;63813&quot;</span><br><span class="line">  uid: b5336f08-c63a-4aae-8f41-6d29b7d4a740</span><br><span class="line">root@ctrlnode:/home/michael#</span><br></pre></td></tr></table></figure>
+<p>也可以使用 <code>--from-env-file</code> 从 <code>env</code> 文件进行创建，<code>env</code>文件是每行都是<code>key=val</code>的格式，而且注释和空行都将被忽略，上面的<code>ui1.properties</code>也是正确的<code>env</code>文件，但是每条配置多作为一个<code>key</code>：</p>
+<blockquote>
+<p><code>kubectl -n configmap-test create configmap game-config4 --from-env-file=properties/ui1.properties</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n configmap-test get configmap game-config4 -o yaml</span><br><span class="line">apiVersion: v1</span><br><span class="line">data:</span><br><span class="line">  allow.textmode: &quot;true&quot;</span><br><span class="line">  color.bad: yellow</span><br><span class="line">  color.good: purple</span><br><span class="line">  how.nice.to.look: fairlyNice</span><br><span class="line">kind: ConfigMap</span><br><span class="line">metadata:</span><br><span class="line">  creationTimestamp: &quot;2024-01-18T02:31:45Z&quot;</span><br><span class="line">  name: game-config4</span><br><span class="line">  namespace: configmap-test</span><br><span class="line">  resourceVersion: &quot;63864&quot;</span><br><span class="line">  uid: 18e207c5-6844-499b-a760-0051a63af500</span><br></pre></td></tr></table></figure>
+<p>也可以从字面量进行创建：</p>
+<blockquote>
+<p><code>kubectl -n configmap-test create configmap game-config5 --from-literal=special.how=very --from-literal=special.type=charm</code></p>
+</blockquote>
+<p>创建<code>Pod</code>并且挂载上面创建的<code>ConfigMap</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: nettool</span><br><span class="line">  namespace: configmap-test</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">    - name: nettool</span><br><span class="line">      image: praqma/network-multitool</span><br><span class="line">      imagePullPolicy: IfNotPresent</span><br><span class="line">      command: [&quot;sleep&quot;]</span><br><span class="line">      args: [&quot;86400&quot;]</span><br><span class="line">      volumeMounts:</span><br><span class="line">        - name: game-config1</span><br><span class="line">          mountPath: &quot;/etc/game/game-config1&quot;</span><br><span class="line">          readOnly: true</span><br><span class="line">        - name: all-in-one</span><br><span class="line">          mountPath: &quot;/etc/all-in-one&quot;</span><br><span class="line">          readOnly: true</span><br><span class="line">      env:</span><br><span class="line">        - name: SPECIAL_HOW</span><br><span class="line">          valueFrom:</span><br><span class="line">            configMapKeyRef:</span><br><span class="line">              name: game-config5</span><br><span class="line">              key: special.how</span><br><span class="line">        - name: ALLOW_TEXTMODE</span><br><span class="line">          valueFrom:</span><br><span class="line">            configMapKeyRef:</span><br><span class="line">              name: game-config4</span><br><span class="line">              key:  allow.textmode</span><br><span class="line">  volumes:</span><br><span class="line">    - name: game-config1</span><br><span class="line">      configMap:</span><br><span class="line">        name: game-config1</span><br><span class="line">    - name: all-in-one</span><br><span class="line">      projected:</span><br><span class="line">        sources:</span><br><span class="line">          - configMap:</span><br><span class="line">             name: game-config2</span><br><span class="line">             items:</span><br><span class="line">               - key: ui1.properties</span><br><span class="line">                 path: game-config2/ui1.properties</span><br><span class="line">          - configMap:</span><br><span class="line">             name: game-config3</span><br><span class="line">             items:</span><br><span class="line">               - key: ui2.properties</span><br><span class="line">                 path: game-config3/ui2.properties</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>进入到容器中进行验证：</p>
+<blockquote>
+<p><code>kubectl exec nettool -n configmap-test -it -c nettool -- /bin/bash</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl exec nettool -n configmap-test -it -c nettool -- /bin/bash</span><br><span class="line">bash-5.1# cat /etc/game/game-config1/ui1.properties</span><br><span class="line">color.good=purple</span><br><span class="line">color.bad=yellow</span><br><span class="line">allow.textmode=true</span><br><span class="line">how.nice.to.look=fairlyNice</span><br><span class="line">bash-5.1# cat /etc/game/game-config1/ui2.properties</span><br><span class="line">color.good=purple</span><br><span class="line">color.bad=yellow</span><br><span class="line">allow.textmode=true</span><br><span class="line">how.nice.to.look=fairlyNice</span><br><span class="line">bash-5.1# cat /etc/all-in-one/game-config2/ui1.properties</span><br><span class="line">color.good=purple</span><br><span class="line">color.bad=yellow</span><br><span class="line">allow.textmode=true</span><br><span class="line">how.nice.to.look=fairlyNice</span><br><span class="line">bash-5.1# cat /etc/all-in-one/game-config3/ui2.properties</span><br><span class="line">color.good=purple</span><br><span class="line">color.bad=yellow</span><br><span class="line">allow.textmode=true</span><br><span class="line">how.nice.to.look=fairlyNice</span><br><span class="line">bash-5.1# env | grep -E &quot;SPECIAL_HOW|ALLOW_TEXTMODE&quot;</span><br><span class="line">ALLOW_TEXTMODE=true</span><br><span class="line">SPECIAL_HOW=very</span><br></pre></td></tr></table></figure>
+<p>清理现场：</p>
+<blockquote>
+<p><code>kubectl delete ns configmap-test --cascade</code></p>
+</blockquote>
+<h3 id="downwardapi"><a class="markdownIt-Anchor" href="#downwardapi"></a> DownwardAPI</h3>
+<p>通过 <a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/">DownwardAPI</a> 可以将<code>Pod</code>对象本身的信息传递给容器中的环境变量或者挂载到容器中的文件，主要可以通过<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef">fieldRef</a> 以及 <a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-resourceFieldRef">resourceFieldRef</a> 进行获取，请看如下示例：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: downwardapi-test</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: nettool</span><br><span class="line">  namespace: downwardapi-test</span><br><span class="line">  annotations:</span><br><span class="line">    key1: value1</span><br><span class="line">  labels:</span><br><span class="line">    label1: value1</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">    - name: nettool</span><br><span class="line">      image: praqma/network-multitool</span><br><span class="line">      imagePullPolicy: IfNotPresent</span><br><span class="line">      command: [&quot;sleep&quot;]</span><br><span class="line">      args: [&quot;86400&quot;]</span><br><span class="line">      volumeMounts:</span><br><span class="line">        - name: poduid</span><br><span class="line">          mountPath: &quot;/etc/podinfo/uid&quot;</span><br><span class="line">          readOnly: true</span><br><span class="line">        - name: podinfo</span><br><span class="line">          mountPath: &quot;/etc/podinfo&quot;</span><br><span class="line">          readOnly: true</span><br><span class="line">      resources:</span><br><span class="line">        limits:</span><br><span class="line">          memory: 50Mi</span><br><span class="line">          cpu: 0.5</span><br><span class="line">        requests:</span><br><span class="line">          memory: 50Mi</span><br><span class="line">          cpu: 0.5</span><br><span class="line">      env:</span><br><span class="line">        - name: SVC_ACCOUNT_NAME</span><br><span class="line">          valueFrom:</span><br><span class="line">            fieldRef:</span><br><span class="line">              fieldPath: spec.serviceAccountName</span><br><span class="line">        - name: NODE_NAME</span><br><span class="line">          valueFrom:</span><br><span class="line">            fieldRef:</span><br><span class="line">              fieldPath: spec.nodeName</span><br><span class="line">        - name: POD_IP</span><br><span class="line">          valueFrom:</span><br><span class="line">            fieldRef:</span><br><span class="line">              fieldPath: status.podIP</span><br><span class="line">        - name: POD_IPS</span><br><span class="line">          valueFrom:</span><br><span class="line">            fieldRef:</span><br><span class="line">              fieldPath: status.podIPs</span><br><span class="line">        - name: HOST_IP</span><br><span class="line">          valueFrom:</span><br><span class="line">            fieldRef:</span><br><span class="line">              fieldPath: status.hostIP</span><br><span class="line">        - name: POD_UID</span><br><span class="line">          valueFrom:</span><br><span class="line">            fieldRef:</span><br><span class="line">              fieldPath: metadata.uid</span><br><span class="line">        - name: POD_NAME</span><br><span class="line">          valueFrom:</span><br><span class="line">            fieldRef:</span><br><span class="line">              fieldPath: metadata.name</span><br><span class="line">        - name: POD_NAMESPACE</span><br><span class="line">          valueFrom:</span><br><span class="line">            fieldRef:</span><br><span class="line">              fieldPath: metadata.namespace</span><br><span class="line">        - name: LIMITS_MEMORY</span><br><span class="line">          valueFrom:</span><br><span class="line">            resourceFieldRef:</span><br><span class="line">              resource: limits.memory</span><br><span class="line">        - name: REQUESTS_MEMORY</span><br><span class="line">          valueFrom:</span><br><span class="line">            resourceFieldRef:</span><br><span class="line">              resource: requests.memory</span><br><span class="line">  volumes:</span><br><span class="line">    - name: poduid</span><br><span class="line">      downwardAPI:</span><br><span class="line">        items:</span><br><span class="line">          - path: &quot;poduid&quot;</span><br><span class="line">            fieldRef:</span><br><span class="line">              fieldPath: metadata.uid</span><br><span class="line">    - name: podinfo</span><br><span class="line">      projected:</span><br><span class="line">        sources:</span><br><span class="line">          - downwardAPI:</span><br><span class="line">             items:</span><br><span class="line">              - path: &quot;name&quot;</span><br><span class="line">                fieldRef:</span><br><span class="line">                  fieldPath: metadata.name</span><br><span class="line">              - path: &quot;namespace&quot;</span><br><span class="line">                fieldRef:</span><br><span class="line">                  fieldPath: metadata.namespace</span><br><span class="line">              - path: &quot;annotations&quot;</span><br><span class="line">                fieldRef:</span><br><span class="line">                  fieldPath: metadata.annotations</span><br><span class="line">              - path: &quot;labels&quot;</span><br><span class="line">                fieldRef:</span><br><span class="line">                  fieldPath: metadata.labels</span><br><span class="line">              - path: &quot;limits_cpu&quot;</span><br><span class="line">                resourceFieldRef:</span><br><span class="line">                  resource: limits.cpu</span><br><span class="line">                  containerName: nettool</span><br><span class="line">              - path: &quot;requests_cpu&quot;</span><br><span class="line">                resourceFieldRef:</span><br><span class="line">                  resource: requests.cpu</span><br><span class="line">                  containerName: nettool</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>提交成功之后，可以使用下面的命令进入容器进行验证：</p>
+<blockquote>
+<p><code>kubectl exec -n  downwardapi-test nettool -it -c nettool -- /bin/bash</code></p>
+</blockquote>
+<p>现场清理使用如下的命令：</p>
+<blockquote>
+<p><code>kubectl delete ns downwardapi-test --cascade</code></p>
+</blockquote>
+<h4 id="参考链接"><a class="markdownIt-Anchor" href="#参考链接"></a> 参考链接</h4>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/configuration/manage-resources-containers/">为 Pod 和容器管理资源</a></li>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/workload-resources/pod-v1/#%E8%B5%84%E6%BA%90">Pod容器资源API</a></li>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume">数据卷描述</a></li>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-resourceFieldRef">DownwardAPI</a></li>
+</ol>
+<h3 id="serviceaccounttoken"><a class="markdownIt-Anchor" href="#serviceaccounttoken"></a> ServiceAccountToken</h3>
+<p>当集群中的<code>Pod</code>想要和<code>kube-apiserver</code>交互时，需要通过认证，<code>K8S</code>通过<code>ServiceAccount</code>来标识应用的身份和权限控制，<code>ServiceAccount</code>是命名空间隔离的，当创建一个命名空间的时候，就会自动创建一个<code>default</code>的<code>ServiceAccount</code>，并且当我们在创建<code>Pod</code>的时候，如果没有指定<code>ServiceAccountName</code>，默认<code>default</code>，而<code>ServiceAccountToken</code>只是用来设置<code>ServiceAccount</code>对应<code>Token</code>的一些信息，如挂载路径，令牌的有效期等等。</p>
+<h4 id="默认serviceaccount"><a class="markdownIt-Anchor" href="#默认serviceaccount"></a> 默认ServiceAccount</h4>
+<p>如下所示：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: sa-test</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: nettool</span><br><span class="line">  namespace: sa-test</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">    - name: nettool</span><br><span class="line">      image: praqma/network-multitool</span><br><span class="line">      imagePullPolicy: IfNotPresent</span><br><span class="line">      command: [&quot;sleep&quot;]</span><br><span class="line">      args: [&quot;86400&quot;]</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>执行上面的命令成功之后，查看已经创建的<code>ServiceAccount</code> 和 <code>Pod</code>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$  kubectl get sa,cm,pods -n sa-test -owide</span><br><span class="line">NAME                     SECRETS   AGE</span><br><span class="line">serviceaccount/default   0         2m5s</span><br><span class="line"></span><br><span class="line">NAME                         DATA   AGE</span><br><span class="line">configmap/kube-root-ca.crt   1      2m5s</span><br><span class="line"></span><br><span class="line">NAME          READY   STATUS    RESTARTS   AGE    IP           NODE           NOMINATED NODE   READINESS GATES</span><br><span class="line">pod/nettool   1/1     Running   0          2m5s   10.0.0.207   node           &lt;none&gt;           &lt;none&gt;</span><br></pre></td></tr></table></figure>
+<p>查看<code>nettool</code>这个<code>Pod</code>的详情，自动挂在了默认的<code>default</code>服务账号的<code>token</code>和以及访问<code>ApiServer</code>必须的证书在目录<code>/var/run/secrets/kubernetes.io/serviceaccount</code>中，在这个目录中还有证书以及命名空间等信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl describe pod -n sa-test nettool</span><br><span class="line">Name:             nettool</span><br><span class="line">Namespace:        sa-test</span><br><span class="line">Priority:         0</span><br><span class="line">Service Account:  default</span><br><span class="line">Node:             node</span><br><span class="line">Start Time:       Sun, 21 Jan 2024 14:47:30 +0800</span><br><span class="line">Labels:           label1=value1</span><br><span class="line">Annotations:      key1: value1</span><br><span class="line">Status:           Running</span><br><span class="line">IP:               10.0.0.207</span><br><span class="line">IPs:</span><br><span class="line">  IP:  10.0.0.207</span><br><span class="line">Containers:</span><br><span class="line">  nettool:</span><br><span class="line">    Container ID:  docker://506eeecd7fda09594ff982fa6089f9d1f31c95312c5fa67c96d7cda77ce3110c</span><br><span class="line">    Image:         praqma/network-multitool</span><br><span class="line">    ...</span><br><span class="line">    Mounts:</span><br><span class="line">      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-kdwzv (ro)</span><br><span class="line">Conditions:</span><br><span class="line">  ...</span><br><span class="line">Volumes:</span><br><span class="line">  kube-api-access-kdwzv:</span><br><span class="line">    Type:                    Projected (a volume that contains injected data from multiple sources)</span><br><span class="line">    TokenExpirationSeconds:  3607</span><br><span class="line">    ConfigMapName:           kube-root-ca.crt</span><br><span class="line">    ConfigMapOptional:       &lt;nil&gt;</span><br><span class="line">    DownwardAPI:             true</span><br><span class="line">QoS Class:                   BestEffort</span><br><span class="line">Node-Selectors:              &lt;none&gt;</span><br><span class="line">Tolerations:                 ...</span><br><span class="line">Events:</span><br><span class="line">....</span><br></pre></td></tr></table></figure>
+<p>可以使用这个<code>token</code>和证书访问<code>kube-apiserver</code>的<code>API</code>，在这个之前，在集群中最好创建一个<code>Service</code>指向<code>ApiServer</code>，如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl describe svc -n default kubernetes</span><br><span class="line">Name:              kubernetes</span><br><span class="line">Namespace:         default</span><br><span class="line">Labels:            component=apiserver</span><br><span class="line">                   provider=kubernetes</span><br><span class="line">Annotations:       &lt;none&gt;</span><br><span class="line">Selector:          &lt;none&gt;</span><br><span class="line">Type:              ClusterIP</span><br><span class="line">IP Family Policy:  SingleStack</span><br><span class="line">IP Families:       IPv4</span><br><span class="line">IP:                10.43.0.1</span><br><span class="line">IPs:               10.43.0.1</span><br><span class="line">Port:              https  443/TCP</span><br><span class="line">TargetPort:        6443/TCP</span><br><span class="line">Endpoints:         172.26.47.198:6443</span><br><span class="line">Session Affinity:  None</span><br><span class="line">Events:            &lt;none&gt;</span><br></pre></td></tr></table></figure>
+<p>进入到<code>Pod</code>之后，访问 <code>API</code>，不过默认的<code>default</code>账号权限有限，甚至无法查看本明明空间内的<code>Pod</code>列表：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl exec -n sa-test nettool -c nettool -it -- /bin/bash</span><br><span class="line">bash-5.1#</span><br><span class="line">bash-5.1# APISERVER=https://kubernetes.default.svc</span><br><span class="line">bash-5.1# SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount</span><br><span class="line">bash-5.1# NAMESPACE=$(cat $&#123;SERVICEACCOUNT&#125;/namespace)</span><br><span class="line">bash-5.1# TOKEN=$(cat $&#123;SERVICEACCOUNT&#125;/token)</span><br><span class="line">bash-5.1# CACERT=$&#123;SERVICEACCOUNT&#125;/ca.crt</span><br><span class="line">bash-5.1# curl --cacert $&#123;CACERT&#125; --header &quot;Authorization: Bearer $&#123;TOKEN&#125;&quot; -X GET $&#123;APISERVER&#125;/api/v1/namespaces/$&#123;NAMESPACE&#125;/pods</span><br><span class="line">&#123;</span><br><span class="line">  &quot;kind&quot;: &quot;Status&quot;,</span><br><span class="line">  &quot;apiVersion&quot;: &quot;v1&quot;,</span><br><span class="line">  &quot;metadata&quot;: &#123;&#125;,</span><br><span class="line">  &quot;status&quot;: &quot;Failure&quot;,</span><br><span class="line">  &quot;message&quot;: &quot;pods is forbidden: User \&quot;system:serviceaccount:sa-test:default\&quot; cannot list resource \&quot;pods\&quot; in API group \&quot;\&quot; in the namespace \&quot;sa-test\&quot;&quot;,</span><br><span class="line">  &quot;reason&quot;: &quot;Forbidden&quot;,</span><br><span class="line">  &quot;details&quot;: &#123;</span><br><span class="line">    &quot;kind&quot;: &quot;pods&quot;</span><br><span class="line">  &#125;,</span><br><span class="line">  &quot;code&quot;: 403</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="自定义serviceaccount"><a class="markdownIt-Anchor" href="#自定义serviceaccount"></a> 自定义<code>ServiceAccount</code></h4>
+<p>首先使用如下的命令清理<code>sa-test</code>中的资源：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade sa-test</code></p>
+</blockquote>
+<p>然后创建下面的资源，相比默认场景，这里主要有以下改动：</p>
+<ul>
+<li><code>Role</code>，具有<code>Pod</code>查看权限的<code>pod-view-role</code>角色；</li>
+<li><code>ServiceAccount</code>，自定义的<code>pod-view-sa</code>，将被用于和<code>pod-view-role</code>角色相关联；</li>
+<li><code>RoleBinding</code>，用于将<code>pod-view-role</code>角色的权限赋予<code>pod-view-sa</code>；</li>
+<li>在<code>Pod</code>模板中，使用<code>automountServiceAccountToken: false</code>禁止默认挂载；</li>
+<li>在<code>Pod</code>模板中，使用<code>serviceAccountName: pod-view-sa</code>表明<code>Pod</code>要关联的角色；</li>
+<li>在<code>Pod</code>模板中，定义<code>projected</code>类型的<code>pod-view-sa-token</code>三合一资源，将证书、命名空间名称以及<code>token</code>挂载到容器的<code>/var/run/secrets/kubernetes.io/sa/pod-view-sa-token</code>目录中；</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: sa-test</span><br><span class="line">---</span><br><span class="line">kind: Role</span><br><span class="line">apiVersion: rbac.authorization.k8s.io/v1</span><br><span class="line">metadata:</span><br><span class="line">  namespace: sa-test</span><br><span class="line">  name: pod-view-role</span><br><span class="line">rules:</span><br><span class="line">- apiGroups: [&quot;&quot;]</span><br><span class="line">  resources: [&quot;pods&quot;]</span><br><span class="line">  verbs: [&quot;get&quot;, &quot;list&quot;]</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: ServiceAccount</span><br><span class="line">metadata:</span><br><span class="line">  namespace: sa-test</span><br><span class="line">  name: pod-view-sa</span><br><span class="line">---</span><br><span class="line">kind: RoleBinding</span><br><span class="line">apiVersion: rbac.authorization.k8s.io/v1</span><br><span class="line">metadata:</span><br><span class="line">  name: pod-view-sa-rolebinding</span><br><span class="line">  namespace: sa-test</span><br><span class="line">subjects:</span><br><span class="line">- kind: ServiceAccount</span><br><span class="line">  name: pod-view-sa</span><br><span class="line">  namespace: sa-test</span><br><span class="line">roleRef:</span><br><span class="line">  kind: Role</span><br><span class="line">  name: pod-view-role</span><br><span class="line">  apiGroup: rbac.authorization.k8s.io</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: nettool</span><br><span class="line">  namespace: sa-test</span><br><span class="line">spec:</span><br><span class="line">  serviceAccountName: pod-view-sa</span><br><span class="line">  automountServiceAccountToken: false</span><br><span class="line">  containers:</span><br><span class="line">    - name: nettool</span><br><span class="line">      image: praqma/network-multitool</span><br><span class="line">      imagePullPolicy: IfNotPresent</span><br><span class="line">      command: [&quot;sleep&quot;]</span><br><span class="line">      args: [&quot;86400&quot;]</span><br><span class="line">      volumeMounts:</span><br><span class="line">        - name: pod-view-sa-token</span><br><span class="line">          mountPath: &quot;/var/run/secrets/kubernetes.io/sa/pod-view-sa-token&quot;</span><br><span class="line">          readOnly: true</span><br><span class="line">  volumes:</span><br><span class="line">    - name: pod-view-sa-token</span><br><span class="line">      projected:</span><br><span class="line">        sources:</span><br><span class="line">        - serviceAccountToken:</span><br><span class="line">            expirationSeconds: 3600</span><br><span class="line">            path: token</span><br><span class="line">        - configMap:</span><br><span class="line">            items:</span><br><span class="line">            - key: ca.crt</span><br><span class="line">              path: ca.crt</span><br><span class="line">            name: kube-root-ca.crt</span><br><span class="line">        - downwardAPI:</span><br><span class="line">            items:</span><br><span class="line">            - fieldRef:</span><br><span class="line">                apiVersion: v1</span><br><span class="line">                fieldPath: metadata.namespace</span><br><span class="line">              path: namespace</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>创建成功以后，将会看到以下资源：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n sa-test get role,sa,cm,rolebinding,pods -owide</span><br><span class="line">NAME                                           CREATED AT</span><br><span class="line">role.rbac.authorization.k8s.io/pod-view-role   2024-01-21T08:14:48Z</span><br><span class="line"></span><br><span class="line">NAME                         SECRETS   AGE</span><br><span class="line">serviceaccount/default       0         15s</span><br><span class="line">serviceaccount/pod-view-sa   0         15s</span><br><span class="line"></span><br><span class="line">NAME                         DATA   AGE</span><br><span class="line">configmap/kube-root-ca.crt   1      15s</span><br><span class="line"></span><br><span class="line">NAME                                                            ROLE                 AGE   USERS   GROUPS   SERVICEACCOUNTS</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/pod-view-sa-rolebinding   Role/pod-view-role   15s                    sa-test/pod-view-sa</span><br><span class="line"></span><br><span class="line">NAME          READY   STATUS    RESTARTS   AGE   IP           NODE           NOMINATED NODE   READINESS GATES</span><br><span class="line">pod/nettool   1/1     Running   0          15s   10.0.0.201   node           &lt;none&gt;           &lt;none&gt;</span><br></pre></td></tr></table></figure>
+<p>进入到<code>Pod</code>中，同样查看<code>Pod</code>列表，如预期所料，访问成功：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl exec -n sa-test nettool -it -- /bin/bash</span><br><span class="line">bash-5.1# APISERVER=https://kubernetes.default.svc</span><br><span class="line">bash-5.1# SERVICEACCOUNT=/var/run/secrets/kubernetes.io/sa/pod-view-sa-token/</span><br><span class="line">bash-5.1# NAMESPACE=$(cat $&#123;SERVICEACCOUNT&#125;/namespace)</span><br><span class="line">bash-5.1# TOKEN=$(cat $&#123;SERVICEACCOUNT&#125;/token)</span><br><span class="line">bash-5.1# CACERT=$&#123;SERVICEACCOUNT&#125;/ca.crt</span><br><span class="line">bash-5.1# curl --cacert $&#123;CACERT&#125; --header &quot;Authorization: Bearer $&#123;TOKEN&#125;&quot; -X GET $&#123;APISERVER&#125;/api/v1/namespaces/$&#123;NAMESPACE&#125;/pods</span><br><span class="line">&#123;</span><br><span class="line">  &quot;kind&quot;: &quot;PodList&quot;,</span><br><span class="line">  &quot;apiVersion&quot;: &quot;v1&quot;,</span><br><span class="line">  &quot;metadata&quot;: &#123;</span><br><span class="line">    &quot;resourceVersion&quot;: &quot;162533&quot;</span><br><span class="line">  &#125;,</span><br><span class="line">  &quot;items&quot;: [</span><br><span class="line">    &#123;</span><br><span class="line">      &quot;metadata&quot;: &#123;</span><br><span class="line">        &quot;name&quot;: &quot;nettool&quot;,</span><br><span class="line">        &quot;namespace&quot;: &quot;sa-test&quot;,</span><br></pre></td></tr></table></figure>
+<h4 id="清理现场-2"><a class="markdownIt-Anchor" href="#清理现场-2"></a> 清理现场</h4>
+<p>清理现场使用如下命令：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade sa-test</code></p>
+</blockquote>
+<h4 id="参考链接-2"><a class="markdownIt-Anchor" href="#参考链接-2"></a> 参考链接</h4>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/security/service-accounts/">服务账号</a></li>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/config-and-storage-resources/volume/#projections">投射卷API</a></li>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-service-account/">为Pod配置服务账号</a></li>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-service-account/#opt-out-of-api-credential-automounting">禁止ServiceAccount自动挂载</a></li>
+</ol>
+<h3 id="emptydir"><a class="markdownIt-Anchor" href="#emptydir"></a> emptyDir</h3>
+<p><code>emptyDir</code> 表示与<code>Pod</code>生命周期相同的临时目录，“临时（Ephemeral）”意味着对所存储的数据不提供长期可用性的保证。<code>Pods</code>通常可以使用临时性本地存储来实现缓冲区、保存日志等功能。<code>kubelet</code>可以为使用本地临时存储的<code>Pods</code>提供这种存储空间，允许后者使用<code>emptyDir</code>类型的卷将其挂载到容器中。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: emptydir-test</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: test-pd</span><br><span class="line">  namespace: emptydir-test</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">  - name: nettool</span><br><span class="line">    image: praqma/network-multitool</span><br><span class="line">    imagePullPolicy: IfNotPresent</span><br><span class="line">    command: [&quot;sleep&quot;]</span><br><span class="line">    args: [&quot;86400&quot;]</span><br><span class="line">    volumeMounts:</span><br><span class="line">      - mountPath: /var/run/cache</span><br><span class="line">        name: cache-volume</span><br><span class="line">  volumes:</span><br><span class="line">    - name: cache-volume</span><br><span class="line">      emptyDir:</span><br><span class="line">        sizeLimit: 500Mi</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<h3 id="hostpath"><a class="markdownIt-Anchor" href="#hostpath"></a> hostPath</h3>
+<p><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/storage/volumes/#hostpath">hostPath</a> 卷能将主机节点文件系统上的文件或目录挂载到<code>Pod</code>中，例如，在主机上创建目录 <code>/tmp/test-hostpath</code>：</p>
+<blockquote>
+<p><code>mkdir /tmp/test-hostpath</code></p>
+</blockquote>
+<p>然后将该目录挂再到容器中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: hostpath-test</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: test-pd</span><br><span class="line">  namespace: hostpath-test</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">  - name: nettool</span><br><span class="line">    image: praqma/network-multitool</span><br><span class="line">    imagePullPolicy: IfNotPresent</span><br><span class="line">    command: [&quot;sleep&quot;]</span><br><span class="line">    args: [&quot;86400&quot;]</span><br><span class="line">    volumeMounts:</span><br><span class="line">      - mountPath: /tmp-test-hostpath</span><br><span class="line">        name: hostpath-volume</span><br><span class="line">  volumes:</span><br><span class="line">    - name: hostpath-volume</span><br><span class="line">      hostPath:</span><br><span class="line">        path: &quot;/tmp/test-hostpath&quot;</span><br><span class="line">        type: Directory</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>进入容器中，在 <code>/tmp-test-hostpath</code> 写入任意文件 <code>test.txt</code>，然后销毁<code>Pod</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl exec -it -n hostpath-test test-pd -c nettool -- /bin/bash</span><br><span class="line">bash-5.1# cd /tmp-test-hostpath/</span><br><span class="line">bash-5.1# echo &quot;hello hostpath&quot; &gt; test.txt</span><br><span class="line">bash-5.1#</span><br><span class="line">bash-5.1# exit</span><br><span class="line">exit</span><br><span class="line">$ kubectl delete ns --cascade  hostpath-test</span><br></pre></td></tr></table></figure>
+<p>查看主机上的文件 <code>/tmp/test-hostpath/text.txt</code>，依然存在：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat /tmp/test-hostpath/test.txt</span><br><span class="line">hello hostpath</span><br></pre></td></tr></table></figure>
+<h3 id="持久卷"><a class="markdownIt-Anchor" href="#持久卷"></a> 持久卷</h3>
+<p><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/storage/persistent-volumes/">持久卷</a>通常用于有数据持久化需求的<code>Pod</code>，虽然上面的<code>hostpath</code>挂载也可以实现这种需求，但是<code>hostpath</code>数据没法迁移，不够安全，没法迁移，通过持久卷可使用的存储类型就比较广泛了。在持久化存储中，有几个比较重要的概念：</p>
+<ul>
+<li><code>PV（PersistentVolume）</code>：集群概念，表示一块存储，可以预先创建好等着来用，也可以由存储类动态创建；</li>
+<li><code>PVC（PersistentVolumeClaim）</code>：用于描述存储需求，表示<code>Pod</code>需要什么类型的存储，多少空间等，只有当存在合适的<code>PV</code>来满足<code>PVC</code>的要求时，<code>PVC</code>才会和<code>PV</code>绑定，并被容器真正使用；合适意味着<code>PVC</code>的要求的类型和<code>PV</code>一样，要求的存储空间<code>PV</code>也能满足；</li>
+<li><code>StorageClass</code>：用于当作<code>PV</code>的模板，用于描述它能用什么插件创建出什么类型的<code>PV</code>，当用户创建的<code>PVC</code>没有预创建的<code>PV</code>满足时，就需要通过<code>StorageClass</code>来动态创建了；</li>
+<li>回收策略，主要用于告知 <code>PersistentVolume</code> 在用户删除<code>PVC</code>时如何处理之前申请的存储空间，主要有<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/storage/persistent-volumes/#retain">Retain</a>和<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/storage/persistent-volumes/#delete">Delete</a>，表示手动回收和删除；</li>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/storage/persistent-volumes/#access-modes">访问模式</a>，表示卷以什么方式挂载到宿主机系统上，不同类型的<code>PV</code>支持的访问模式不同：
+<ol>
+<li><code>ReadWriteOnce</code>：卷可以被一个节点以读写方式挂载，也允许运行在同一节点上的多个 Pod 访问卷；</li>
+<li><code>ReadOnlyMany</code>：卷可以被多个节点以只读方式挂载；</li>
+<li><code>ReadWriteMany</code>：卷可以被多个节点以读写方式挂载；</li>
+<li><code>ReadWriteOncePod</code>：卷可以被单个 Pod 以读写方式挂载；</li>
+</ol>
+</li>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/storage/persistent-volumes/#types-of-persistent-volumes">持久卷类型</a>，<code>PV</code> 持久卷是用插件的形式来实现的，但是这些类型并不是用户所能使用的存储类型的全集，因为还可以使用<code>StorageClass</code>动态创建<code>PV</code>，目前支持以下存储类型：
+<ul>
+<li>csi - 容器存储接口 (CSI)</li>
+<li>fc - Fibre Channel (FC) 存储</li>
+<li>hostPath - HostPath 卷 （仅供单节点测试使用；不适用于多节点集群；请尝试使用 local 卷作为替代）</li>
+<li>iscsi - iSCSI (SCSI over IP) 存储</li>
+<li>local - 节点上挂载的本地存储设备</li>
+<li>nfs - 网络文件系统 (NFS) 存储</li>
+</ul>
+</li>
+</ul>
+<p>由于本地的测试条件有限，所以这里使用 <code>hostpath</code> 和 <code>local</code> 两种持久卷类型来做演示。</p>
+<h4 id="hoatpath"><a class="markdownIt-Anchor" href="#hoatpath"></a> hoatpath</h4>
+<p><code>hostpath</code> 仅适用于本地单节点测试，我们可以将节点的一个目录作为<code>PV</code>，让<code>Pod</code>都调度到这个节点上来，就可以使用这个存储卷了。首先创建一个目录用于表示<code>PV</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ mkdir -p /mnt/k8s/pv-test/hostpath</span><br></pre></td></tr></table></figure>
+<p>为了让<code>Pod</code>能调度到这个和<code>PV</code>强绑定的节点上来，给节点打个标签 <code>pvtype=hostpath</code>：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl label nodes ctrlnode pvtype=hostpath</span></span><br><span class="line">node/ctrlnode labeled</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">kubectl describe node ctrlnode</span></span><br><span class="line">Name:               ctrlnode</span><br><span class="line">Roles:              control-plane,master</span><br><span class="line">Labels:             beta.kubernetes.io/arch=amd64</span><br><span class="line">                    beta.kubernetes.io/instance-type=k3s</span><br><span class="line">                    beta.kubernetes.io/os=linux</span><br><span class="line">                    kubernetes.io/arch=amd64</span><br><span class="line">                    kubernetes.io/hostname=ctrlnode</span><br><span class="line">                    kubernetes.io/os=linux</span><br><span class="line">                    node-role.kubernetes.io/control-plane=true</span><br><span class="line">                    node-role.kubernetes.io/master=true</span><br><span class="line">                    node.kubernetes.io/instance-type=k3s</span><br><span class="line">                    pvtype=hostpath</span><br><span class="line">....</span><br></pre></td></tr></table></figure>
+<p>创建 <code>hostPath</code> 类型的 <code>PV</code>，下面的示例中，虽然本地并没有 <code>manual</code> 类型的 <code>StorageClass</code>，但是<code>Kubernetes</code>会根据<code>PVC</code>和<code>PV</code>的存储类名称进行匹配，所以不用担心：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: PersistentVolume</span><br><span class="line">metadata:</span><br><span class="line">  name: pv-hostpath</span><br><span class="line">spec:</span><br><span class="line">  storageClassName: manual</span><br><span class="line">  capacity:</span><br><span class="line">    storage: 2Gi</span><br><span class="line">  accessModes:</span><br><span class="line">    - ReadWriteOnce</span><br><span class="line">  persistentVolumeReclaimPolicy: Retain</span><br><span class="line">  hostPath:</span><br><span class="line">    path: &quot;/mnt/k8s/pv-test/hostpath&quot;</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>创建成功之后，使用如下的命令进行验证：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get pv -owide</span><br><span class="line">NAME          CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   REASON   AGE   VOLUMEMODE</span><br><span class="line">pv-hostpath   2Gi        RWO            Delete           Available           manual                  3s    Filesystem</span><br></pre></td></tr></table></figure>
+<p>接下来，创建<code>PVC</code>来描述存储需求，不同于<code>PV</code>属于集群的概念，<code>PVC</code>是有命名空间的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: pv-hostpath-test</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: PersistentVolumeClaim</span><br><span class="line">metadata:</span><br><span class="line">  name: claim-hostpath-1</span><br><span class="line">  namespace: pv-hostpath-test</span><br><span class="line">spec:</span><br><span class="line">  accessModes:</span><br><span class="line">    - ReadWriteOnce</span><br><span class="line">  storageClassName: manual</span><br><span class="line">  resources:</span><br><span class="line">    requests:</span><br><span class="line">      storage: 1Gi</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>执行成功之后，使用下面的命令进行验证，可以看到<code>PV</code>处于绑定状态，也就是<code>PVC</code>的需求得到满足了：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get pv,pvc -n pv-hostpath-test -owide</span><br><span class="line">NAME                           CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                               STORAGECLASS   REASON   AGE    VOLUMEMODE</span><br><span class="line">persistentvolume/pv-hostpath   2Gi        RWO            Retain           Bound    pv-hostpath-test/claim-hostpath-1   manual                  102s   Filesystem</span><br><span class="line"></span><br><span class="line">NAME                                     STATUS   VOLUME        CAPACITY   ACCESS MODES   STORAGECLASS   AGE   VOLUMEMODE</span><br><span class="line">persistentvolumeclaim/claim-hostpath-1   Bound    pv-hostpath   2Gi        RWO            manual         45s   Filesystem</span><br></pre></td></tr></table></figure>
+<p>接下来就是创建<code>Pod</code>使用这个<code>hostpath</code>类型的<code>PV</code>了，这里的<code>spec.affinity.nodeAffinity</code>表明要把<code>Pod</code>调度到具有<code>pvtype=hostpath</code>的节点中去：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: nettool</span><br><span class="line">  namespace: pv-hostpath-test</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">    - name: nettool</span><br><span class="line">      image: praqma/network-multitool</span><br><span class="line">      imagePullPolicy: IfNotPresent</span><br><span class="line">      command: [&quot;sleep&quot;]</span><br><span class="line">      args: [&quot;86400&quot;]</span><br><span class="line">      volumeMounts:</span><br><span class="line">        - mountPath: /hostpath/storage</span><br><span class="line">          name: pv-hostpath-volume</span><br><span class="line">  volumes:</span><br><span class="line">    - name: pv-hostpath-volume</span><br><span class="line">      persistentVolumeClaim:</span><br><span class="line">        claimName: &quot;claim-hostpath-1&quot;</span><br><span class="line">  affinity:</span><br><span class="line">    nodeAffinity:</span><br><span class="line">      requiredDuringSchedulingIgnoredDuringExecution:</span><br><span class="line">        nodeSelectorTerms:</span><br><span class="line">          - matchExpressions:</span><br><span class="line">            - key: pvtype</span><br><span class="line">              operator: In</span><br><span class="line">              values:</span><br><span class="line">                - hostpath</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>进入容器的<code>/hostpath/storage</code>目录中，创建文件 <code>text.txt</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl exec -n pv-hostpath-test -it nettool -- /bin/bash</span><br><span class="line">bash-5.1# cd /hostpath/storage</span><br><span class="line">bash-5.1# echo &quot;written in container&quot; &gt; text.txt</span><br><span class="line">bash-5.1# exit</span><br><span class="line">exit</span><br></pre></td></tr></table></figure>
+<p>这个时候查看<code>ctrlnode</code>节点上的<code>/mnt/k8s/pv-test/hostpath</code>目录，存在<code>text.txt</code>文件。而且即使销毁<code>Pod</code>然后重建，只要依然使用这个<code>PVC</code>，它的数据依然是存在的，这就做到了数据的持久化：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat /mnt/k8s/pv-test/hostpath/text.txt</span><br><span class="line">written in container</span><br></pre></td></tr></table></figure>
+<p>清理现场使用：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade  pv-hostpath-test</code><br />
+<code>kubectl delete pv pv-hostpath</code><br />
+<code>kubectl label nodes ctrlnode pvtype-</code></p>
+</blockquote>
+<h4 id="local"><a class="markdownIt-Anchor" href="#local"></a> local</h4>
+<p><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/storage/volumes/#local">local</a>用于表示某个被挂载的本地存储设备，例如磁盘、分区或者目录，只能用作静态创建的持久卷，不支持动态配置。与 <code>hostPath</code> 卷相比，<code>local</code> 卷能够以持久和可移植的方式使用，而无需手动将 <code>Pod</code> 调度到节点，而 <code>local</code>可以让<code>Pod</code>自动去选择节点，核心含义就是首先让<code>PV</code>存在于具有特征的节点上，这样当<code>PVC</code>被和<code>PV</code>绑定时，<code>PVC</code>也具有了节点亲和性，当最后的使用者<code>Pod</code>出现时，要使用这个<code>PVC</code>就得被调度到满足条件的<code>PV</code>所在的节点上。</p>
+<p>同样，为了演示，首先本地创建一个目录用于制备<code>PV</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ mkdir -p /mnt/k8s/pv-test/local</span><br></pre></td></tr></table></figure>
+<p>给节点打个标签 <code>pvtype=local</code>：</p>
+<blockquote>
+<p><code>kubectl label nodes ctrlnode pvtype=local</code></p>
+</blockquote>
+<p>创建<code>PV</code>，并且使用<code>nodeAffinity</code>指定满足条件的节点：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: PersistentVolume</span><br><span class="line">metadata:</span><br><span class="line">  name: example-pv-local</span><br><span class="line">spec:</span><br><span class="line">  capacity:</span><br><span class="line">    storage: 100Gi</span><br><span class="line">  volumeMode: Filesystem</span><br><span class="line">  accessModes:</span><br><span class="line">  - ReadWriteOnce</span><br><span class="line">  persistentVolumeReclaimPolicy: Delete</span><br><span class="line">  storageClassName: local-storage</span><br><span class="line">  local:</span><br><span class="line">    path: /mnt/k8s/pv-test/local</span><br><span class="line">  nodeAffinity:</span><br><span class="line">    required:</span><br><span class="line">      nodeSelectorTerms:</span><br><span class="line">      - matchExpressions:</span><br><span class="line">        - key: pvtype</span><br><span class="line">          operator: In</span><br><span class="line">          values:</span><br><span class="line">          - local</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>使用如下的命令验证是否创建成功：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get pv</span><br><span class="line">NAME               CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS    REASON   AGE</span><br><span class="line">example-pv-local   100Gi      RWO            Delete           Available           local-storage            5s</span><br></pre></td></tr></table></figure>
+<p>然后创建<code>PVC</code>，申请这个<code>local</code>类型的<code>PV</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: pv-local-test</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: PersistentVolumeClaim</span><br><span class="line">metadata:</span><br><span class="line">  name: claim-local-1</span><br><span class="line">  namespace: pv-local-test</span><br><span class="line">spec:</span><br><span class="line">  accessModes:</span><br><span class="line">    - ReadWriteOnce</span><br><span class="line">  storageClassName: local-storage</span><br><span class="line">  resources:</span><br><span class="line">    requests:</span><br><span class="line">      storage: 1Gi</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>创建成功之后，可以看到<code>PV</code>和<code>PVC</code>都是绑定状态了：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get pv,pvc -n pv-local-test</span><br><span class="line">NAME                                CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                         STORAGECLASS    REASON   AGE</span><br><span class="line">persistentvolume/example-pv-local   100Gi      RWO            Delete           Bound    pv-local-test/claim-local-1   local-storage            118s</span><br><span class="line"></span><br><span class="line">NAME                                  STATUS   VOLUME             CAPACITY   ACCESS MODES   STORAGECLASS    AGE</span><br><span class="line">persistentvolumeclaim/claim-local-1   Bound    example-pv-local   100Gi      RWO            local-storage   11s</span><br></pre></td></tr></table></figure>
+<p>同样创建一个<code>Pod</code>来使用这个<code>PVC</code>，与<code>hostpath</code>不同的时，这里不用再使用节点亲和性用来表示<code>Pod</code>要被调度到哪个节点了：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: nettool</span><br><span class="line">  namespace: pv-local-test</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">    - name: nettool</span><br><span class="line">      image: praqma/network-multitool</span><br><span class="line">      imagePullPolicy: IfNotPresent</span><br><span class="line">      command: [&quot;sleep&quot;]</span><br><span class="line">      args: [&quot;86400&quot;]</span><br><span class="line">      volumeMounts:</span><br><span class="line">        - mountPath: /pv-local/storage</span><br><span class="line">          name: pv-local-volume</span><br><span class="line">  volumes:</span><br><span class="line">    - name: pv-local-volume</span><br><span class="line">      persistentVolumeClaim:</span><br><span class="line">        claimName: &quot;claim-local-1&quot;</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>进入到容器中，创建文件进行测试：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl exec -it -n pv-local-test nettool -- /bin/bash</span><br><span class="line">bash-5.1#  cd /pv-local/storage/</span><br><span class="line">bash-5.1# echo &quot;written in container&quot; &gt; test.txt</span><br><span class="line">bash-5.1# exit</span><br><span class="line">exit</span><br></pre></td></tr></table></figure>
+<p>在宿主机上的<code>/mnt/k8s/pv-test/local</code>中可以看到这个文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat /mnt/k8s/pv-test/local/test.txt</span><br><span class="line">written in container</span><br></pre></td></tr></table></figure>
+<p>清理现场使用如下的命令：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade pv-local-test</code><br />
+<code>kubectl delete pv example-pv-local</code><br />
+<code>kubectl label nodes ctrlnode pvtype-</code></p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2024/01/17/K8S/k8s-data-mount/" title="K8S 数据挂载">https://blog.fudenglong.site/2024/01/17/K8S/k8s-data-mount/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Secret/" rel="tag"># Secret</a>
+              <a href="/tags/ConfigMap/" rel="tag"># ConfigMap</a>
+              <a href="/tags/Downward-API/" rel="tag"># Downward API</a>
+              <a href="/tags/ServiceAccountToken/" rel="tag"># ServiceAccountToken</a>
+              <a href="/tags/%E6%8C%81%E4%B9%85%E5%8D%B7/" rel="tag"># 持久卷</a>
+              <a href="/tags/%E6%8A%95%E5%B0%84%E5%8D%B7/" rel="tag"># 投射卷</a>
+              <a href="/tags/%E4%B8%B4%E6%97%B6%E5%8D%B7/" rel="tag"># 临时卷</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/01/10/K8S/k8s-job-manage/" rel="prev" title="K8S 容器编排">
+                  <i class="fa fa-angle-left"></i> K8S 容器编排
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/02/04/Network/linux-tun-device/" rel="next" title="Linux tun 设备介绍">
+                  Linux tun 设备介绍 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2024/01/17/K8S/k8s-data-mount/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

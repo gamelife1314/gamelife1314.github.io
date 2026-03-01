@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="本篇文章介绍使用 kubeadm 创建一个多节点的 K8S，使用 containerd 作为容器运行时，第一步，首先是准备 3 个虚拟机节点，使用 multipass 创建3台虚拟机，该镜像中自带 docker，无需再安装，使用如下命令创建：  multipass launch --name ctrlnode -d 40G docker multipass launch --name node1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用kubeadm创建多节点集群">
+<meta property="og:url" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="本篇文章介绍使用 kubeadm 创建一个多节点的 K8S，使用 containerd 作为容器运行时，第一步，首先是准备 3 个虚拟机节点，使用 multipass 创建3台虚拟机，该镜像中自带 docker，无需再安装，使用如下命令创建：  multipass launch --name ctrlnode -d 40G docker multipass launch --name node1">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/kubelet-status.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/kubeadm-success.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/node-join.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/taint-node.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/unset-taint.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/worke-node.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/nginx-pod-3.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/exec-container.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/deploy-dashbord.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/dashboard-login.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/dashboard-success.png">
+<meta property="article:published_time" content="2023-12-17T10:44:12.000Z">
+<meta property="article:modified_time" content="2023-12-17T10:44:12.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="kubeadm">
+<meta property="article:tag" content="集群部署">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/kubelet-status.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/","path":"2023/12/17/K8S/kubeadm-deploy/","title":"使用kubeadm创建多节点集群"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>使用kubeadm创建多节点集群 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8A%82%E7%82%B9%E9%85%8D%E7%BD%AE"><span class="nav-number">1.</span> <span class="nav-text"> 节点配置</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#swap"><span class="nav-number">1.1.</span> <span class="nav-text"> swap</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%98%B2%E7%81%AB%E5%A2%99"><span class="nav-number">1.2.</span> <span class="nav-text"> 防火墙</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A1%A5%E6%8E%A5%E6%B5%81%E9%87%8F"><span class="nav-number">1.3.</span> <span class="nav-text"> 桥接流量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#hostname"><span class="nav-number">1.4.</span> <span class="nav-text"> hostname</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#containerd"><span class="nav-number">2.</span> <span class="nav-text"> containerd</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85k8s"><span class="nav-number">3.</span> <span class="nav-text"> 安装K8S</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9B%86%E7%BE%A4%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-number">4.</span> <span class="nav-text"> 集群初始化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2%E5%BA%94%E7%94%A8"><span class="nav-number">5.</span> <span class="nav-text"> 部署应用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dashboard"><span class="nav-number">6.</span> <span class="nav-text"> Dashboard</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="nav-number">7.</span> <span class="nav-text"> 参考文章</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="使用kubeadm创建多节点集群 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          使用kubeadm创建多节点集群
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-12-17 18:44:12" itemprop="dateCreated datePublished" datetime="2023-12-17T18:44:12+08:00">2023-12-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>10 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本篇文章介绍使用 <code>kubeadm</code> 创建一个多节点的 <code>K8S</code>，使用 <code>containerd</code> 作为容器运行时，第一步，首先是准备 <code>3</code> 个虚拟机节点，使用 <a target="_blank" rel="noopener" href="https://multipass.run/"><code>multipass</code></a> 创建<code>3</code>台虚拟机，该镜像中自带 <code>docker</code>，无需再安装，使用如下命令创建：</p>
+<blockquote>
+<p>multipass launch --name ctrlnode -d 40G docker<br />
+multipass launch --name node1 -d 40G docker<br />
+multipass launch --name node2 -d 40G docker</p>
+</blockquote>
+<p>每个节点至少<code>2GB</code>内存，<code>2</code>个CPU，具体要求请看<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#%E5%87%86%E5%A4%87%E5%BC%80%E5%A7%8B">这里</a>。创建成功之后，如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ multipass list</span><br><span class="line">Name                    State             IPv4             Image</span><br><span class="line">ctrlnode                Running           192.168.67.8     Ubuntu 22.04 LTS</span><br><span class="line">                                          172.17.0.1</span><br><span class="line">node1                   Running           192.168.67.10    Ubuntu 22.04 LTS</span><br><span class="line">                                          172.17.0.1</span><br><span class="line">node2                   Running           192.168.67.9     Ubuntu 22.04 LTS</span><br><span class="line">                                          172.17.0.1</span><br></pre></td></tr></table></figure>
+<p><code>VM</code> 版本如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@node2:~$ lsb_release -a</span><br><span class="line">No LSB modules are available.</span><br><span class="line">Distributor ID:	Ubuntu</span><br><span class="line">Description:	Ubuntu 22.04.3 LTS</span><br><span class="line">Release:	22.04</span><br><span class="line">Codename:	jammy</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<h3 id="节点配置"><a class="markdownIt-Anchor" href="#节点配置"></a> 节点配置</h3>
+<p>在开始之前，三台节点做必要的设置。</p>
+<h4 id="swap"><a class="markdownIt-Anchor" href="#swap"></a> swap</h4>
+<p>首先，禁止 <code>swap</code>：</p>
+<blockquote>
+<p><code>sudo swapoff -a</code><br />
+<code>sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab</code></p>
+</blockquote>
+<h4 id="防火墙"><a class="markdownIt-Anchor" href="#防火墙"></a> 防火墙</h4>
+<p>测试环境，直接关闭防火墙即可（<code>Ubuntu</code>）：</p>
+<blockquote>
+<p><code>sudo ufw disable</code></p>
+</blockquote>
+<h4 id="桥接流量"><a class="markdownIt-Anchor" href="#桥接流量"></a> 桥接流量</h4>
+<p>转发 <code>IPv4</code> 并让 <code>iptables</code> 看到桥接流量，这部分内容来源于<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/setup/production-environment/container-runtimes/#install-and-configure-prerequisites">这里</a>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ cat &lt;&lt;EOF | sudo tee /etc/modules-load.d/k8s.conf</span><br><span class="line">overlay</span><br><span class="line">br_netfilter</span><br><span class="line">EOF</span><br><span class="line"></span><br><span class="line">$ sudo modprobe overlay</span><br><span class="line">$ sudo modprobe br_netfilter</span><br><span class="line"></span><br><span class="line"># 设置所需的 sysctl 参数，参数在重新启动后保持不变</span><br><span class="line">$ cat &lt;&lt;EOF | sudo tee /etc/sysctl.d/k8s.conf</span><br><span class="line">net.bridge.bridge-nf-call-iptables  = 1</span><br><span class="line">net.bridge.bridge-nf-call-ip6tables = 1</span><br><span class="line">net.ipv4.ip_forward                 = 1</span><br><span class="line">EOF</span><br><span class="line"></span><br><span class="line"># 应用 sysctl 参数而不重新启动</span><br><span class="line">$ sudo sysctl --system</span><br></pre></td></tr></table></figure>
+<p>通过运行以下指令确认 <code>br_netfilter</code> 和 <code>overlay</code> 模块被加载：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ lsmod | grep br_netfilter</span><br><span class="line">$ lsmod | grep overlay</span><br></pre></td></tr></table></figure>
+<p><code>br_netfilter</code>（<code>Linux</code> 内核中的一个模块，它主要用于管理网桥设备上的数据包过滤。 此模块允许在网桥设备上使用<code>Netfilter</code>（<code>Linux</code>内核的防火墙框架）的功能，例如<code>iptables</code> 和<code>nftables</code>。 它允许对网桥连接的两个网络段之间的数据包进行过滤。）</p>
+<p>通过运行以下指令确认 <code>net.bridge.bridge-nf-call-iptables</code>、<code>net.bridge.bridge-nf-call-ip6tables</code> 和 <code>net.ipv4.ip_forward</code> 系统变量在你的 <code>sysctl</code> 配置中被设置为 <code>1</code>：</p>
+<blockquote>
+<p><code>sysctl net.bridge.bridge-nf-call-iptables net.bridge.bridge-nf-call-ip6tables net.ipv4.ip_forward</code></p>
+</blockquote>
+<h4 id="hostname"><a class="markdownIt-Anchor" href="#hostname"></a> hostname</h4>
+<p>为各个节点设置合适的名称，并且做域名解析：</p>
+<blockquote>
+<p><code>sudo hostnamectl set-hostname &quot;ctrlnode&quot;</code><br />
+<code>sudo hostnamectl set-hostname &quot;node1&quot;</code><br />
+<code>sudo hostnamectl set-hostname &quot;node2&quot;</code></p>
+</blockquote>
+<p>在<code>3</code>个节点的 <code>/etc/hosts</code> 文件中加入下面的解析条目：</p>
+<figure class="highlight text"><figcaption><span>/etc/hosts</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">192.168.67.8 ctrlnode</span><br><span class="line">192.168.67.10 node1</span><br><span class="line">192.168.67.9 node2</span><br></pre></td></tr></table></figure>
+<h3 id="containerd"><a class="markdownIt-Anchor" href="#containerd"></a> containerd</h3>
+<p>这里选用 <code>containerd</code> 作为容器运行时，更多的容器运行时看<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/setup/production-environment/container-runtimes/">这里</a>。在使用 <code>multipass</code> 的 <code>docker</code> 模板创建的节点中，<code>Docker</code> 默认安装，作为 <code>Docker</code> 的一部分，<code>continaerd</code> 也会被安装。不过不管以哪种方式安装 <code>containerd</code> 之后，需要稍作配置，第一步生成默认配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># sudo mkdir -p /etc/containerd</span><br><span class="line"># containerd config default | sudo tee /etc/containerd/config.toml</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/setup/production-environment/container-runtimes/#containerd-systemd">配置cgroup驱动</a> 驱动，在 <code>/etc/containerd/config.toml</code> 中设置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[plugins.&quot;io.containerd.grpc.v1.cri&quot;.containerd.runtimes.runc.options]</span><br><span class="line">        ...</span><br><span class="line">        SystemdCgroup = true</span><br></pre></td></tr></table></figure>
+<p>然后重新启动：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart containerd</span><br></pre></td></tr></table></figure>
+<p>如果需要给 <code>containerd</code> 设置代理，用于拉取镜像。可以编辑文件 <code>/etc/systemd/system/containerd.service.d/http-proxy.conf</code>，加入自己的代理信息：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[Service]</span><br><span class="line">Environment=&quot;HTTP_PROXY=http://192.168.3.119:1087&quot;</span><br><span class="line">Environment=&quot;HTTPS_PROXY=http://192.168.3.119:1087&quot;</span><br></pre></td></tr></table></figure>
+<p>然后重启：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload</span><br><span class="line">sudo systemctl restart containerd</span><br></pre></td></tr></table></figure>
+<p>设置 <code>crictl</code> 的运行时，使用 <code>containerd</code>，官方文档请看<a target="_blank" rel="noopener" href="https://github.com/kubernetes-sigs/cri-tools/blob/master/docs/crictl.md">这里</a>：</p>
+<figure class="highlight text"><figcaption><span>/etc/crictl.yaml</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">runtime-endpoint: unix:///var/run/containerd/containerd.sock</span><br><span class="line">image-endpoint: unix:///var/run/containerd/containerd.sock</span><br><span class="line">timeout: 2</span><br><span class="line">debug: false</span><br><span class="line">pull-image-on-create: false</span><br></pre></td></tr></table></figure>
+<h3 id="安装k8s"><a class="markdownIt-Anchor" href="#安装k8s"></a> 安装K8S</h3>
+<div class="tabs" id="kubernets安装"><ul class="nav-tabs"><li class="tab active"><a href="#kubernets安装-1">官方</a></li><li class="tab"><a href="#kubernets安装-2">阿里云</a></li></ul><div class="tab-content"><div class="tab-pane active" id="kubernets安装-1"><p>官方安装请看<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/tasks/tools/install-kubectl-linux/#install-using-native-package-management">这里</a>：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装一些必要的工具</span></span><br><span class="line">sudo apt update</span><br><span class="line">sudo apt-get install -y apt-transport-https ca-certificates curl</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">下载Kubernetes包存储库的公共签名密钥。</span></span><br><span class="line">curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">添加某个版本的 `Kubernetes api` 仓库。如果要使用不同于 `v1.28` 的 `Kubernetes` 版本，请将下面的命令中的 `v1.28` 替换为所需的次要版本。</span></span><br><span class="line">echo &#x27;deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /&#x27; | sudo tee /etc/apt/sources.list.d/kubernetes.list</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">更新包索引</span></span><br><span class="line">sudo apt update</span><br></pre></td></tr></table></figure>
+<p>查看<code>k8s</code>可用版本：</p>
+<blockquote>
+<p>sudo apt-cache madison kubeadm</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# sudo apt-cache madison kubeadm</span><br><span class="line">   kubeadm | 1.28.5-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages</span><br><span class="line">   kubeadm | 1.28.4-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages</span><br><span class="line">   kubeadm | 1.28.3-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages</span><br><span class="line">   kubeadm | 1.28.2-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages</span><br><span class="line">   kubeadm | 1.28.1-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages</span><br><span class="line">   kubeadm | 1.28.0-1.1 | https://pkgs.k8s.io/core:/stable:/v1.28/deb  Packages</span><br></pre></td></tr></table></figure>
+<p>安装指定版本：</p>
+<blockquote>
+<p>sudo apt install -y kubeadm=1.28.5-1.1 kubelet=1.28.5-1.1 kubectl=1.28.5-1.1</p>
+</blockquote>
+<p>锁定版本，不随 <code>apt upgrade</code> 更新：</p>
+<blockquote>
+<p>sudo apt-mark hold kubelet kubeadm kubectl</p>
+</blockquote></div><div class="tab-pane" id="kubernets安装-2"><p>国内安装请看<a target="_blank" rel="noopener" href="https://developer.aliyun.com/mirror/kubernetes?spm=a2c6h.13651102.0.0.70be1b11x53i7b">这里</a>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">apt-get update &amp;&amp; apt-get install -y apt-transport-https</span><br><span class="line">curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add - </span><br><span class="line">cat &lt;&lt;EOF &gt;/etc/apt/sources.list.d/kubernetes.list</span><br><span class="line">deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main</span><br><span class="line">EOF</span><br><span class="line">apt-get update</span><br><span class="line">apt-get install -y kubelet kubeadm kubectl</span><br></pre></td></tr></table></figure></div></div></div>
+<p>每个节点上的<code>kubelet</code>会选择一个容器运行时用于<code>Pod</code>管理，可以使用下面的命令进行查看：</p>
+<p><img data-src="kubelet-status.png" alt="" /></p>
+<h3 id="集群初始化"><a class="markdownIt-Anchor" href="#集群初始化"></a> 集群初始化</h3>
+<p>在集群初始化之前，我们可以先使用下面的命令在控制节点预先拉取镜像：</p>
+<blockquote>
+<p><code>kubeadm config images pull --kubernetes-version 1.28.5</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubeadm config images pull --kubernetes-version 1.28.5</span><br><span class="line">[config/images] Pulled registry.k8s.io/kube-apiserver:v1.28.5</span><br><span class="line">[config/images] Pulled registry.k8s.io/kube-controller-manager:v1.28.5</span><br><span class="line">[config/images] Pulled registry.k8s.io/kube-scheduler:v1.28.5</span><br><span class="line">[config/images] Pulled registry.k8s.io/kube-proxy:v1.28.5</span><br><span class="line">[config/images] Pulled registry.k8s.io/pause:3.9</span><br><span class="line">[config/images] Pulled registry.k8s.io/etcd:3.5.9-0</span><br><span class="line">[config/images] Pulled registry.k8s.io/coredns/coredns:v1.10.1</span><br></pre></td></tr></table></figure>
+<p>在控制节点上执行下面的命令，<code>kubeadm</code> 的使用文档请看<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/reference/setup-tools/kubeadm/">这里</a>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo kubeadm init --control-plane-endpoint &quot;ctrlnode:6443&quot; --upload-certs --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16 --kubernetes-version 1.28.5 </span><br></pre></td></tr></table></figure>
+<p><code>init</code> 会执行一系列的检查，例如内核版本版本是否满足要求（3.10及以上），Cgroups模块是否启用，是否安装容器运行时，<code>ip</code>、<code>mount</code> 这样的工具是否安装，<code>Kubernetes</code>的工作端口<code>10250/10251/10252</code>端口是不是已经被占用等等，完整的工作流程请看<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/reference/setup-tools/kubeadm/kubeadm-init/#init-workflow">这里</a>。执行成功之后，将会得到下面这样的输出：</p>
+<p><img data-src="kubeadm-success.png" alt="kubeadm-success" /></p>
+<p>如果要使用普通用户管理集群，需要执行下面的命令为普通用户创建<code>kubectl</code>命令运行所需要的配置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p $HOME/.kube</span><br><span class="line">sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config</span><br><span class="line">sudo chown $(id -u):$(id -g) $HOME/.kube/config</span><br></pre></td></tr></table></figure>
+<p>如果用 <code>root</code> 用户使用集群，只需要设置如下的环境变量：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export KUBECONFIG=/etc/kubernetes/admin.conf</span><br></pre></td></tr></table></figure>
+<p>在加入新的节点之前，我们需要安装网络插件，这里以 <code>flannel</code> 为例：</p>
+<blockquote>
+<p><code>kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml</code></p>
+</blockquote>
+<p>在控制面节点初始化之后输出了其他 <code>worker</code> 节点加入的命令。如果忘记了，可以使用 <code>kubeadm token create --print-join-command</code> 重新生成加入命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubeadm token create --print-join-command</span><br><span class="line">kubeadm join ctrlnode:6443 --token sm2nmt.8u2z4yqov1w9i8a1 --discovery-token-ca-cert-hash sha256:5de053201e4c9928d9b919c951197626fad17f21edd95651bf5dae89c8dce82f</span><br></pre></td></tr></table></figure>
+<p>分别在 <code>ndoe1</code> 和 <code>node2</code> 执行之后，会有如下的输出：</p>
+<p><img data-src="node-join.png" alt="节点加入" /></p>
+<p>使用 <code>kubectl get node</code> 命令在控制节点上查看节点列表：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubectl get nodes -owide</span><br><span class="line">NAME       STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME</span><br><span class="line">ctrlnode   Ready    control-plane   12m     v1.28.5   192.168.67.8    &lt;none&gt;        Ubuntu 22.04.3 LTS   5.15.0-91-generic   containerd://1.6.26</span><br><span class="line">node1      Ready    &lt;none&gt;          5m49s   v1.28.5   192.168.67.10   &lt;none&gt;        Ubuntu 22.04.3 LTS   5.15.0-91-generic   containerd://1.6.26</span><br><span class="line">node2      Ready    &lt;none&gt;          5m38s   v1.28.5   192.168.67.9    &lt;none&gt;        Ubuntu 22.04.3 LTS   5.15.0-91-generic   containerd://1.6.26</span><br></pre></td></tr></table></figure>
+<p>如果节点 <code>NotReady</code> 可能是由于网络插件或者 <code>kube-proxy</code> 未启动，等它们就绪之后再去查看节点就 <code>Ready</code> 了。在节点上使用 <code>crictl ps</code> 查看相关容器是否启动：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">root@node1:/home/ubuntu# crictl ps</span><br><span class="line">CONTAINER           IMAGE               CREATED             STATE               NAME                ATTEMPT             POD ID              POD</span><br><span class="line">652eb158b1df6       4875a1ba2d23f       3 minutes ago       Running             kube-flannel        0                   a66d1b9ceeefc       kube-flannel-ds-hd9mx</span><br><span class="line">ea8e91242d453       73ab68401f869       5 minutes ago       Running             kube-proxy          0                   e533b68847e99       kube-proxy-97tn4</span><br></pre></td></tr></table></figure>
+<p>默认情况下，<code>control-plane</code> 所在节点被设置成了<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/scheduling-eviction/taint-and-toleration/">污点（Taint）</a>，不允许 <code>Pod</code> 调度到这类节点，例如:</p>
+<blockquote>
+<p>kubectl describe  node ctrlnode</p>
+</blockquote>
+<p><img data-src="taint-node.png" alt="污点node" /></p>
+<p>测试环境中，可以使用下面的<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/reference/labels-annotations-taints/#node-role-kubernetes-io-control-plane-taint">命令</a>清除污点，以便让 <code>Pod</code> 被允许调度到此类节点：</p>
+<blockquote>
+<p>kubectl taint nodes ctrlnode <a target="_blank" rel="noopener" href="http://node-role.kubernetes.io/control-plane:NoSchedule-">node-role.kubernetes.io/control-plane:NoSchedule-</a></p>
+</blockquote>
+<p><img data-src="unset-taint.png" alt="删除污点" /></p>
+<p>可以通过下面的命令给节点设置角色，例如，给 <code>node1</code> 和 <code>node2</code> 设置 <code>worker</code> 角色：</p>
+<blockquote>
+<p>kubectl label node node1 <a target="_blank" rel="noopener" href="http://node-role.kubernetes.io/worker=worker">node-role.kubernetes.io/worker=worker</a><br />
+kubectl label node node2 <a target="_blank" rel="noopener" href="http://node-role.kubernetes.io/worker=worker">node-role.kubernetes.io/worker=worker</a></p>
+</blockquote>
+<p><img data-src="worke-node.png" alt="worker节点" /></p>
+<h3 id="部署应用"><a class="markdownIt-Anchor" href="#部署应用"></a> 部署应用</h3>
+<p>为了测试集群的可用性，部署一个 <code>Deployment</code> 测试，这里使用官方的<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/tasks/run-application/run-stateless-application-deployment/">无状态应用示例</a>，并且将其扩展为<code>3</code>个<code>Pod</code>：</p>
+<blockquote>
+<p>kubectl apply -f <a target="_blank" rel="noopener" href="https://k8s.io/examples/application/deployment-update.yaml">https://k8s.io/examples/application/deployment-update.yaml</a></p>
+<p>kubectl scale --current-replicas=2 --replicas=3 deployment/nginx-deployment</p>
+</blockquote>
+<p>等待部署成功，查看：</p>
+<p><img data-src="nginx-pod-3.png" alt="nginx pod" /></p>
+<p>可以使用如下的命令查看 <code>pod</code> 中有哪些容器：</p>
+<blockquote>
+<p>kubectl get pods nginx-deployment-848dd6cfb5-2gvg9 -o jsonpath={.spec.containers[*].name}</p>
+</blockquote>
+<p>使用如下的命令进入 <code>pod</code> 的容器中：</p>
+<blockquote>
+<p>kubectl exec nginx-deployment-848dd6cfb5-2gvg9 -n default  -it -c nginx – /bin/bash</p>
+</blockquote>
+<p><img data-src="exec-container.png" alt="进入pod中的容器" /></p>
+<h3 id="dashboard"><a class="markdownIt-Anchor" href="#dashboard"></a> Dashboard</h3>
+<p><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/tasks/access-application-cluster/web-ui-dashboard/"><code>Dashboard</code></a> 是基于网页的 <code>Kubernetes</code> 用户界面，可以使用 <code>Dashboard</code> 将容器应用部署到 <code>Kubernetes</code> 集群中，也可以对容器应用排错，还能管理集群资源，同时也展示了 <code>Kubernetes</code> 集群中的资源状态信息和所有报错信息。</p>
+<p>执行下面的命令安装 <code>Dashboard</code>：</p>
+<blockquote>
+<p>kubectl apply -f <a target="_blank" rel="noopener" href="https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml">https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml</a></p>
+</blockquote>
+<p>执行成功之后，你将会看到如下的输出：</p>
+<p><img data-src="deploy-dashbord.png" alt="部署dashboard" /></p>
+<p>等待<code>pod</code> 启动成功之后，执行如下命令，将会看到创建成功的服务：</p>
+<blockquote>
+<p>kubectl get svc -n kubernetes-dashboard</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubectl get svc -n kubernetes-dashboard</span><br><span class="line">NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE</span><br><span class="line">dashboard-metrics-scraper   ClusterIP   10.105.70.85     &lt;none&gt;        8000/TCP   65s</span><br><span class="line">kubernetes-dashboard        ClusterIP   10.109.106.107   &lt;none&gt;        443/TCP    65s</span><br></pre></td></tr></table></figure>
+<p>默认创建的服务是 <code>ClusterIP</code> 类型，没法通过集群外部进行访问，通过相面的命令将它修改为 <code>NodePort</code> 类型的：</p>
+<blockquote>
+<p>kubectl edit svc -n kubernetes-dashboard kubernetes-dashboard</p>
+</blockquote>
+<p>修改内容为，将 <code>spec.type</code> 从 <code>ClusterIP</code> 修改为 <code>NodePort</code>。修改成功之后，再次查看服务，类型更新为 <code>NodePort</code>，也分配了随机的节点端口 <code>32688</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubectl get svc -n kubernetes-dashboard</span><br><span class="line">NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)         AGE</span><br><span class="line">dashboard-metrics-scraper   ClusterIP   10.105.70.85     &lt;none&gt;        8000/TCP        113s</span><br><span class="line">kubernetes-dashboard        NodePort    10.109.106.107   &lt;none&gt;        443:30175/TCP   113s</span><br></pre></td></tr></table></figure>
+<p>使用 <code>ctrlnode</code> 的节点访问 <code>https://192.168.67.6:30175/</code>，登录页面打开，我们使用 <code>Token</code> 进行访问，使用下面的命令生成 <code>Token</code>：</p>
+<blockquote>
+<p>kubectl create token kubernetes-dashboard -n kubernetes-dashboard</p>
+</blockquote>
+<p><img data-src="dashboard-login.png" alt="dashboard-login" /></p>
+<p>但是默认创建的 <code>kubernetes-dashboard</code> 只能访问 <code>default</code> 命名空间的服务，权限太小了。我们可以手创建新的 <code>ServiceAccount</code>，并且给它绑定 <code>cluster-admin</code> 这个角色：</p>
+<blockquote>
+<p>kubectl create serviceaccount cluster-admin-dashboard -n kubernetes-dashboard</p>
+</blockquote>
+<p>创建成功之后，使用如下的命令查看创建的 <code>ServiceAccount</code>：</p>
+<blockquote>
+<p>kubectl get serviceaccount -n kubernetes-dashboard</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubectl get serviceaccount -n kubernetes-dashboard</span><br><span class="line">NAME                      SECRETS   AGE</span><br><span class="line">cluster-admin-dashboard   0         19s</span><br><span class="line">default                   0         7m44s</span><br><span class="line">kubernetes-dashboard      0         7m44s</span><br></pre></td></tr></table></figure>
+<p>然后给它绑定 <code>cluster-admin</code> 这个角色:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">kubectl create clusterrolebinding cluster-admin-dashboard --clusterrole=cluster-admin \</span><br><span class="line">    --serviceaccount=kubernetes-dashboard:cluster-admin-dashboard \</span><br><span class="line">    -n kubernetes-dashboard</span><br></pre></td></tr></table></figure>
+<p>使用下面的命令重新生成 <code>Token</code>：</p>
+<blockquote>
+<p>kubectl create token cluster-admin-dashboard -n kubernetes-dashboard</p>
+</blockquote>
+<p>退出使用新的<code>Token</code>重新登录之后，就可以看到所有的命名空间下的资源了：</p>
+<p><img data-src="dashboard-success.png" alt="Dashboard部署成功" /></p>
+<h3 id="参考文章"><a class="markdownIt-Anchor" href="#参考文章"></a> 参考文章</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://zahui.fan/posts/526ffc9a/">使用kubeadm部署一套高可用k8s集群 for Ubuntu</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.hostafrica.ng/blog/kubernetes/kubernetes-ubuntu-20-containerd/">Deploy Kubernetes Cluster on Ubuntu 20.04 with Containerd</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.densify.com/kubernetes-autoscaling/kubernetes-service-discovery/">Kubernetes Service Discovery</a></li>
+<li><a target="_blank" rel="noopener" href="https://sudamtm.medium.com/iptables-a-comprehensive-guide-276b8604eff1">iptables — a comprehensive guide</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.digitalocean.com/community/tutorials/a-deep-dive-into-iptables-and-netfilter-architecture">A Deep Dive into Iptables and Netfilter Architecture</a></li>
+<li><a target="_blank" rel="noopener" href="https://lotabout.me/2022/Kubernetes-Service-Model-Verification/">Kubernetes Service iptables 网络通信验证</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.virtualizationhowto.com/2023/11/docker-overlay2-cleanup-5-ways-to-reclaim-disk-space/">Docker Overlay2 Cleanup: 5 Ways to Reclaim Disk Space</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.docker.com/storage/storagedriver/overlayfs-driver/">Use the OverlayFS storage driver</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.alibabacloud.com/blog/from-confused-to-proficient-details-of-the-kubernetes-cluster-network_595656">Details of the Kubernetes Cluster Network</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/" title="使用kubeadm创建多节点集群">https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/kubeadm/" rel="tag"># kubeadm</a>
+              <a href="/tags/%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/" rel="tag"># 集群部署</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/12/12/Network/container-network-cross-host/" rel="prev" title="容器网络-跨主机容器通信">
+                  <i class="fa fa-angle-left"></i> 容器网络-跨主机容器通信
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2023/12/20/K8S/container-runtime/" rel="next" title="容器运行时">
+                  容器运行时 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2023/12/17/K8S/kubeadm-deploy/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

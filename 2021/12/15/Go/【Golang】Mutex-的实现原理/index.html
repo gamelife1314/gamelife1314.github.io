@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="在Go语言中，实现并发编程相当简单，因此存在大量场景需要同步操作限制对临界区的修改，避免出现不可期望的情况。因此，Go 语言在 sync 中提供了大量的基本同步原语，例如，最常见的互斥锁 sync.Mutex，它的名字应该来源于：Mutual Exclusion 的前缀组合，它对外只暴露了两个方法：Lock 和 Unlock，本篇文章将详细了解加解锁背后的逻辑。 12345678910111213">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Golang】Mutex 的实现原理">
+<meta property="og:url" content="https://blog.fudenglong.site/2021/12/15/Go/%E3%80%90Golang%E3%80%91Mutex-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="在Go语言中，实现并发编程相当简单，因此存在大量场景需要同步操作限制对临界区的修改，避免出现不可期望的情况。因此，Go 语言在 sync 中提供了大量的基本同步原语，例如，最常见的互斥锁 sync.Mutex，它的名字应该来源于：Mutual Exclusion 的前缀组合，它对外只暴露了两个方法：Lock 和 Unlock，本篇文章将详细了解加解锁背后的逻辑。 12345678910111213">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/15/Go/%E3%80%90Golang%E3%80%91Mutex-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/mutex-state.png">
+<meta property="article:published_time" content="2021-12-15T15:22:12.000Z">
+<meta property="article:modified_time" content="2021-12-15T15:22:12.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="sync.Mutex">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2021/12/15/Go/%E3%80%90Golang%E3%80%91Mutex-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/mutex-state.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2021/12/15/Go/%E3%80%90Golang%E3%80%91Mutex-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2021/12/15/Go/%E3%80%90Golang%E3%80%91Mutex-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/","path":"2021/12/15/Go/【Golang】Mutex-的实现原理/","title":"【Golang】Mutex 的实现原理"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Golang】Mutex 的实现原理 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A0%E9%94%81"><span class="nav-number">1.</span> <span class="nav-text"> 加锁</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BF%AB%E9%80%9F%E8%B7%AF%E5%BE%84"><span class="nav-number">1.1.</span> <span class="nav-text"> 快速路径</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%85%A2%E9%80%9F%E8%B7%AF%E5%BE%84"><span class="nav-number">1.2.</span> <span class="nav-text"> 慢速路径</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E9%94%81"><span class="nav-number">2.</span> <span class="nav-text"> 解锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="nav-number">3.</span> <span class="nav-text"> 参考文章</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2021/12/15/Go/%E3%80%90Golang%E3%80%91Mutex-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Golang】Mutex 的实现原理 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Golang】Mutex 的实现原理
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2021-12-15 23:22:12" itemprop="dateCreated datePublished" datetime="2021-12-15T23:22:12+08:00">2021-12-15</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>11 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>在Go语言中，实现并发编程相当简单，因此存在大量场景需要同步操作限制对临界区的修改，避免出现不可期望的情况。因此，Go 语言在 <code>sync</code> 中提供了大量的基本同步原语，例如，最常见的互斥锁 <code>sync.Mutex</code>，它的名字应该来源于：<code>Mutual Exclusion</code> 的前缀组合，它对外只暴露了两个方法：<code>Lock</code> 和 <code>Unlock</code>，本篇文章将详细了解加解锁背后的逻辑。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// A Mutex is a mutual exclusion lock.</span></span><br><span class="line"><span class="comment">// The zero value for a Mutex is an unlocked mutex.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// A Mutex must not be copied after first use.</span></span><br><span class="line"><span class="keyword">type</span> Mutex <span class="keyword">struct</span> &#123;</span><br><span class="line">	state <span class="type">int32</span></span><br><span class="line">	sema  <span class="type">uint32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// A Locker represents an object that can be locked and unlocked.</span></span><br><span class="line"><span class="keyword">type</span> Locker <span class="keyword">interface</span> &#123;</span><br><span class="line">	Lock()</span><br><span class="line">	Unlock()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 一些状态</span></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	mutexLocked = <span class="number">1</span> &lt;&lt; <span class="literal">iota</span> <span class="comment">// 1：表示锁定状态</span></span><br><span class="line">	mutexWoken              <span class="comment">// 2: 表示当前锁被从正常模式唤醒</span></span><br><span class="line">	mutexStarving           <span class="comment">// 4: 表示当前锁进入互斥状态</span></span><br><span class="line">	mutexWaiterShift = <span class="literal">iota</span> <span class="comment">// 3：左移3位存储正在等待获取锁的goroutine的个数</span></span><br><span class="line">    starvationThresholdNs = <span class="number">1e6</span> <span class="comment">// 正在获取锁的goroutine等待1ms之后，会让当前锁进入饥饿模式</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<h3 id="加锁"><a class="markdownIt-Anchor" href="#加锁"></a> 加锁</h3>
+<p>正如上面所显示的源码，<code>Mutex</code> 的结构体足够简单，只有两个成员无需额外的初始化，其中 <code>state</code> 表示当前锁的状态，而 <code>sema</code> 是用于排队唤醒的信号量。state 的各个bit位的用途表示如下：</p>
+<p><img data-src="mutex-state.png" alt="" /></p>
+<ul>
+<li><code>mutexLocked</code> — 表示互斥锁的锁定状态；</li>
+<li><code>mutexWoken</code> —  表示从正常模式被唤醒；</li>
+<li><code>mutexStarving</code> — 当前的互斥锁进入饥饿状态；</li>
+<li><code>waitersCount</code> —  当前互斥锁上等待的 Goroutine 个数</li>
+</ul>
+<p>默认情况下呢，互斥锁的所有位都是0，表示未锁定状态，为了保证公平性，设计上锁是有两种状态的：正常状态和饥饿状态。</p>
+<p>在<code>正常模式下</code>，所有等待锁的 goroutine 按照FIFO顺序等待。唤醒的goroutine不会直接拥有锁，而是会和新请求锁的goroutine竞争锁，因为新请求锁的goroutine 正在CPU上执行，把锁交给他可以最大化利用CPU的时间片，也因此刚刚唤醒的goroutine，也就是之前排队的goroutine有很大可能在锁竞争中失败。在这种情况下，这个被唤醒的goroutine会加入到等待队列的前面。 如果一个等待的goroutine超过1ms没有获取锁，那么它将会把锁转变为饥饿模式。</p>
+<p><code>饥饿模式</code>下，锁的所有权将从unlock的gorutine直接交给交给等待队列中的第一个。新来的goroutine将不会尝试去获得锁，即使锁看起来是unlock状态, 也不会去尝试自旋操作，而是放在等待队列的尾部。</p>
+<p>如果一个等待的goroutine获取了锁，并且它是队列中的最后一个或者它的等待时间小于1ms，锁将由饥饿状态切换回正常状态。正常状态能最大化利用CPU，饥饿状态能有效防止尾部延迟，接下来我们分下代码的实现。</p>
+<h4 id="快速路径"><a class="markdownIt-Anchor" href="#快速路径"></a> 快速路径</h4>
+<p>快速路径下，直接通过CAS获取锁，如果当前锁的状态位全是0，也就是刚初始化的状态，那么直接上锁。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Mutex)</span></span> Lock() &#123;</span><br><span class="line">	<span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, <span class="number">0</span>, mutexLocked) &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="慢速路径"><a class="markdownIt-Anchor" href="#慢速路径"></a> 慢速路径</h4>
+<p>如果没有通过快速路径直接获取到锁，那么就进入慢速路径，我们在理解这些代码的时候，要想象成很多goroutine都在执行这段代码，这样才能便于我们理解其中的意义所在。慢速路径中首先定义了一些状态：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> waitStartTime <span class="type">int64</span>   <span class="comment">// 等待时间</span></span><br><span class="line">starving := <span class="literal">false</span>         <span class="comment">// 是否处于饥饿模式</span></span><br><span class="line">awoke := <span class="literal">false</span>            <span class="comment">// 是否被唤醒</span></span><br><span class="line">iter := <span class="number">0</span>                 <span class="comment">// 迭代次数</span></span><br><span class="line">old := m.state</span><br><span class="line">....</span><br></pre></td></tr></table></figure>
+<p>如果当一个goroutine尝试加锁时，其他goroutine已经加锁且没有释放，而且锁处在正常模式下，那么就检查是否达到自旋的条件，如果可以那么就尝试自旋。对于是否能够自旋，需要满足以下以下条件：</p>
+<ul>
+<li>
+<p>需要多核CPU。因为如果是单核场景，自旋的goroutine在等待持有锁的goroutine释放锁，持有锁的goroutine在等待自旋的goroutine让出CPU，这种情况下自旋没有意义。或者说 <code>GOMAXPROCS=1</code>，又或者说 <code>GOMAXPROCS&gt;1</code>，但是当前只有1个P在运行，也和单核场景类似，意图就是除了当前的P之外还有人在干活，这种情况下自旋才有意义；</p>
+</li>
+<li>
+<p>当前P的本地 runq 为空。因为如果当前的P的runq不为空，与其让当前CPU自旋浪费CPU时间，还不如让CPU去执行runq的goroutine；</p>
+</li>
+<li>
+<p>自旋的次数小于 4次，不能一直自旋；</p>
+</li>
+</ul>
+<p>所以就有了 <code>runtime_canSpin</code> 这样的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// src/runtime/proc.go</span></span><br><span class="line"><span class="comment">// Active spinning for sync.Mutex.</span></span><br><span class="line"><span class="comment">//go:linkname sync_runtime_canSpin sync.runtime_canSpin</span></span><br><span class="line"><span class="comment">//go:nosplit</span></span><br><span class="line"><span class="keyword">const</span> active_spin = <span class="number">4</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sync_runtime_canSpin</span><span class="params">(i <span class="type">int</span>)</span></span> <span class="type">bool</span> &#123;</span><br><span class="line">	<span class="comment">// sync.Mutex is cooperative, so we are conservative with spinning.</span></span><br><span class="line">	<span class="comment">// Spin only few times and only if running on a multicore machine and</span></span><br><span class="line">	<span class="comment">// GOMAXPROCS&gt;1 and there is at least one other running P and local runq is empty.</span></span><br><span class="line">	<span class="comment">// As opposed to runtime mutex we don&#x27;t do passive spinning here,</span></span><br><span class="line">	<span class="comment">// because there can be work on global runq or on other Ps.</span></span><br><span class="line">	<span class="keyword">if</span> i &gt;= active_spin || ncpu &lt;= <span class="number">1</span> || gomaxprocs &lt;= <span class="type">int32</span>(sched.npidle+sched.nmspinning)+<span class="number">1</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> p := getg().m.p.ptr(); !runqempty(p) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在满足自旋条件之后，goroutine 在自旋之前会先争抢 mutex 的唤醒标识位，设置 mutexWoken 标识位的目的是，在正常模式下，告知持有锁的goroutine在unlock 的时候就不要唤醒其他的goroutine了，已经有goroutine在这里等候了，以免唤醒太多等待协程。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Don&#x27;t spin in starvation mode, ownership is handed off to waiters</span></span><br><span class="line"><span class="comment">// so we won&#x27;t be able to acquire the mutex anyway.</span></span><br><span class="line"><span class="keyword">if</span> old&amp;(mutexLocked|mutexStarving) == mutexLocked &amp;&amp; runtime_canSpin(iter) &#123;</span><br><span class="line">    <span class="comment">// Active spinning makes sense.</span></span><br><span class="line">    <span class="comment">// Try to set mutexWoken flag to inform Unlock</span></span><br><span class="line">    <span class="comment">// to not wake other blocked goroutines.</span></span><br><span class="line">    <span class="keyword">if</span> !awoke &amp;&amp; old&amp;mutexWoken == <span class="number">0</span> &amp;&amp; old&gt;&gt;mutexWaiterShift != <span class="number">0</span> &amp;&amp;</span><br><span class="line">        atomic.CompareAndSwapInt32(&amp;m.state, old, old|mutexWoken) &#123;</span><br><span class="line">        awoke = <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">    runtime_doSpin()</span><br><span class="line">    iter++</span><br><span class="line">    old = m.state</span><br><span class="line">    <span class="keyword">continue</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的自旋是通过 <code>runtime_doSpin()</code> 来实现，底层是通过 <code>proc</code> 执行30次 <code>PAUSE</code> 指令来实现。在每次自旋结束之后都会重新检查自旋条件，如果已经自旋4次，或者锁被释放了，或者锁进入饥饿模式了，都会结束自旋。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//go:linkname sync_runtime_doSpin sync.runtime_doSpin</span></span><br><span class="line"><span class="comment">//go:nosplit</span></span><br><span class="line"><span class="keyword">const</span> active_spin_cnt = <span class="number">30</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sync_runtime_doSpin</span><span class="params">()</span></span> &#123;</span><br><span class="line">	procyield(active_spin_cnt)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// src/runtime/asm_arm64.s</span><br><span class="line"></span><br><span class="line">TEXT runtime·procyield(SB),NOSPLIT,$0-0</span><br><span class="line">	MOVWU	cycles+0(FP), R0</span><br><span class="line">again:</span><br><span class="line">	YIELD</span><br><span class="line">	SUBW	$1, R0</span><br><span class="line">	CBNZ	R0, again</span><br><span class="line">	RET</span><br></pre></td></tr></table></figure>
+<p>结束自旋或者根本没有自旋的goroutine就尝试通过原子操作修改mutex的状态，老的状态记为<code>old</code>，要修改的最终状态记为<code>new</code>，如果mutex没处于处于饥饿模式，就尝试设置lock位；如果处于饥饿状态或者加锁状态，那么他就得去排队，通过下面的代码实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Don&#x27;t try to acquire starving mutex, new arriving goroutines must queue.</span></span><br><span class="line"><span class="keyword">if</span> old&amp;mutexStarving == <span class="number">0</span> &#123;</span><br><span class="line">    <span class="built_in">new</span> |= mutexLocked</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> old&amp;(mutexLocked|mutexStarving) != <span class="number">0</span> &#123;</span><br><span class="line">    <span class="built_in">new</span> += <span class="number">1</span> &lt;&lt; mutexWaiterShift</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果当前goroutine等待的时间已经超过1ms，并且锁还没有被释放，那么就将锁切换成饥饿模式。这里要求进入饥饿模式必须是锁没有释放，是因为如果锁被释放了，那么怎么着也得先试试，否则进入饥饿模式就得直接排队：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// The current goroutine switches mutex to starvation mode.</span></span><br><span class="line"><span class="comment">// But if the mutex is currently unlocked, don&#x27;t do the switch.</span></span><br><span class="line"><span class="comment">// Unlock expects that starving mutex has waiters, which will not</span></span><br><span class="line"><span class="comment">// be true in this case.</span></span><br><span class="line"><span class="keyword">if</span> starving &amp;&amp; old&amp;mutexLocked != <span class="number">0</span> &#123;</span><br><span class="line">    <span class="built_in">new</span> |= mutexStarving</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在设置好相应的状态为，最终执行原子操作之前，如果当前goroutine持有唤醒标识，还要将唤醒标识位重置，因为接下来：</p>
+<ul>
+<li>如果原子操作失败，当前goroutine操作期间，有其他goroutine修改了state，当前goroutine就得从头来过；</li>
+<li>如果原子操作成功，抢到锁或者去排队，当前goroutine都不需要再被唤醒了；</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> awoke &#123;</span><br><span class="line">    <span class="comment">// The goroutine has been woken from sleep,</span></span><br><span class="line">    <span class="comment">// so we need to reset the flag in either case.</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">new</span>&amp;mutexWoken == <span class="number">0</span> &#123;</span><br><span class="line">        throw(<span class="string">&quot;sync: inconsistent mutex state&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">new</span> &amp;^= mutexWoken</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>完整计算 <code>new</code> 的代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">new</span> := old</span><br><span class="line"><span class="comment">// Don&#x27;t try to acquire starving mutex, new arriving goroutines must queue.</span></span><br><span class="line"><span class="keyword">if</span> old&amp;mutexStarving == <span class="number">0</span> &#123;</span><br><span class="line">    <span class="built_in">new</span> |= mutexLocked</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> old&amp;(mutexLocked|mutexStarving) != <span class="number">0</span> &#123;</span><br><span class="line">    <span class="built_in">new</span> += <span class="number">1</span> &lt;&lt; mutexWaiterShift</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// The current goroutine switches mutex to starvation mode.</span></span><br><span class="line"><span class="comment">// But if the mutex is currently unlocked, don&#x27;t do the switch.</span></span><br><span class="line"><span class="comment">// Unlock expects that starving mutex has waiters, which will not</span></span><br><span class="line"><span class="comment">// be true in this case.</span></span><br><span class="line"><span class="keyword">if</span> starving &amp;&amp; old&amp;mutexLocked != <span class="number">0</span> &#123;</span><br><span class="line">    <span class="built_in">new</span> |= mutexStarving</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> awoke &#123;</span><br><span class="line">    <span class="comment">// The goroutine has been woken from sleep,</span></span><br><span class="line">    <span class="comment">// so we need to reset the flag in either case.</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">new</span>&amp;mutexWoken == <span class="number">0</span> &#123;</span><br><span class="line">        throw(<span class="string">&quot;sync: inconsistent mutex state&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">new</span> &amp;^= mutexWoken</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接下来继续展开原子操作成功的分支，如果是抢到了锁，那么就直接退出了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, old, <span class="built_in">new</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> old&amp;(mutexLocked|mutexStarving) == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">break</span> <span class="comment">// locked the mutex with CAS</span></span><br><span class="line">    &#125;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>如果是排队规模设置成功了，还要决定排在队头还是队尾，如果当前goroutine已经排过对了，是被unlock操作唤醒的，那么就要排在队列头部；如果是第一次排队，那么就得排在等待队列的尾部，并且从第一次排队开始，记录当前goroutine的等待时间，接下来就会将自己休眠，进入到等待队列中：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// If we were already waiting before, queue at the front of the queue.</span></span><br><span class="line">queueLifo := waitStartTime != <span class="number">0</span></span><br><span class="line"><span class="keyword">if</span> waitStartTime == <span class="number">0</span> &#123;</span><br><span class="line">    waitStartTime = runtime_nanotime()</span><br><span class="line">&#125;</span><br><span class="line">runtime_SemacquireMutex(&amp;m.sema, queueLifo, <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+<p>等到goroutine被唤醒时，会接着从上次休眠的位置继续执行。首先判断如果锁处于正常模式，会接着从自旋操作开始重新执行。如果唤醒之后发现锁处于饥饿模式，那就说明当前goroutine之前进入排队被放在了队首，此次自己被唤醒是因为要将锁给自己了，那么就只需要将mutex设置位加锁状态，并且将等待队列数目减1即可，再看看是不是切换回正常模式，更新好状态之后就可以退出了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">starving = starving || runtime_nanotime()-waitStartTime &gt; starvationThresholdNs</span><br><span class="line">old = m.state</span><br><span class="line"><span class="keyword">if</span> old&amp;mutexStarving != <span class="number">0</span> &#123;</span><br><span class="line">    <span class="comment">// If this goroutine was woken and mutex is in starvation mode,</span></span><br><span class="line">    <span class="comment">// ownership was handed off to us but mutex is in somewhat</span></span><br><span class="line">    <span class="comment">// inconsistent state: mutexLocked is not set and we are still</span></span><br><span class="line">    <span class="comment">// accounted as waiter. Fix that.</span></span><br><span class="line">    <span class="keyword">if</span> old&amp;(mutexLocked|mutexWoken) != <span class="number">0</span> || old&gt;&gt;mutexWaiterShift == <span class="number">0</span> &#123;</span><br><span class="line">        throw(<span class="string">&quot;sync: inconsistent mutex state&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    delta := <span class="type">int32</span>(mutexLocked - <span class="number">1</span>&lt;&lt;mutexWaiterShift)</span><br><span class="line">    <span class="keyword">if</span> !starving || old&gt;&gt;mutexWaiterShift == <span class="number">1</span> &#123;</span><br><span class="line">        <span class="comment">// Exit starvation mode.</span></span><br><span class="line">        <span class="comment">// Critical to do it here and consider wait time.</span></span><br><span class="line">        <span class="comment">// Starvation mode is so inefficient, that two goroutines</span></span><br><span class="line">        <span class="comment">// can go lock-step infinitely once they switch mutex</span></span><br><span class="line">        <span class="comment">// to starvation mode.</span></span><br><span class="line">        delta -= mutexStarving</span><br><span class="line">    &#125;</span><br><span class="line">    atomic.AddInt32(&amp;m.state, delta)</span><br><span class="line">    <span class="keyword">break</span></span><br><span class="line">&#125;</span><br><span class="line">awoke = <span class="literal">true</span></span><br><span class="line">iter = <span class="number">0</span></span><br></pre></td></tr></table></figure>
+<h3 id="解锁"><a class="markdownIt-Anchor" href="#解锁"></a> 解锁</h3>
+<p>解锁操作相对比较简单，首先将lock位减1，看最终得到状态是不是0，如果是就直接退出了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Mutex)</span></span> Unlock() &#123;</span><br><span class="line">	<span class="comment">// Fast path: drop lock bit.</span></span><br><span class="line">	<span class="built_in">new</span> := atomic.AddInt32(&amp;m.state, -mutexLocked)</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">new</span> != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// Outlined slow path to allow inlining the fast path.</span></span><br><span class="line">		<span class="comment">// To hide unlockSlow during tracing we skip one extra frame when tracing GoUnblock.</span></span><br><span class="line">		m.unlockSlow(<span class="built_in">new</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果进入到slowpath，说明除了lock位，还有其他位不为0。</p>
+<ul>
+<li>
+<p>如果一开始处在正常模式，并且等待队列不为空，或者已经有其他goroutine被换新获得了锁，或者锁进入了饥饿模式，那么不需要唤醒某个goroutine，直接返回即可；否则尝试设置mutex唤醒标志位，获取唤醒一个goroutine的权利，成功之后就会通过 <code>runtime_Semrelease</code> 唤醒一个goroutine，唤醒的goroutine又要开始竞争了，如果不成功就循环尝试。</p>
+</li>
+<li>
+<p>如果一开始就处于饥饿模式，那么就直接唤醒等待队列中的首个goroutine，将锁交给它，所以不用再设置唤醒标志位了。</p>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Mutex)</span></span> unlockSlow(<span class="built_in">new</span> <span class="type">int32</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> (<span class="built_in">new</span>+mutexLocked)&amp;mutexLocked == <span class="number">0</span> &#123;</span><br><span class="line">		throw(<span class="string">&quot;sync: unlock of unlocked mutex&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">new</span>&amp;mutexStarving == <span class="number">0</span> &#123;</span><br><span class="line">        old := <span class="built_in">new</span></span><br><span class="line">        <span class="keyword">for</span> &#123;</span><br><span class="line">            <span class="comment">// If there are no waiters or a goroutine has already</span></span><br><span class="line">            <span class="comment">// been woken or grabbed the lock, no need to wake anyone.</span></span><br><span class="line">            <span class="comment">// In starvation mode ownership is directly handed off from unlocking</span></span><br><span class="line">            <span class="comment">// goroutine to the next waiter. We are not part of this chain,</span></span><br><span class="line">            <span class="comment">// since we did not observe mutexStarving when we unlocked the mutex above.</span></span><br><span class="line">            <span class="comment">// So get off the way.</span></span><br><span class="line">            <span class="keyword">if</span> old&gt;&gt;mutexWaiterShift == <span class="number">0</span> || old&amp;(mutexLocked|mutexWoken|mutexStarving) != <span class="number">0</span> &#123;</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// Grab the right to wake someone.</span></span><br><span class="line">            <span class="built_in">new</span> = (old - <span class="number">1</span>&lt;&lt;mutexWaiterShift) | mutexWoken</span><br><span class="line">            <span class="keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, old, <span class="built_in">new</span>) &#123;</span><br><span class="line">                runtime_Semrelease(&amp;m.sema, <span class="literal">false</span>, <span class="number">1</span>)</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            &#125;</span><br><span class="line">            old = m.state</span><br><span class="line">        &#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// Starving mode: handoff mutex ownership to the next waiter, and yield</span></span><br><span class="line">		<span class="comment">// our time slice so that the next waiter can start to run immediately.</span></span><br><span class="line">		<span class="comment">// Note: mutexLocked is not set, the waiter will set it after wakeup.</span></span><br><span class="line">		<span class="comment">// But mutex is still considered locked if mutexStarving is set,</span></span><br><span class="line">		<span class="comment">// so new coming goroutines won&#x27;t acquire it.</span></span><br><span class="line">		runtime_Semrelease(&amp;m.sema, <span class="literal">true</span>, <span class="number">1</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="参考文章"><a class="markdownIt-Anchor" href="#参考文章"></a> 参考文章</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://www.lixueduan.com/post/go/sync-mutex/">Go语言之sync.Mutex 源码分析</a></li>
+<li><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000023874384">【golang】sync.Mutex互斥锁的实现原理</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV15V411n7fM?p=1">【Golang】Mutex秘籍</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2021/12/15/Go/%E3%80%90Golang%E3%80%91Mutex-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" title="【Golang】Mutex 的实现原理">https://blog.fudenglong.site/2021/12/15/Go/【Golang】Mutex-的实现原理/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/sync-Mutex/" rel="tag"># sync.Mutex</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/12/12/%E3%80%90dapr%E3%80%91dapr%E5%BA%94%E7%94%A8%E7%9A%84%E6%9C%AC%E5%9C%B0%E5%BC%80%E5%8F%91%E4%B8%8E%E8%B0%83%E8%AF%95/" rel="prev" title="【dapr】应用的本地开发与调试">
+                  <i class="fa fa-angle-left"></i> 【dapr】应用的本地开发与调试
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/12/19/Go/%E3%80%90Golang%E3%80%91%E8%BF%9B%E7%A8%8B%E7%9A%84%E5%90%AF%E5%8A%A8%E5%92%8C%E5%88%9D%E5%A7%8B%E5%8C%96/" rel="next" title="【Golang】进程初始化和调度系统">
+                  【Golang】进程初始化和调度系统 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2021/12/15/Go/%E3%80%90Golang%E3%80%91Mutex-%E7%9A%84%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Crates Rust 程序是由 crate 组成的，每个 crate 都是一个完整的的单元：单个库或可执行文件的所有源代码，以及任何相关的测试、示例、工具、配置和其他东西。可以使用 cargo build --verbose 查看项目中使用了哪些 crates。 通常项目的依赖都是配置在 Cargo.toml 文件中，例如： 1234[dependencies]num &#x3D; &quot;0.4&amp;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】Crate 和 Module">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Crates Rust 程序是由 crate 组成的，每个 crate 都是一个完整的的单元：单个库或可执行文件的所有源代码，以及任何相关的测试、示例、工具、配置和其他东西。可以使用 cargo build --verbose 查看项目中使用了哪些 crates。 通常项目的依赖都是配置在 Cargo.toml 文件中，例如： 1234[dependencies]num &#x3D; &quot;0.4&amp;">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/cargo-doc.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/cargo-doc-comment.png">
+<meta property="article:published_time" content="2022-04-22T13:29:26.000Z">
+<meta property="article:modified_time" content="2022-04-22T13:29:26.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta property="article:tag" content="Crate">
+<meta property="article:tag" content="Module">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/cargo-doc.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/","path":"2022/04/22/Rust/【Rust】Crate-和-Module/","title":"【Rust】Crate 和 Module"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】Crate 和 Module | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#crates"><span class="nav-number">1.</span> <span class="nav-text"> Crates</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#edition"><span class="nav-number">2.</span> <span class="nav-text"> Edition</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#profile"><span class="nav-number">3.</span> <span class="nav-text"> Profile</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#module"><span class="nav-number">4.</span> <span class="nav-text"> Module</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A8%A1%E5%9D%97%E5%B5%8C%E5%A5%97"><span class="nav-number">5.</span> <span class="nav-text"> 模块嵌套</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A8%A1%E5%9D%97%E5%92%8C%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-number">6.</span> <span class="nav-text"> 模块和文件系统</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8D%95%E6%96%87%E4%BB%B6%E6%A8%A1%E5%9D%97"><span class="nav-number">6.1.</span> <span class="nav-text"> 单文件模块</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A8%A1%E5%9D%97%E7%9B%AE%E5%BD%95%E4%B8%80"><span class="nav-number">6.2.</span> <span class="nav-text"> 模块目录（一）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A8%A1%E5%9D%97%E7%9B%AE%E5%BD%95%E4%BA%8C"><span class="nav-number">6.3.</span> <span class="nav-text"> 模块目录（二）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%BC%E5%85%A5"><span class="nav-number">7.</span> <span class="nav-text"> 导入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A2%84%E5%AF%BC%E5%85%A5"><span class="nav-number">8.</span> <span class="nav-text"> 预导入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%AB%E5%90%8D%E5%AF%BC%E5%87%BA"><span class="nav-number">9.</span> <span class="nav-text"> 别名导出</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E4%BD%93%E5%AF%BC%E5%87%BA"><span class="nav-number">10.</span> <span class="nav-text"> 结构体导出</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E5%8F%98%E9%87%8F%E5%92%8C%E5%B8%B8%E9%87%8F"><span class="nav-number">11.</span> <span class="nav-text"> 静态变量和常量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%80%E5%8F%91-library-%E9%A1%B9%E7%9B%AE"><span class="nav-number">12.</span> <span class="nav-text"> 开发 library 项目</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#srcbin-%E7%9B%AE%E5%BD%95"><span class="nav-number">12.1.</span> <span class="nav-text"> src&#x2F;bin 目录</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%9E%E6%80%A7"><span class="nav-number">13.</span> <span class="nav-text"> 属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95"><span class="nav-number">14.</span> <span class="nav-text"> 单元测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9B%86%E6%88%90%E6%B5%8B%E8%AF%95"><span class="nav-number">15.</span> <span class="nav-text"> 集成测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E6%A1%A3"><span class="nav-number">16.</span> <span class="nav-text"> 文档</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E6%A1%A3%E6%B5%8B%E8%AF%95"><span class="nav-number">17.</span> <span class="nav-text"> 文档测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96%E5%A3%B0%E6%98%8E"><span class="nav-number">18.</span> <span class="nav-text"> 依赖声明</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96%E7%89%88%E6%9C%AC%E5%8F%B7"><span class="nav-number">18.1.</span> <span class="nav-text"> 依赖版本号</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#cargolock"><span class="nav-number">18.2.</span> <span class="nav-text"> Cargo.lock</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%91%E5%B8%83%E5%88%B0-cratesio"><span class="nav-number">19.</span> <span class="nav-text"> 发布到 crates.io</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E5%8C%BA%E9%97%B4"><span class="nav-number">20.</span> <span class="nav-text"> 工作区间</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】Crate 和 Module | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】Crate 和 Module
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-04-22 21:29:26" itemprop="dateCreated datePublished" datetime="2022-04-22T21:29:26+08:00">2022-04-22</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>28 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h3 id="crates"><a class="markdownIt-Anchor" href="#crates"></a> <code>Crates</code></h3>
+<p><code>Rust</code> 程序是由 <code>crate</code> 组成的，每个 <code>crate</code> 都是一个完整的的单元：单个库或可执行文件的所有源代码，以及任何相关的测试、示例、工具、配置和其他东西。可以使用 <code>cargo build --verbose</code> 查看项目中使用了哪些 <code>crates</code>。</p>
+<p>通常项目的依赖都是配置在 <code>Cargo.toml</code> 文件中，例如：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[dependencies]</span></span><br><span class="line"><span class="attr">num</span> = <span class="string">&quot;0.4&quot;</span></span><br><span class="line"><span class="attr">image</span> = <span class="string">&quot;0.13&quot;</span></span><br><span class="line"><span class="attr">crossbeam</span> = <span class="string">&quot;0.8&quot;</span></span><br></pre></td></tr></table></figure>
+<p>可以通过 <code>cargo build</code>，<code>cargo install</code> 或者 <code>cargo add</code> 下载依赖代码。一旦有了源代码，<code>Cargo</code> 就会编译所有的 <code>crate</code>。它为项目依赖图中的每个 <code>crate</code> 运行一次 <code>rustc</code>（<code>Rust</code> 编译器）。编译库时，<code>Cargo</code> 使用 <code>--crate-type lib</code> 选项。这告诉 <code>rustc</code> 不要寻找 <code>main()</code> 函数，而是生成一个 <code>.rlib</code> 文件，其中包含可用于创建二进制文件和其他 <code>.rlib</code> 文件的编译代码。例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rustc --crate-name num --edition=2018 /Users/fudenglong/.cargo/registry/src/mirrors.ustc.edu.cn-61ef6e0cd06fb9b8/num-0.4.0/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C split-debuginfo=unpacked -C debuginfo=2 --cfg &#x27;feature=&quot;default&quot;&#x27; --cfg &#x27;feature=&quot;num-bigint&quot;&#x27; --cfg &#x27;feature=&quot;std&quot;&#x27; -C metadata=b84820de50dc7f78 -C extra-filename=-b84820de50dc7f78 --out-dir /Users/fudenglong/WORKDIR/rust/mandelbrot/target/debug/deps -L dependency=/Users/fudenglong/WORKDIR/rust/mandelbrot/target/debug/deps --extern num_bigint=/Users/fudenglong/WORKDIR/rust/mandelbrot/target/debug/deps/libnum_bigint-bd772250e89d4bb9.rmeta --extern num_complex=/Users/fudenglong/WORKDIR/rust/mandelbrot/target/debug/deps/libnum_complex-d3fd80f953e1ac52.rmeta --extern num_integer=/Users/fudenglong/WORKDIR/rust/mandelbrot/target/debug/deps/libnum_integer-7ff0466209086397.rmeta --extern num_iter=/Users/fudenglong/WORKDIR/rust/mandelbrot/target/debug/deps/libnum_iter-2b149e71dbad2afc.rmeta --extern num_rational=/Users/fudenglong/WORKDIR/rust/mandelbrot/target/debug/deps/libnum_rational-1686ad6eb82c18d4.rmeta --extern num_traits=/Users/fudenglong/WORKDIR/rust/mandelbrot/target/debug/deps/libnum_traits-deaceb32c41a04f1.rmeta --cap-lints allow</span><br></pre></td></tr></table></figure>
+<p>对于每个 <code>rustc</code> 命令，<code>Cargo</code> 都会传递 <code>--extern</code> 选项，给出 <code>crate</code> 将使用的每个库的文件名。这样，当 <code>rustc</code> 看到像 <code>use num::bigint::BigInt;</code> 这样的代码行时，它可以确定 <code>num</code> 是另一个 <code>crate</code> 的名称，并且通过 <code>Cargo</code>，可以在磁盘上找到已编译的 <code>crate</code>。<code>Rust</code> 编译器需要访问这些 <code>.rlib</code> 文件，因为它们包含库的编译代码， <code>Rust</code> 会将该代码静态链接到最终的可执行文件中。 <code>.rlib</code> 还包含类型信息，因此 <code>Rust</code> 可以检查我们在代码中使用的库功能是否确实存在，以及我们是否正确使用它们，它还包含 <code>crate</code> 的公共内联函数、泛型和宏的副本等。</p>
+<p>如果编译程序时，<code>Cargo</code> 使用 <code>--crate-type bin</code>，结果将会生成目标平台的二进制可执行文件。</p>
+<span id="more"></span>
+<h3 id="edition"><a class="markdownIt-Anchor" href="#edition"></a> <code>Edition</code></h3>
+<p><code>Rust</code> 具有极强的兼容性保证，在 <code>Rust 1.0</code> 上编译的任何代码都必须在 <code>Rust 1.50</code> 上编译。但有时社区会遇到令人信服的扩展语言的提议，这会导致旧代码不再编译。例如，经过多次讨论，<code>Rust</code> 确定了一种支持异步编程的语法，将标识符 <code>async</code> 和 <code>await</code> 重新用作关键字。但是这种语言更改会破坏任何使用 <code>async</code> 或 <code>await</code> 作为变量名称的现有代码。</p>
+<p>为了在不破坏现有代码的情况下发展，<code>Rust</code> 使用 <code>Edition</code>。<code>Rust 2015</code> 版与 <code>Rust 1.0</code> 兼容。<code>2018</code> 将 <code>async</code> 和 <code>await</code> 更改为关键字，简化了模块系统，并引入了与 <code>2015</code> 不兼容的各种其他语言更改。打开 <code>Cargo.toml</code> 我们会看到如下的 <code>Edition</code> 声明，默认是 <code>2021</code>：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[package]</span></span><br><span class="line"><span class="attr">name</span> = <span class="string">&quot;mandelbrot&quot;</span></span><br><span class="line"><span class="attr">version</span> = <span class="string">&quot;0.1.0&quot;</span></span><br><span class="line"><span class="attr">edition</span> = <span class="string">&quot;2021&quot;</span></span><br></pre></td></tr></table></figure>
+<p><code>Rust</code> 的编译器承诺始终接受该语言的所有现存版本，并且程序可以自由地混合使用不同版本编写的 <code>crate</code>，例如，<code>2015</code> 的 <code>crate</code> 依赖于 <code>2018</code> 的 <code>crate</code> 甚至可以，换句话说，一个 <code>crate</code> 的版本只影响其源代码的解释方式，代码编译完成之后，就没有所谓的 <code>Edition</code> 区分了，在学要使用语言的新功能时，我们只需要修改 <code>Edition</code>即可。</p>
+<p>版本不会每年都发布，只有在 <code>Rust</code> 项目决定需要时才会发布，例如，没有 <code>2020</code> 版，将版本设置为 <code>2020</code> 会导致错误。<code>Rust</code> <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/edition-guide/">版本指南</a> 涵盖了每个版本中引入的更改，并提供了版本系统的良好背景，对于新代码，建议总是使用最新的版本，<code>cargo new</code> 默认在最新版本上创建新项目。如果有一个用旧版 <code>Rust</code> 编写的 <code>crate</code>，<code>cargo fix</code> 命令会帮助你自动将代码升级到新版本。</p>
+<h3 id="profile"><a class="markdownIt-Anchor" href="#profile"></a> <code>Profile</code></h3>
+<p>配置文件提供了一种更改编译器设置的方法，影响优化和调试符号等内容。<code>Cargo</code> 有 <code>4</code> 个内置配置文件：<code>dev</code>、<code>release</code>、<code>test</code> 和 <code>bench</code>。如果未在命令行上指定配置文件，则会根据正在运行的命令自动选择配置文件。除了内置配置文件外，还可以指定自定义的用户定义配置文件。</p>
+<p>可以使用 <code>[profile]</code> 在 <code>Cargo.toml</code> 中更改配置文件设置，在每个命名配置文件中，可以使用如下键/值对更改各个设置：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[profile.dev]</span></span><br><span class="line"><span class="attr">opt-level</span> = <span class="number">1</span>               <span class="comment"># Use slightly better optimizations.</span></span><br><span class="line"><span class="attr">overflow-checks</span> = <span class="literal">false</span>     <span class="comment"># Disable integer overflow checks.</span></span><br></pre></td></tr></table></figure>
+<p><code>cargo build</code> 会使用 <code>[profile.dev]</code> 的配置，<code>cargo build --release</code> 会使用 <code>[profile.release]</code> 的配置，<code>cargo test</code> 使用 <code>[profile.test]</code> 中的配置。</p>
+<p>更多详细的内容请看 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/cargo/reference/profiles.html">Cargo Profiles</a>。</p>
+<h3 id="module"><a class="markdownIt-Anchor" href="#module"></a> <code>Module</code></h3>
+<p><code>crate</code> 就是第三方模块，用于项目之间的代码共享，而 <code>Module</code> 是项目内的代码组织。它们充当 <code>Rust</code> 的命名空间、构成 <code>Rust</code> 程序或库的函数、类型、常量等的容器。一个模块如下所示：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> spores &#123;</span><br><span class="line">  <span class="keyword">use</span> cells::&#123;Cell, Gene&#125;;</span><br><span class="line">  <span class="comment">/// A cell made by an adult fern. It disperses on the wind as part of</span></span><br><span class="line">  <span class="comment">/// the fern life cycle. A spore grows into a prothallus -- a whole</span></span><br><span class="line">  <span class="comment">/// separate organism, up to 5mm across -- which produces the zygote</span></span><br><span class="line">  <span class="comment">/// that grows into a new fern. (Plant sex is complicated.)</span></span><br><span class="line">  <span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Spore</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">/// Simulate the production of a spore by meiosis.</span></span><br><span class="line">  <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">produce_spore</span>(factory: &amp;<span class="keyword">mut</span> Sporangium) <span class="punctuation">-&gt;</span> Spore &#123;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">/// Extract the genes in a particular spore.</span></span><br><span class="line">  <span class="title function_ invoke__">pub</span>(<span class="keyword">crate</span>) <span class="keyword">fn</span> <span class="title function_">genes</span>(spore: &amp;Spore) <span class="punctuation">-&gt;</span> <span class="type">Vec</span>&lt;Gene&gt; &#123;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">/// Mix genes to prepare for meiosis (part of interphase).</span></span><br><span class="line">  <span class="keyword">fn</span> <span class="title function_">recombine</span>(parent: &amp;<span class="keyword">mut</span> Cell) &#123;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>本例中，模块是 <code>Spore</code> 结构和两个函数的集合。<code>pub</code> 关键字使得标记的项公开，因此可以从模块外部访问它。</p>
+<p>一个函数被标记为 <code>pub(crate)</code>，这意味着它在这个 <code>crate</code> 内的任何地方都可用，但不作为外部接口的一部分公开。它不能被其他 <code>crate</code> 使用，也不会出现在这个 <code>crate</code> 的文档中。被标记为 <code>pub</code> 的项目通常称为<strong>导出</strong>该项目，任何未标记为 <code>pub</code> 的内容都是私有的，只能在定义它的同一模块或任何子模块中使用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">s</span> = spores::<span class="title function_ invoke__">produce_spore</span>(&amp;<span class="keyword">mut</span> factory); <span class="comment">// ok</span></span><br><span class="line">spores::<span class="title function_ invoke__">recombine</span>(&amp;<span class="keyword">mut</span> cell); <span class="comment">// error: `recombine` is private</span></span><br></pre></td></tr></table></figure>
+<h3 id="模块嵌套"><a class="markdownIt-Anchor" href="#模块嵌套"></a> 模块嵌套</h3>
+<p>模块可以嵌套，一个模块可能仅仅是子模块的集合：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> plant_structures &#123;</span><br><span class="line">  <span class="keyword">pub</span> <span class="keyword">mod</span> roots &#123;</span><br><span class="line">  ...</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">pub</span> <span class="keyword">mod</span> stems &#123;</span><br><span class="line">  ...</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">pub</span> <span class="keyword">mod</span> leaves &#123;</span><br><span class="line">  ...</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果希望嵌套模块中的项目对其他 <code>crate</code> 可见，必须将到达这个项的所有模块都标记为 <code>pub</code>。也可以指定 <code>pub(super)</code>，使项目仅对父模块可见，以及 <code>pub(in &lt;path&gt;)</code>，使其在特定父模块及其后代中可见。这对于深度嵌套的模块特别有用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> plant_structures &#123;</span><br><span class="line">  <span class="keyword">pub</span> <span class="keyword">mod</span> roots &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">mod</span> products &#123;</span><br><span class="line">      <span class="title function_ invoke__">pub</span>(<span class="keyword">in</span> crate::plant_structures::roots) <span class="keyword">struct</span> <span class="title class_">Cytokinin</span> &#123;</span><br><span class="line">        ...</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">use</span> products::Cytokinin; <span class="comment">// ok: in `roots` module</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">use</span> roots::products::Cytokinin; <span class="comment">// error: `Cytokinin` is private</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// error: `Cytokinin` is private</span></span><br><span class="line"><span class="keyword">use</span> plant_structures::roots::products::Cytokinin;</span><br></pre></td></tr></table></figure>
+<p>通过这种方式，我们可以编写一个完整的程序，包含大量代码和整个模块层次结构，以我们想要的任何方式组织起来，而所有这些都在一个源文件中。</p>
+<h3 id="模块和文件系统"><a class="markdownIt-Anchor" href="#模块和文件系统"></a> 模块和文件系统</h3>
+<p>如果将模块以单个文件形式组织，这种方式工作很痛苦，大型项目中往往需要拆分，将不同的功能的代码以不同的文件区分，使得代码在逻辑上，物理组织上都能很清晰。</p>
+<h4 id="单文件模块"><a class="markdownIt-Anchor" href="#单文件模块"></a> 单文件模块</h4>
+<p>之前我们是在 <code>spores</code> 模块中使用括号将模块的内容包裹起来的，现在可以在单个源码文件中开发模块。我们在 <code>main.rs</code> 中声明如下模块：</p>
+<figure class="highlight rust"><figcaption><span>main.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> spores;</span><br></pre></td></tr></table></figure>
+<p>然后在 <code>spores.rs</code> 开发该模块的代码：</p>
+<figure class="highlight rust"><figcaption><span>spores.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// A cell made by an adult fern...</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Spore</span> &#123;</span><br><span class="line">   ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Simulate the production of a spore by meiosis.</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">produce_spore</span>(factory: &amp;<span class="keyword">mut</span> Sporangium) <span class="punctuation">-&gt;</span> Spore &#123;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Extract the genes in a particular spore.</span></span><br><span class="line"><span class="title function_ invoke__">pub</span>(<span class="keyword">crate</span>) <span class="keyword">fn</span> <span class="title function_">genes</span>(spore: &amp;Spore) <span class="punctuation">-&gt;</span> <span class="type">Vec</span>&lt;Gene&gt; &#123;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Mix genes to prepare for meiosis (part of interphase).</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">recombine</span>(parent: &amp;<span class="keyword">mut</span> Cell) &#123;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>公开和私有的原则和之前讲的是相同的，<code>Rust</code> 从不单独编译模块，即使它们在单独的文件中：当你构建一个 <code>crate</code> 时，会重新编译它的所有模块。当 <code>Rust</code> 看到一个模块时，例如上面的 <code>mod spores;</code> 时，它会检查 <code>spores.rs</code> 和 <code>spores/mod.rs</code> 是否存在，如果都存在或者都不存在，就会报错。</p>
+<h4 id="模块目录一"><a class="markdownIt-Anchor" href="#模块目录一"></a> 模块目录（一）</h4>
+<p>但是当我们的模块中包含子模块时，就不能像 <code>spores.rs</code> 那样单独处理了，就像之前的 <code>plant_structures</code> 模块。如果，我们有下面这样的结构：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">fern_sim/</span><br><span class="line">├── Cargo.toml</span><br><span class="line">└── src/</span><br><span class="line">  ├── main.rs</span><br><span class="line">  ├── spores.rs</span><br><span class="line">  └── plant_structures/</span><br><span class="line">    ├── mod.rs</span><br><span class="line">    ├── leaves.rs</span><br><span class="line">    ├── roots.rs</span><br><span class="line">    └── stems.rs</span><br></pre></td></tr></table></figure>
+<p>在 <code>main.rs</code>，我们声明 <code>plant_structures</code> 模块，这会让 <code>Rust</code> 加载 <code>plant_structures/mod.rs</code>：</p>
+<figure class="highlight rust"><figcaption><span>main.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">mod</span> plant_structures;</span><br></pre></td></tr></table></figure>
+<p>然后，我们再声明子模块：</p>
+<figure class="highlight rust"><figcaption><span>plant_structures/mod.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">mod</span> roots;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">mod</span> stems;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">mod</span> leaves;</span><br></pre></td></tr></table></figure>
+<p>这三个模块的内容存储在名为 <code>leaves.rs</code>、<code>roots.rs</code> 和 <code>stems.rs</code> 的单独文件中，和 <code>plant_structures/mod.rs</code> 同级。</p>
+<h4 id="模块目录二"><a class="markdownIt-Anchor" href="#模块目录二"></a> 模块目录（二）</h4>
+<p>我们也可以使用文件和目录一起组成模块，如果之前的 <code>stems</code> 需要包含 <code>xylem</code> 和 <code>phloem</code>，我们选择保留 <code>plant_structures/stems.rs</code>，然后再添加一个 <code>stems</code> 目录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">fern_sim/</span><br><span class="line">├── Cargo.toml</span><br><span class="line">└── src/</span><br><span class="line">  ├── main.rs</span><br><span class="line">  ├── spores.rs</span><br><span class="line">  └── plant_structures/</span><br><span class="line">    ├── mod.rs</span><br><span class="line">    ├── leaves.rs</span><br><span class="line">    ├── roots.rs</span><br><span class="line">    ├── stems/</span><br><span class="line">    │ ├── phloem.rs</span><br><span class="line">    │ └── xylem.rs</span><br><span class="line">    └── stems.rs</span><br></pre></td></tr></table></figure>
+<p>然后，我们可以在 <code>stems.rs</code> 中声明两个新模块：</p>
+<figure class="highlight rust"><figcaption><span>plant_structures/stems.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">mod</span> xylem;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">mod</span> phloem;</span><br></pre></td></tr></table></figure>
+<p>所以这里有三种模块组织方式：</p>
+<ul>
+<li>模块在他们自己的文件中；</li>
+<li>模块在他们自己的目录中，带有 <code>mod.rs</code>；</li>
+<li>模块在他们自己的文件中，带有包含子模块的补充目录；</li>
+</ul>
+<h3 id="导入"><a class="markdownIt-Anchor" href="#导入"></a> 导入</h3>
+<p><code>::</code> 操作符被用于访问其他模块的功能。我们可以直接使用其他模块中的功能而不实现导入，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">std::mem::<span class="title function_ invoke__">swap</span>(&amp;<span class="keyword">mut</span> s1, &amp;<span class="keyword">mut</span> s2);</span><br></pre></td></tr></table></figure>
+<p><code>std</code> 指向标准库的顶层模块，<code>mem</code> 是其中的一个子模块，<code>std::mem::swap</code> 只是其中的一个导出函数。上面的这种使用访问方式有点冗长，另一种方式是将要使用的功能导入当前的模块，使用 <code>use</code> 将 <code>std::mem</code> 引入到当前模块，并且定义新的别 <code>mem</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::mem;</span><br><span class="line"><span class="keyword">if</span> s1 &gt; s2 &#123;</span><br><span class="line">  mem::<span class="title function_ invoke__">swap</span>(&amp;<span class="keyword">mut</span> s1, &amp;<span class="keyword">mut</span> s2);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们可以写 <code>use std::mem::swap;</code> 导入 <code>swap</code> 函数本身而不是 <code>mem</code> 模块。但最好的方式是：导入类型、<code>trait</code>和模块（如 <code>std::mem</code>），然后使用相对路径访问其中的函数、常量和其他成员。例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::&#123;HashMap, HashSet&#125;; <span class="comment">// 同时导入</span></span><br><span class="line"><span class="keyword">use</span> std::fs::&#123;<span class="keyword">self</span>, File&#125;; <span class="comment">// 导入 `std::fs` 和 `std::fs::File`.</span></span><br><span class="line"><span class="keyword">use</span> std::io::prelude::*;  <span class="comment">// import everything</span></span><br></pre></td></tr></table></figure>
+<p>我们也可以使用 <code>as</code> 对导入的名称进行重命名：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::io::<span class="type">Result</span> <span class="keyword">as</span> IOResult;</span><br><span class="line"><span class="comment">// This return type is just another way to write `std::io::Result&lt;()&gt;`:</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">save_spore</span>(spore: &amp;Spore) <span class="punctuation">-&gt;</span> IOResult&lt;()&gt;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>子模块不会自动导入父模块的内容，假设我们的 <code>proteins/mod.rs</code> 中内容是这样子的：</p>
+<figure class="highlight rust"><figcaption><span>proteins/mod.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">enum</span> <span class="title class_">AminoAcid</span> &#123; ... &#125;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">mod</span> synthesis;</span><br></pre></td></tr></table></figure>
+<p>那么模块 <code>proteins/synthesis.rs</code> 中如果不导入 <code>AminoAcid</code> 是不能直接使用的：</p>
+<div class="note danger"><figure class="highlight rust"><figcaption><span>proteins/synthesis.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">synthesize</span>(seq: &amp;[AminoAcid]) <span class="comment">// error: can&#x27;t find type `AminoAcid`</span></span><br></pre></td></tr></table></figure></div>
+<p>而是，每个模块都是以一个空的状态开始的，必须手动导入它使用的任何内容（也不完全是空的，有预导入）：</p>
+<div class="note success"><figure class="highlight rust"><figcaption><span>proteins/synthesis.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> super::AminoAcid; <span class="comment">// explicitly import from parent</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">synthesize</span>(seq: &amp;[AminoAcid]) <span class="comment">// error: can&#x27;t find type `AminoAcid`</span></span><br></pre></td></tr></table></figure></div>
+<p>默认情况下，是从当前模块开始导入：</p>
+<figure class="highlight rust"><figcaption><span>proteins/mod.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">mod</span> synthesis;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">enum</span> <span class="title class_">AminoAcid</span> &#123; ... &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> synthesis::synthesize;  <span class="comment">// 从 synthesis 子模块导入</span></span><br></pre></td></tr></table></figure>
+<p><code>self</code> 是当模块的昵称，因此在 <code>proteins/mod.rs</code> 中可以这样写：</p>
+<figure class="highlight rust"><figcaption><span>proteins/mod.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// 这样可以直接用 Lys 而不是 `AminoAcid::Lys`</span></span><br><span class="line"><span class="keyword">use</span> self::AminoAcid::*;</span><br></pre></td></tr></table></figure>
+<p>也可以简化为：</p>
+<figure class="highlight rust"><figcaption><span>proteins/mod.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> AminoAcid::*;</span><br></pre></td></tr></table></figure>
+<p>除了从顶层模块导入，从 <code>self</code> 当前模块导入或者从当前的子模块导入之外，还可以通过 <code>super</code> 或者 <code>crate</code> 关键字进行导入，其中 <code>super</code> 表示父模块，而 <code>crate</code> 表示当前模块的 <code>crate</code>。</p>
+<p>使用相对于 <code>crate</code> 根目录的导入而不是相对于当前路径的导入，有助于在项目中移动代码。因为如果当前模块的路径发生更改，所有导入都不会中断。例如：</p>
+<figure class="highlight rust"><figcaption><span>proteins/synthesis.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> crate::proteins::AminoAcid; <span class="comment">// 显示从 crate 的根导入</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">synthesize</span>(seq: &amp;[AminoAcid]) <span class="comment">// ok</span></span><br></pre></td></tr></table></figure>
+<p>之前看了从父模块导入子模块，但是如果从子模块导入父模块的内容，可以使用 <code>super::</code>。</p>
+<p>如果你有一个模块和外部 <code>crate</code> 同名，在导入的时候就要注意了，否则会引起错误。例如，如果引用了 <a target="_blank" rel="noopener" href="https://crates.io/crates/image"><code>image</code></a>，自己也有个 <code>image</code> 模块：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> image &#123;</span><br><span class="line">  <span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Sampler</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 错误：引入 image crate 还是 image 模块</span></span><br><span class="line"><span class="keyword">use</span> image::Pixels;</span><br></pre></td></tr></table></figure></div>
+<p>解决这个问题的方法是使用绝对导入，导入以 <code>::</code> 开始，例如，如果要导入第三方 <code>image</code>，可以这样写：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> ::image::Pixels; <span class="comment">// the `image` crate&#x27;s `Pixels`</span></span><br></pre></td></tr></table></figure>
+<p>引入内部的 <code>image module</code> 可以这样写：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> self::image::Sampler; <span class="comment">// the `image` module&#x27;s `Sampler`</span></span><br></pre></td></tr></table></figure>
+<h3 id="预导入"><a class="markdownIt-Anchor" href="#预导入"></a> 预导入</h3>
+<p>之前说每个模块都以空的状态开始，但其实也不完全是空的，因为 <code>Rust</code> 有很多常用的类型，为了简化编程，<code>Rust</code> 会帮我们导入，不用我们显示导入。例如：<code>Vec</code> 和 <code>Result</code>。</p>
+<p>自动导入的内容可以看这里，<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/prelude/index.html">std::prelude</a>。</p>
+<h3 id="别名导出"><a class="markdownIt-Anchor" href="#别名导出"></a> 别名导出</h3>
+<p><code>use</code> 只是将我们使用的内容从其他模块或者 <code>crate</code>导入并且在本模块起了个没别名，但是它也可以将导入的内容重新导出。例如：</p>
+<figure class="highlight rust"><figcaption><span>plant_structures/mod.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">use</span> self::leaves::Leaf;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">use</span> self::roots::Root;</span><br></pre></td></tr></table></figure>
+<p>这意味着 <code>Leaf</code> 和 <code>Root</code> 是 <code>plant_structures</code> 模块中的公共内容，它们也仍然是 <code>self::leaves::Leaf</code> 和 <code>self::roots::Root</code> 的别名。</p>
+<h3 id="结构体导出"><a class="markdownIt-Anchor" href="#结构体导出"></a> 结构体导出</h3>
+<p><code>module</code> 可以包含用户定义的结构体类型，使用 <code>struct</code> 关键字引入，它和它的字段也可以由 <code>pub</code> 声明是否导出。一个简单的结构如下所示：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Fern</span> &#123;</span><br><span class="line">  <span class="keyword">pub</span> roots: RootSet,</span><br><span class="line">  <span class="keyword">pub</span> stems: StemSet</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>结构体的所有字段，甚至私有字段，都可以在声明结构体的模块及其子模块中访问，在模块之外，只能访问导出字段。</p>
+<h3 id="静态变量和常量"><a class="markdownIt-Anchor" href="#静态变量和常量"></a> 静态变量和常量</h3>
+<p><code>const</code> 关键字引入了一个常量。 语法和 <code>let</code> 一样，只是它可能被标记为 <code>pub</code>，并且类型是必需的。此外，大写名称对于常量来说是常规的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">const</span> ROOM_TEMPERATURE: <span class="type">f64</span> = <span class="number">20.0</span>; <span class="comment">// degrees Celsius</span></span><br></pre></td></tr></table></figure>
+<p><code>static</code> 关键字引入了一个静态项，和 <code>const</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">static</span> ROOM_TEMPERATURE: <span class="type">f64</span> = <span class="number">68.0</span>; <span class="comment">// degrees Fahrenheit</span></span><br></pre></td></tr></table></figure>
+<p>常量有点像 <code>C</code> 中的 <code>#define</code>，值会被编译到使用的地方。静态变量是在程序开始运行之前设置并持续到退出的变量。在代码中使用常量作为 <code>magic number</code> 和字符串，对大量数据或任何需要借用常量值的引用的时候使用静态。</p>
+<p>没有 <code>mut</code> 类型常量，静态变量可以标记为 <code>mut</code>，<code>Rust</code> 无法强制执行其关于对 <code>mut</code> 静态变量的独占访问的规则。因此，它们本质上是非线程安全的，安全代码根本不能使用它们，<code>Rust</code> 不鼓励全局可变状态：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">mut</span> PACKETS_SERVED: <span class="type">usize</span> = <span class="number">0</span>;</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; served&quot;</span>, PACKETS_SERVED); <span class="comment">// error: use of mutable static</span></span><br></pre></td></tr></table></figure></div>
+<h3 id="开发-library-项目"><a class="markdownIt-Anchor" href="#开发-library-项目"></a> 开发 library 项目</h3>
+<p>如果想要将项目编译成一个 <code>lib</code> 而不是一个可执行文件，我们只需要三步：</p>
+<ul>
+<li>
+<p>将 <code>src/main.rs</code> 重命名成 <code>src/lib.js</code>；</p>
+</li>
+<li>
+<p>添加 <code>pub</code> 关键字给 <code>src/lib.js</code> 中的导出内容；</p>
+</li>
+<li>
+<p>移除 <code>src/main.rs</code> 中的 <code>main</code> 函数；</p>
+</li>
+</ul>
+<p>我们不需要更改 <code>Cargo.toml</code> 中的任何内容 默认情况下，<code>cargo build</code> 查看源目录中的文件并确定要构建的内容。当它看到文件 <code>src/lib.rs</code> 时，就知道需要去构建一个 <code>lib</code>。<code>src/lib.rs</code> 中的代码构成了库的根模块，使用我们的其他 <code>crate</code> 只能访问此根模块的公共项目。</p>
+<h4 id="srcbin-目录"><a class="markdownIt-Anchor" href="#srcbin-目录"></a> <code>src/bin</code> 目录</h4>
+<p>我们可以让一个项目是 <code>lib</code>，也可以让它同时编译成一个可执行程序，只是需要将 <code>main</code> 函数移到目录 <code>sr/bin</code> 中，而且可以有多个 <code>main</code> 函数，例如我的项目结构如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">~/WORKDIR/rust/mandelbrot 20:15:24</span><br><span class="line">$ tree --help -l 4</span><br><span class="line">▁</span><br><span class="line">/Users/fudenglong/WORKDIR/rust/mandelbrot</span><br><span class="line">├── Cargo.lock</span><br><span class="line">├── Cargo.toml</span><br><span class="line">├── package-lock.json</span><br><span class="line">├── package.json</span><br><span class="line">└── src</span><br><span class="line">   ├── bin</span><br><span class="line">   |  ├── mandelbrot.rs</span><br><span class="line">   |  └── mandelbrot_v2</span><br><span class="line">   |     └── main.rs</span><br><span class="line">   └── lib.rs</span><br><span class="line">~/WORKDIR/rust/mandelbrot 20:15:28</span><br></pre></td></tr></table></figure>
+<p>各个文件的内容如下：</p>
+<div class="tabs" id="rust项目结构"><ul class="nav-tabs"><li class="tab active"><a href="#rust项目结构-1">src/lib.rs</a></li><li class="tab"><a href="#rust项目结构-2">src/bin/mandelbrot.js</a></li><li class="tab"><a href="#rust项目结构-3">src/bin/mandelbrot_v2/mandelbrot.js</a></li><li class="tab"><a href="#rust项目结构-4">Cargo.toml</a></li></ul><div class="tab-content"><div class="tab-pane active" id="rust项目结构-1"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> num::bigint::BigInt;</span><br><span class="line"><span class="keyword">use</span> num::rational::&#123;BigRational, Ratio&#125;;</span><br><span class="line"><span class="keyword">use</span> num::FromPrimitive;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">approx_sqrt</span>(number: <span class="type">u64</span>, iterations: <span class="type">usize</span>) <span class="punctuation">-&gt;</span> BigRational &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">start</span>: Ratio&lt;BigInt&gt; = Ratio::<span class="title function_ invoke__">from_integer</span>(FromPrimitive::<span class="title function_ invoke__">from_u64</span>(number).<span class="title function_ invoke__">unwrap</span>());</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">approx</span> = start.<span class="title function_ invoke__">clone</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> <span class="variable">_</span> <span class="keyword">in</span> <span class="number">0</span>..iterations &#123;</span><br><span class="line">        approx = (&amp;approx + (&amp;start / &amp;approx))</span><br><span class="line">            / Ratio::<span class="title function_ invoke__">from_integer</span>(FromPrimitive::<span class="title function_ invoke__">from_u64</span>(<span class="number">2</span>).<span class="title function_ invoke__">unwrap</span>());</span><br><span class="line">    &#125;</span><br><span class="line">    approx</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="rust项目结构-2"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> mandelbrot::approx_sqrt;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">approx_sqrt</span>(<span class="number">10</span>, <span class="number">4</span>)); <span class="comment">// prints 4057691201/1283082416</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="rust项目结构-3"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> mandelbrot::approx_sqrt;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">approx_sqrt</span>(<span class="number">10</span>, <span class="number">4</span>)); <span class="comment">// prints 4057691201/1283082416</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="rust项目结构-4"><figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[package]</span></span><br><span class="line"><span class="attr">name</span> = <span class="string">&quot;mandelbrot&quot;</span></span><br><span class="line"><span class="attr">version</span> = <span class="string">&quot;0.1.0&quot;</span></span><br><span class="line"><span class="attr">edition</span> = <span class="string">&quot;2021&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html</span></span><br><span class="line"></span><br><span class="line"><span class="section">[dependencies]</span></span><br><span class="line"><span class="attr">num</span> = <span class="string">&quot;0.4&quot;</span></span><br></pre></td></tr></table></figure></div></div></div>
+<p>我们可以指定运行不同的 <code>main</code> 函数：</p>
+<pre><code>~/WORKDIR/rust/mandelbrot 20:25:13
+$ cargo run --bin mandelbrot
+    Finished dev [unoptimized + debuginfo] target(s) in 0.00s
+    Running `target/debug/mandelbrot`
+4057691201/1283082416
+
+~/WORKDIR/rust/mandelbrot 20:25:15
+$ cargo run --bin mandelbrot_v2
+  Compiling mandelbrot v0.1.0 (/Users/fudenglong/WORKDIR/rust/mandelbrot)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.15s
+    Running `target/debug/mandelbrot_v2`
+4057691201/1283082416
+</code></pre>
+<h3 id="属性"><a class="markdownIt-Anchor" href="#属性"></a> 属性</h3>
+<p><code>Rust</code> 程序中的任何项目都可以用属性进行修饰。属性是 <code>Rust</code> 用于向编译器编写杂项指令和建议的语法。例如，假设您收到以下警告：</p>
+<pre><code>libgit2.rs: warning: type `git_revspec` should have a camel case name
+such as `GitRevspec`, #[warn(non_camel_case_types)] on by default
+</code></pre>
+<p>但是你选择这个名字是有原因的，你希望屏蔽这个告警，可以通过在类型上添加 <code>#[allow]</code> 完成：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[allow(non_camel_case_types)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">git_revspec</span> &#123;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>条件编译是使用属性编写的另一个功能，即 <code>#[cfg]</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 只有在编译安卓平台的项目时包含这个模块</span></span><br><span class="line"><span class="meta">#[cfg(target_os = <span class="string">&quot;android&quot;</span>)]</span></span><br><span class="line"><span class="keyword">mod</span> mobile;</span><br></pre></td></tr></table></figure>
+<p><code>#[cfg]</code> 常用的属性可以看 <a target="_blank" rel="noopener" href="https://www.rustwiki.org.cn/zh-CN/reference/conditional-compilation.html">条件编译</a>。</p>
+<p>给函数添加 <code>#[inline]</code> 属性可以建议编译器根据情况决定是否内联函数。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[inline]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">do_osmosis</span>(c1: &amp;<span class="keyword">mut</span> Cell, c2: &amp;<span class="keyword">mut</span> Cell) &#123;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当一个 <code>crate</code> 中定义的函数或方法在另一个 <code>crate</code> 中被调用时，<code>Rust</code> 不会内联它，除非它是泛型的或显式标记为 <code>#[inline]</code>。<code>Rust</code> 还支持更直接的 <code>#[inline(always)]</code>，要求在每个调用点内联扩展函数，并支持 <code>#[inline(never)]</code>，要求永远不要内联函数。</p>
+<p>一些属性，如 <code>#[cfg]</code> 和<code>#[allow]</code>，可以附加到整个模块并应用于其中的所有内容。其他的，如<code> #[test]</code> 和<code>#[inline]</code>，必须附加到单个项目，每个属性都是可以指定参数进行定制，这里看<a target="_blank" rel="noopener" href="https://www.rustwiki.org.cn/zh-CN/reference/items.html">完整的属性列表</a>。</p>
+<p>要将属性附加到整个 <code>crate</code>，请将其添加到 <code>main.rs</code> 或 <code>lib.rs</code> 文件的顶部，在任何内容之前，然后写 <code>#!</code> 而不是<code>#</code>，像这样：</p>
+<figure class="highlight rust"><figcaption><span>libgit2_sys/lib.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#![allow(non_camel_case_types)]</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">git_revspec</span> &#123;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">git_error</span> &#123;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>#!</code> 通常只用于文件的开头，用于将属性附加到整个模块或 <code>crate</code>。某些属性总是使用 <code>#!</code> 语法，因为它们只能应用于整个 <code>crate</code>。 例如，<code>#![feature]</code> 属性用于打开 <code>Rust</code> 语言和库的不稳定特性，这些特性是实验性的，因此可能存在错误，或者将来可能会被更改或删除。</p>
+<p>例如，<code>Rust</code> 为跟踪宏的扩展提供了实验性支持，比如 <code>assert!</code>，但是由于这种支持是实验性的，你只能通过</p>
+<ul>
+<li>(1) 安装 <code>nightly</code> 版本的 <code>Rust</code>；</li>
+<li>(2) 来使用<code>#![feature(trace_macros)]</code> 明确使用 <code>trace_macros</code>；</li>
+</ul>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#![feature(trace_macros)]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">  <span class="comment">// I wonder what actual Rust code this use of assert_eq!</span></span><br><span class="line">  <span class="comment">// gets replaced with!</span></span><br><span class="line">  trace_macros!(<span class="literal">true</span>);</span><br><span class="line">  <span class="built_in">assert_eq!</span>(<span class="number">10</span>*<span class="number">10</span>*<span class="number">10</span> + <span class="number">9</span>*<span class="number">9</span>*<span class="number">9</span>, <span class="number">12</span>*<span class="number">12</span>*<span class="number">12</span> + <span class="number">1</span>*<span class="number">1</span>*<span class="number">1</span>);</span><br><span class="line">  trace_macros!(<span class="literal">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="单元测试"><a class="markdownIt-Anchor" href="#单元测试"></a> 单元测试</h3>
+<p><code>Rust</code> 内置了一个单元测试框架，任何由 <code>#[test]</code> 标记的普通函数是测试函数：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[test]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">math_works</span>() &#123;</span><br><span class="line">  <span class="keyword">let</span> <span class="variable">x</span>: <span class="type">i32</span> = <span class="number">1</span>;</span><br><span class="line">  <span class="built_in">assert!</span>(x.<span class="title function_ invoke__">is_positive</span>());</span><br><span class="line">  <span class="built_in">assert_eq!</span>(x + <span class="number">1</span>, <span class="number">2</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>cargo test</code> 用于运行项目中的所有测试函数：</p>
+<pre><code>$ cargo test
+Compiling math_test v0.1.0 (file:///.../math_test)
+Running target/release/math_test-e31ed91ae51ebf22
+running 1 test
+test math_works ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+</code></pre>
+<p>可以通过 <code>cargo test TESTNAME</code> 指定要运行的测试函数需要包含的关键字，以运行某些测试。</p>
+<p>通常使用 <code>asset!</code> 和 <code>asset_eq!</code> 在测试中对结果进行断言，如果断言失败，程序就会 <code>panic</code>。<code>asset!</code> 和 <code>asset_eq!</code> 没有包含在 <code>release</code> 版本中，如果仅仅是构建 <code>debug</code> 版本，可以使用 <code>debug_assert!</code> 和 <code>debug_assert_eq!</code>。</p>
+<p>为了测试错误情况，可以添加 <code>#[should_panic]</code> 给测试函数，这个例子中我们也使用了 <code>#allow</code> 允许我们无条件 <code>panic</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// This test passes only if division by zero causes a panic,</span></span><br><span class="line"><span class="comment">/// as we claimed in the previous chapter.</span></span><br><span class="line"><span class="meta">#[test]</span></span><br><span class="line"><span class="meta">#[allow(unconditional_panic, unused_must_use)]</span></span><br><span class="line"><span class="meta">#[should_panic(expected=<span class="string">&quot;divide by zero&quot;</span>)]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">test_divide_by_zero_error</span>() &#123;</span><br><span class="line">  <span class="number">1</span> / <span class="number">0</span>; <span class="comment">// should panic!</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>还可以从测试中返回 <code>Result&lt;(), E&gt;</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// if 1024 是有效的数字，这个测试会通过</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#[test]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), std::num::ParseIntError&gt; &#123;</span><br><span class="line">    <span class="type">i32</span>::<span class="title function_ invoke__">from_str_radix</span>(<span class="string">&quot;x1024xx&quot;</span>, <span class="number">10</span>)?;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>标有<code>#[test]</code> 的函数是会条件编译的。普通的 <code>cargo build</code> 或 <code>cargo build --release</code> 会跳过测试代码。但运行 <code>cargo test</code> 时，<code>Cargo</code> 会构建程序两次：一次以普通方式，一次来运行测试。这意味着单元测试可以与他们测试的代码一起使用，如果需要，可以访问内部实现细节，而且没有运行时成本。但是，它可能会导致一些警告。 例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">roughly_equal</span>(a: <span class="type">f64</span>, b: <span class="type">f64</span>) <span class="punctuation">-&gt;</span> <span class="type">bool</span> &#123;</span><br><span class="line">  (a - b).<span class="title function_ invoke__">abs</span>() &lt; <span class="number">1e-6</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[test]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">trig_works</span>() &#123;</span><br><span class="line">  <span class="keyword">use</span> std::<span class="type">f64</span>::consts::PI;</span><br><span class="line">  <span class="built_in">assert!</span>(<span class="title function_ invoke__">roughly_equal</span>(PI.<span class="title function_ invoke__">sin</span>(), <span class="number">0.0</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在省略了测试代码的构建中，<code>roughly_equal</code> 似乎没有被使用，<code>Rust</code> 会报错：</p>
+<pre><code>$ cargo build
+Compiling math_test v0.1.0 (file:///.../math_test)
+warning: function is never used: `roughly_equal`
+--&gt; src/crates_unused_testing_function.rs:7:1
+|
+7 | / fn roughly_equal(a: f64, b: f64) -&gt; bool &#123;
+8 | | (a - b).abs() &lt; 1e-6
+9 | | &#125;
+| |_^
+|
+= note: #[warn(dead_code)] on by default
+</code></pre>
+<p>按照约定，当测试代码需要一些代码支持时，需要放进 <code>tests</code> 模块，并且使用 <code>#[cfg(test)]</code> 标记整个模块：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[cfg(test)]</span> <span class="comment">// include this module only when testing</span></span><br><span class="line"><span class="keyword">mod</span> tests &#123;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">fn</span> <span class="title function_">roughly_equal</span>(a: <span class="type">f64</span>, b: <span class="type">f64</span>) <span class="punctuation">-&gt;</span> <span class="type">bool</span> &#123;</span><br><span class="line">    (a - b).<span class="title function_ invoke__">abs</span>() &lt; <span class="number">1e-6</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">#[test]</span></span><br><span class="line">  <span class="keyword">fn</span> <span class="title function_">trig_works</span>() &#123;</span><br><span class="line">    <span class="keyword">use</span> std::<span class="type">f64</span>::consts::PI;</span><br><span class="line">    <span class="built_in">assert!</span>(<span class="title function_ invoke__">roughly_equal</span>(PI.<span class="title function_ invoke__">sin</span>(), <span class="number">0.0</span>));</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="集成测试"><a class="markdownIt-Anchor" href="#集成测试"></a> 集成测试</h3>
+<p>我们可以在 <code>src</code> 目录同级创建一个 <code>tests</code> 目录，用于放我们的集成测试代码，集成测试将我们的库代码当做外部 <code>crate</code> 链接然后进行测试，因此集成测试也只能测试公共 <code>API</code>：</p>
+<figure class="highlight rust"><figcaption><span>tests/unfurl.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> fern_sim::Terrarium;</span><br><span class="line"><span class="keyword">use</span> std::time::Duration;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[test]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">test_fiddlehead_unfurling</span>() &#123;</span><br><span class="line">  <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">world</span> = Terrarium::<span class="title function_ invoke__">load</span>(<span class="string">&quot;tests/unfurl_files/fiddlehead.tm&quot;</span>);</span><br><span class="line">  <span class="built_in">assert!</span>(world.<span class="title function_ invoke__">fern</span>(<span class="number">0</span>).<span class="title function_ invoke__">is_furled</span>());</span><br><span class="line">  <span class="keyword">let</span> <span class="variable">one_hour</span> = Duration::<span class="title function_ invoke__">from_secs</span>(<span class="number">60</span> * <span class="number">60</span>);</span><br><span class="line">  world.<span class="title function_ invoke__">apply_sunlight</span>(one_hour);</span><br><span class="line">  <span class="built_in">assert!</span>(world.<span class="title function_ invoke__">fern</span>(<span class="number">0</span>).<span class="title function_ invoke__">is_fully_unfurled</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>cargo test</code> 命令会同时运行集成测试和单元测试，如果只想运行 <code>tests/unfurl.rs</code> 中的集成测试代码，可以使用 <code>cargo test --test unfurl</code>。</p>
+<h3 id="文档"><a class="markdownIt-Anchor" href="#文档"></a> 文档</h3>
+<p><code>cargo doc</code> 命令可以生成 <code>crate</code> 的文档，文档中会包含库中 <code>pub</code> 内容的文档，文档就是添加到它们上面的注释。例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// Simulate the production of a spore by meiosis.</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">produce_spore</span>(factory: &amp;<span class="keyword">mut</span> Sporangium) <span class="punctuation">-&gt;</span> Spore &#123;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当 <code>Rust</code> 看到三个斜线开头的注释时，就相当于使用 <code>#[doc]</code>，上面的例子等价于：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[doc = <span class="string">&quot;Simulate the production of a spore by meiosis.&quot;</span>]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">produce_spore</span>(factory: &amp;<span class="keyword">mut</span> Sporangium) <span class="punctuation">-&gt;</span> Spore &#123;</span><br><span class="line">   ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>除了 <code>///</code> 样式的注释之外，还有 <code>//!</code>，被当做 <code>#![doc]</code>，经常用于模块或者 <code>crate</code>，例如 <code>src/lib.rs</code> 可能像下面这样：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//! Simulate the growth of ferns, from the level of</span></span><br><span class="line"><span class="comment">//! individual cells on up.</span></span><br></pre></td></tr></table></figure>
+<p>注释的内容会被当做 <code>Markdown</code> 格式，还可以包含 <code>Html</code> 标记。注释有个特色功能就是可以用 <code>Rust</code> 的模块组织路径去引用 <code>Rust</code> 定义的函数，结构体等。例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// Create and return a [`VascularPath`] which represents the path of</span></span><br><span class="line"><span class="comment">/// nutrients from the given [`Root`][r] to the given [`Leaf`](leaves::Leaf).</span></span><br><span class="line"><span class="comment">///</span></span><br><span class="line"><span class="comment">/// [r]: roots::Root</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">trace_path</span>(leaf: &amp;leaves::Leaf, root: &amp;roots::Root) <span class="punctuation">-&gt;</span> VascularPath &#123;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>还可以添加搜索别名，以便使用内置搜索功能更轻松地查找内容。在这个 <code>crate</code> 的文档中搜索 <code>path</code> 或 <code>route</code> 都能找到 <code>VascularPath</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[doc(alias = <span class="string">&quot;route&quot;</span>)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">VascularPath</span> &#123;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>还可以使用 <code>backticks</code> 在运行文本的中间设置一些代码，在输出中，这些片段将被格式化为固定宽度的字体。可以通过缩进<code>4</code>个空格来添加更大的代码示例：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// A block of code in a doc comment:</span></span><br><span class="line"><span class="comment">///</span></span><br><span class="line"><span class="comment">///     if samples::everything().works() &#123;</span></span><br><span class="line"><span class="comment">///         println!(&quot;ok&quot;);</span></span><br><span class="line"><span class="comment">///     &#125;</span></span><br></pre></td></tr></table></figure>
+<p>也可以使用 <code>Markdown</code> 格式的代码风格，有同样效果：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// Another snippet, the same code, but written differently:</span></span><br><span class="line"><span class="comment">///</span></span><br><span class="line"><span class="comment">/// ```</span></span><br><span class="line"><span class="comment">/// if samples::everything().works() &#123;</span></span><br><span class="line"><span class="comment">///   println!(&quot;ok&quot;);</span></span><br><span class="line"><span class="comment">/// &#125;</span></span><br><span class="line"><span class="comment">/// ```</span></span><br></pre></td></tr></table></figure>
+<p>还有很多注释类型，可以参考这里 <a target="_blank" rel="noopener" href="https://www.rustwiki.org.cn/zh-CN/reference/comments.html">注释</a>。</p>
+<h3 id="文档测试"><a class="markdownIt-Anchor" href="#文档测试"></a> 文档测试</h3>
+<p>当运行测试的时候，<code>Rust</code> 会检查所有出现在文档中的代码块，编译成一个独立的 <code>crate</code>，然后和我们的库链接并执行。下面是一个用 <code>cargo new --lib ranges</code> 创建的例子，把下面的代码的放入 <code>ranges/src/lib.rs</code> 中：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::ops::Range;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Return true if two ranges overlap.</span></span><br><span class="line"><span class="comment">///</span></span><br><span class="line"><span class="comment">///     assert_eq!(ranges::overlap(0..7, 3..10), true);</span></span><br><span class="line"><span class="comment">///     assert_eq!(ranges::overlap(1..5, 101..105), false);</span></span><br><span class="line"><span class="comment">///</span></span><br><span class="line"><span class="comment">/// If either range is empty, they don&#x27;t count as overlapping.</span></span><br><span class="line"><span class="comment">///</span></span><br><span class="line"><span class="comment">///     assert_eq!(ranges::overlap(0..0, 0..10), false);</span></span><br><span class="line"><span class="comment">///</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">overlap</span>(r1: Range&lt;<span class="type">usize</span>&gt;, r2: Range&lt;<span class="type">usize</span>&gt;) <span class="punctuation">-&gt;</span> <span class="type">bool</span> &#123;</span><br><span class="line">    r1.start &lt; r1.end &amp;&amp; r2.start &lt; r2.end &amp;&amp; r1.start &lt; r2.end &amp;&amp; r2.start &lt; r1.end</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>使用 <code>cargo doc --no-deps --open</code> 应该能看到下面的文档：</p>
+<p><img data-src="cargo-doc.png" alt="" /></p>
+<p>如果运行 <code>cargo test</code> 会看到如下的信息：</p>
+<pre><code>~/WORKDIR/rust/ranges ⌚ 9:57:08
+$  cargo test               
+    Finished test [unoptimized + debuginfo] target(s) in 0.00s
+    Running unittests src/lib.rs (target/debug/deps/ranges-13060b2daf473d43)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+  Doc-tests ranges
+
+running 2 tests
+test src/lib.rs - overlap (line 5) ... ok
+test src/lib.rs - overlap (line 10) ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+</code></pre>
+<p>如果你将 <code>cargo test --verbose</code>，你会看到它使用 <code>rustdoc --test</code> 来运行这两个文档中的测试。<code>rustdoc</code> 将每个代码示例存储在一个单独的文件中，添加几行样例代码，以生成两个程序。 例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> ranges;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">  <span class="built_in">assert_eq!</span>(ranges::<span class="title function_ invoke__">overlap</span>(<span class="number">0</span>..<span class="number">7</span>, <span class="number">3</span>..<span class="number">10</span>), <span class="literal">true</span>);</span><br><span class="line">  <span class="built_in">assert_eq!</span>(ranges::<span class="title function_ invoke__">overlap</span>(<span class="number">1</span>..<span class="number">5</span>, <span class="number">101</span>..<span class="number">105</span>), <span class="literal">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>doc test</code> 背后的想法不是把所有的测试都放在文档中，而是确保文档中的代码能正常编译运行。一个代码示例将包含一些诸如导入类的东西，但是如果想在代码中隐藏，可以以 <code># </code>开头：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// Let the sun shine in and run the simulation for a given</span></span><br><span class="line"><span class="comment">/// amount of time.</span></span><br><span class="line"><span class="comment">///</span></span><br><span class="line"><span class="comment">///     # use fern_sim::Terrarium;</span></span><br><span class="line"><span class="comment">///     # use std::time::Duration;</span></span><br><span class="line"><span class="comment">///     # let mut tm = Terrarium::new();</span></span><br><span class="line"><span class="comment">///     tm.apply_sunlight(Duration::from_secs(60));</span></span><br><span class="line"><span class="comment">///</span></span><br></pre></td></tr></table></figure>
+<p>生成的文档如下图所示，省略了 <code># </code> 开头的导入：</p>
+<p><img data-src="cargo-doc-comment.png" alt="" /></p>
+<p>有时在文档中展示一个完整的示例程序会很有帮助，包括一个 <code>main</code> 函数。 <code>rustdoc</code> 将包含确切字符串 <code>fn main</code> 的任何代码块视为一个完整的程序，并且不会向其中添加任何内容。</p>
+<p>如果我们想要实际编译代码块，但又不行让 <code>rust</code> 运行它，可以添加 <code>no_run</code> 标记：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// Upload all local terrariums to the online gallery.</span></span><br><span class="line"><span class="comment">///</span></span><br><span class="line"><span class="comment">/// ```no_run</span></span><br><span class="line"><span class="comment">/// let mut session = fern_sim::connect();</span></span><br><span class="line"><span class="comment">/// session.upload_all();</span></span><br><span class="line"><span class="comment">/// ```</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">upload_all</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>) &#123;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是如果也不想编译，那么使用 <code>ignore</code>，而不是 <code>no_run</code>。如果代码块根本不是 <code>Rust</code> 代码，请使用语言的名称，如 <code>c</code> 或 <code>sh</code>，或 <code>text</code>（表示纯文本），它将任何它无法识别的注释视为表明代码块不是 <code>Rust</code>，这会禁用代码高亮和文档测试。</p>
+<h3 id="依赖声明"><a class="markdownIt-Anchor" href="#依赖声明"></a> 依赖声明</h3>
+<p>关于依赖声明，详细请看 <a target="_blank" rel="noopener" href="https://www.rustwiki.org.cn/zh-CN/cargo/reference/specifying-dependencies.html"><code>cargo</code> 依赖声明</a>。</p>
+<ul>
+<li>
+<p><code>image = &quot;0.6.1&quot;</code>：指定版本号，从 <code>crates.io</code> 下载依赖：</p>
+</li>
+<li>
+<p><code>image = &#123; git = &quot;https://github.com/Piston/image.git&quot;, rev = &quot;528f19c&quot; &#125;</code>：指定版本号和原本下载路径；</p>
+</li>
+<li>
+<p><code>image = &#123; path = &quot;vendor/image&quot; &#125;</code> 指定包含依赖源代码的相对目录；</p>
+</li>
+</ul>
+<h4 id="依赖版本号"><a class="markdownIt-Anchor" href="#依赖版本号"></a> 依赖版本号</h4>
+<p>当我们在 <code>Cargo.toml</code> 文件中写入类似 <code>image = &quot;0.13.0&quot;</code> 的内容时，<code>Cargo</code> 对此的解释相当松散，它使用被认为与 <code>0.13.0</code> 版本兼容的最新版本的 <code>image</code>。兼容性规格改编自 <a target="_blank" rel="noopener" href="https://semver.org/lang/zh-CN/">语义化版本 2.0.0</a>。</p>
+<ul>
+<li>
+<p>以 <code>0.0</code> 开头的版本号非常原始，以至于 <code>Cargo</code> 从不认为它与任何其他版本兼容；</p>
+</li>
+<li>
+<p>以 <code>0.x</code> 开头的版本号（其中 <code>x</code> 非零）被认为与 <code>0.x</code> 系列中的其他点版本兼容。 我们指定了 <code>image</code> 版本 <code>0.6.1</code>，但如果可用，<code>Cargo</code> 将使用 <code>0.6.3</code>；</p>
+</li>
+<li>
+<p>一旦项目达到 <code>1.0</code>，由于新的主版本会破坏兼容性。因此，如果要求版本 <code>2.0.1</code>，<code>Cargo</code> 可能会使用 <code>2.17.99</code>，而不是 <code>3.0</code>；</p>
+</li>
+</ul>
+<p>默认情况下，版本号是灵活的，否则使用哪个版本的问题很快就会变得过分约束。假设一个库 <code>libA</code> 使用 <code>num = &quot;0.1.31&quot;</code> 而另一个库 <code>libB</code> 使用 <code>num = &quot;0.1.29&quot;</code>。如果版本号需要完全匹配，则没有项目能够同时使用这两个库，允许 <code>Cargo</code> 使用任何兼容版本是一个更实用的默认设置。</p>
+<p>尽管如此，不同的项目在依赖关系和版本控制方面有不同的需求。可以使用运算符指定确切的版本或版本范围：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"><code>Cargo.toml</code></th>
+<th style="text-align:left">解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>image = &quot;=0.10.0&quot;</code></td>
+<td style="text-align:left">完全匹配 <code>0.10.0</code> 版本</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>image = &quot;&gt;=1.0.5&quot;</code></td>
+<td style="text-align:left">使用 <code>1.0.5</code> 或者更高的版本，甚至 <code>2.9</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>image = &quot;&gt;1.0.5 &lt;1.1.9&quot;</code></td>
+<td style="text-align:left">使用大于 <code>1.0.5</code> 但小于 <code>1.1.9</code> 的版本</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>image = &quot;&lt;=2.7.10&quot;</code></td>
+<td style="text-align:left">小于 <code>2.7.10</code> 的任何版本</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>*</code></td>
+<td style="text-align:left">任何版本</td>
+</tr>
+</tbody>
+</table>
+<h4 id="cargolock"><a class="markdownIt-Anchor" href="#cargolock"></a> <code>Cargo.lock</code></h4>
+<p><code>Cargo.toml</code> 中的版本号很灵活，但我们不希望 <code>Cargo</code> 每次构建时都将我们升级到最新的库版本。因此，<code>Cargo</code> 有一个内置机制来防止这种情况。第一次构建项目时，<code>Cargo</code> 会输出一个 <code>Cargo.lock</code> 文件，该文件记录了它使用的每个 <code>crate</code> 的确切版本。以后的构建将参考这个文件并继续使用相同的版本。<code>Cargo</code> 仅在你告诉它时才升级到较新的版本，通过手动增加 <code>Cargo.toml</code> 文件中的版本号或运行 <code>cargo update</code>：</p>
+<pre><code>$ cargo update
+Updating registry `https://github.com/rust-lang/crates.io-index`
+Updating libc v0.2.7 -&gt; v0.2.11
+Updating png v0.4.2 -&gt; v0.4.3
+</code></pre>
+<p><code>cargo update</code> 仅升级到与在 <code>Cargo.toml</code> 中指定的内容兼容的最新版本。如果你指定了 <code>image = &quot;0.6.1&quot;</code>，并且你想升级到 <code>0.10.0</code> 版本，你必须在 <code>Cargo.toml</code> 中改变它。下次构建时，<code>Cargo</code> 会更新到新版本的镜像库，并将新版本号存储在 <code>Cargo.lock</code> 中。前面的示例显示 <code>Cargo</code> 更新了 <code>crates.io</code> 上托管的两个 <code>crate</code>，存储在 <code>Git</code> 中的依赖项也会发生类似的情况。假设我们的 <code>Cargo.toml</code> 文件包含以下内容：</p>
+<pre><code>image = &#123; git = &quot;https://github.com/Piston/image.git&quot;, branch = &quot;master&quot; &#125;
+</code></pre>
+<p>如果 <code>cargo build</code> 发现我们有一个 <code>Cargo.lock</code> 文件，它不会从 <code>Git</code> 存储库中提取新的更改。而是读取 <code>Cargo.lock</code> 并使用与上次相同的版本。但是 <code>cargo update</code> 将从 <code>master</code> 中提取，以便我们的下一个构建使用最新版本。</p>
+<p><code>Cargo.lock</code> 会自动生成，通常不会手动编辑它。如果项目是可执行文件，应该将 <code>Cargo.lock</code> 提交给版本控制。这样，每个人构建的项目都将始终获得相同的版本，<code>Cargo.lock</code> 文件的历史记录将记录你的依赖更新。</p>
+<p>如果你的项目是一个普通的 <code>Rust</code> 库，不要提交 <code>Cargo.lock</code>。因为下游项目也拥有 <code>Cargo.lock</code> 文件，其中包含其整个依赖关系图的版本信息，他们会忽略依赖的库中的 <code>Cargo.lock</code> 文件。</p>
+<p>在极少数情况下，项目如果是共享库（即输出是 <code>.dll</code>、<code>.dylib</code> 或 <code>.so</code> 文件），没有这样的下游项目，应该提交 <code>Cargo.lock</code>。</p>
+<p><code>Cargo.toml</code> 灵活的版本说明符使我们可以轻松地解决依赖之间的兼容性。 <code>Cargo.lock</code> 保证了构建一致性。</p>
+<h3 id="发布到-cratesio"><a class="markdownIt-Anchor" href="#发布到-cratesio"></a> 发布到 <a target="_blank" rel="noopener" href="http://crates.io">crates.io</a></h3>
+<p>详情请看 <a target="_blank" rel="noopener" href="https://www.rustwiki.org.cn/zh-CN/cargo/reference/publishing.html">发布到 crates.io</a>。</p>
+<h3 id="工作区间"><a class="markdownIt-Anchor" href="#工作区间"></a> 工作区间</h3>
+<p>详情请看 <a target="_blank" rel="noopener" href="https://kaisery.github.io/trpl-zh-cn/ch14-03-cargo-workspaces.html">Cargo 工作空间</a>。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/" title="【Rust】Crate 和 Module">https://blog.fudenglong.site/2022/04/22/Rust/【Rust】Crate-和-Module/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+              <a href="/tags/Crate/" rel="tag"># Crate</a>
+              <a href="/tags/Module/" rel="tag"># Module</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/04/21/Rust/%E3%80%90Rust%E3%80%91%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/" rel="prev" title="【Rust】错误处理">
+                  <i class="fa fa-angle-left"></i> 【Rust】错误处理
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/04/24/Rust/%E3%80%90Rust%E3%80%91%E7%BB%93%E6%9E%84%E4%BD%93/" rel="next" title="【Rust】结构体">
+                  【Rust】结构体 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

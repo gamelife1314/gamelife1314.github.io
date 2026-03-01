@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="tun 是一种虚拟的3层虚拟网络设备，同时它也是一个字符设备，字符设备意味着可以把它当做一个文件，可以使用文件API操作这个设备，例如 open&#x2F;read&#x2F;write，由于它同时也是一个网络设备，所以它也可以像一个网卡一样，从内核网络协议栈中收发报文。所以从它架构上来看，tun 设备的一端连接着应用程序，一端连接着网络协议栈，如下图所示：  从在系统中的表象来看，字符设备的文件类型是c，没有大小，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux tun 设备介绍">
+<meta property="og:url" content="https://blog.fudenglong.site/2024/02/04/Network/linux-tun-device/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="tun 是一种虚拟的3层虚拟网络设备，同时它也是一个字符设备，字符设备意味着可以把它当做一个文件，可以使用文件API操作这个设备，例如 open&#x2F;read&#x2F;write，由于它同时也是一个网络设备，所以它也可以像一个网卡一样，从内核网络协议栈中收发报文。所以从它架构上来看，tun 设备的一端连接着应用程序，一端连接着网络协议栈，如下图所示：  从在系统中的表象来看，字符设备的文件类型是c，没有大小，">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/02/04/Network/linux-tun-device/linux-tun-device.png">
+<meta property="article:published_time" content="2024-02-04T06:59:33.000Z">
+<meta property="article:modified_time" content="2024-02-04T06:59:33.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="tun">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2024/02/04/Network/linux-tun-device/linux-tun-device.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2024/02/04/Network/linux-tun-device/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2024/02/04/Network/linux-tun-device/","path":"2024/02/04/Network/linux-tun-device/","title":"Linux tun 设备介绍"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Linux tun 设备介绍 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#icmp-%E7%A4%BA%E4%BE%8B"><span class="nav-number">1.</span> <span class="nav-text"> ICMP 示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="nav-number">2.</span> <span class="nav-text"> 参考链接</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2024/02/04/Network/linux-tun-device/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Linux tun 设备介绍 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux tun 设备介绍
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-02-04 14:59:33" itemprop="dateCreated datePublished" datetime="2024-02-04T14:59:33+08:00">2024-02-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Linux/Network/" itemprop="url" rel="index"><span itemprop="name">Network</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>8 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>tun</code> 是一种虚拟的3层虚拟网络设备，同时它也是一个字符设备，字符设备意味着可以把它当做一个文件，可以使用文件<code>API</code>操作这个设备，例如 <code>open/read/write</code>，由于它同时也是一个网络设备，所以它也可以像一个网卡一样，从内核网络协议栈中收发报文。所以从它架构上来看，<code>tun</code> 设备的一端连接着应用程序，一端连接着网络协议栈，如下图所示：</p>
+<img data-src="/2024/02/04/Network/linux-tun-device/linux-tun-device.png" class="">
+<p>从在系统中的表象来看，字符设备的文件类型是<code>c</code>，没有大小，但是有主次版本号：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">ls</span> -alh /dev/net/tun</span><br><span class="line">crw-rw-rw- 1 root root 10, 200 Jan 30 17:00 /dev/net/tun</span><br></pre></td></tr></table></figure>
+<p><code>tun</code> 设备的创建是通过打开<code>/dev/net/tun</code>这个文件，然后使用<code>ioctl</code>系统调用对其进行<code>clone</code>。也可以使用 <code>ip</code> 命令来实现<code>tun</code>设备的创建：</p>
+<blockquote>
+<p><code>ip tuntap add dev tun1 mod tun</code></p>
+</blockquote>
+<p>新创建的 <code>tun1</code> 设备位于 <code>/sys/class/net/</code> 目录中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ ll /sys/class/net/tun1</span><br><span class="line">lrwxrwxrwx 1 root root 0 Feb  4 15:44 /sys/class/net/tun1 -&gt; ../../devices/virtual/net/tun1/</span><br></pre></td></tr></table></figure>
+<p>删除使用如下命令：</p>
+<blockquote>
+<p><code>ip tuntap del dev tun1 mod tun</code></p>
+</blockquote>
+<span id="more"></span>
+<h3 id="icmp-示例"><a class="markdownIt-Anchor" href="#icmp-示例"></a> <code>ICMP</code> 示例</h3>
+<p>如前文所述，<code>tun</code>设备的使用需要打开<code>/dev/net/tun</code>并对其<code>clone</code>之后才能进行使用，所以通用的创建<code>tun</code>设备有如下的步骤：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">tun_alloc</span><span class="params">(<span class="type">char</span> *dev, <span class="type">int</span> flags)</span></span><br><span class="line">&#123;</span><br><span class="line">    assert(dev != <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">ifreq</span> <span class="title">ifr</span>;</span></span><br><span class="line">    <span class="type">int</span> fd, err;</span><br><span class="line"></span><br><span class="line">    <span class="type">char</span> *clonedev = <span class="string">&quot;/dev/net/tun&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((fd = open(clonedev, O_RDWR)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> fd;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">memset</span>(&amp;ifr, <span class="number">0</span>, <span class="keyword">sizeof</span>(ifr));</span><br><span class="line">    ifr.ifr_flags = flags;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (*dev != <span class="string">&#x27;\0&#x27;</span>) &#123;</span><br><span class="line">        <span class="built_in">strncpy</span>(ifr.ifr_name, dev, IFNAMSIZ);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> ((err = ioctl(fd, TUNSETIFF, (<span class="type">void</span> *) &amp;ifr)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        close(fd);</span><br><span class="line">        <span class="keyword">return</span> err;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">strcpy</span>(dev, ifr.ifr_name);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> fd;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>创建<code>tun</code>设备需要是<code>root</code>的用户，或者该应用程序需要具有<code>CAP_NET_ADMIN</code>权限，<code>/dev/net/tun</code>必须以读写方式打开，它是创建任何<code>tun/tap</code>虚拟接口的起点，因此也被称为克隆设备(<code>clone device</code>)。操作(<code>open()</code>)后会返回一个文件描述符，但此时还无法与接口通信。下一步会使用一个特殊的<code>ioctl()</code>系统调用，该函数的入参为上一步得到的文件描述符，以及一个<code>TUNSETIFF</code>常数和一个指向描述虚拟接口的结构体指针。</p>
+<p><code>tun_alloc</code> 函数的两个参数中：</p>
+<ul>
+<li><code>dev</code>：指的是创建的<code>tun</code>设备的名称，如果<code>*dev</code>为<code>'\0'</code>，则内核会尝试使用第一个对应类型的可用的接口，例如从<code>tun0</code>开始，如果<code>tun0</code>存在就为<code>tun1</code>；</li>
+<li><code>flags</code>：用于指定虚拟设备的类型，通常为<code>IFF_TUN</code>或者<code>IFF_TAP</code>，分别代表<code>tun</code>或者<code>tap</code>设备。除此之外，还有一个<code>IFF_NO_PI</code>标志，可以与<code>IFF_TUN</code>或<code>IFF_TAP</code>配合使用。<code>IFF_NO_PI</code> 会告诉内核不需要提供报文信息，即告诉内核仅需要提供&quot;纯&quot;<code>IP</code>报文，不需要其他字节。否则(不设置<code>IFF_NO_PI</code>)，会在报文开始处添加<code>4</code>个额外的字节(<code>2</code>字节的标识和<code>2</code>字节的协议)；</li>
+</ul>
+<p>如果要完整的处理到达<code>tun</code>设备的<code>ICMP</code>请求，需要手动回响应：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> tun_fd, nread;</span><br><span class="line">    <span class="type">char</span> buffer[<span class="number">4096</span>];</span><br><span class="line">    <span class="type">char</span> tun_name[IFNAMSIZ];</span><br><span class="line"></span><br><span class="line">    tun_name[<span class="number">0</span>] = <span class="string">&#x27;\0&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    tun_fd = tun_alloc(tun_name, IFF_TUN | IFF_NO_PI);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (tun_fd &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        perror(<span class="string">&quot;Allocating interface&quot;</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Open tun/tap device: %s for reading...\n&quot;</span>, tun_name);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">char</span> ip[<span class="number">4</span>];</span><br><span class="line">        <span class="comment">// 收包</span></span><br><span class="line">        nread = read(tun_fd, buffer, <span class="keyword">sizeof</span>(buffer));</span><br><span class="line">        <span class="keyword">if</span> (nread &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            perror(<span class="string">&quot;Reading from interface&quot;</span>);</span><br><span class="line">            close(tun_fd);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// IP 报文第9个字节表示协议类型，其中：</span></span><br><span class="line">        <span class="comment">// 1:  ICMP</span></span><br><span class="line">        <span class="comment">// 6:  TCP</span></span><br><span class="line">        <span class="comment">// 17: UDP</span></span><br><span class="line">        <span class="keyword">if</span> (buffer[<span class="number">9</span>] != <span class="number">1</span>) &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Read %d bytes from tun/tap device, icmp type: %d\n&quot;</span>, nread, buffer[<span class="number">20</span>]);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// IP报文中，从12个字节开始的连续4个字节保存源IP地址，第16个字节开始的连续4字节保存目的IP</span></span><br><span class="line">        <span class="comment">// 这里调换 ICMP 请求中的源IP和目的IP。用于响应</span></span><br><span class="line">        <span class="comment">// 更多关于IP报文格式的请看：https://www.tutorialspoint.com/ipv4/ipv4_packet_structure.htm</span></span><br><span class="line">        <span class="built_in">memcpy</span>(ip, &amp;buffer[<span class="number">12</span>], <span class="number">4</span>);</span><br><span class="line">        <span class="built_in">memcpy</span>(&amp;buffer[<span class="number">12</span>], &amp;buffer[<span class="number">16</span>], <span class="number">4</span>);</span><br><span class="line">        <span class="built_in">memcpy</span>(&amp;buffer[<span class="number">16</span>], ip, <span class="number">4</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// IP 头的长度是20个字节，对于ICMP报文，第20个字节表示TCMP报文类型：</span></span><br><span class="line">        <span class="comment">//    0: 表示 Echo Reply</span></span><br><span class="line">        <span class="comment">//    8: 表示 Echo Request</span></span><br><span class="line">        buffer[<span class="number">20</span>] = <span class="number">0</span>;</span><br><span class="line">        *((<span class="type">unsigned</span> <span class="type">short</span> *)&amp;buffer[<span class="number">22</span>]) += <span class="number">8</span>;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;source ip addr: %d %d %d %d \n&quot;</span>, ip[<span class="number">0</span>], ip[<span class="number">1</span>], ip[<span class="number">2</span>], ip[<span class="number">3</span>]);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 发包</span></span><br><span class="line">        nread = write(tun_fd, buffer, nread);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Write %d bytes to tun device\n&quot;</span>, nread);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>完整的示例程序如下所示：</p>
+<details class="note success"><summary><p>点击展开</p>
+</summary>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;assert.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;net/if.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/ioctl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/stat.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/if_tun.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">tun_alloc</span><span class="params">(<span class="type">char</span> *dev, <span class="type">int</span> flags)</span></span><br><span class="line">&#123;</span><br><span class="line">    assert(dev != <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">ifreq</span> <span class="title">ifr</span>;</span></span><br><span class="line">    <span class="type">int</span> fd, err;</span><br><span class="line"></span><br><span class="line">    <span class="type">char</span> *clonedev = <span class="string">&quot;/dev/net/tun&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((fd = open(clonedev, O_RDWR)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> fd;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">memset</span>(&amp;ifr, <span class="number">0</span>, <span class="keyword">sizeof</span>(ifr));</span><br><span class="line">    ifr.ifr_flags = flags;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (*dev != <span class="string">&#x27;\0&#x27;</span>) &#123;</span><br><span class="line">        <span class="built_in">strncpy</span>(ifr.ifr_name, dev, IFNAMSIZ);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> ((err = ioctl(fd, TUNSETIFF, (<span class="type">void</span> *) &amp;ifr)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        close(fd);</span><br><span class="line">        <span class="keyword">return</span> err;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">strcpy</span>(dev, ifr.ifr_name);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> fd;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> tun_fd, nread;</span><br><span class="line">    <span class="type">char</span> buffer[<span class="number">4096</span>];</span><br><span class="line">    <span class="type">char</span> tun_name[IFNAMSIZ];</span><br><span class="line"></span><br><span class="line">    tun_name[<span class="number">0</span>] = <span class="string">&#x27;\0&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    tun_fd = tun_alloc(tun_name, IFF_TUN | IFF_NO_PI);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (tun_fd &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        perror(<span class="string">&quot;Allocating interface&quot;</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Open tun/tap device: %s for reading...\n&quot;</span>, tun_name);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="number">1</span>) &#123;</span><br><span class="line">        <span class="type">unsigned</span> <span class="type">char</span> ip[<span class="number">4</span>];</span><br><span class="line">        <span class="comment">// 收包</span></span><br><span class="line">        nread = read(tun_fd, buffer, <span class="keyword">sizeof</span>(buffer));</span><br><span class="line">        <span class="keyword">if</span> (nread &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            perror(<span class="string">&quot;Reading from interface&quot;</span>);</span><br><span class="line">            close(tun_fd);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// IP 报文第9个字节表示协议类型，其中：</span></span><br><span class="line">        <span class="comment">// 1:  ICMP</span></span><br><span class="line">        <span class="comment">// 6:  TCP</span></span><br><span class="line">        <span class="comment">// 17: UDP</span></span><br><span class="line">        <span class="keyword">if</span> (buffer[<span class="number">9</span>] != <span class="number">1</span>) &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Read %d bytes from tun/tap device, icmp type: %d\n&quot;</span>, nread, buffer[<span class="number">20</span>]);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;source ip addr: %d %d %d %d \n&quot;</span>, buffer[<span class="number">12</span>], buffer[<span class="number">13</span>], buffer[<span class="number">14</span>], buffer[<span class="number">15</span>]);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;destination ip addr: %d %d %d %d \n&quot;</span>, buffer[<span class="number">16</span>], buffer[<span class="number">17</span>], buffer[<span class="number">18</span>], buffer[<span class="number">19</span>]);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// IP报文中，从12个字节开始的连续4个字节保存源IP地址，第16个字节开始的连续4字节保存目的IP</span></span><br><span class="line">        <span class="comment">// 这里调换 ICMP 请求中的源IP和目的IP。用于响应</span></span><br><span class="line">        <span class="comment">// 更多关于IP报文格式的请看：https://www.tutorialspoint.com/ipv4/ipv4_packet_structure.htm</span></span><br><span class="line">        <span class="built_in">memcpy</span>(ip, &amp;buffer[<span class="number">12</span>], <span class="number">4</span>);</span><br><span class="line">        <span class="built_in">memcpy</span>(&amp;buffer[<span class="number">12</span>], &amp;buffer[<span class="number">16</span>], <span class="number">4</span>);</span><br><span class="line">        <span class="built_in">memcpy</span>(&amp;buffer[<span class="number">16</span>], ip, <span class="number">4</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// IP 头的长度是20个字节，对于ICMP报文，第20个字节表示TCMP报文类型：</span></span><br><span class="line">        <span class="comment">//    0: 表示 Echo Reply</span></span><br><span class="line">        <span class="comment">//    8: 表示 Echo Request</span></span><br><span class="line">        buffer[<span class="number">20</span>] = <span class="number">0</span>;</span><br><span class="line">        *((<span class="type">unsigned</span> <span class="type">short</span> *)&amp;buffer[<span class="number">22</span>]) += <span class="number">8</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 发包</span></span><br><span class="line">        nread = write(tun_fd, buffer, nread);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Write %d bytes to tun device\n&quot;</span>, nread);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</details>
+<p>将完整的源代码保存成文件<code>tun.c</code>，使用如下的命令进行编译：</p>
+<blockquote>
+<p><code>gcc -o taptun tun.c</code></p>
+</blockquote>
+<p>打开终端运行编译生成的可执行程序<code>taptun</code>可执行程序。然后打开另外一个终端，查询创建的<code>tun0</code>设备：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ ifconfig tun0</span><br><span class="line">tun0: flags=4240&lt;POINTOPOINT,NOARP,MULTICAST&gt;  mtu 1500</span><br><span class="line">        unspec 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00  txqueuelen 500  (UNSPEC)</span><br><span class="line">        RX packets 0  bytes 0 (0.0 B)</span><br><span class="line">        RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">        TX packets 0  bytes 0 (0.0 B)</span><br><span class="line">        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br></pre></td></tr></table></figure>
+<p>这个时候的<code>tun0</code>还未设置<code>IP</code>地址，可以使用如下的命令进行设置并启用：</p>
+<blockquote>
+<p><code>ip a a 10.1.1.2/24 dev tun0</code><br />
+<code>ip l s tun0 up</code></p>
+</blockquote>
+<p>再次查看该设备，可以看到<code>IP</code>地址已经设置，并且处于启用状态：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ ifconfig tun0</span><br><span class="line">tun0: flags=4305&lt;UP,POINTOPOINT,RUNNING,NOARP,MULTICAST&gt;  mtu 1500</span><br><span class="line">        inet 10.1.1.2  netmask 255.255.255.0  destination 10.1.1.2</span><br><span class="line">        inet6 fe80::2ee1:4ade:16e4:8355  prefixlen 64  scopeid 0x20&lt;link&gt;</span><br><span class="line">        unspec 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00  txqueuelen 500  (UNSPEC)</span><br><span class="line">        RX packets 1  bytes 48 (48.0 B)</span><br><span class="line">        RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">        TX packets 1  bytes 48 (48.0 B)</span><br><span class="line">        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br></pre></td></tr></table></figure>
+<p>创建设置并且设置<code>IP</code>以后，可以看到操作系统会自动添加一条路由，表示发往 <code>10.1.1.0/24</code> 这个网段的所有报文都会经 <code>tun0</code> 设备发出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">10.1.1.0        0.0.0.0         255.255.255.0   U     0      0        0 tun0</span><br></pre></td></tr></table></figure>
+<p>所以只要<code>ping</code>这个网段内的任一<code>IP</code>都会到达<code>tun0</code>设备，并且被我们的<code>taptun</code>应用程序收到并处理，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ ping -c 1 10.1.1.10</span><br><span class="line">PING 10.1.1.10 (10.1.1.10) 56(84) bytes of data.</span><br><span class="line">64 bytes from 10.1.1.10: icmp_seq=1 ttl=64 time=0.080 ms</span><br><span class="line"></span><br><span class="line">--- 10.1.1.10 ping statistics ---</span><br><span class="line">1 packets transmitted, 1 received, 0% packet loss, time 0ms</span><br><span class="line">rtt min/avg/max/mdev = 0.080/0.080/0.080/0.000 ms</span><br><span class="line">$ ping -c 1 10.1.1.111</span><br><span class="line">PING 10.1.1.111 (10.1.1.111) 56(84) bytes of data.</span><br><span class="line">64 bytes from 10.1.1.111: icmp_seq=1 ttl=64 time=0.189 ms</span><br><span class="line"></span><br><span class="line">--- 10.1.1.111 ping statistics ---</span><br><span class="line">1 packets transmitted, 1 received, 0% packet loss, time 0ms</span><br><span class="line">rtt min/avg/max/mdev = 0.189/0.189/0.189/0.000 ms</span><br></pre></td></tr></table></figure>
+<p>应用程序将会有如下的输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ ./taptun</span><br><span class="line">Open tun/tap device: tun0 for reading...</span><br><span class="line">Read 84 bytes from tun/tap device, icmp type: 8</span><br><span class="line">source ip addr: 10 1 1 2</span><br><span class="line">destination ip addr: 10 1 1 10</span><br><span class="line">Write 84 bytes to tun device</span><br><span class="line">Read 84 bytes from tun/tap device, icmp type: 8</span><br><span class="line">source ip addr: 10 1 1 2</span><br><span class="line">destination ip addr: 10 1 1 111</span><br><span class="line">Write 84 bytes to tun device</span><br></pre></td></tr></table></figure>
+<h3 id="参考链接"><a class="markdownIt-Anchor" href="#参考链接"></a> 参考链接</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://www.khanacademy.org/computing/computers-and-internet/xcae6f4a7ff015e7d:the-internet/xcae6f4a7ff015e7d:routing-with-redundancy/a/ip-packets">IP packets</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.tutorialspoint.com/ipv4/ipv4_packet_structure.htm">IPv4 - Packet Structure</a></li>
+<li><a target="_blank" rel="noopener" href="https://learnduty.com/articles/icmp-explained-and-packet-format/">ICMP Explained and Packet Format</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7057833934947614750">https://juejin.cn/post/7057833934947614750</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.51cto.com/u_11299290/5107265">https://blog.51cto.com/u_11299290/5107265</a></li>
+<li><a target="_blank" rel="noopener" href="https://ctimbai.github.io/2019/03/01/tech/net/vnet/%E5%9F%BA%E4%BA%8Etaptun%E5%86%99%E4%B8%80%E4%B8%AAICMP%E7%A8%8B%E5%BA%8F/">https://ctimbai.github.io/2019/03/01/tech/net/vnet/基于taptun写一个ICMP程序/</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.zhengwenfeng.com/pages/143447/#%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E9%80%9A%E8%BF%87tun%E8%AE%BE%E5%A4%87%E8%8E%B7%E5%8F%96ping%E6%95%B0%E6%8D%AE%E5%8C%85">https://www.zhengwenfeng.com/pages/143447/#应用程序通过tun设备获取ping数据包</a></li>
+<li><a target="_blank" rel="noopener" href="https://lxd.me/a-simple-vpn-tunnel-with-tun-device-demo-and-some-basic-concepts">https://lxd.me/a-simple-vpn-tunnel-with-tun-device-demo-and-some-basic-concepts</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.rectcircle.cn/posts/linux-net-virual-05-tunnel/#tun-tap-%e8%99%9a%e6%8b%9f%e8%ae%be%e5%a4%87">https://www.rectcircle.cn/posts/linux-net-virual-05-tunnel/#tun-tap-虚拟设备</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.zhaohuabing.com/post/2020-02-24-linux-taptun/">https://www.zhaohuabing.com/post/2020-02-24-linux-taptun/</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.luozhiyun.com/archives/684">https://www.luozhiyun.com/archives/684</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.avdancedu.com/52f625ca/">https://blog.avdancedu.com/52f625ca/</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.xzcoder.com/posts/network/05-simple-vpn.html#%E7%A8%8B%E5%BA%8F%E6%B5%8B%E8%AF%95">https://www.xzcoder.com/posts/network/05-simple-vpn.html#程序测试</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2024/02/04/Network/linux-tun-device/" title="Linux tun 设备介绍">https://blog.fudenglong.site/2024/02/04/Network/linux-tun-device/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/tun/" rel="tag"># tun</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/01/17/K8S/k8s-data-mount/" rel="prev" title="K8S 数据挂载">
+                  <i class="fa fa-angle-left"></i> K8S 数据挂载
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/02/29/K8S/cert-manage-service/" rel="next" title="K8S 证书管理">
+                  K8S 证书管理 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2024/02/04/Network/linux-tun-device/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

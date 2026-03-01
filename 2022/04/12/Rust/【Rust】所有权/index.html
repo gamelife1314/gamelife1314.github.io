@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="在编程语言的内存使用中，我们经常遇到什么时候释放内存以及如何确定访问的内存是否已被释放等问题。对于内存管理方式，存在着两大阵营：   一种是以 Python，JavaScript， Ruby，Java， C#，以及 Go 等为代表的拥有垃圾回收器的语言，垃圾回收器在对象不再被访问时，会释放对象所持有的内存。这种方式对开发者友好，因为我们不用太多关心内存的申请和释放，但是这意味着将对象释放的权利交给">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】所有权">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="在编程语言的内存使用中，我们经常遇到什么时候释放内存以及如何确定访问的内存是否已被释放等问题。对于内存管理方式，存在着两大阵营：   一种是以 Python，JavaScript， Ruby，Java， C#，以及 Go 等为代表的拥有垃圾回收器的语言，垃圾回收器在对象不再被访问时，会释放对象所持有的内存。这种方式对开发者友好，因为我们不用太多关心内存的申请和释放，但是这意味着将对象释放的权利交给">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/padovan-mem-like.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/box-mem-like.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/composers-mem-like.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/rust-value-initialize.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/rust-value-move.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/py-value-initialize.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/py-value-ref.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/cplusplus-assign.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/cplus.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/string-int-move-cmp.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/rc-arc-value-mme-layout.png">
+<meta property="article:published_time" content="2022-04-12T15:57:30.000Z">
+<meta property="article:modified_time" content="2022-04-12T15:57:30.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta property="article:tag" content="所有权">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/padovan-mem-like.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/","path":"2022/04/12/Rust/【Rust】所有权/","title":"【Rust】所有权"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】所有权 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%80%E6%9C%89%E6%9D%83"><span class="nav-number">1.</span> <span class="nav-text"> 所有权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%80%E6%9C%89%E6%9D%83%E8%BD%AC%E7%A7%BB"><span class="nav-number">2.</span> <span class="nav-text"> 所有权转移</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%80%E6%9C%89%E6%9D%83%E8%BD%AC%E7%A7%BB%E5%92%8C%E7%B4%A2%E5%BC%95"><span class="nav-number">3.</span> <span class="nav-text"> 所有权转移和索引</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#copy-%E7%B1%BB%E5%9E%8B%E7%9A%84%E6%89%80%E6%9C%89%E6%9D%83%E8%BD%AC%E7%A7%BB"><span class="nav-number">4.</span> <span class="nav-text"> Copy 类型的所有权转移</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#rc-%E5%92%8C-arc%E5%85%B1%E4%BA%AB%E6%89%80%E6%9C%89%E6%9D%83"><span class="nav-number">5.</span> <span class="nav-text"> Rc 和 Arc：共享所有权</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】所有权 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】所有权
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-04-12 23:57:30" itemprop="dateCreated datePublished" datetime="2022-04-12T23:57:30+08:00">2022-04-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.1k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>15 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>在编程语言的内存使用中，我们经常遇到什么时候释放内存以及如何确定访问的内存是否已被释放等问题。对于内存管理方式，存在着两大阵营：</p>
+<ul>
+<li>
+<p>一种是以 <code>Python</code>，<code>JavaScript</code>， <code>Ruby</code>，<code>Java</code>， <code>C#</code>，以及 <code>Go</code> 等为代表的拥有垃圾回收器的语言，垃圾回收器在对象不再被访问时，会释放对象所持有的内存。这种方式对开发者友好，因为我们不用太多关心内存的申请和释放，但是这意味着将对象释放的权利交给了垃圾回收器，对于理解什么时候释放内存会是一个较大的挑战。</p>
+</li>
+<li>
+<p>另一种是以 <code>C</code> 和 <code>C++</code> 为代表的语言，它们将内存的申请和回收完全交给了开发者，这造成过很多致命的问题，悬垂指针，访问已释放内存以及多重释放等问题；</p>
+</li>
+</ul>
+<p><code>Rust</code>旨在既安全又高效，因此这两种方案都不能接受，但如果有更好的方案，估计早就有人做了。<code>Rust</code> 通过限制程序使用指针的方式打破了这种非得妥协的僵局。<code>Rust</code>的做法激进，但这成了它成功的基础，尽管有诸多限制，但使用起来依然足够灵活。</p>
+<span id="more"></span>
+<h3 id="所有权"><a class="markdownIt-Anchor" href="#所有权"></a> 所有权</h3>
+<p>在 <code>Rust</code> 中，所有权的概念根植于语言自身并且由编译器在编译时检查。每个值都有一个决定其生死的所有者，当这个所有者被释放（在 <code>Rust</code> 中，称为 <code>Drop</code>）时，它所拥有的值占用的的内存也会被释放。</p>
+<p>每个变量都有一个值，当变量离开它的作用域时，就会被 <code>drop</code>，它拥有的值也会被从内存中释放。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">print_padovan</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">padovan</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">1</span>, <span class="number">1</span>]; <span class="comment">// 申请内存</span></span><br><span class="line">    <span class="keyword">for</span> <span class="variable">i</span> <span class="keyword">in</span> <span class="number">3</span>..<span class="number">10</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">next</span> = padovan[i - <span class="number">3</span>] + padovan[i - <span class="number">2</span>];</span><br><span class="line">        padovan.<span class="title function_ invoke__">push</span>(next);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;P(1..10) = &#123;:?&#125;&quot;</span>, padovan);</span><br><span class="line">    <span class="comment">// padovan 离开作用域，值被释放</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>变量 <code>padovan</code> 的类型是 <code>Vec&lt;i32&gt;</code>，在内存中，它的值看起来像下面这样，<code>padovan</code> 的指针，容量和长度分配在函数 <code>print_padovan</code> 的栈帧上，只有 <code>vector</code> 的缓冲池是在堆上分配的：</p>
+<p><img data-src="padovan-mem-like.png" alt="" /></p>
+<p><code>Rust</code> 的 <code>Box</code> 类型是所有权的另一个代表。<code>Box&lt;T&gt;</code> 是存储在堆上的 <code>T</code> 类型值的指针。调用 <code>Box::new(v)</code> 分配一些堆空间，将值<code>v</code>移动到其中，并返回包含指向堆内存指针的 <code>Box</code>。由于<code>Box</code>拥有它指向的空间，当 <code>Box</code> 离开作用域时，它也会释放相应的堆内存。例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">point</span> = <span class="type">Box</span>::<span class="title function_ invoke__">new</span>((<span class="number">0.625</span>, <span class="number">0.5</span>)); <span class="comment">// point allocated here </span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">label</span> = <span class="built_in">format!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, point); <span class="comment">// label allocated here </span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(label, <span class="string">&quot;(0.625, 0.5)&quot;</span>);</span><br><span class="line">&#125;  <span class="comment">// both dropped here</span></span><br></pre></td></tr></table></figure>
+<p>当程序调用 <code>Box::new</code> 时，它会在堆上为两个<code>f64</code>值的元组分配空间，将<code>(0.625，0.5)</code>移动到该空间中，并返回指向它的指针。当程序运行到<code>assert_eq!</code>时，栈帧如下图所示：</p>
+<p><img data-src="box-mem-like.png" alt="" /></p>
+<p>来看一个结构体的例子，结构体字段也可以是 <code>String</code>，<code>Array</code> 或者 <code>Vector</code> 等：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Person</span> &#123;</span><br><span class="line">    name: <span class="type">String</span>,</span><br><span class="line">    birth: <span class="type">i32</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">composers</span> = <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    composers.<span class="title function_ invoke__">push</span>(Person&#123;name: <span class="string">&quot;Palestrina&quot;</span>.<span class="title function_ invoke__">to_string</span>(), birth: <span class="number">1525</span>&#125;);</span><br><span class="line">    composers.<span class="title function_ invoke__">push</span>(Person&#123;name: <span class="string">&quot;Dowland&quot;</span>.<span class="title function_ invoke__">to_string</span>(), birth: <span class="number">1563</span>&#125;);</span><br><span class="line">    composers.<span class="title function_ invoke__">push</span>(Person&#123;name: <span class="string">&quot;Lully&quot;</span>.<span class="title function_ invoke__">to_string</span>(), birth: <span class="number">1632</span>&#125;);</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">composer</span> <span class="keyword">in</span> &amp;composers &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;, born &#123;&#125;&quot;</span>, composer.name, composer.birth);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>composers</code> 的类型是 <code>Vec&lt;Person&gt;</code>，它在内存中的表示如下图所示：</p>
+<p><img data-src="composers-mem-like.png" alt="" /></p>
+<p>这里有很多所有权关系，但每个关系都非常简单：<code>composers</code> 拥有一个 <code>vector</code>，<code>vector</code> 拥有它的元素，每个元素都是 <code>Person</code> 结构体，每个结构体都拥有自己的字段，<code>name</code> 字段拥有其文本。当<code>composers</code>离开作用域时，程序会释放掉所有堆上分配的内存。</p>
+<p>从上面的示例来看，每个值都有一个所有者，所有者离开作用域值被释放。为了对开发友好，<code>Rust</code> 的所有权概念有一些变通：</p>
+<ul>
+<li>
+<p>值的所有者可以进行转移；</p>
+</li>
+<li>
+<p>简单的整数，浮点数，字符这些类型不受所有者规则约束，它们在参数传递，重新赋值时会进行拷贝，它们实现了 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/marker/trait.Copy.html"><code>Copy</code></a>；</p>
+</li>
+<li>
+<p>标准库提供了引用计数类型 <code>Rc</code> 和 <code>Arc</code>，允许值在某些规则下可以有多个所有者；</p>
+</li>
+<li>
+<p>可以借用值的引用，引用不改变值的所有者；</p>
+</li>
+</ul>
+<h3 id="所有权转移"><a class="markdownIt-Anchor" href="#所有权转移"></a> 所有权转移</h3>
+<p>在 <code>Rust</code> 中，赋值类操作，比如传递值给变量，或者从函数返回都不会复制值，仅仅是把值的所有权从一个变量转向另一个变量。来看一个例子说明值的所有权是如何转移的，而且在不同的语言中都是如何处理，我们对比 <code>Python</code>，<code>C++</code> 以及 <code>Rust</code>：</p>
+<div class="tabs" id="不同的语言的赋值"><ul class="nav-tabs"><li class="tab active"><a href="#不同的语言的赋值-1">Rust</a></li><li class="tab"><a href="#不同的语言的赋值-2">Python</a></li><li class="tab"><a href="#不同的语言的赋值-3">C++</a></li></ul><div class="tab-content"><div class="tab-pane active" id="不同的语言的赋值-1"><div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">s</span> = <span class="built_in">vec!</span>[<span class="string">&quot;udon&quot;</span>.<span class="title function_ invoke__">to_string</span>(), <span class="string">&quot;ramen&quot;</span>.<span class="title function_ invoke__">to_string</span>(), <span class="string">&quot;soba&quot;</span>.<span class="title function_ invoke__">to_string</span>()];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">t</span> = s;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">u</span> = s;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>当 <code>s</code> 初始化的时候，我们看到的是<code>s</code>拥有这个值，它的值的所有者：</p>
+<p><img data-src="rust-value-initialize.png" alt="s初始化" /></p>
+<p>但是在将 <code>s</code> 赋值给 <code>t</code> 之后，我们看到值的所有权转移了：</p>
+<p><img data-src="rust-value-move.png" alt="值得所有权从s转移至t" /></p>
+<p>但是在将 <code>s</code> 赋值给 <code>t</code> 之后，值得所有权从 <code>s</code> 转移到了 <code>t</code>，成了 <code>vector</code> 新的主人，这段代码在运行时会报如下的错误:</p>
+<pre><code>error[E0382]: use of moved value: `s`
+--&gt; src/main.rs:5:12
+|
+3 |     let s = vec![&quot;udon&quot;.to_string(), &quot;ramen&quot;.to_string(), &quot;soba&quot;.to_string()];
+|         - move occurs because `s` has type `Vec&lt;String&gt;`, which does not implement the `Copy` trait
+4 |     let t= s;
+|            - value moved here
+5 |     let u= s;
+|            ^ value used here after move
+</code></pre>
+<p>所以说这里将 <code>s</code> 赋值给 <code>t</code>，操作使很轻量的，没有内存的复制，只是值的所有权的转移。如果我们要实现内存的复制，我们需要对值进行 <code>clone</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">s</span> = <span class="built_in">vec!</span>[<span class="string">&quot;udon&quot;</span>.<span class="title function_ invoke__">to_string</span>(), <span class="string">&quot;ramen&quot;</span>.<span class="title function_ invoke__">to_string</span>(), <span class="string">&quot;soba&quot;</span>.<span class="title function_ invoke__">to_string</span>()];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">t</span>= s.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">u</span>= s.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="不同的语言的赋值-2"><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">s = [<span class="string">&#x27;udon&#x27;</span>, <span class="string">&#x27;ramen&#x27;</span>, <span class="string">&#x27;soba&#x27;</span>] </span><br><span class="line">t = s</span><br><span class="line">u = s</span><br></pre></td></tr></table></figure>
+<p>对于类似的代码，我们可以对比在<code>python</code>语言中，<code>s</code>初始化的时候，和值<code>s</code>赋值给<code>t</code>和<code>u</code>时的内存布局：</p>
+<div class="group-picture"><div class="group-picture-row"><div class="group-picture-column"><img data-src="py-value-initialize.png" alt="s初始化" /></div><div class="group-picture-column"><img data-src="py-value-ref.png" alt="s赋值给t和u" /></div></div></div>
+<p><code>Python</code> 的实现是将指针从<code>s</code>复制到<code>t</code>和<code>u</code>，并且更新列表对象的引用计数。</p></div><div class="tab-pane" id="不同的语言的赋值-3"><p>我们来看 C++ 中的代码：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line">vector&lt;string&gt; s = &#123; <span class="string">&quot;udon&quot;</span>, <span class="string">&quot;ramen&quot;</span>, <span class="string">&quot;soba&quot;</span> &#125;; </span><br><span class="line">vector&lt;string&gt; t = s;</span><br><span class="line">vector&lt;string&gt; u = s;</span><br></pre></td></tr></table></figure>
+<p><code>s</code> 新创建的时候，内存布局如下图所示:</p>
+<p><img data-src="cplusplus-assign.png" alt="" /></p>
+<p>在将 <code>s</code> 赋值给 <code>t</code> 和 <code>u</code> 之后如下图所示，可见<code>C++</code>实现了内存的复制:</p>
+<p><img data-src="cplus.png" alt="" /></p></div></div></div>
+<p>在通过 <code>let</code> 语句将值赋值给已经初始化的变量时，变量先前拥有的值将会被释放掉，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">s</span> = <span class="string">&quot;Govinda&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">s = <span class="string">&quot;Siddhartha&quot;</span>.<span class="title function_ invoke__">to_string</span>(); <span class="comment">//  &quot;Govinda&quot; 被释放掉</span></span><br></pre></td></tr></table></figure>
+<p>但是如果在给<code>s</code>重新赋值之前，将原先拥有的<code>Govinda</code>转移给另外的变量<code>t</code>，再赋值 <code>Siddhartha</code> 时，<code>s</code> 是未初始化状态，所以就不会释放任何值：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">s</span> = <span class="string">&quot;Govinda&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line"><span class="keyword">let</span> <span class="variable">t</span> = s;</span><br><span class="line">s = <span class="string">&quot;Siddhartha&quot;</span>.<span class="title function_ invoke__">to_string</span>(); <span class="comment">// 啥也不释放</span></span><br></pre></td></tr></table></figure>
+<p>除了赋值之外，函数参数传递，从函数返回值以及构建结构体或者 <code>tuple</code>，都会涉及到所有权的转移。下面这段代码展示了这几种情况：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">Person</span> &#123; name: <span class="type">String</span>, birth: <span class="type">i32</span> &#125;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">composers</span> = <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    composers.<span class="title function_ invoke__">push</span>(Person &#123; name: <span class="string">&quot;Palestrina&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        birth: <span class="number">1525</span> &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>
+<p>从函数返回值：<code>Vec::new()</code> 构造了一个新的 <code>vector</code> 并且返回，不是指向 <code>vector</code> 的指针，而是 <code>vector</code> 本身。它的所有权从 <code>Vec::new </code> 转移给了变量 <code>composers</code>。类似，<code>to_string</code> 也返回了一个新的 <code>String</code>；</p>
+</li>
+<li>
+<p>构造结构体或者<code>tuple</code>：<code>Person</code> 的 <code>name</code> 字段使用 <code>to_string</code> 方法返回了一个 <code>String</code>，因此这个结构体现在拥有这个 <code>String</code> 的所有权；</p>
+</li>
+<li>
+<p>传值到函数：整个 <code>Person</code> 结构体，传递给了 <code>vector</code> 的 <code>push</code> 方法，<code>vector</code> 拥有了 <code>Person</code> 的所有权，间接拥有了 <code>Palestrina</code> 的所有权；</p>
+</li>
+</ul>
+<p><strong>当一个变量拥有的值转移到其他变量，或者函数之后，原先的变量就会变得未初始化，在重新初始化之前是不能使用的。</strong></p>
+<p>在控制流中要尤其注意：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">x</span> = <span class="built_in">vec!</span>[<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>]; </span><br><span class="line"><span class="keyword">if</span> c &#123;</span><br><span class="line">    <span class="title function_ invoke__">f</span>(x); <span class="comment">// ... ok to move from x here </span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="title function_ invoke__">g</span>(x); <span class="comment">// ... and ok to also move from x here </span></span><br><span class="line">&#125;</span><br><span class="line"><span class="title function_ invoke__">h</span>(x); <span class="comment">// 这里不能使用x了，除非重新初始化它</span></span><br></pre></td></tr></table></figure></div>
+<h3 id="所有权转移和索引"><a class="markdownIt-Anchor" href="#所有权转移和索引"></a> 所有权转移和索引</h3>
+<p><code>move</code> 会让值的原所有者变得未初始化，因为它的所有者换人了，但不是所有类型的值都会这样。</p>
+<div class="note danger"><p>例如，这段代码无法正常编译：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// Build a vector of the strings &quot;101&quot;, &quot;102&quot;, ... &quot;105&quot;</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">v</span> = <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">i</span> <span class="keyword">in</span> <span class="number">101</span>..<span class="number">106</span> &#123;</span><br><span class="line">        v.<span class="title function_ invoke__">push</span>(i.<span class="title function_ invoke__">to_string</span>());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Pull out random elements from the vector.</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">third</span> = v[<span class="number">2</span>]; <span class="comment">// error: Cannot move out of index of Vec</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">fifth</span> = v[<span class="number">4</span>]; <span class="comment">// here too</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>试图运行此段代码会遇到下面的错误:</p>
+<pre><code>--&gt; src/main.rs:9:17
+|
+9 |     let third = v[2]; // error: Cannot move out of index of Vec
+|                 ^^^^
+|                 |
+|                 move occurs because value has type `String`, which does not implement the `Copy` trait
+|                 help: consider borrowing here: `&amp;v[2]`
+</code></pre>
+<p>理解这里为什么不能编译其实也很简单，站在编程语言的角度，如果允许这样做，那么 <code>vector</code> 就需要记录哪些元素是活着的，哪些元素被 <code>move</code> 而变得未初始化。根据错误提示，我们可以用一个引用。</p>
+</div>
+<p>但是如果我们确实想获取 <code>vector</code> 中一些元素的所有权，我们可以使用一些方法：</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// Build a vector of the strings &quot;101&quot;, &quot;102&quot;, &quot;103&quot;, &quot;104&quot;, &quot;105&quot;</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">v</span> = <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">i</span> <span class="keyword">in</span> <span class="number">101</span>..<span class="number">106</span>&#123;</span><br><span class="line">        v.<span class="title function_ invoke__">push</span>(i.<span class="title function_ invoke__">to_string</span>());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1. 从 vector 中弹出最后一个元素</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">fifth</span> = v.<span class="title function_ invoke__">pop</span>().<span class="title function_ invoke__">expect</span>(<span class="string">&quot;vector empty!&quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(fifth, <span class="string">&quot;105&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 从指定的索引处取出一个值，并且将最后一个元素填充到这里</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">second</span> = v.<span class="title function_ invoke__">swap_remove</span>(<span class="number">1</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(second, <span class="string">&quot;102&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. 替换指定位置的值</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">third</span> = std::mem::<span class="title function_ invoke__">replace</span>(&amp;<span class="keyword">mut</span> v[<span class="number">2</span>], <span class="string">&quot;substitute&quot;</span>.<span class="title function_ invoke__">to_string</span>());</span><br><span class="line">    <span class="built_in">assert_eq!</span>(third, <span class="string">&quot;103&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 现在 vector 的值如下所示</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(v, <span class="built_in">vec!</span>[<span class="string">&quot;101&quot;</span>, <span class="string">&quot;104&quot;</span>, <span class="string">&quot;substitute&quot;</span>]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>类似 <code>Vec</code> 的集合类方法也提供了用于消费它们中的元素的方法，当我们直接将 <code>vector</code> 传递给 <code>for</code> 语句时，实际上我们已经将 <code>v</code> 的所有权转移了，<code>v</code> 处于未初始化状态，下面这段代码也是不能编译的。</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">v</span> = <span class="built_in">vec!</span>[</span><br><span class="line">        <span class="string">&quot;liberté&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        <span class="string">&quot;égalité&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        <span class="string">&quot;fraternité&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">    ];</span><br><span class="line">    <span class="keyword">for</span> <span class="title class_">mut</span> s <span class="keyword">in</span> v &#123;</span><br><span class="line">        s.<span class="title function_ invoke__">push</span>(<span class="string">&#x27;!&#x27;</span>);</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, s);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, v);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>根据编译器提示是由于隐式调用了 <code>into_iter</code> 方法，<code>vector</code> 的所有权被转移，<code>v</code> 已经变成未初始化状态：</p>
+<pre><code>error[E0382]: borrow of moved value: `v`
+--&gt; src/main.rs:11:22
+    |
+2   |     let v = vec![
+    |         - move occurs because `v` has type `Vec&lt;String&gt;`, which does not implement the `Copy` trait
+...
+7   |     for mut s in v {
+    |                  - `v` moved due to this implicit call to `.into_iter()`
+...
+11  |     println!(&quot;{:?}&quot;, v);
+    |                      ^ value borrowed here after move
+    |
+</code></pre>
+<p><code>for</code> 循环运行过程中，它会获取 <code>vector</code> 的所有权，并且在每次迭代的过程中将它赋值给 <code>s</code>。</p>
+</div>
+<h3 id="copy-类型的所有权转移"><a class="markdownIt-Anchor" href="#copy-类型的所有权转移"></a> Copy 类型的所有权转移</h3>
+<p>本节到目前为止，所展示的所有权转移示例示例涉及 <code>vector</code>、字符串等这些类型可能会占用大量内存的类型，并且复制成本高昂，通过 <code>move</code> 转移值的所有权会使操作成本低廉。但对于整数或字符等更简单的类型，这种出于成本的考虑就没有必要了。我们来看下面这段代码就能看到他们之间的差别：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">string1</span> = <span class="string">&quot;somnambulance&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">string2</span> = string1;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">num1</span>: <span class="type">i32</span> = <span class="number">36</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">num2</span> = num1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>字符串类型会执行所有权转移的策略，而对于简单类型，则是采取复制策略：</p>
+<p><img data-src="string-int-move-cmp.png" alt="" /></p>
+<p>实际上，在处理 <code>Copy</code> 类型时，是复制值而不是 <code>move</code>，标准的 <code>Copy</code> 类型包括了所有的整数，浮点数，<code>char</code>，<code>bool</code> 类型以及大小固定的数组或者<code>tuple</code>，或者说可以按 <code>bit</code> 复制的类型都能被 <code>Copy</code>，<code>String</code> 由于包含一个堆中的缓冲池，所以不允许 <code>Copy</code>，<code>Box&lt;T&gt;</code> 类似。而 <code>File</code>类型包含了一个操作系统的文件句柄，所以也不能 <code>Copy</code>。还有例如 <code>MutexGuard</code> 互斥锁类型，复制是没有意义的，并且只能由一个线程持有。</p>
+<p><strong>根据经验，当值被删除时需要做一些特殊事情的任何类型都不能复制</strong>：<code>Vec</code> 需要释放其元素，<code>File</code> 需要关闭句柄，<code>MutexGuard</code> 需要解锁，这种类型的位按<code>bit</code>复制将会导致谁拥有原始的资源不清晰。</p>
+<div class="note danger"><p>默认情况下，自定义的类型是不能复制的，所以我们自己定义的结构体或者枚举都不满足复制条件。例如下面这段代码会编译失败：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">Label</span> &#123;</span><br><span class="line">        number: <span class="type">u32</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">print</span>(l: Label) &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;STAMP: &#123;&#125;&quot;</span>, l.number);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">l</span> = Label &#123; number: <span class="number">3</span> &#125;;</span><br><span class="line">    <span class="title function_ invoke__">print</span>(l);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;My label number is: &#123;&#125;&quot;</span>, l.number);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>原因是 <code>Label</code> 不能 <code>Copy</code>，在调用 <code>print</code> 函数的时候，<code>l</code> 拥有的值已经被转移，在调用结束之后被释放掉：</p>
+<pre><code>error[E0382]: borrow of moved value: `l`
+--&gt; src/main.rs:13:40
+|
+11 |     let l = Label { number: 3 };
+|         - move occurs because `l` has type `Label`, which does not implement the `Copy` trait
+12 |     print(l);
+|           - value moved here
+13 |     println!(&quot;My label number is: {}&quot;, l.number);
+|                                        ^^^^^^^^ value borrowed here after move
+|
+</code></pre>
+</div>
+<p>但是这个设计看起来很蠢，因为我们结构体里面的都是基本类型。如果我们想这样做，并且结构体内部所有字段都是可复制的，那么我们可以通过 <code>#[derive(Copy, Clone)]</code> 来标记我们的结构体，这样就上面的代码就可以编译通过了：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">#[derive(Copy, Clone)]</span></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">Label</span> &#123;</span><br><span class="line">        number: <span class="type">u32</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">print</span>(l: Label) &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;STAMP: &#123;&#125;&quot;</span>, l.number);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">l</span> = Label &#123; number: <span class="number">3</span> &#125;;</span><br><span class="line">    <span class="title function_ invoke__">print</span>(l);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;My label number is: &#123;&#125;&quot;</span>, l.number);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是如果我们的结构体内部包含 <code>String</code> 字段，还是会编译失败，原因是 <code>String</code> 类型没有实现 <code>Copy</code>，不能复制：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="meta">#[derive(Copy, Clone)]</span></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">Label</span> &#123;</span><br><span class="line">        name: <span class="type">String</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">print</span>(l: Label) &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;STAMP: &#123;&#125;&quot;</span>, l.name);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">l</span> = Label &#123;</span><br><span class="line">        name: <span class="string">&quot;michael&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="title function_ invoke__">print</span>(l);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;My label number is: &#123;&#125;&quot;</span>, l.name);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<pre><code>error[E0204]: the trait `Copy` may not be implemented for this type
+--&gt; src/main.rs:2:14
+|
+2 |     #[derive(Copy, Clone)]
+|              ^^^^
+3 |     struct Label {
+4 |         name: String,
+|         ------------ this field does not implement `Copy`
+|
+</code></pre>
+</div>
+<p>复制类型更灵活，因为他不会导致值原来的所有者处于未初始化状态。但是这对于一个类型的开发者来说恰好相反，更希望类型的负影响更小，而且 <code>Copy</code> 类型可以包含的类型非常有限，非复制类型可以使用堆分配内存并且拥有其他类型。</p>
+<h3 id="rc-和-arc共享所有权"><a class="markdownIt-Anchor" href="#rc-和-arc共享所有权"></a> <code>Rc</code> 和 <code>Arc</code>：共享所有权</h3>
+<p>尽管在 <code>Rust</code> 中，大多数情况下，每个值都拥有唯一的所有者，但是在某些情况下，我们可能希望某个值在所有人都不用的情况下再去释放它。为了应对这种情况，<code>Rust</code> 提供了 <code>Rc</code> 和 <code>Arc</code> 两种引用计数类型。<code>Rc</code> 和 <code>Arc(Atomic Reference Count)</code> 的唯一区别是，<code>Arc</code> 是线程安全的，支持多线程，但是性能有影响，所以，如果不需要线程共享，应该使用 <code>Rc</code>。</p>
+<p>我们来看下面这个示例，和 <code>Python</code> 很像，对于任何类型 <code>T</code>，<code>Rc&lt;T&gt;</code> 和 <code>Arc&lt;T&gt;</code> 的值是一个指向堆内存的指针和一个引用计数。<code>clone</code> 操作不会复制 <code>T</code>，而是简单地创建一个指针指向堆中的内存，并且增加引用计数。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::rc::Rc;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// Rust can infer all these types; written out for clarity</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">s</span>: Rc&lt;<span class="type">String</span>&gt; = Rc::<span class="title function_ invoke__">new</span>(<span class="string">&quot;shirataki&quot;</span>.<span class="title function_ invoke__">to_string</span>());</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">t</span>: Rc&lt;<span class="type">String</span>&gt; = s.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">u</span>: Rc&lt;<span class="type">String</span>&gt; = s.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这段代码的内存布局如下图所示，这里的 <code>s</code>，<code>t</code>，<code>u</code> 都指向了相同的内存块，当它们的最后一个离开作用域时，堆中的内存被释放掉：</p>
+<p><img data-src="rc-arc-value-mme-layout.png" alt="" /></p>
+<p>可以直接使用 <code>T</code> 类型的方法，这里我们可以用 <code>String</code> 的方法：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::rc::Rc;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// Rust can infer all these types; written out for clarity</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">s</span>: Rc&lt;<span class="type">String</span>&gt; = Rc::<span class="title function_ invoke__">new</span>(<span class="string">&quot;shirataki&quot;</span>.<span class="title function_ invoke__">to_string</span>());</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">t</span>: Rc&lt;<span class="type">String</span>&gt; = s.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">u</span>: Rc&lt;<span class="type">String</span>&gt; = s.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    <span class="built_in">assert!</span>(s.<span class="title function_ invoke__">contains</span>(<span class="string">&quot;shira&quot;</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(t.<span class="title function_ invoke__">find</span>(<span class="string">&quot;taki&quot;</span>), <span class="title function_ invoke__">Some</span>(<span class="number">5</span>));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; are quite chewy, almost bouncy, but lack flavor&quot;</span>, u);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是 <code>Rc&lt;T&gt;</code> 持有的指针是不可变的，所以我们不能更改所包含的字符串：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">s.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; noodles&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>这段代码在编译时会出现错误：</p>
+<pre><code>error[E0596]: cannot borrow data in an `Rc` as mutable
+--&gt; src/main.rs:11:5
+|
+11 |     s.push_str(&quot; noodles&quot;);
+|     ^^^^^^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+|
+= help: trait `DerefMut` is required to modify through a dereference, but it is not implemented for `Rc&lt;String&gt;`
+</code></pre>
+<p>这是因为 <code>Rust</code> 的内存安全策略是：共享可读和可修改只能同时存在一个，而 <code>Rc</code> 就是为了多人共享而存在。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/" title="【Rust】所有权">https://blog.fudenglong.site/2022/04/12/Rust/【Rust】所有权/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+              <a href="/tags/%E6%89%80%E6%9C%89%E6%9D%83/" rel="tag"># 所有权</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/" rel="prev" title="【Rust】基础类型">
+                  <i class="fa fa-angle-left"></i> 【Rust】基础类型
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/" rel="next" title="【Rust】引用">
+                  【Rust】引用 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>
