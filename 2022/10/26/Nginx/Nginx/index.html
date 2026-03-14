@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="环境准备 以下使用 docker 准备学习环境。  先拉取centos的最新镜像：docker image pull centos 创建一个数据卷用于存放容器中产生的文件：docker volume create centos 启动我们的容器：docker run -d -it -v centos:&#x2F;workdir --name centos  centos &#x2F;bin&#x2F;bash 进入我们的容器">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Nginx">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="环境准备 以下使用 docker 准备学习环境。  先拉取centos的最新镜像：docker image pull centos 创建一个数据卷用于存放容器中产生的文件：docker volume create centos 启动我们的容器：docker run -d -it -v centos:&#x2F;workdir --name centos  centos &#x2F;bin&#x2F;bash 进入我们的容器">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/cover.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/scene.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/compile.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/directory.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/version.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/version-1.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/new-version.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/pids.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/close-worker.png">
+<meta property="article:published_time" content="2022-10-26T15:03:57.000Z">
+<meta property="article:modified_time" content="2022-10-26T15:03:57.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="Nginx">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/cover.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/","path":"2022/10/26/Nginx/Nginx/","title":"Nginx"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Nginx | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87"><span class="nav-number">1.</span> <span class="nav-text"> 环境准备</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#nginx-%E7%9A%84%E4%B8%BB%E8%A6%81%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">2.</span> <span class="nav-text"> Nginx 的主要应用场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#nginx-%E7%9A%84%E7%BB%84%E6%88%90%E9%83%A8%E5%88%86"><span class="nav-number">3.</span> <span class="nav-text"> Nginx 的组成部分</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%83%AD%E9%83%A8%E7%BD%B2"><span class="nav-number">4.</span> <span class="nav-text"> 热部署</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#nginx-%E5%91%BD%E4%BB%A4%E8%A1%8C"><span class="nav-number">5.</span> <span class="nav-text"> nginx 命令行</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#nginx-%E5%B8%B8%E7%94%A8%E9%85%8D%E7%BD%AE%E5%AD%A6%E4%B9%A0"><span class="nav-number">6.</span> <span class="nav-text"> nginx 常用配置学习</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90%E8%AE%BF%E9%97%AE%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="nav-number">6.1.</span> <span class="nav-text"> 配置静态资源访问服务器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AE%B0%E5%BD%95-access-%E6%97%A5%E5%BF%97"><span class="nav-number">6.2.</span> <span class="nav-text"> 记录 access 日志</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BC%80%E5%90%AF-gzip-%E5%8E%8B%E7%BC%A9"><span class="nav-number">6.3.</span> <span class="nav-text"> 开启 gzip 压缩</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BC%80%E5%90%AF%E9%98%B2%E7%9B%97%E9%93%BE"><span class="nav-number">6.4.</span> <span class="nav-text"> 开启防盗链</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86"><span class="nav-number">6.5.</span> <span class="nav-text"> 反向代理</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%8C%87%E4%BB%A4"><span class="nav-number">7.</span> <span class="nav-text"> 配置指令</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#location"><span class="nav-number">7.1.</span> <span class="nav-text"> location</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%B7%AF%E7%94%B1%E9%87%8D%E5%86%99"><span class="nav-number">7.2.</span> <span class="nav-text"> 路由重写</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#break-%E6%8C%87%E4%BB%A4"><span class="nav-number">7.2.1.</span> <span class="nav-text"> break 指令</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#if-%E6%8C%87%E4%BB%A4"><span class="nav-number">7.2.2.</span> <span class="nav-text"> if 指令</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#return-%E6%8C%87%E4%BB%A4"><span class="nav-number">7.2.3.</span> <span class="nav-text"> return 指令</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#rewrite-%E6%8C%87%E4%BB%A4"><span class="nav-number">7.2.4.</span> <span class="nav-text"> rewrite 指令</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#rewrite_log-%E6%8C%87%E4%BB%A4"><span class="nav-number">7.2.5.</span> <span class="nav-text"> rewrite_log 指令</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#set-%E6%8C%87%E4%BB%A4"><span class="nav-number">7.2.6.</span> <span class="nav-text"> set 指令</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#uninitialized_variable_warn-%E6%8C%87%E4%BB%A4"><span class="nav-number">7.2.7.</span> <span class="nav-text"> uninitialized_variable_warn 指令</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%98%85%E8%AF%BB"><span class="nav-number">8.</span> <span class="nav-text"> 参考阅读</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Nginx | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Nginx
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-10-26 23:03:57" itemprop="dateCreated datePublished" datetime="2022-10-26T23:03:57+08:00">2022-10-26</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Nginx/" itemprop="url" rel="index"><span itemprop="name">Nginx</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>11 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><img data-src="/2022/10/26/Nginx/Nginx/cover.png" class="" title="cover">
+<h3 id="环境准备"><a class="markdownIt-Anchor" href="#环境准备"></a> 环境准备</h3>
+<p>以下使用 <code>docker</code> 准备学习环境。</p>
+<ol>
+<li>先拉取<code>centos</code>的最新镜像：<code>docker image pull centos</code></li>
+<li>创建一个数据卷用于存放容器中产生的文件：<code>docker volume create centos</code></li>
+<li>启动我们的容器：<code>docker run -d -it -v centos:/workdir --name centos  centos /bin/bash</code></li>
+<li>进入我们的容器：<code>docker exec -it centos /bin/bash</code></li>
+</ol>
+<h3 id="nginx-的主要应用场景"><a class="markdownIt-Anchor" href="#nginx-的主要应用场景"></a> Nginx 的主要应用场景</h3>
+<ol>
+<li>静态资源服务，即通过本地文件系统提供服务；</li>
+<li>反向代理服务，提供缓存，负载均衡功能；</li>
+<li><code>API</code>服务，通过<code>Openresty</code>直接访问数据库；</li>
+</ol>
+<img data-src="/2022/10/26/Nginx/Nginx/scene.png" class="" title="cover">
+<span id="more"></span>
+<h3 id="nginx-的组成部分"><a class="markdownIt-Anchor" href="#nginx-的组成部分"></a> Nginx 的组成部分</h3>
+<ol>
+<li><code>Nginx</code> 二进制可执行文件；</li>
+<li><code>Nginx.conf</code> <code>Nginx</code> 配置文件，控制<code>Nginx</code>的行文；</li>
+<li><code>access.log</code> 访问日志，记录一条 <code>http</code> 请求信息；</li>
+<li><code>error.log</code> 错误日志；</li>
+</ol>
+<h3 id="热部署"><a class="markdownIt-Anchor" href="#热部署"></a> 热部署</h3>
+<p>为了便于演示，在编译<code>Nginx</code>的时候添加<a target="_blank" rel="noopener" href="https://github.com/openresty/echo-nginx-module"><code>echo-nginx-module</code></a>模块，记录一次编译（我所有的操作都是在目录 <code>/workdir</code>下）：</p>
+<ol>
+<li>
+<p>源代码下载页面：<a target="_blank" rel="noopener" href="http://nginx.org/en/download.html"><code>http://nginx.org/en/download.html</code></a> 先下载 <code>1.14.1</code> 版本，然后升级到 <code>1.15.6</code> 最新版；</p>
+</li>
+<li>
+<p>下载源代码并且解压，<code>wget http://nginx.org/download/nginx-1.14.1.tar.gz</code>，然后 <code>tar -xzvf nginx-1.14.1.tar.gz</code></p>
+</li>
+<li>
+<p>下载 <a target="_blank" rel="noopener" href="https://github.com/openresty/echo-nginx-module"><code>nginx-echo-module</code></a>，<code>wget https://github.com/openresty/echo-nginx-module/archive/master.zip -O nginx-echo-module.zip</code>，并且解压：<code>unzip nginx-echo-module.zip</code></p>
+</li>
+<li>
+<p>我们开始编译，<code>./configure --prefix=/workdir/nginx --add-module=/workdir/echo-nginx-module-master</code></p>
+</li>
+<li>
+<p>结束之后，我们执行：<code>make</code>，这时候nginx已经编译好，在 <code>objs</code> 目录下，例如：</p>
+<p><img data-src="compile.png" alt="compile.png" /></p>
+</li>
+<li>
+<p>首次编译，我们执行 <code>make install</code> 安装我们执行的目录：<code>/workdir/nginx</code></p>
+</li>
+<li>
+<p>至此将看到如下的目录结构：</p>
+<p><img data-src="directory.png" alt="directory.png" /></p>
+</li>
+<li>
+<p>修改Nginx的配置文件让其输出版本号，便于以后升级比较，<code>vim nginx/cong/nginx.conf</code>：</p>
+<p><img data-src="version.png" alt="version" /></p>
+<p>利用我们添加的<code>echo</code>模块中包含的 <code>echo</code> 指令输出 Nginx的版本号。</p>
+</li>
+<li>
+<p>启动 Nginx （执行命令 <code>./nginx/sbin/nginx</code>）之后，我们访问: <code>http://localhost/version</code>，将会看到：</p>
+<p><img data-src="version-1.png" alt="visit version" /></p>
+</li>
+<li>
+<p>我们下载 <code>1.15.6</code> 版本，并且编译好，编译的时候依然带上<code>echo</code> 模块，但不要执行 <code>make install</code>，将会看到如下结构：</p>
+<p><img data-src="new-version.png" alt="new-version" /></p>
+</li>
+<li>
+<p>由于热更新只是替换二进制文件，但是我们在操作之前先备份旧的二进制文件：<code>cp ./nginx/sbin/nginx ./nginx/sbin/nginx.old</code></p>
+</li>
+<li>
+<p>使用新版的<code>Nginx</code>二进制文件替换掉当前正在使用中的：<code>cp -f  nginx-1.15.6/objs/nginx ./nginx/sbin/nginx</code></p>
+</li>
+<li>
+<p>发送信号至正在运行的Nginx，告诉它我们要进行热部署，升级Nginx，<code>kill -USR2 MasterPID</code></p>
+<p><img data-src="pids.png" alt="查看正在运行的nginx进程" /></p>
+<p>这个时候会使用新的二进制文件新起一个<code>master</code>进程，并且将新的请求转到新的<code>worker</code>进程中处理，旧的<code>master</code>和<code>worker</code>虽然仍然存活，但已经不再监听相应的端口并且接受请求了，这个时候我们在查看版本号，就是升级之后的版本了：</p>
+<pre><code>[root@5b4bb2c41637 sbin]# curl http://localhost/version
+1.15.6
+</code></pre>
+</li>
+<li>
+<p>关闭老的 <code>worker</code> 进程，发送信号给旧的 <code>MasterPID</code>，<code>kill -WINCH MasterPID</code>：</p>
+<p><img data-src="close-worker.png" alt="close-worker" /></p>
+<p>可以看到老的<code>worker</code>进程已经关闭了，但是此时老的<code>master</code>进程依然存在，是因为如果升级有问题，我们还可回退。回滚的时候，向老的 <code>master</code> 进程发送 <code>HUP</code>信号，向新的 <code>master</code> 发送 <code>QUIT</code> 信号。</p>
+</li>
+<li>
+<p>如果正常升级之后，应该给老的 <code>master</code> 进程发送 <code>QUIT</code> 信号，使其优雅退出。</p>
+</li>
+</ol>
+<h3 id="nginx-命令行"><a class="markdownIt-Anchor" href="#nginx-命令行"></a> nginx 命令行</h3>
+<ol>
+<li><code>nginx -s quit</code> 优雅退出进程</li>
+<li><code>nginx -s stop</code> 立即退出进程</li>
+</ol>
+<h3 id="nginx-常用配置学习"><a class="markdownIt-Anchor" href="#nginx-常用配置学习"></a> nginx 常用配置学习</h3>
+<h4 id="配置静态资源访问服务器"><a class="markdownIt-Anchor" href="#配置静态资源访问服务器"></a> 配置静态资源访问服务器</h4>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">server &#123;</span><br><span class="line">    listen 8081;</span><br><span class="line">    location / &#123;</span><br><span class="line">        root /workdir/libc;</span><br><span class="line">        index index.html index.htm;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="记录-access-日志"><a class="markdownIt-Anchor" href="#记录-access-日志"></a> 记录 <code>access</code> 日志</h4>
+<p>使用 <a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_log_module.html"><code>ngx_http_log_module</code></a> 模块我们来配置记录访问日志：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">http &#123;</span><br><span class="line">    include       mime.types;</span><br><span class="line">    default_type  application/octet-stream;</span><br><span class="line"></span><br><span class="line">    # 设置日志格式</span><br><span class="line">    log_format  main  &#x27;$remote_addr - $remote_user [$time_local] &quot;$request&quot; &#x27;</span><br><span class="line">                      &#x27;$status $body_bytes_sent &quot;$http_referer&quot; &#x27;</span><br><span class="line">                      &#x27;&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;&#x27;;</span><br><span class="line"></span><br><span class="line">    sendfile        on;</span><br><span class="line">    #tcp_nopush     on;</span><br><span class="line"></span><br><span class="line">    #keepalive_timeout  0;</span><br><span class="line">    keepalive_timeout  65;</span><br><span class="line"></span><br><span class="line">    #gzip  on;</span><br><span class="line"></span><br><span class="line">    server &#123;</span><br><span class="line">        listen       80;</span><br><span class="line">        server_name  localhost;</span><br><span class="line">        # 开启访问日志</span><br><span class="line">        access_log  logs/access.log  main;</span><br><span class="line">        location / &#123;</span><br><span class="line">            root   html;</span><br><span class="line">            index  index.html index.htm;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        location /version &#123;</span><br><span class="line">	        echo $nginx_version;</span><br><span class="line">	    &#125;</span><br><span class="line">        error_page   500 502 503 504  /50x.html;</span><br><span class="line">        location = /50x.html &#123;</span><br><span class="line">            root   html;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    include vhost/*.conf;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="开启-gzip-压缩"><a class="markdownIt-Anchor" href="#开启-gzip-压缩"></a> 开启 <code>gzip</code> 压缩</h4>
+<p>使用 <a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_gzip_module.html"><code>ngx_http_gzip_module</code></a> 提供的功能，对静态文件进行压缩</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">http &#123;</span><br><span class="line">    ....</span><br><span class="line">    gzip on;</span><br><span class="line">    # 小于1k不压缩</span><br><span class="line">    gzip_min_length  1k;</span><br><span class="line">    gzip_buffers     4 16k;</span><br><span class="line">    gzip_http_version 1.1;</span><br><span class="line">    # 设置压缩级别</span><br><span class="line">    gzip_comp_level 2;</span><br><span class="line">    gzip_types  text/plain application/javascript application/x-javascript text/javascript text/css application/xml;</span><br><span class="line">    gzip_vary on;</span><br><span class="line">    gzip_proxied   expired no-cache no-store private auth;</span><br><span class="line">    # IE6 一下禁用</span><br><span class="line">    gzip_disable   &quot;MSIE [1-6]\.&quot;;</span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="开启防盗链"><a class="markdownIt-Anchor" href="#开启防盗链"></a> 开启防盗链</h4>
+<p>使用 <a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_referer_module.html"><code>ngx_http_referer_module</code></a> 提供的功能实现防盗链：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">location ~ .*\.(gif|jpg|jpeg|png|bmp|swf)$</span><br><span class="line">&#123;</span><br><span class="line">    valid_referers blocked server_names *.fudenglong.site;</span><br><span class="line">    if ($invalid_referer) &#123;</span><br><span class="line">        return 403;</span><br><span class="line">    &#125;</span><br><span class="line">    expires      30d;</span><br><span class="line">    access_log off; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="反向代理"><a class="markdownIt-Anchor" href="#反向代理"></a> 反向代理</h4>
+<p>使用 <a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream"><code>ngx_http_upstream_module</code></a> 模块提供的 <code>upstream</code> 来配置上游服务器：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">upstream local &#123;</span><br><span class="line">    server 127.0.0.1:8080</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>指定某些路径配置反向代理，使用<a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_proxy_module.html"><code>ngx_http_proxy_module</code></a>提供的指令：</p>
+<p><a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_path"><code>proxy_cache_path</code></a> 配置缓存存储路径：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">proxy_cache_path /tmp/nginxcache levels=1:2 keys_zone=my_cache:10m max_size=10g inactive=60m use_temp_path=off;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">location / &#123;</span><br><span class="line">    proxy_set_header Host $host;</span><br><span class="line">    proxy_set_headet X-Real-IP $remote_addr;</span><br><span class="line">    proxy_set_header X-Forward-For $proxy_add_x_forwarded_for;</span><br><span class="line"></span><br><span class="line">    proxy_cache my_cache;</span><br><span class="line">    proxy_cache_key $host$uri$is_args$args;</span><br><span class="line">    proxy_cache_valid 200 304 302 1d;</span><br><span class="line">    proxy_pass http://local;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="配置指令"><a class="markdownIt-Anchor" href="#配置指令"></a> 配置指令</h3>
+<h4 id="location"><a class="markdownIt-Anchor" href="#location"></a> <code>location</code></h4>
+<p><code>location</code> 配置指令是由 <a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_core_module.html#location">ngx_http_core_module</a> 模块提供，它的配置是下面这个样组的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">语法:  location [ = | ~ | ~* | ^~ ] uri &#123; ... &#125;</span><br><span class="line">       location @name &#123; ... &#125;</span><br><span class="line">默认:   —</span><br><span class="line">上下文: server, location</span><br></pre></td></tr></table></figure>
+<p>它主要是用于根据请求 <code>URL</code> 设置配置，在解码以 <code>％XX</code> 形式编码的文本，解析对相对路径组件 <code>.</code>和<code>..</code>的引用，并将两个或多个相邻斜杠<code>/</code>的可能<a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_core_module.html#merge_slashes">压缩</a>为单个斜杠之后，对规范化的URI执行匹配。</p>
+<p>一个<code>location</code> 可以被一个前缀字符串定义或者一个正则表达式，正则表达式通过 <code>~*</code>(大小写不敏感) 或者 <code>~</code>(大小写敏感) 指定。为了找到与给定请求匹配的 <code>location</code> ，<code>nginx</code> 首先检查使用前缀字符串定义的 <code>location</code>，其中有最长匹配前缀的将被使用，然后按照他们在配置文件中出现的顺序检查正则表达式，正则表达式的搜索在第一个匹配时终止，并使用相应的配置。如果未找到与正则表达式的匹配，则使用先前记住的前缀位置的配置。</p>
+<p><code>location</code> 块是可以嵌套的，但是除了下面提到的。</p>
+<p>对于不区分大小写的操作系统（如<code>macOS</code>和<code>Cygwi</code>n），与前缀字符串匹配会忽略大小写（<code>0.7.7</code>）。</p>
+<p>正则表达式可以包含捕获组，用于后续的其他指令。</p>
+<p>如果最长匹配前缀位置具有“^〜”修饰符，则不检查正则表达式。</p>
+<p>此外，使用<code>=</code>修饰符可以定义<code>URI</code>和位置的精确匹配。如果找到完全匹配，则搜索终止。例如，如果频繁发生<code>/</code>请求，则定义<code>location = /</code>将加速这些请求的处理，因为搜索在第一次比较之后立即终止。这样的 <code>location</code> 显然不能包含嵌套 <code>location</code>。</p>
+<p>我们来通过一个例子说明情况：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">location = / &#123;</span><br><span class="line">    [ configuration A ]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">location / &#123;</span><br><span class="line">    [ configuration B ]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">location /documents/ &#123;</span><br><span class="line">    [ configuration C ]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">location ^~ /images/ &#123;</span><br><span class="line">    [ configuration D ]</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">location ~* \.(gif|jpg|jpeg)$ &#123;</span><br><span class="line">    [ configuration E ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>/</code> 请求将会匹配 <code>A</code>，<code>/index.html</code> 将会匹配 <code>B</code>，<code>/documents/document.html</code> 将会匹配 <code>C</code>，<code>/images/1.gif</code> 将会匹配 <code>D</code>，<code>/documents/1.jpg</code> 将会匹配 <code>E</code>。</p>
+<p><code>@</code> 用于定义一个命名 <code>location</code>，这样的 <code>location</code> 不用于常规请求处理，而是用于请求重定向。它们不能嵌套，也不能包含嵌套 <code>location</code>。</p>
+<p>匹配顺序是：先精确匹配，然后前缀匹配取最长匹配，然后是正则表达式；但是如果前缀匹配到 <code>^~</code> 则不会进行正则表达式匹配，如果匹配到的最长前缀前面没有 <code>^~</code> 则会继续按声明顺序进行正则表达式匹配，取匹配到的第一个正则表达式，否则匹配前缀匹配。</p>
+<h4 id="路由重写"><a class="markdownIt-Anchor" href="#路由重写"></a> 路由重写</h4>
+<p><code>NGINX</code> 通过 <a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_rewrite_module.html#internals"><code>ngx_http_rewrite_module</code></a> 模块支持<code>URL</code>重写，支持 if 条件判断，但不支持 else。</p>
+<p><code>NGINX rewrite</code> 指令执行顺序：</p>
+<ol>
+<li>执行 <code>server</code> 快的 <code>rewrite</code> 指令；</li>
+<li>执行 <code>location</code> 匹配；</li>
+<li>执行选定的 <code>location</code> 中的 <code>rewrite</code> 指令；</li>
+</ol>
+<p>如果其中某一步 <code>URI</code> 被重写，则重新执行循环 <code>1-3</code>，直到找到真实存在的文件，如果循环超过<code>10</code>次，则返回 <code>500</code> 错误。</p>
+<h5 id="break-指令"><a class="markdownIt-Anchor" href="#break-指令"></a> <code>break</code> 指令</h5>
+<p><code>break</code> 的作用域为 <code>server, location, if</code>，用于停止当前虚拟主机的后续 <code>rewrite</code> 指令集：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">if ($slow) &#123;</span><br><span class="line">    limit_rate 10k;</span><br><span class="line">    break;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="if-指令"><a class="markdownIt-Anchor" href="#if-指令"></a> <code>if</code> 指令</h5>
+<p>语法：<code>if(condition) &#123;...&#125;</code><br />
+默认值：无<br />
+作用域：<code>server, location</code></p>
+<p>对给定的条件 <code>condition</code> 进行判断。如果为真，大括号内的 <code>rewrite</code> 指令将被执行。<code>if</code>条件( <code>condition</code> )可以是如下任何内容：</p>
+<ul>
+<li>一个变量名；<code>false</code>如果这个变量是空字符串或者以<code>0</code>开始的字符串；</li>
+<li>使用<code>= ,!= </code>比较的一个变量和字符串</li>
+<li>是用<code>~， ~*</code>与正则表达式匹配的变量，如果这个正则表达式中包含}，;则整个表达式需要用&quot; 或’ 包围</li>
+<li>使用<code>-f ，!-f</code> 检查一个文件是否存在</li>
+<li>使用<code>-d, !-d</code> 检查一个目录是否存在</li>
+<li>使用<code>-e ，!-e</code> 检查一个文件、目录、符号链接是否存在</li>
+<li>使用<code>-x ， !-x</code> 检查一个文件是否可执行</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">if ($http_user_agent ~ MSIE) &#123;</span><br><span class="line">    rewrite ^(.*)$ /msie/$1 break;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">if ($http_cookie ~* &quot;id=([^;]+)(?:;|$)&quot;) &#123;</span><br><span class="line">    set $id $1;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">if ($request_method = POST) &#123;</span><br><span class="line">    return 405;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">if ($slow) &#123;</span><br><span class="line">    limit_rate 10k;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">if ($invalid_referer) &#123;</span><br><span class="line">    return 403;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="return-指令"><a class="markdownIt-Anchor" href="#return-指令"></a> <code>return</code> 指令</h5>
+<p>语法：<code>return code [text];</code><br />
+<code>return code URL;</code><br />
+<code>return URL;</code></p>
+<p>默认值：无<br />
+作用域：<code>server</code>，<code>location</code>，<code>if</code></p>
+<p>停止处理并返回指定状态码(code)给客户端。非标准状态码 <code>444</code> 表示关闭连接且不给客户端发响应头。</p>
+<p>从0.8.42版本起，return 支持响应URL重定向(对于301，302，303，307），或者文本响应。对于文本或者URL重定向可以包含变量。作为特殊情况，可以将重定向 URL 指定为此服务器的本地URI，在这种情况下，根据请求方案（<code>$scheme</code>）以及 <a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_core_module.html#server_name_in_redirect">server_name_in_redirect</a> 和 <a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_core_module.html#port_in_redirect">port_in_redirect</a> 指令形成完整重定向URL。</p>
+<h5 id="rewrite-指令"><a class="markdownIt-Anchor" href="#rewrite-指令"></a> <code>rewrite</code> 指令</h5>
+<p>语法：<code>	rewrite regex replacement [flag];</code><br />
+作用域：<code>server, location, if</code></p>
+<p>如果指定的正则表达式匹配请求的<code>URL</code>，<code>URL</code> 将被改变为 <code>replacement</code> 中声明的字符串。<code>rewrite</code> 按照他们在配置文件出现的顺序执行，并且可以使用 <code>[flag]</code> 终止进一步处理。如果 <code>replacement</code> 是以 <code>http://</code>, <code>https://</code>, 或者 <code>$scheme</code> 开始，将不再继续处理，这个重定向将返回给客户端。</p>
+<p><code>flag</code> 参数可以是下列值之一：</p>
+<p><code>last</code>     : 停止处理后续 rewrite 指令集，然后对当前重写的新URI在 rewrite 指令集上重新查找；<br />
+<code>break</code>    : 停止处理后续rewrite指令集，并不在重新查找，但是当前 <code>location</code> 内剩余非 <code>rewrite</code> 语句和 <code>location</code> 外的的非 <code>rewrite</code> 语句可以执行；<br />
+<code>redirect</code> : 如果 <code>replacement</code> 不是以 <code>http://</code> 或 <code>https://</code> 开始，返回<code>302</code>临时重定向；<br />
+<code>permanent</code>: 返回 <code>301</code> 永久重定向。</p>
+<p>例子：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">server &#123;</span><br><span class="line">     ...</span><br><span class="line">     rewrite ^(/download/.*)/media/(.*)..*$ $1/mp3/$2.mp3 last;</span><br><span class="line">     rewrite ^(/download/.*)/audio/(.*)..*$ $1/mp3/$2.ra last;</span><br><span class="line">     return 403;</span><br><span class="line">     ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果这些 <code>rewrite</code> 放到 <code>/download/ location</code>，如下所示, 那么应使用 <code>break</code> 而不是 <code>last</code>, 使用 <code>last</code> 将循环<code>10</code>次匹配，然后返回 500错误:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">location /download/ &#123;</span><br><span class="line">    rewrite ^(/download/.*)/media/(.*)..*$ $1/mp3/$2.mp3 break;</span><br><span class="line">    rewrite ^(/download/.*)/audio/(.*)..*$ $1/mp3/$2.ra break;</span><br><span class="line">    return 403;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于重写后的<code>URL</code>（<code>replacement</code>）包含原请求的请求参数，原URL的?后的内容。如果不想带原请求的参数 ，可以在<code>replacement</code>后加一个问号。如下，我们加了一个自定义的参数<code>user=$1</code>,然后在结尾处放了一个问号?,把原请的参数去掉。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rewrite ^/users/(.*)$ /show?user=$1? last;</span><br></pre></td></tr></table></figure>
+<h5 id="rewrite_log-指令"><a class="markdownIt-Anchor" href="#rewrite_log-指令"></a> <code>rewrite_log</code> 指令</h5>
+<p>语法：<code>rewrite_log on | off;</code><br />
+作用域：<code>http, server, location, if</code></p>
+<p>开启或关闭以 <code>notice</code> 级别打印 <code>rewrite</code> 处理日志到 <code>error_log</code> 文件。例子：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rewrite_log on;</span><br><span class="line">error_log logs/xxx.error.log notice;</span><br></pre></td></tr></table></figure>
+<h5 id="set-指令"><a class="markdownIt-Anchor" href="#set-指令"></a> <code>set</code> 指令</h5>
+<p>语法：<code>set $variable value;</code><br />
+作用域：<code>server, location, if</code></p>
+<p>定义一个变量并赋值，值可以是文本，变量或者文本变量混合体。</p>
+<h5 id="uninitialized_variable_warn-指令"><a class="markdownIt-Anchor" href="#uninitialized_variable_warn-指令"></a> <code>uninitialized_variable_warn</code> 指令</h5>
+<p>语法：<code>uninitialized_variable_warn on | off;</code><br />
+作用域：<code>http, server, location, if</code></p>
+<p>控制是否输出为初始化的变量到日志。</p>
+<h3 id="参考阅读"><a class="markdownIt-Anchor" href="#参考阅读"></a> 参考阅读</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="http://www.nginx.cn/nginxchscommandline">nginx 平滑升级</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.nginx.cn/216.html">nginx rewrite指令</a></li>
+<li>[ngx_http_rewrite_module 官方模块](<a target="_blank" rel="noopener" href="http://nginx.org/en/docs/htt">http://nginx.org/en/docs/htt</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/" title="Nginx">https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Nginx/" rel="tag"># Nginx</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/10/07/Design-Patterns/design-patterns/" rel="prev" title="设计模式">
+                  <i class="fa fa-angle-left"></i> 设计模式
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/11/13/Other/multipass/" rel="next" title="【multipass】跨平台虚拟机">
+                  【multipass】跨平台虚拟机 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/10/26/Nginx/Nginx/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>
