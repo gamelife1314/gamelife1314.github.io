@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="为了从外部能够访问到集群中的服务，k8S 提供了多种方式，从 NodePort 类型的 Service，LoadBalancer 类型的 Service，到 Ingress，一直在改进，NodePort类型的服务流量从单一节点进来，没法在节点之间负载均衡，进而衍生出LoadBalancer类型的服务，该类型的服务虽然解决了前面存在的问题，但是需要云厂商的支持，况且针对每个Service粒度提供一个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8S Gateway">
+<meta property="og:url" content="https://blog.fudenglong.site/2024/03/01/K8S/gateway/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="为了从外部能够访问到集群中的服务，k8S 提供了多种方式，从 NodePort 类型的 Service，LoadBalancer 类型的 Service，到 Ingress，一直在改进，NodePort类型的服务流量从单一节点进来，没法在节点之间负载均衡，进而衍生出LoadBalancer类型的服务，该类型的服务虽然解决了前面存在的问题，但是需要云厂商的支持，况且针对每个Service粒度提供一个">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/01/K8S/gateway/cover.png">
+<meta property="article:published_time" content="2024-03-01T08:07:57.000Z">
+<meta property="article:modified_time" content="2024-03-01T08:07:57.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="gateway">
+<meta property="article:tag" content="ingress">
+<meta property="article:tag" content="istio-gateway">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2024/03/01/K8S/gateway/cover.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2024/03/01/K8S/gateway/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2024/03/01/K8S/gateway/","path":"2024/03/01/K8S/gateway/","title":"K8S Gateway"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>K8S Gateway | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85"><span class="nav-number">1.</span> <span class="nav-text"> 安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gateway"><span class="nav-number">2.</span> <span class="nav-text"> Gateway</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D"><span class="nav-number">3.</span> <span class="nav-text"> 功能介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#httproute"><span class="nav-number">3.1.</span> <span class="nav-text"> HTTPRoute</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#referencegrant"><span class="nav-number">3.2.</span> <span class="nav-text"> ReferenceGrant</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%87%8D%E5%AE%9A%E5%90%91"><span class="nav-number">3.3.</span> <span class="nav-text"> 重定向</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%8D%8F%E8%AE%AE%E9%87%8D%E5%AE%9A%E5%90%91"><span class="nav-number">3.3.1.</span> <span class="nav-text"> 协议重定向</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%B7%AF%E5%BE%84%E9%87%8D%E5%AE%9A%E5%90%91"><span class="nav-number">3.3.2.</span> <span class="nav-text"> 路径重定向</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#http-%E5%A4%B4%E4%BF%AE%E6%94%B9"><span class="nav-number">3.4.</span> <span class="nav-text"> HTTP 头修改</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="nav-number">4.</span> <span class="nav-text"> 参考链接</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2024/03/01/K8S/gateway/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="K8S Gateway | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          K8S Gateway
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-03-01 16:07:57" itemprop="dateCreated datePublished" datetime="2024-03-01T16:07:57+08:00">2024-03-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>13 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>为了从外部能够访问到集群中的服务，k8S 提供了多种方式，从 <code>NodePort</code> 类型的 <code>Service</code>，<code>LoadBalancer</code> 类型的 <code>Service</code>，到 <code>Ingress</code>，一直在改进，<code>NodePort</code>类型的服务流量从单一节点进来，没法在节点之间负载均衡，进而衍生出<code>LoadBalancer</code>类型的服务，该类型的服务虽然解决了前面存在的问题，但是需要云厂商的支持，况且针对每个<code>Service</code>粒度提供一个公网<code>IP</code>地址，未免有点浪费，进而衍生出 <code>Ingress</code>，支持7层代理，能够通过单一的入口，以及域名和<code>Path</code>匹配等机制将流量转发到不同的后端服务中去。<code>Ingress</code> 虽然解决了<code>LoadBalancer</code>存在的问题，但它在实际的使用场景中又遇到了新的问题：</p>
+<ol>
+<li><code>Ingress</code> 仅支持<code>7</code>层，没法对四层的流量进行转发；</li>
+<li><code>Ingress</code> 在设计的时候只考虑一种用户角色，既整个系统的运维人员和管理员，这种模型在许多拥有多个团队的企业中都不适用，包括应用开发人员、平台运维人员、安全管理员等，他们在协作开发和交付应用的过程中需要控制<code>Ingress</code>配置的不同方面；</li>
+<li><code>Ingress</code> 中使用了很多<code>annotion</code>实现自定义功能，对于不同的 <code>ingress controller</code> 没法做到一致性，例如，这里的 <a target="_blank" rel="noopener" href="https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/nginx-configuration/annotations.md">nginx annotions</a>，这些在原本的 <code>Ingress</code> 对象中都是不支持的；</li>
+</ol>
+<p>在这些问题的促使下，社区又提出了新的概念：<a target="_blank" rel="noopener" href="https://gateway-api.sigs.k8s.io/">Gateway</a>，明确定义并划分不同角色的职责范围有助于简化管理，对三个主要的 <code>Gateway API</code> 资源（<code>GatewayClass</code>、<code>Gateway</code> 和 <code>Route</code>）进行了标准化。具体来说，基础架构提供商负责为 <code>Kubernetes</code> 集群定义 <code>GatewayClasses</code>，集群运维人员则负责在集群中部署和配置 <code>Gateway</code>（包括策略），而应用开发人员可以自由地将 <code>Route</code> 附加到 <code>Gateway</code>，以对外暴露应用。</p>
+<img data-src="/2024/03/01/K8S/gateway/cover.png" class="">
+<span id="more"></span>
+<h3 id="安装"><a class="markdownIt-Anchor" href="#安装"></a> 安装</h3>
+<p><code>Gateway</code> 相关的资源没有在<code>K8S</code>中预置，因为它还在不断发展，在使用之前需要先安装相关的资源，这里分为两个版本：稳定版和实验版，实验版本相比标准稳定版多了 <code>TCPRoute</code>，<code>TLSRoute</code>，<code>UDPRoute</code>，<code>GRPCRoute</code>，根据选用的的 <code>Gateway Controller</code> 的支持程度做选择即可。稳定版执行下下面的命令进行安装：</p>
+<blockquote>
+<p><code>kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml</code></p>
+</blockquote>
+<p>实验版本使用下面的命令进行安装：</p>
+<blockquote>
+<p><code>kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/experimental-install.yaml</code></p>
+</blockquote>
+<p>这里选用的 <a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/setup/install/istioctl/">istio</a> 作为<code>Gateway</code>的实现，参考<code>istio</code>的安装指南进行安装。安装成功之后，能看到一个 <code>istio</code> 的 <code>GatewayClass</code> 对象：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl describe gatewayclass -n istio-system istio</span><br><span class="line">Name:         istio</span><br><span class="line">Namespace:</span><br><span class="line">Labels:       &lt;none&gt;</span><br><span class="line">Annotations:  &lt;none&gt;</span><br><span class="line">API Version:  gateway.networking.k8s.io/v1</span><br><span class="line">Kind:         GatewayClass</span><br><span class="line">Metadata:</span><br><span class="line">  Creation Timestamp:  2024-03-01T07:49:53Z</span><br><span class="line">  Generation:          1</span><br><span class="line">  Resource Version:    731627</span><br><span class="line">  UID:                 b3926b53-612b-4941-acce-d6d7bf0e9f3b</span><br><span class="line">Spec:</span><br><span class="line">  Controller Name:  istio.io/gateway-controller</span><br><span class="line">  Description:      The default Istio GatewayClass</span><br><span class="line">Status:</span><br><span class="line">  Conditions:</span><br><span class="line">    Last Transition Time:  2024-03-01T07:49:53Z</span><br><span class="line">    Message:               Handled by Istio controller</span><br><span class="line">    Observed Generation:   1</span><br><span class="line">    Reason:                Accepted</span><br><span class="line">    Status:                True</span><br><span class="line">    Type:                  Accepted</span><br><span class="line">Events:                    &lt;none&gt;</span><br></pre></td></tr></table></figure>
+<h3 id="gateway"><a class="markdownIt-Anchor" href="#gateway"></a> Gateway</h3>
+<p>上面的安装步骤完成之后，就可以创建一个<code>Gateway</code>进行使用了，这部分主要是集群运维人员的工作。为了能全面的展示<code>Gateway API</code>，这里使用了<code>https</code>协议，首先创建证书并且上传，使用到的<a target="_blank" rel="noopener" href="https://github.com/FiloSottile/mkcert">mkcert</a>需要提前安装：</p>
+<blockquote>
+<p><code>mkcert --cert-file web.local.dev.crt -key-file web.local.dev.key web.local.dev</code><br />
+<code>kubectl create -n nginx-gateway secret tls web.local.dev-crt --cert=web.local.dev.crt --key=web.local.dev.key</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: gateway.networking.k8s.io/v1</span><br><span class="line">kind: Gateway</span><br><span class="line">metadata:</span><br><span class="line">  name: local-gateway</span><br><span class="line">  namespace: istio-system</span><br><span class="line">spec:</span><br><span class="line">  gatewayClassName: istio</span><br><span class="line">  listeners:</span><br><span class="line">    - protocol: HTTPS</span><br><span class="line">      port: 9443</span><br><span class="line">      name: web-gw</span><br><span class="line">      hostname: web.local.dev</span><br><span class="line">      allowedRoutes:</span><br><span class="line">        kinds:</span><br><span class="line">          - kind: HTTPRoute</span><br><span class="line">        namespaces:</span><br><span class="line">          from: Selector</span><br><span class="line">          selector:</span><br><span class="line">            matchLabels:</span><br><span class="line">              shared-gateway-access: &quot;true&quot;</span><br><span class="line">            matchExpressions:</span><br><span class="line">              - key: kubernetes.io/metadata.name</span><br><span class="line">                operator: In</span><br><span class="line">                values:</span><br><span class="line">                  - gateway-test</span><br><span class="line">      tls:</span><br><span class="line">        mode: Terminate </span><br><span class="line">        certificateRefs:</span><br><span class="line">          - name: web.local.dev-crt </span><br><span class="line">            kind: Secret  </span><br><span class="line">            group: &quot;&quot;</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>对 <code>Gateway</code> 中的重点概念做下解释：</p>
+<ul>
+<li><code>spec.gatewayClassName</code>：指定要使用的 <code>Gateway Controller</code>，这里使用上一节安装的 <code>istio</code>；</li>
+<li><code>spec.listeners.hostname</code>：网关的名称，如果要使用 <code>HTTPS</code> 协议， 在指定了 <code>spec.listeners.tls</code> 时，该字段必须指定，且附加到该网关的 <code>HTTPRoute</code> 中的 <code>hostnames</code> 字段至少包含这里声明的 <code>hostname</code>；</li>
+<li><code>spec.listeners.allowedRoutes.namespace</code>：指定允许哪些命名空间的 <code>HTTProute</code> 附加到这个网关中：
+<ul>
+<li><code>kinds</code>：允许那种路由添加到这个网关中；</li>
+<li><code>from</code>：可以取值 <code>Same</code>，表示只有和网关在相同命名空间的路由才可以添加到这个网关中；<code>All</code> 表示允许所有命名空间的路由添加到这个网关中；<code>Selector</code> 允许选择器选择匹配的命名空间中的路由添加到这个网关中；</li>
+<li><code>selector.matchLabels</code>：选择具有 <code>shared-gateway-access: &quot;true&quot;</code> 标记的命名空间；</li>
+<li><code>selector.matchLabels</code>：这里允许 <code>gateway-test</code> 这个命名中的路由添加到网关；</li>
+</ul>
+</li>
+</ul>
+<p>执行成功之后，能看到下面的对象，其中 <code>local-gateway-istio service</code> 是整个 <code>local-gateway</code> 的入口，被<code>metalb</code>分配了<code>172.19.106.241</code>地址，它接受到的请求转发给 <code>local-gateway-istio-fb7447f46-g56gm</code> 这个 <code>Pod</code> 进行处理，它负责对路由配置的解释，根据 <code>HTTPRoute</code> 配置的规则将流量转发给对应的后端服务：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get svc local-gateway-istio -n istio-system -owide</span><br><span class="line">NAME                  TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)                          AGE   SELECTOR</span><br><span class="line">local-gateway-istio   LoadBalancer   10.43.113.75   172.19.106.241   15021:31230/TCP,9443:30992/TCP   20h   istio.io/gateway-name=local-gateway</span><br><span class="line">$ kubectl describe svc local-gateway-istio -n istio-system</span><br><span class="line">Name:                     local-gateway-istio</span><br><span class="line">Namespace:                istio-system</span><br><span class="line">Labels:                   gateway.istio.io/managed=istio.io-gateway-controller</span><br><span class="line">Annotations:              metallb.universe.tf/ip-allocated-from-pool: mylocal-net-pool</span><br><span class="line">Selector:                 istio.io/gateway-name=local-gateway</span><br><span class="line">Type:                     LoadBalancer</span><br><span class="line">IP Family Policy:         SingleStack</span><br><span class="line">IP Families:              IPv4</span><br><span class="line">IP:                       10.43.113.75</span><br><span class="line">IPs:                      10.43.113.75</span><br><span class="line">LoadBalancer Ingress:     172.19.106.241</span><br><span class="line">Port:                     status-port  15021/TCP</span><br><span class="line">TargetPort:               15021/TCP</span><br><span class="line">NodePort:                 status-port  31230/TCP</span><br><span class="line">Endpoints:                10.42.0.112:15021</span><br><span class="line">Port:                     web-gw  9443/TCP</span><br><span class="line">TargetPort:               9443/TCP</span><br><span class="line">NodePort:                 web-gw  30992/TCP</span><br><span class="line">Endpoints:                10.42.0.112:9443</span><br><span class="line">Session Affinity:         None</span><br><span class="line">External Traffic Policy:  Cluster</span><br><span class="line">Events:</span><br><span class="line">  Type    Reason           Age                From                Message</span><br><span class="line">  ----    ------           ----               ----                -------</span><br><span class="line">  Normal  ClearAssignment  52s                metallb-controller  current IP for &quot;istio-system/local-gateway-istio&quot; not allowed by config, will attempt for new IP assignment: [&quot;172.31.46.244&quot;] is not allowed in config</span><br><span class="line">  Normal  IPAllocated      52s                metallb-controller  Assigned IP [&quot;172.19.106.241&quot;]</span><br><span class="line">  Normal  nodeAssigned     41s (x9 over 20h)  metallb-speaker     announcing from node &quot;f00596107-px&quot; with protocol &quot;layer2&quot;</span><br><span class="line">$ kubectl get gateway local-gateway -n istio-system -owide</span><br><span class="line">NAME            CLASS   ADDRESS          PROGRAMMED   AGE</span><br><span class="line">local-gateway   istio   172.19.106.241   True         20h</span><br><span class="line">$ kubectl get secret web.local.dev-crt -n istio-system -owide</span><br><span class="line">NAME                TYPE                DATA   AGE</span><br><span class="line">web.local.dev-crt   kubernetes.io/tls   2      11m</span><br><span class="line">$ kubectl get pods -n istio-system -owide</span><br><span class="line">NAME                                    READY   STATUS    RESTARTS      AGE    IP            NODE           NOMINATED NODE   READINESS GATES</span><br><span class="line">...</span><br><span class="line">local-gateway-istio-fb7447f46-g56gm     1/1     Running   0             13m    10.42.0.112   f00596107-px   &lt;none&gt;           &lt;none&gt;</span><br></pre></td></tr></table></figure>
+<h3 id="功能介绍"><a class="markdownIt-Anchor" href="#功能介绍"></a> 功能介绍</h3>
+<p>前面的配置一般由集群的运维人员进行，现在需要开发人员登场将自己的开发的应用接入到网关中，这样用户就可以从外部进行访问了。</p>
+<h4 id="httproute"><a class="markdownIt-Anchor" href="#httproute"></a> HTTPRoute</h4>
+<p>使用 <code>kubectl</code> 部署下面的 <code>whoami</code> 服务进行测试：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: gateway-test</span><br><span class="line">  labels:</span><br><span class="line">    shared-gateway-access: &quot;true&quot;</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-svc</span><br><span class="line">  namespace: gateway-test</span><br><span class="line">spec:</span><br><span class="line">  ports:</span><br><span class="line">    - port: 8080</span><br><span class="line">      name: http</span><br><span class="line">      targetPort: 80</span><br><span class="line">  selector:</span><br><span class="line">    app: whoami</span><br><span class="line">---</span><br><span class="line">apiVersion: apps/v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-deploy</span><br><span class="line">  namespace: gateway-test</span><br><span class="line">  labels:</span><br><span class="line">    app: whoami</span><br><span class="line">spec:</span><br><span class="line">  replicas: 1</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      app: whoami</span><br><span class="line">  template:</span><br><span class="line">    metadata:</span><br><span class="line">      labels:</span><br><span class="line">        app: whoami</span><br><span class="line">    spec:</span><br><span class="line">      containers:</span><br><span class="line">      - name: whoami</span><br><span class="line">        image: traefik/whoami</span><br><span class="line">        imagePullPolicy: IfNotPresent</span><br><span class="line">        ports:</span><br><span class="line">        - containerPort: 80</span><br><span class="line">---</span><br><span class="line">apiVersion: gateway.networking.k8s.io/v1</span><br><span class="line">kind: HTTPRoute</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-http-route</span><br><span class="line">  namespace: gateway-test</span><br><span class="line">spec:</span><br><span class="line">  parentRefs:</span><br><span class="line">    - name: local-gateway</span><br><span class="line">      namespace: istio-system</span><br><span class="line">  hostnames:</span><br><span class="line">    - &quot;web.local.dev&quot;</span><br><span class="line">  rules:</span><br><span class="line">    - matches:</span><br><span class="line">      - path:</span><br><span class="line">          type: PathPrefix</span><br><span class="line">          value: /whoami</span><br><span class="line">      backendRefs:</span><br><span class="line">        - name: whoami-svc</span><br><span class="line">          port: 8080</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>对上面的一些关键点进行解释：</p>
+<ol>
+<li>命名空间的名称 <code>gateway-test</code> 以及它的标签：<code>shared-gateway-access: &quot;true&quot;</code> 是他被<code>Gateway</code>认可的标识，在创建 <code>Gateway</code> 的时候指定具有这个特征的命名空间中的<code>HTTPRoute</code>才会被接受；</li>
+<li>创建 <code>whoami-svc</code> 用于处理实际的请求，它会将请求转发到具有 <code>app=whoami</code> 的 <code>Pod</code> 进行处理；</li>
+<li>创建 <code>HTTPRoute</code> 路由，使用 <code>istio-system</code> 命名空间中的 <code>local-gateway</code> Gateway 作为网关，匹配<code>Host</code>为<code>web.local.dev</code>，且以<code>/whoami</code>开始的请求转发给<code>whoami-svc</code>的<code>8080</code>端口进行处理；</li>
+</ol>
+<p>上面的命令执行成功之后，将能看到下面这些资源信息：</p>
+<blockquote>
+<p><code>kubectl get svc,pod,deploy,rs,httproute -n gateway-test -owide</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get svc,pod,deploy,rs,httproute -n gateway-test -owide</span><br><span class="line">NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE   SELECTOR</span><br><span class="line">service/whoami-svc   ClusterIP   10.43.131.190   &lt;none&gt;        8080/TCP   24m   app=whoami</span><br><span class="line"></span><br><span class="line">NAME                                 READY   STATUS    RESTARTS   AGE   IP            NODE           NOMINATED NODE   READINESS GATES</span><br><span class="line">pod/whoami-deploy-6cc79b7f7d-trvtd   1/1     Running   0          24m   10.42.0.115   f00596107-px   &lt;none&gt;           &lt;none&gt;</span><br><span class="line"></span><br><span class="line">NAME                            READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES           SELECTOR</span><br><span class="line">deployment.apps/whoami-deploy   1/1     1            1           24m   whoami       traefik/whoami   app=whoami</span><br><span class="line"></span><br><span class="line">NAME                                       DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES           SELECTOR</span><br><span class="line">replicaset.apps/whoami-deploy-6cc79b7f7d   1         1         1       24m   whoami       traefik/whoami   app=whoami,pod-template-hash=6cc79b7f7d</span><br><span class="line"></span><br><span class="line">NAME                                                    HOSTNAMES           AGE</span><br><span class="line">httproute.gateway.networking.k8s.io/whoami-http-route   [&quot;web.local.dev&quot;]   24m</span><br></pre></td></tr></table></figure>
+<p>使用 <code>curl</code> 命令进行结果验证：</p>
+<blockquote>
+<p><code>curl -i --resolve web.local.dev:9443:172.19.106.241 https://web.local.dev:9443/whoami</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i --resolve web.local.dev:9443:172.19.106.241 https://web.local.dev:9443/whoami</span><br><span class="line">HTTP/2 200</span><br><span class="line">date: Sat, 02 Mar 2024 07:02:36 GMT</span><br><span class="line">content-length: 1403</span><br><span class="line">content-type: text/plain; charset=utf-8</span><br><span class="line">x-envoy-upstream-service-time: 2</span><br><span class="line">server: istio-envoy</span><br><span class="line"></span><br><span class="line">Hostname: whoami-deploy-6cc79b7f7d-trvtd</span><br><span class="line">IP: 127.0.0.1</span><br><span class="line">IP: 10.42.0.115</span><br><span class="line">RemoteAddr: 10.42.0.112:34310</span><br><span class="line">GET /whoami HTTP/1.1</span><br><span class="line">Host: web.local.dev:9443</span><br><span class="line">User-Agent: curl/7.81.0</span><br><span class="line">Accept: */*</span><br><span class="line">X-B3-Sampled: 1</span><br><span class="line">X-B3-Spanid: c6c0d4e855c06fba</span><br><span class="line">X-B3-Traceid: 01bd1b82406ae9bac6c0d4e855c06fba</span><br><span class="line">X-Envoy-Attempt-Count: 1</span><br><span class="line">X-Envoy-Decorator-Operation: whoami-svc.gateway-test.svc.cluster.local:8080/*</span><br><span class="line">X-Envoy-Internal: true</span><br><span class="line">X-Envoy-Peer-Metadata: ChQKDkFQUF9DT05UQUlORVJTEgIaAAoaCgpDTFVTVEVSX0lEEgwaCkt1YmVybmV0ZXMKHQoMSU5TVEFOQ0VfSVBTEg0aCzEwLjQyLjAuMTEyChkKDUlTVElPX1ZFUlNJT04SCBoGMS4yMC4zCscBCgZMQUJFTFMSvAEquQEKKAoVaXN0aW8uaW8vZ2F0ZXdheS1uYW1lEg8aDWxvY2FsLWdhdGV3YXkKOAofc2VydmljZS5pc3Rpby5pby9jYW5vbmljYWwtbmFtZRIVGhNsb2NhbC1nYXRld2F5LWlzdGlvCi8KI3NlcnZpY2UuaXN0aW8uaW8vY2Fub25pY2FsLXJldmlzaW9uEggaBmxhdGVzdAoiChdzaWRlY2FyLmlzdGlvLmlvL2luamVjdBIHGgVmYWxzZQoaCgdNRVNIX0lEEg8aDWNsdXN0ZXIubG9jYWwKLQoETkFNRRIlGiNsb2NhbC1nYXRld2F5LWlzdGlvLWZiNzQ0N2Y0Ni1nNTZnbQobCglOQU1FU1BBQ0USDhoMaXN0aW8tc3lzdGVtClwKBU9XTkVSElMaUWt1YmVybmV0ZXM6Ly9hcGlzL2FwcHMvdjEvbmFtZXNwYWNlcy9pc3Rpby1zeXN0ZW0vZGVwbG95bWVudHMvbG9jYWwtZ2F0ZXdheS1pc3RpbwomCg1XT1JLTE9BRF9OQU1FEhUaE2xvY2FsLWdhdGV3YXktaXN0aW8=</span><br><span class="line">X-Envoy-Peer-Metadata-Id: router~10.42.0.112~local-gateway-istio-fb7447f46-g56gm.istio-system~istio-system.svc.cluster.local</span><br><span class="line">X-Forwarded-For: 10.42.0.1</span><br><span class="line">X-Forwarded-Proto: https</span><br><span class="line">X-Request-Id: 8a0960c0-4626-9a67-9114-61b365b274af</span><br></pre></td></tr></table></figure>
+<h4 id="referencegrant"><a class="markdownIt-Anchor" href="#referencegrant"></a> ReferenceGrant</h4>
+<p>上面的 <code>HTTPRoute</code> 和引用的后端服务在同一个命名空间中，如果不在同一个命名空间，就需要使用 <code>ReferenceGrant</code> 进行显示授权，<code>ReferenceGrant</code> 允许和它在同一个命名空间中的 <code>Service</code> 被其他命名空间中的 <code>HTTPRoute</code> 进行引用，对前面的示例进行改造然后进行演示，首先删除原来命名空间中的资源：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade gateway-test</code></p>
+</blockquote>
+<p>然后重新创建下面的资源：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: gateway-test</span><br><span class="line">  labels:</span><br><span class="line">    shared-gateway-access: &quot;true&quot;</span><br><span class="line">---</span><br><span class="line">apiVersion: gateway.networking.k8s.io/v1</span><br><span class="line">kind: HTTPRoute</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-http-route</span><br><span class="line">  namespace: gateway-test</span><br><span class="line">spec:</span><br><span class="line">  parentRefs:</span><br><span class="line">    - name: local-gateway</span><br><span class="line">      namespace: istio-system</span><br><span class="line">  hostnames:</span><br><span class="line">    - &quot;web.local.dev&quot;</span><br><span class="line">  rules:</span><br><span class="line">    - matches:</span><br><span class="line">      - path:</span><br><span class="line">          type: PathPrefix</span><br><span class="line">          value: /whoami</span><br><span class="line">      backendRefs:</span><br><span class="line">        - name: whoami-svc</span><br><span class="line">          port: 8080</span><br><span class="line">          namespace: gateway-test-svc</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: gateway-test-svc</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-svc</span><br><span class="line">  namespace: gateway-test-svc</span><br><span class="line">spec:</span><br><span class="line">  ports:</span><br><span class="line">    - port: 8080</span><br><span class="line">      name: http</span><br><span class="line">      targetPort: 80</span><br><span class="line">  selector:</span><br><span class="line">    app: whoami</span><br><span class="line">---</span><br><span class="line">apiVersion: apps/v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-deploy</span><br><span class="line">  namespace: gateway-test-svc</span><br><span class="line">  labels:</span><br><span class="line">    app: whoami</span><br><span class="line">spec:</span><br><span class="line">  replicas: 1</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      app: whoami</span><br><span class="line">  template:</span><br><span class="line">    metadata:</span><br><span class="line">      labels:</span><br><span class="line">        app: whoami</span><br><span class="line">    spec:</span><br><span class="line">      containers:</span><br><span class="line">      - name: whoami</span><br><span class="line">        image: traefik/whoami</span><br><span class="line">        imagePullPolicy: IfNotPresent</span><br><span class="line">        ports:</span><br><span class="line">        - containerPort: 80</span><br><span class="line">---</span><br><span class="line">apiVersion: gateway.networking.k8s.io/v1beta1</span><br><span class="line">kind: ReferenceGrant</span><br><span class="line">metadata:</span><br><span class="line">  name: ref-grant-to-svc</span><br><span class="line">  namespace: gateway-test-svc</span><br><span class="line">spec:</span><br><span class="line">  from:</span><br><span class="line">  - group: gateway.networking.k8s.io</span><br><span class="line">    kind: HTTPRoute</span><br><span class="line">    namespace: gateway-test</span><br><span class="line">  to:</span><br><span class="line">  - group: &quot;&quot;</span><br><span class="line">    kind: Service</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>对上面的资源配置做以下解释：</p>
+<ol>
+<li><code>HTTPRoute</code> 依然在 <code>gateway-test</code> 命名空间中，是为了能让 <code>local-gateway</code> 接受此路由，而且它引用的<code>whoami-svc</code>目前被放在了<code>gateway-test-svc</code>中，通过 <code>namespace</code> 显示指定；</li>
+<li>为了能让 <code>gateway-test</code> 中的 <code>HTTPRoute</code> 引用 <code>gateway-test-svc</code> 的 <code>Service</code>，使用 <code>ReferenceGrant</code> 显示进行授权；</li>
+</ol>
+<p>部署成功之后，使用下面的命令依然能够访问成功：</p>
+<blockquote>
+<p><code>curl -i --resolve web.local.dev:9443:172.19.106.241 https://web.local.dev:9443/whoami</code></p>
+</blockquote>
+<h4 id="重定向"><a class="markdownIt-Anchor" href="#重定向"></a> 重定向</h4>
+<p>使用 <code>HTTPRoute</code> 还可完成重定向和路由重写功能。</p>
+<h5 id="协议重定向"><a class="markdownIt-Anchor" href="#协议重定向"></a> 协议重定向</h5>
+<p>在 <code>HTTP</code> 协议中，经常会将不安全的<code>http</code>访问重定向到<code>https</code>协议，为了测试这个功能，首先对<code>local-gateway</code>进行更新，允许它处理来自<code>http</code>的报文：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: gateway.networking.k8s.io/v1</span><br><span class="line">kind: Gateway</span><br><span class="line">metadata:</span><br><span class="line">  name: local-gateway</span><br><span class="line">  namespace: istio-system</span><br><span class="line">spec:</span><br><span class="line">  gatewayClassName: istio</span><br><span class="line">  listeners:</span><br><span class="line">    - protocol: HTTP</span><br><span class="line">      port: 9080</span><br><span class="line">      name: web-http-gw</span><br><span class="line">      hostname: web.local.dev</span><br><span class="line">      allowedRoutes:</span><br><span class="line">        namespaces:</span><br><span class="line">          from: Selector</span><br><span class="line">          selector:</span><br><span class="line">            matchLabels:</span><br><span class="line">              shared-gateway-access: &quot;true&quot;</span><br><span class="line">            matchExpressions:</span><br><span class="line">              - key: kubernetes.io/metadata.name</span><br><span class="line">                operator: In</span><br><span class="line">                values:</span><br><span class="line">                  - gateway-test</span><br><span class="line">    - protocol: HTTPS</span><br><span class="line">      port: 9443</span><br><span class="line">      name: web-https-gw</span><br><span class="line">      hostname: web.local.dev</span><br><span class="line">      allowedRoutes:</span><br><span class="line">        kinds:</span><br><span class="line">          - kind: HTTPRoute</span><br><span class="line">        namespaces:</span><br><span class="line">          from: Selector</span><br><span class="line">          selector:</span><br><span class="line">            matchLabels:</span><br><span class="line">              shared-gateway-access: &quot;true&quot;</span><br><span class="line">            matchExpressions:</span><br><span class="line">              - key: kubernetes.io/metadata.name</span><br><span class="line">                operator: In</span><br><span class="line">                values:</span><br><span class="line">                  - gateway-test</span><br><span class="line">      tls:</span><br><span class="line">        mode: Terminate </span><br><span class="line">        certificateRefs:</span><br><span class="line">          - name: web.local.dev-crt </span><br><span class="line">            kind: Secret  </span><br><span class="line">            group: &quot;&quot;</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>这个更新让 <code>web.local.dev</code> 可以通过 <code>http</code> 和 <code>https</code> 两种协议进行访问。</p>
+<div class="tabs" id="协议重定向"><ul class="nav-tabs"><li class="tab"><a href="#协议重定向-1">重定向之前</a></li><li class="tab active"><a href="#协议重定向-2">重定向之后</a></li></ul><div class="tab-content"><div class="tab-pane" id="协议重定向-1"><p>承接 <code>ReferenceGrant</code> 中的测试案例，这个时候可以使用<code>http</code>协议访问 <code>whoami</code> 服务：</p>
+<blockquote>
+<p><code>curl -i --resolve web.local.dev:9080:172.19.106.241 http://web.local.dev:9080/whoami</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i --resolve web.local.dev:9080:172.19.106.241 http://web.local.dev:9080/whoami</span><br><span class="line">HTTP/1.1 200 OK</span><br><span class="line">date: Sat, 02 Mar 2024 07:48:14 GMT</span><br><span class="line">content-length: 1406</span><br><span class="line">content-type: text/plain; charset=utf-8</span><br><span class="line">x-envoy-upstream-service-time: 0</span><br><span class="line">server: istio-envoy</span><br><span class="line"></span><br><span class="line">Hostname: whoami-deploy-6cc79b7f7d-vjt2m</span><br><span class="line">IP: 127.0.0.1</span><br><span class="line">IP: 10.42.0.117</span><br><span class="line">RemoteAddr: 10.42.0.112:48374</span><br><span class="line">GET /whoami HTTP/1.1</span><br><span class="line">Host: web.local.dev:9080</span><br><span class="line">User-Agent: curl/7.81.0</span><br><span class="line">Accept: */*</span><br><span class="line">X-B3-Sampled: 1</span><br><span class="line">X-B3-Spanid: e1708968da8fe32c</span><br><span class="line">X-B3-Traceid: 715a2daabdb898c2e1708968da8fe32c</span><br><span class="line">X-Envoy-Attempt-Count: 1</span><br><span class="line">X-Envoy-Decorator-Operation: whoami-svc.gateway-test-svc.svc.cluster.local:8080/*</span><br><span class="line">X-Envoy-Internal: true</span><br><span class="line">X-Envoy-Peer-Metadata: ChQKDkFQUF9DT05UQUlORVJTEgIaAAoaCgpDTFVTVEVSX0lEEgwaCkt1YmVybmV0ZXMKHQoMSU5TVEFOQ0VfSVBTEg0aCzEwLjQyLjAuMTEyChkKDUlTVElPX1ZFUlNJT04SCBoGMS4yMC4zCscBCgZMQUJFTFMSvAEquQEKKAoVaXN0aW8uaW8vZ2F0ZXdheS1uYW1lEg8aDWxvY2FsLWdhdGV3YXkKOAofc2VydmljZS5pc3Rpby5pby9jYW5vbmljYWwtbmFtZRIVGhNsb2NhbC1nYXRld2F5LWlzdGlvCi8KI3NlcnZpY2UuaXN0aW8uaW8vY2Fub25pY2FsLXJldmlzaW9uEggaBmxhdGVzdAoiChdzaWRlY2FyLmlzdGlvLmlvL2luamVjdBIHGgVmYWxzZQoaCgdNRVNIX0lEEg8aDWNsdXN0ZXIubG9jYWwKLQoETkFNRRIlGiNsb2NhbC1nYXRld2F5LWlzdGlvLWZiNzQ0N2Y0Ni1nNTZnbQobCglOQU1FU1BBQ0USDhoMaXN0aW8tc3lzdGVtClwKBU9XTkVSElMaUWt1YmVybmV0ZXM6Ly9hcGlzL2FwcHMvdjEvbmFtZXNwYWNlcy9pc3Rpby1zeXN0ZW0vZGVwbG95bWVudHMvbG9jYWwtZ2F0ZXdheS1pc3RpbwomCg1XT1JLTE9BRF9OQU1FEhUaE2xvY2FsLWdhdGV3YXktaXN0aW8=</span><br><span class="line">X-Envoy-Peer-Metadata-Id: router~10.42.0.112~local-gateway-istio-fb7447f46-g56gm.istio-system~istio-system.svc.cluster.local</span><br><span class="line">X-Forwarded-For: 10.42.0.1</span><br><span class="line">X-Forwarded-Proto: http</span><br><span class="line">X-Request-Id: e55ee377-abff-93fd-a3e8-1162549b40ba</span><br></pre></td></tr></table></figure></div><div class="tab-pane active" id="协议重定向-2"><p>如果想将所有的 <code>http</code> 访问全部重定向到 <code>https</code>，需要对 <code>gateway-test</code> 中的<code>HTTPRoute</code>进行更改，使用 <code>sectionName</code> 区分两个路由引用的协议，这样可以单独设置通过<code>http</code>协议访问时的动作：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: gateway.networking.k8s.io/v1</span><br><span class="line">kind: HTTPRoute</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-http-route</span><br><span class="line">  namespace: gateway-test</span><br><span class="line">spec:</span><br><span class="line">  parentRefs:</span><br><span class="line">    - name: local-gateway</span><br><span class="line">      namespace: istio-system</span><br><span class="line">      sectionName: web-http-gw</span><br><span class="line">  hostnames:</span><br><span class="line">    - &quot;web.local.dev&quot;</span><br><span class="line">  rules:</span><br><span class="line">    - filters:</span><br><span class="line">      - type: RequestRedirect</span><br><span class="line">        requestRedirect:</span><br><span class="line">          scheme: https</span><br><span class="line">          port: 9443</span><br><span class="line">          statusCode: 301</span><br><span class="line">---</span><br><span class="line">apiVersion: gateway.networking.k8s.io/v1</span><br><span class="line">kind: HTTPRoute</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-https-route</span><br><span class="line">  namespace: gateway-test</span><br><span class="line">spec:</span><br><span class="line">  parentRefs:</span><br><span class="line">    - name: local-gateway</span><br><span class="line">      namespace: istio-system</span><br><span class="line">      sectionName: web-https-gw</span><br><span class="line">  hostnames:</span><br><span class="line">    - &quot;web.local.dev&quot;</span><br><span class="line">  rules:</span><br><span class="line">    - matches:</span><br><span class="line">      - path:</span><br><span class="line">          type: PathPrefix</span><br><span class="line">          value: /whoami</span><br><span class="line">      backendRefs:</span><br><span class="line">        - name: whoami-svc</span><br><span class="line">          port: 8080</span><br><span class="line">          namespace: gateway-test-svc</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>执行上面的操作之后，再次通过 <code>http</code> 协议进行访问，会发现已经重定向了：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i --resolve web.local.dev:9080:172.19.106.241 http://web.local.dev:9080/whoami</span><br><span class="line">HTTP/1.1 301 Moved Permanently</span><br><span class="line">location: https://web.local.dev:9443/whoami</span><br><span class="line">date: Sat, 02 Mar 2024 08:01:29 GMT</span><br><span class="line">server: istio-envoy</span><br><span class="line">content-length: 0</span><br></pre></td></tr></table></figure></div></div></div>
+<h5 id="路径重定向"><a class="markdownIt-Anchor" href="#路径重定向"></a> 路径重定向</h5>
+<p>路径重定向使用 <code>HTTP</code> 路径修饰符来替换整个路径或路径前缀，如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: gateway.networking.k8s.io/v1</span><br><span class="line">kind: HTTPRoute</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-https-route</span><br><span class="line">  namespace: gateway-test</span><br><span class="line">spec:</span><br><span class="line">  parentRefs:</span><br><span class="line">    - name: local-gateway</span><br><span class="line">      namespace: istio-system</span><br><span class="line">      sectionName: web-https-gw</span><br><span class="line">  hostnames:</span><br><span class="line">    - &quot;web.local.dev&quot;</span><br><span class="line">  rules:</span><br><span class="line">    - matches:</span><br><span class="line">      - path:</span><br><span class="line">          type: PathPrefix</span><br><span class="line">          value: /whoami</span><br><span class="line">      backendRefs:</span><br><span class="line">        - name: whoami-svc</span><br><span class="line">          port: 8080</span><br><span class="line">          namespace: gateway-test-svc</span><br><span class="line">    - matches:</span><br><span class="line">      - path:</span><br><span class="line">          type: PathPrefix</span><br><span class="line">          value: /who</span><br><span class="line">      filters:</span><br><span class="line">        - type: RequestRedirect</span><br><span class="line">          requestRedirect:</span><br><span class="line">            path:</span><br><span class="line">              type: ReplacePrefixMatch</span><br><span class="line">              replacePrefixMatch: /whoami</span><br><span class="line">            statusCode: 302</span><br><span class="line">    - matches:</span><br><span class="line">      - path:</span><br><span class="line">          type: PathPrefix</span><br><span class="line">          value: /whoam</span><br><span class="line">      filters:</span><br><span class="line">        - type: RequestRedirect</span><br><span class="line">          requestRedirect:</span><br><span class="line">            path:</span><br><span class="line">              type: ReplaceFullPath</span><br><span class="line">              replaceFullPath: /whoami</span><br><span class="line">            statusCode: 302</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>然后当访问以 <code>/whamo</code> 开头的请求时都会被全部重定向到 <code>/whoami</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i --resolve web.local.dev:9443:172.19.106.241 https://web.local.dev:9443/whoam</span><br><span class="line">HTTP/2 302</span><br><span class="line">location: https://web.local.dev:9443/whoami</span><br><span class="line">date: Sat, 02 Mar 2024 08:20:07 GMT</span><br><span class="line">server: istio-envoy</span><br><span class="line">$ curl -i --resolve web.local.dev:9443:172.19.106.241 https://web.local.dev:9443/whoam/xxx</span><br><span class="line">HTTP/2 302</span><br><span class="line">location: https://web.local.dev:9443/whoami</span><br><span class="line">date: Sat, 02 Mar 2024 08:34:27 GMT</span><br><span class="line">server: istio-envoy</span><br></pre></td></tr></table></figure>
+<p>当访问以 <code>/who</code> 开头的请求时，仅仅 <code>/who</code> 会被完全替换为 <code>/whoami</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i --resolve web.local.dev:9443:172.19.106.241 https://web.local.dev:9443/who/xxx</span><br><span class="line">HTTP/2 302</span><br><span class="line">location: https://web.local.dev:9443/whoami/xxx</span><br><span class="line">date: Sat, 02 Mar 2024 08:35:48 GMT</span><br><span class="line">server: istio-envoy</span><br><span class="line"></span><br><span class="line">$ curl -i --resolve web.local.dev:9443:172.19.106.241 https://web.local.dev:9443/who</span><br><span class="line">HTTP/2 302</span><br><span class="line">location: https://web.local.dev:9443/whoami</span><br><span class="line">date: Sat, 02 Mar 2024 08:35:52 GMT</span><br><span class="line">server: istio-envoy</span><br></pre></td></tr></table></figure>
+<h4 id="http-头修改"><a class="markdownIt-Anchor" href="#http-头修改"></a> HTTP 头修改</h4>
+<p>通过 <code>HTTPRoute</code> 中的 <code>RequestHeaderModifier</code> 可以添加、修改或者删除请求头，例如下面的<code>HTTPRoute</code>中将对以<code>/whoami</code>开头的请求添加<code>request-with-correct-path: true</code> 这样的请求头：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: gateway.networking.k8s.io/v1</span><br><span class="line">kind: HTTPRoute</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-https-route</span><br><span class="line">  namespace: gateway-test</span><br><span class="line">spec:</span><br><span class="line">  parentRefs:</span><br><span class="line">    - name: local-gateway</span><br><span class="line">      namespace: istio-system</span><br><span class="line">      sectionName: web-https-gw</span><br><span class="line">  hostnames:</span><br><span class="line">    - &quot;web.local.dev&quot;</span><br><span class="line">  rules:</span><br><span class="line">    - matches:</span><br><span class="line">      - path:</span><br><span class="line">          type: PathPrefix</span><br><span class="line">          value: /whoami</span><br><span class="line">      backendRefs:</span><br><span class="line">        - name: whoami-svc</span><br><span class="line">          port: 8080</span><br><span class="line">          namespace: gateway-test-svc</span><br><span class="line">      filters:</span><br><span class="line">        - type: RequestHeaderModifier</span><br><span class="line">          requestHeaderModifier:</span><br><span class="line">            add:</span><br><span class="line">              - name: request-with-correct-path</span><br><span class="line">                value: &quot;true&quot;</span><br><span class="line">    - matches:</span><br><span class="line">      - path:</span><br><span class="line">          type: PathPrefix</span><br><span class="line">          value: /who</span><br><span class="line">      filters:</span><br><span class="line">        - type: RequestRedirect</span><br><span class="line">          requestRedirect:</span><br><span class="line">            path:</span><br><span class="line">              type: ReplacePrefixMatch</span><br><span class="line">              replacePrefixMatch: /whoami</span><br><span class="line">            statusCode: 302</span><br><span class="line">    - matches:</span><br><span class="line">      - path:</span><br><span class="line">          type: PathPrefix</span><br><span class="line">          value: /whoam</span><br><span class="line">      filters:</span><br><span class="line">        - type: RequestRedirect</span><br><span class="line">          requestRedirect:</span><br><span class="line">            path:</span><br><span class="line">              type: ReplaceFullPath</span><br><span class="line">              replaceFullPath: /whoami</span><br><span class="line">            statusCode: 302</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>当在请求的时候，会返回如下的结果：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i --resolve web.local.dev:9443:172.19.106.241 https://web.local.dev:9443/whoami</span><br><span class="line">HTTP/2 200</span><br><span class="line">date: Sat, 02 Mar 2024 08:53:55 GMT</span><br><span class="line">content-length: 1440</span><br><span class="line">content-type: text/plain; charset=utf-8</span><br><span class="line">x-envoy-upstream-service-time: 1</span><br><span class="line">server: istio-envoy</span><br><span class="line"></span><br><span class="line">Hostname: whoami-deploy-6cc79b7f7d-vjt2m</span><br><span class="line">IP: 127.0.0.1</span><br><span class="line">IP: 10.42.0.117</span><br><span class="line">RemoteAddr: 10.42.0.112:57130</span><br><span class="line">GET /whoami HTTP/1.1</span><br><span class="line">Host: web.local.dev:9443</span><br><span class="line">User-Agent: curl/7.81.0</span><br><span class="line">Accept: */*</span><br><span class="line">Request-With-Correct-Path: true</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<h3 id="参考链接"><a class="markdownIt-Anchor" href="#参考链接"></a> 参考链接</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://www.nginx-cn.net/blog/5-things-to-know-about-nginx-kubernetes-gateway/">https://www.nginx-cn.net/blog/5-things-to-know-about-nginx-kubernetes-gateway/</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2024/03/01/K8S/gateway/" title="K8S Gateway">https://blog.fudenglong.site/2024/03/01/K8S/gateway/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/gateway/" rel="tag"># gateway</a>
+              <a href="/tags/ingress/" rel="tag"># ingress</a>
+              <a href="/tags/istio-gateway/" rel="tag"># istio-gateway</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/02/29/K8S/cert-manage-service/" rel="prev" title="K8S 证书管理">
+                  <i class="fa fa-angle-left"></i> K8S 证书管理
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/03/04/K8S/istio/" rel="next" title="Istio 实践笔记">
+                  Istio 实践笔记 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2024/03/01/K8S/gateway/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>
