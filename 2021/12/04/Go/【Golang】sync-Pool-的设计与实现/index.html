@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="sync.Pool 是一组临时对象，可以用来被复用，以减少内存分配次数，降低GC压力，在大量相同临时对象存在的场景下使用，能较好处理因GC导致CPU突增的情况。sync.Pool 使用比较简单，只有三个简单的 API：New，Get 和 Put，并且它是并发安全的，意味着它可以在 goroutine 中安全地使用。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Golang】sync.Pool 的设计与实现">
+<meta property="og:url" content="https://blog.fudenglong.site/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="sync.Pool 是一组临时对象，可以用来被复用，以减少内存分配次数，降低GC压力，在大量相同临时对象存在的场景下使用，能较好处理因GC导致CPU突增的情况。sync.Pool 使用比较简单，只有三个简单的 API：New，Get 和 Put，并且它是并发安全的，意味着它可以在 goroutine 中安全地使用。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/sync.pool.jpeg">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/pool-architecture.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/syncpool-get.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/poolchainElt.png">
+<meta property="article:published_time" content="2021-12-04T06:23:31.000Z">
+<meta property="article:modified_time" content="2021-12-04T06:23:31.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="sync.Pool">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/sync.pool.jpeg">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/","path":"2021/12/04/Go/【Golang】sync-Pool-的设计与实现/","title":"【Golang】sync.Pool 的设计与实现"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Golang】sync.Pool 的设计与实现 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B"><span class="nav-number">1.</span> <span class="nav-text"> 示例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text"> 实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#pool-%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-number">2.1.</span> <span class="nav-text"> Pool 结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#get"><span class="nav-number">2.2.</span> <span class="nav-text"> Get</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#pin"><span class="nav-number">2.2.1.</span> <span class="nav-text"> pin</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pophead"><span class="nav-number">2.2.2.</span> <span class="nav-text"> popHead</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#getslow"><span class="nav-number">2.2.3.</span> <span class="nav-text"> getSlow</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#poptail"><span class="nav-number">2.2.4.</span> <span class="nav-text"> popTail</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#put"><span class="nav-number">2.3.</span> <span class="nav-text"> Put</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#pushhead"><span class="nav-number">2.3.1.</span> <span class="nav-text"> pushHead</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#packunpack"><span class="nav-number">2.4.</span> <span class="nav-text"> pack&#x2F;unpack</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gc"><span class="nav-number">2.5.</span> <span class="nav-text"> GC</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="nav-number">3.</span> <span class="nav-text"> 参考文章</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Golang】sync.Pool 的设计与实现 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Golang】sync.Pool 的设计与实现
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2021-12-04 14:23:31" itemprop="dateCreated datePublished" datetime="2021-12-04T14:23:31+08:00">2021-12-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>16 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>sync.Pool</code> 是一组临时对象，可以用来被复用，以减少内存分配次数，降低GC压力，在大量相同临时对象存在的场景下使用，能较好处理因GC导致CPU突增的情况。<code>sync.Pool</code> 使用比较简单，只有三个简单的 API：<code>New</code>，<code>Get</code> 和 <code>Put</code>，并且它是并发安全的，意味着它可以在 goroutine 中安全地使用。</p>
+<img data-src="/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/sync.pool.jpeg" class="" title="sync.Pool">
+<span id="more"></span>
+<h2 id="示例"><a class="markdownIt-Anchor" href="#示例"></a> 示例</h2>
+<p>example 是最好的解释，说明它是什么以及怎么用：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pool *sync.Pool</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Person <span class="keyword">struct</span> &#123;</span><br><span class="line">	name <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">initPool</span><span class="params">()</span></span> &#123;</span><br><span class="line">	pool = &amp;sync.Pool&#123;</span><br><span class="line">		New: <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="keyword">interface</span>&#123;&#125; &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;creating a new person&quot;</span>)</span><br><span class="line">			<span class="keyword">return</span> <span class="built_in">new</span>(Person)</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	initPool()</span><br><span class="line">	p := pool.Get().(*Person)</span><br><span class="line">	p.name = <span class="string">&quot;first&quot;</span></span><br><span class="line">	fmt.Println(<span class="string">&quot;1st time get:&quot;</span>, p)</span><br><span class="line">	pool.Put(p)</span><br><span class="line">	fmt.Println(<span class="string">&quot;put p&quot;</span>)</span><br><span class="line">	p = pool.Get().(*Person)</span><br><span class="line">	fmt.Println(<span class="string">&quot;2ed time get:&quot;</span>, p)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>output：</p>
+<pre><code>creating a new person
+1st time get: &amp;&#123;first&#125;
+put p
+2ed time get: &amp;&#123;first&#125;
+</code></pre>
+<p>在这个例子中，我们首先初始化 pool，并且设置 <code>New</code> 函数，当通过 <code>Get</code> 函数从缓存池中获取对象时，如果对象池是空的，就会通过 <code>New</code> 创建新的对象，当对象使用完成后，我们调用 <code>Put</code> 将它放回 <code>pool</code> 中。由于我们在将对象放入 pool 的时候没有将它清空，所在第二次 <code>Get</code> 的时候，之前设置的信息依然存在。但是在实际使用过程中，我们应该在归还对象之前将它清空。</p>
+<p>另外，在官方的 <code>fmt</code> 包中我们也能看到它的身影，在经常使用 <code>fmt.Printf</code> 函数中就能看到 <code>sync.Pool</code> 的参与：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Printf formats according to a format specifier and writes to standard output.</span></span><br><span class="line"><span class="comment">// It returns the number of bytes written and any write error encountered.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Printf</span><span class="params">(format <span class="type">string</span>, a ...<span class="keyword">interface</span>&#123;&#125;)</span></span> (n <span class="type">int</span>, err <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">return</span> Fprintf(os.Stdout, format, a...)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Fprintf formats according to a format specifier and writes to w.</span></span><br><span class="line"><span class="comment">// It returns the number of bytes written and any write error encountered.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fprintf</span><span class="params">(w io.Writer, format <span class="type">string</span>, a ...<span class="keyword">interface</span>&#123;&#125;)</span></span> (n <span class="type">int</span>, err <span class="type">error</span>) &#123;</span><br><span class="line">	p := newPrinter()</span><br><span class="line">	p.doPrintf(format, a)</span><br><span class="line">	n, err = w.Write(p.buf)</span><br><span class="line">	p.free()</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>fmt.Printf</code> 通过调用 <code>fmt.Fprintf</code> 将信息输出到标准输出，其中 <code>newPrinter()</code> 函数获取一个 <code>pp</code> 对象用于具体输出信息的构造：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// newPrinter allocates a new pp struct or grabs a cached one.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newPrinter</span><span class="params">()</span></span> *pp &#123;</span><br><span class="line">	p := ppFree.Get().(*pp)</span><br><span class="line">	p.panicking = <span class="literal">false</span></span><br><span class="line">	p.erroring = <span class="literal">false</span></span><br><span class="line">	p.wrapErrs = <span class="literal">false</span></span><br><span class="line">	p.fmt.init(&amp;p.buf)</span><br><span class="line">	<span class="keyword">return</span> p</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>ppFree</code> 是一个 <code>sync.Pool</code> 对象，在包初始化的时候他就被创建好了:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> ppFree = sync.Pool&#123;</span><br><span class="line">	New: <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="keyword">interface</span>&#123;&#125; &#123; <span class="keyword">return</span> <span class="built_in">new</span>(pp) &#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在信息输出结束之后，会调用 <code>p.free</code> 对象，用于将对象各个字段清空然后归还给 <code>ppFree</code>:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// free saves used pp structs in ppFree; avoids an allocation per invocation.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *pp)</span></span> free() &#123;</span><br><span class="line">	<span class="comment">// sync.Pool的操作假定每个元素的内存成本大致相同，以便提高效率。</span></span><br><span class="line">    <span class="comment">// 这个属性可以从Pool.Get返回一个随机元素中看出，而不是具有“最大容量”或其他什么的元素。</span></span><br><span class="line">    <span class="comment">// 换句话说，从池的角度来看，所有元素或多或少都是相同的。</span></span><br><span class="line">	<span class="comment">// See https://golang.org/issue/23199</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">cap</span>(p.buf) &gt; <span class="number">64</span>&lt;&lt;<span class="number">10</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	p.buf = p.buf[:<span class="number">0</span>]</span><br><span class="line">	p.arg = <span class="literal">nil</span></span><br><span class="line">	p.value = reflect.Value&#123;&#125;</span><br><span class="line">	p.wrappedErr = <span class="literal">nil</span></span><br><span class="line">	ppFree.Put(p)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="实现原理"><a class="markdownIt-Anchor" href="#实现原理"></a> 实现原理</h2>
+<p>本节将从 <code>Pool</code> 结构体以及存取过程解释 <code>sync.Pool</code> 的实现过程。</p>
+<h3 id="pool-结构体"><a class="markdownIt-Anchor" href="#pool-结构体"></a> <code>Pool</code> 结构体</h3>
+<p>pool 是创建之后就不能再被 Copy 的，通过内嵌 <code>noCopy</code> 结构体来实现，具体的讨论详见：<a target="_blank" rel="noopener" href="https://github.com/golang/go/issues/8005#issuecomment-190753527">https://github.com/golang/go/issues/8005#issuecomment-190753527</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Pool <span class="keyword">struct</span> &#123;</span><br><span class="line">	noCopy noCopy</span><br><span class="line"></span><br><span class="line">	local     unsafe.Pointer <span class="comment">// 每个P一个 pool, 实际类型是 [P]poolLocal，可以通过动态改变P的数量进行调整</span></span><br><span class="line">	localSize <span class="type">uintptr</span>        <span class="comment">// local 的大小</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 当一轮GC到来时，victim 和 victimSize 分别被赋值为 local 和 localSize</span></span><br><span class="line">    <span class="comment">// 使用victim机制来减少GC冷启动带来的性能抖动，让分配对象更顺畅。</span></span><br><span class="line">	victim     unsafe.Pointer <span class="comment">// local from previous cycle</span></span><br><span class="line">	victimSize <span class="type">uintptr</span>        <span class="comment">// size of victims array</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 当 Pool 中没有缓存对象时，使用 New 函数创建</span></span><br><span class="line">	New <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实际缓存的数据存储在 <code>local</code> 中，local 实际的类型是 <code>poolLocal</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> poolLocal <span class="keyword">struct</span> &#123;</span><br><span class="line">	poolLocalInternal</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Prevents false sharing on widespread platforms with</span></span><br><span class="line">	<span class="comment">// 128 mod (cache line size) = 0 .</span></span><br><span class="line">	pad [<span class="number">128</span> - unsafe.Sizeof(poolLocalInternal&#123;&#125;)%<span class="number">128</span>]<span class="type">byte</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其中 <code>pad</code> 字段是为了防止因 <a target="_blank" rel="noopener" href="https://juejin.cn/post/6935407834863501349"><code>伪共享</code></a> 带来性能下降。CPU缓存是以缓存行（Cache line）为最小数据单位，缓存行是2的整数幂个连续字节，主流大小是64个字节。如果多个变量同属于一个缓存行，在并发环境下同时修改，因为写屏障及内存一致性协议会导致同一时间只能一个线程操作该缓存行，进而因为竞争导致性能下降，这就是“伪共享”。如果没有 <code>pad</code> 字段，假设我们要加载索引为0的 <code>poolLocal</code>，CPU 将会同时加载索引为1的 <code>poolLocal</code>，如果只修改索引为0的，那么索引为1的将被禁止访问。如果此时有其他线程想访问索引为1的，由于缓存失效它就得重新加载，这将会导致严重的新能下降。添加 <code>pad</code> 来将缓存行补齐，就可以让不同的 <code>poolLocal</code> 单独加载，将不存在伪共享的问题了。</p>
+<p>再来一起看看 <code>poolLocalInternal</code> 及其内部嵌套的结构体：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// Local per-P Pool appendix.</span></span><br><span class="line"><span class="keyword">type</span> poolLocalInternal <span class="keyword">struct</span> &#123;</span><br><span class="line">	private <span class="keyword">interface</span>&#123;&#125; <span class="comment">// 只仅仅缓存一个对象，有和当前goroutine关联的P才可以访问</span></span><br><span class="line">	shared  poolChain   <span class="comment">// 和当前goroutine关联的P可以 pushHead/popHead; 其他的 P 可以 popTail 偷取对象.</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// poolChain 是一个动态大小的 poolDequeue</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// 它被实现为poolDequeues的双向链表，其中双向链表队列的大小是前一个的</span></span><br><span class="line"><span class="comment">// 两倍。生产者从链表头部的队列插入，一旦一个队列已满，将分配一个新的</span></span><br><span class="line"><span class="comment">// 放到链表头部。消费者从另一端读，一旦某个队列空了，它就会从列表中删除。</span></span><br><span class="line"><span class="keyword">type</span> poolChain <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// head is the poolDequeue to push to. This is only accessed</span></span><br><span class="line">	<span class="comment">// by the producer, so doesn&#x27;t need to be synchronized.</span></span><br><span class="line">	head *poolChainElt</span><br><span class="line"></span><br><span class="line">	<span class="comment">// tail is the poolDequeue to popTail from. This is accessed</span></span><br><span class="line">	<span class="comment">// by consumers, so reads and writes must be atomic.</span></span><br><span class="line">	tail *poolChainElt</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> poolChainElt <span class="keyword">struct</span> &#123;</span><br><span class="line">	poolDequeue</span><br><span class="line"></span><br><span class="line">	<span class="comment">// next and prev link to the adjacent poolChainElts in this</span></span><br><span class="line">	<span class="comment">// poolChain.</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// next is written atomically by the producer and read</span></span><br><span class="line">	<span class="comment">// atomically by the consumer. It only transitions from nil to</span></span><br><span class="line">	<span class="comment">// non-nil.</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// prev is written atomically by the consumer and read</span></span><br><span class="line">	<span class="comment">// atomically by the producer. It only transitions from</span></span><br><span class="line">	<span class="comment">// non-nil to nil.</span></span><br><span class="line">	next, prev *poolChainElt</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// poolDequeue 是固定大小的，无锁的，单生产者多消费者模型。</span></span><br><span class="line"><span class="comment">// 单个生产者可以从push和pop，消费者只能从尾部pop；</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// It has the added feature that it nils out unused slots to avoid</span></span><br><span class="line"><span class="comment">// unnecessary retention of objects. This is important for sync.Pool,</span></span><br><span class="line"><span class="comment">// but not typically a property considered in the literature.</span></span><br><span class="line"><span class="keyword">type</span> poolDequeue <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// headTail packs together a 32-bit head index and a 32-bit</span></span><br><span class="line">	<span class="comment">// tail index. Both are indexes into vals modulo len(vals)-1.</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// tail = index of oldest data in queue</span></span><br><span class="line">	<span class="comment">// head = index of next slot to fill</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// Slots in the range [tail, head) are owned by consumers.</span></span><br><span class="line">	<span class="comment">// A consumer continues to own a slot outside this range until</span></span><br><span class="line">	<span class="comment">// it nils the slot, at which point ownership passes to the</span></span><br><span class="line">	<span class="comment">// producer.</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// The head index is stored in the most-significant bits so</span></span><br><span class="line">	<span class="comment">// that we can atomically add to it and the overflow is</span></span><br><span class="line">	<span class="comment">// harmless.</span></span><br><span class="line">	headTail <span class="type">uint64</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// vals is a ring buffer of interface&#123;&#125; values stored in this</span></span><br><span class="line">	<span class="comment">// dequeue. The size of this must be a power of 2.</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// vals[i].typ is nil if the slot is empty and non-nil</span></span><br><span class="line">	<span class="comment">// otherwise. A slot is still in use until *both* the tail</span></span><br><span class="line">	<span class="comment">// index has moved beyond it and typ has been set to nil. This</span></span><br><span class="line">	<span class="comment">// is set to nil atomically by the consumer and read</span></span><br><span class="line">	<span class="comment">// atomically by the producer.</span></span><br><span class="line">	vals []eface</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>画个图来说就是下面这个样子的：</p>
+<p><img data-src="pool-architecture.png" alt="pool结构图" /></p>
+<h3 id="get"><a class="markdownIt-Anchor" href="#get"></a> Get</h3>
+<p><code>sync.Pool</code> 对象内部为每个P都分配了一个 <code>private</code> 区和shared区，<code>private</code> 区只能存放一个可复用对象，因为每个 <code>P</code> 在任意时刻只运行一个 <code>G</code>，所以在<code>private</code> 区上写入和取出对象是不用加锁的；shared是一个动态大小的 poolDequeue，但 <code>shared</code> 区上写入和取出对象要加锁，因为别的 <code>P</code> 可能过来偷对象。</p>
+<p><img data-src="syncpool-get.png" alt="sync.Pool Get流程" /></p>
+<p>我们将 <code>race</code> 相关的代码注释掉之后，再看 <code>Get</code> 的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span></span> Get() <span class="keyword">interface</span>&#123;&#125; &#123;</span><br><span class="line">	... <span class="comment">// race 相关</span></span><br><span class="line">	l, pid := p.pin()</span><br><span class="line">	x := l.private</span><br><span class="line">	l.private = <span class="literal">nil</span></span><br><span class="line">	<span class="keyword">if</span> x == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// Try to pop the head of the local shard. We prefer</span></span><br><span class="line">		<span class="comment">// the head over the tail for temporal locality of</span></span><br><span class="line">		<span class="comment">// reuse.</span></span><br><span class="line">		x, _ = l.shared.popHead()</span><br><span class="line">		<span class="keyword">if</span> x == <span class="literal">nil</span> &#123;</span><br><span class="line">			x = p.getSlow(pid)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	runtime_procUnpin()</span><br><span class="line">	... <span class="comment">// race 相关</span></span><br><span class="line">	<span class="keyword">if</span> x == <span class="literal">nil</span> &amp;&amp; p.New != <span class="literal">nil</span> &#123;</span><br><span class="line">		x = p.New()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> x</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>首先，调用 <code>p.pin()</code> 函数 将当前的 <code>G</code> 绑定到 <code>P</code>，并且禁止抢占，然后返回 <code>poollocal</code> 和 <code>PID</code>；</li>
+<li>将 <code>l.private</code> 赋值给 x，然后将 <code>l.private</code> 置为 nil；</li>
+<li>如果 x 是 nil，将从 <code>l.shared</code> 的头部弹出一个赋值给 x ；</li>
+<li>如果 x 依然是空，那么将调用 <code>getSlow</code> 方法从其他的P双向队列链表的尾部偷取一个；</li>
+<li>在 pool 相关的操作完成之后，调用 runtime_procUnpin 删掉前面打的禁止抢占标记；</li>
+<li>最后，如果依然没有获取到对象，那么就调用 <code>New</code> 重新生成一个；</li>
+</ol>
+<h4 id="pin"><a class="markdownIt-Anchor" href="#pin"></a> pin</h4>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pin pins the current goroutine to P, disables preemption and</span></span><br><span class="line"><span class="comment">// returns poolLocal pool for the P and the P&#x27;s id.</span></span><br><span class="line"><span class="comment">// Caller must call runtime_procUnpin() when done with the pool.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span></span> pin() (*poolLocal, <span class="type">int</span>) &#123;</span><br><span class="line">	pid := runtime_procPin()</span><br><span class="line">	<span class="comment">// In pinSlow we store to local and then to localSize, here we load in opposite order.</span></span><br><span class="line">	<span class="comment">// Since we&#x27;ve disabled preemption, GC cannot happen in between.</span></span><br><span class="line">	<span class="comment">// Thus here we must observe local at least as large localSize.</span></span><br><span class="line">	<span class="comment">// We can observe a newer/larger local, it is fine (we must observe its zero-initialized-ness).</span></span><br><span class="line">	s := runtime_LoadAcquintptr(&amp;p.localSize) <span class="comment">// load-acquire</span></span><br><span class="line">	l := p.local                              <span class="comment">// load-consume</span></span><br><span class="line">	<span class="keyword">if</span> <span class="type">uintptr</span>(pid) &lt; s &#123;</span><br><span class="line">		<span class="keyword">return</span> indexLocal(l, pid), pid</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> p.pinSlow()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>pin</code> 函数将当前的 goroutine 和 <code>P</code> 绑定到一起，并且禁止抢占，并且获取当前的P的ID。我们来看看 <code>runtime_procPin()</code> 的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// src/runtime/proc.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">procPin</span><span class="params">()</span></span> <span class="type">int</span> &#123;</span><br><span class="line">	_g_ := getg()</span><br><span class="line">	mp := _g_.m</span><br><span class="line"></span><br><span class="line">	mp.locks++</span><br><span class="line">	<span class="keyword">return</span> <span class="type">int</span>(mp.p.ptr().id)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>回到 <code>pin</code> 函数中，通过原子操作获取 <code>p.localSize</code> 和 <code>p.local</code>，如果获取到的 PID 小于 <code>p.localSize</code>，那么直接从 <code>p.local</code> 中根据 PID 直接获取对应的 <code>poolLocal</code>，否则调用 <code>pinSlow</code> 创建。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span></span> pinSlow() (*poolLocal, <span class="type">int</span>) &#123;</span><br><span class="line">	<span class="comment">// Retry under the mutex.</span></span><br><span class="line">	<span class="comment">// Can not lock the mutex while pinned.</span></span><br><span class="line">	runtime_procUnpin()</span><br><span class="line">	allPoolsMu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> allPoolsMu.Unlock()</span><br><span class="line">	pid := runtime_procPin()</span><br><span class="line">	<span class="comment">// poolCleanup won&#x27;t be called while we are pinned.</span></span><br><span class="line">	<span class="comment">//Atomic operations are not used because they are global locked</span></span><br><span class="line">	s := p.localSize</span><br><span class="line">	l := p.local</span><br><span class="line">	<span class="comment">//Because pinslow may have been called by other threads halfway, the PID needs to be checked again at this time. If the PID is within the size range of p.local, you do not need to create a poollocal slice and return directly.</span></span><br><span class="line">	<span class="keyword">if</span> <span class="type">uintptr</span>(pid) &lt; s &#123;</span><br><span class="line">		<span class="keyword">return</span> indexLocal(l, pid), pid</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> p.local == <span class="literal">nil</span> &#123;</span><br><span class="line">		allPools = <span class="built_in">append</span>(allPools, p)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// If GOMAXPROCS changes between GCs, we re-allocate the array and lose the old one.</span></span><br><span class="line">	<span class="comment">//Number of current p</span></span><br><span class="line">	size := runtime.GOMAXPROCS(<span class="number">0</span>)</span><br><span class="line">	local := <span class="built_in">make</span>([]poolLocal, size)</span><br><span class="line">	<span class="comment">//The old local will be recycled</span></span><br><span class="line">	atomic.StorePointer(&amp;p.local, unsafe.Pointer(&amp;local[<span class="number">0</span>])) <span class="comment">// store-release</span></span><br><span class="line">	atomic.StoreUintptr(&amp;p.localSize, <span class="type">uintptr</span>(size))         <span class="comment">// store-release</span></span><br><span class="line">	<span class="keyword">return</span> &amp;local[pid], pid</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="pophead"><a class="markdownIt-Anchor" href="#pophead"></a> popHead</h4>
+<p>回到 <code>Get</code> 函数中，我们再看另外一个关键函数：<code>popHead</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *poolChain)</span></span> popHead() (<span class="keyword">interface</span>&#123;&#125;, <span class="type">bool</span>) &#123;</span><br><span class="line">	d := c.head</span><br><span class="line">	<span class="keyword">for</span> d != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> val, ok := d.popHead(); ok &#123;</span><br><span class="line">			<span class="keyword">return</span> val, ok</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// There may still be unconsumed elements in the</span></span><br><span class="line">		<span class="comment">// previous dequeue, so try backing up.</span></span><br><span class="line">		d = loadPoolChainElt(&amp;d.prev)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>popHead</code> 仅仅能被生产者调用，首先获取 head 节点，如果 head 节点不为空，尝试调用 head 节点的 <code>popHead</code> 方法。两个 <code>popHead</code> 是不相同的，head 节点的 <code>popHead</code> 方法实际调用 <code>poolDequeue.popHead()</code>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// popHead removes and returns the element at the head of the queue.</span></span><br><span class="line"><span class="comment">// It returns false if the queue is empty. It must only be called by a</span></span><br><span class="line"><span class="comment">// single producer.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *poolDequeue)</span></span> popHead() (<span class="keyword">interface</span>&#123;&#125;, <span class="type">bool</span>) &#123;</span><br><span class="line">	<span class="keyword">var</span> slot *eface</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		ptrs := atomic.LoadUint64(&amp;d.headTail)</span><br><span class="line">		head, tail := d.unpack(ptrs)</span><br><span class="line">		<span class="keyword">if</span> tail == head &#123;</span><br><span class="line">			<span class="comment">// Queue is empty.</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">false</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Confirm tail and decrement head. We do this before</span></span><br><span class="line">		<span class="comment">// reading the value to take back ownership of this</span></span><br><span class="line">		<span class="comment">// slot.</span></span><br><span class="line">		head--</span><br><span class="line">		ptrs2 := d.pack(head, tail)</span><br><span class="line">		<span class="keyword">if</span> atomic.CompareAndSwapUint64(&amp;d.headTail, ptrs, ptrs2) &#123;</span><br><span class="line">			<span class="comment">// We successfully took back slot.</span></span><br><span class="line">			slot = &amp;d.vals[head&amp;<span class="type">uint32</span>(<span class="built_in">len</span>(d.vals)<span class="number">-1</span>)]</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	val := *(*<span class="keyword">interface</span>&#123;&#125;)(unsafe.Pointer(slot))</span><br><span class="line">	<span class="keyword">if</span> val == dequeueNil(<span class="literal">nil</span>) &#123;</span><br><span class="line">		val = <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// Zero the slot. Unlike popTail, this isn&#x27;t racing with</span></span><br><span class="line">	<span class="comment">// pushHead, so we don&#x27;t need to be careful here.</span></span><br><span class="line">	*slot = eface&#123;&#125;</span><br><span class="line">	<span class="keyword">return</span> val, <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>poolDequeue</code> 是实际上缓存对象的地方，整个函数的核心是无限循环，是go中常见的无锁编程形式。首先判断队列是否为空，如果队列为空，那么就直接返回失败。否则，将头指针向后移动一位，即头值减少1，pack重新打包头尾指针。使用原子操作CompareAndSwapUint64比较头尾是否在这里变化。如果没有变化，则相当于获取锁。然后更新headtail的值。并将vals对应索引处的元素赋给slot。因为长度只能是2的n次方，假设 head 是 6，len(d.vals) 为 8，那么 <code>head&amp;uint32(len(d.vals)-1)</code> 其实是 <code>1</code>。</p>
+<p>在获取到对应slot的元素之后，进行类型转换判断它是不是 dequeueNil，如果是，那意味着没有获取到对象，返回 <code>nil</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// dequeueNil is used in poolDequeue to represent interface&#123;&#125;(nil).</span></span><br><span class="line"><span class="comment">// Since we use nil to represent empty slots, we need a sentinel value</span></span><br><span class="line"><span class="comment">// to represent nil.</span></span><br><span class="line"><span class="keyword">type</span> dequeueNil *<span class="keyword">struct</span>&#123;&#125;</span><br></pre></td></tr></table></figure>
+<p>最后要在返回之前，将得到 slot 零值化。</p>
+<h4 id="getslow"><a class="markdownIt-Anchor" href="#getslow"></a> getSlow</h4>
+<p>如果没有从当前P 的 <code>poolLocal</code> 获取到值，那么只能调用 <code>getSlow</code> 从其他 P 那里偷了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span></span> getSlow(pid <span class="type">int</span>) <span class="keyword">interface</span>&#123;&#125; &#123;</span><br><span class="line">	<span class="comment">// See the comment in pin regarding ordering of the loads.</span></span><br><span class="line">	size := runtime_LoadAcquintptr(&amp;p.localSize) <span class="comment">// load-acquire</span></span><br><span class="line">	locals := p.local                            <span class="comment">// load-consume</span></span><br><span class="line">	<span class="comment">// Try to steal one element from other procs.</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="type">int</span>(size); i++ &#123;</span><br><span class="line">		l := indexLocal(locals, (pid+i+<span class="number">1</span>)%<span class="type">int</span>(size))</span><br><span class="line">		<span class="keyword">if</span> x, _ := l.shared.popTail(); x != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> x</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Try the victim cache. We do this after attempting to steal</span></span><br><span class="line">	<span class="comment">// from all primary caches because we want objects in the</span></span><br><span class="line">	<span class="comment">// victim cache to age out if at all possible.</span></span><br><span class="line">	size = atomic.LoadUintptr(&amp;p.victimSize)</span><br><span class="line">	<span class="keyword">if</span> <span class="type">uintptr</span>(pid) &gt;= size &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	locals = p.victim</span><br><span class="line">	l := indexLocal(locals, pid)</span><br><span class="line">	<span class="keyword">if</span> x := l.private; x != <span class="literal">nil</span> &#123;</span><br><span class="line">		l.private = <span class="literal">nil</span></span><br><span class="line">		<span class="keyword">return</span> x</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="type">int</span>(size); i++ &#123;</span><br><span class="line">		l := indexLocal(locals, (pid+i)%<span class="type">int</span>(size))</span><br><span class="line">		<span class="keyword">if</span> x, _ := l.shared.popTail(); x != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> x</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Mark the victim cache as empty for future gets don&#x27;t bother</span></span><br><span class="line">	<span class="comment">// with it.</span></span><br><span class="line">	atomic.StoreUintptr(&amp;p.victimSize, <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先从当前 <code>P</code> 的下一个 <code>P</code> 开始偷，其实就是从其他<code>P</code>的 <code>poolLocal</code> 最后那个 <code>poolDequeue</code> 的尾部开始偷。要是没偷到，那就从 <code>victim</code> 中拿，顺序也是先从当前P的 <code>victim</code> 拿，然后从其他 <code>P</code> 的 <code>victim</code> 偷，如果最终还是没拿到，就把当前 <code>victimSize</code> 设置为 <code>0</code> 。</p>
+<h4 id="poptail"><a class="markdownIt-Anchor" href="#poptail"></a> popTail</h4>
+<p>继续看下 <code>poolChain</code> 的 <code>popTail</code> 函数，焦点应该for循环的顶部，我们在获取到<code>poolChain</code>的最后一个环形队列之后，又获取到了它的next队列，实际上是的前一个队列，如果d为空，我们要向将 d 摘除，那么 next 不能是空，摘除 next 之后，我们继续从前面的环形队列查找。</p>
+<p><img data-src="poolchainElt.png" alt="" /></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *poolChain)</span></span> popTail() (<span class="keyword">interface</span>&#123;&#125;, <span class="type">bool</span>) &#123;</span><br><span class="line">	d := loadPoolChainElt(&amp;c.tail)</span><br><span class="line">	<span class="keyword">if</span> d == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// It&#x27;s important that we load the next pointer</span></span><br><span class="line">		<span class="comment">// *before* popping the tail. In general, d may be</span></span><br><span class="line">		<span class="comment">// transiently empty, but if next is non-nil before</span></span><br><span class="line">		<span class="comment">// the pop and the pop fails, then d is permanently</span></span><br><span class="line">		<span class="comment">// empty, which is the only condition under which it&#x27;s</span></span><br><span class="line">		<span class="comment">// safe to drop d from the chain. </span></span><br><span class="line">		d2 := loadPoolChainElt(&amp;d.next)</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> val, ok := d.popTail(); ok &#123;</span><br><span class="line">			<span class="keyword">return</span> val, ok</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> d2 == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="comment">// This is the only dequeue. It&#x27;s empty right</span></span><br><span class="line">			<span class="comment">// now, but could be pushed to in the future.</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">false</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// The tail of the chain has been drained, so move on</span></span><br><span class="line">		<span class="comment">// to the next dequeue. Try to drop it from the chain</span></span><br><span class="line">		<span class="comment">// so the next pop doesn&#x27;t have to look at the empty</span></span><br><span class="line">		<span class="comment">// dequeue again.</span></span><br><span class="line">		<span class="keyword">if</span> atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&amp;c.tail)), unsafe.Pointer(d), unsafe.Pointer(d2)) &#123;</span><br><span class="line">			<span class="comment">// We won the race. Clear the prev pointer so</span></span><br><span class="line">			<span class="comment">// the garbage collector can collect the empty</span></span><br><span class="line">			<span class="comment">// dequeue and so popHead doesn&#x27;t back up</span></span><br><span class="line">			<span class="comment">// further than necessary.</span></span><br><span class="line">			storePoolChainElt(&amp;d2.prev, <span class="literal">nil</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		d = d2</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最后再看一下 <code>poolDequeue.popTail</code>，它是从环形队列的尾部查找。如果为空返回 false，这个函数可能会有多个消费者调用，多个人来偷，核心代码仍然是无锁无限for循环。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// popTail removes and returns the element at the tail of the queue.</span></span><br><span class="line"><span class="comment">// It returns false if the queue is empty. It may be called by any</span></span><br><span class="line"><span class="comment">// number of consumers.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *poolDequeue)</span></span> popTail() (<span class="keyword">interface</span>&#123;&#125;, <span class="type">bool</span>) &#123;</span><br><span class="line">	<span class="keyword">var</span> slot *eface</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		ptrs := atomic.LoadUint64(&amp;d.headTail)</span><br><span class="line">		head, tail := d.unpack(ptrs)</span><br><span class="line">		<span class="keyword">if</span> tail == head &#123;</span><br><span class="line">			<span class="comment">// Queue is empty.</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">false</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Confirm head and tail (for our speculative check</span></span><br><span class="line">		<span class="comment">// above) and increment tail. If this succeeds, then</span></span><br><span class="line">		<span class="comment">// we own the slot at tail.</span></span><br><span class="line">		ptrs2 := d.pack(head, tail+<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">if</span> atomic.CompareAndSwapUint64(&amp;d.headTail, ptrs, ptrs2) &#123;</span><br><span class="line">			<span class="comment">// Success.</span></span><br><span class="line">			slot = &amp;d.vals[tail&amp;<span class="type">uint32</span>(<span class="built_in">len</span>(d.vals)<span class="number">-1</span>)]</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// We now own slot.</span></span><br><span class="line">	val := *(*<span class="keyword">interface</span>&#123;&#125;)(unsafe.Pointer(slot))</span><br><span class="line">	<span class="keyword">if</span> val == dequeueNil(<span class="literal">nil</span>) &#123;</span><br><span class="line">		val = <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Tell pushHead that we&#x27;re done with this slot. Zeroing the</span></span><br><span class="line">	<span class="comment">// slot is also important so we don&#x27;t leave behind references</span></span><br><span class="line">	<span class="comment">// that could keep this object live longer than necessary.</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// We write to val first and then publish that we&#x27;re done with</span></span><br><span class="line">	<span class="comment">// this slot by atomically writing to typ.</span></span><br><span class="line">	slot.val = <span class="literal">nil</span></span><br><span class="line">	atomic.StorePointer(&amp;slot.typ, <span class="literal">nil</span>)</span><br><span class="line">	<span class="comment">// At this point pushHead owns the slot.</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> val, <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="put"><a class="markdownIt-Anchor" href="#put"></a> Put</h3>
+<p>相较于 Get 的流程，Put 则简单多了，在删除race相关的代码之后，主要有两个流程：</p>
+<ul>
+<li>绑定P 和 G，将 x 赋值给 l.private 字段</li>
+<li>如果失败，调用 <code>pushHead</code> 把它放到双向循环队列的头部</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Put adds x to the pool.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span></span> Put(x <span class="keyword">interface</span>&#123;&#125;) &#123;</span><br><span class="line">	<span class="keyword">if</span> x == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	l, _ := p.pin()</span><br><span class="line">	<span class="keyword">if</span> l.private == <span class="literal">nil</span> &#123;</span><br><span class="line">		l.private = x</span><br><span class="line">		x = <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> x != <span class="literal">nil</span> &#123;</span><br><span class="line">		l.shared.pushHead(x)</span><br><span class="line">	&#125;</span><br><span class="line">	runtime_procUnpin()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="pushhead"><a class="markdownIt-Anchor" href="#pushhead"></a> pushHead</h4>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *poolChain)</span></span> pushHead(val <span class="keyword">interface</span>&#123;&#125;) &#123;</span><br><span class="line">	d := c.head</span><br><span class="line">	<span class="keyword">if</span> d == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// Initialize the chain.</span></span><br><span class="line">		<span class="keyword">const</span> initSize = <span class="number">8</span> <span class="comment">// Must be a power of 2</span></span><br><span class="line">		d = <span class="built_in">new</span>(poolChainElt)</span><br><span class="line">		d.vals = <span class="built_in">make</span>([]eface, initSize)</span><br><span class="line">		c.head = d</span><br><span class="line">		storePoolChainElt(&amp;c.tail, d)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> d.pushHead(val) &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The current dequeue is full. Allocate a new one of twice</span></span><br><span class="line">	<span class="comment">// the size.</span></span><br><span class="line">	newSize := <span class="built_in">len</span>(d.vals) * <span class="number">2</span></span><br><span class="line">	<span class="keyword">if</span> newSize &gt;= dequeueLimit &#123;</span><br><span class="line">		<span class="comment">// Can&#x27;t make it any bigger.</span></span><br><span class="line">		newSize = dequeueLimit</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	d2 := &amp;poolChainElt&#123;prev: d&#125;</span><br><span class="line">	d2.vals = <span class="built_in">make</span>([]eface, newSize)</span><br><span class="line">	c.head = d2</span><br><span class="line">	storePoolChainElt(&amp;d.next, d2)</span><br><span class="line">	d2.pushHead(val)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>先判断 head 节点是不是空，如果是空，那就新生成1个8个元素的双向循环队列，然后调用 <code>poolDequeue</code> 的 <code>pushHead</code> 方法插入。如果不为空，那么直接插入，但是如果插入的过程中发现头部的双向循环队列满了，那也新建一个，只是新建的循环队列的长度是之前的2倍，但是最大值是 dequeueLimit :</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> dequeueBits = <span class="number">32</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// dequeueLimit is the maximum size of a poolDequeue.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// This must be at most (1&lt;&lt;dequeueBits)/2 because detecting fullness</span></span><br><span class="line"><span class="comment">// depends on wrapping around the ring buffer without wrapping around</span></span><br><span class="line"><span class="comment">// the index. We divide by 4 so this fits in an int on 32-bit.</span></span><br><span class="line"><span class="keyword">const</span> dequeueLimit = (<span class="number">1</span> &lt;&lt; dequeueBits) / <span class="number">4</span>  <span class="comment">// 2 ^30 = 1073741824</span></span><br></pre></td></tr></table></figure>
+<h3 id="packunpack"><a class="markdownIt-Anchor" href="#packunpack"></a> pack/unpack</h3>
+<p>pack 和 unpack 函数将 head 和 tail 两个指针合并到一起，两个 uint32 的值合并成一个 uint64 的值：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *poolDequeue)</span></span> unpack(ptrs <span class="type">uint64</span>) (head, tail <span class="type">uint32</span>) &#123;</span><br><span class="line">	<span class="keyword">const</span> mask = <span class="number">1</span>&lt;&lt;dequeueBits - <span class="number">1</span>  <span class="comment">// 4,294,967,295   1111 1111 1111 1111 1111 1111 1111 1111</span></span><br><span class="line">	head = <span class="type">uint32</span>((ptrs &gt;&gt; dequeueBits) &amp; mask)</span><br><span class="line">	tail = <span class="type">uint32</span>(ptrs &amp; mask)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *poolDequeue)</span></span> pack(head, tail <span class="type">uint32</span>) <span class="type">uint64</span> &#123;</span><br><span class="line">	<span class="keyword">const</span> mask = <span class="number">1</span>&lt;&lt;dequeueBits - <span class="number">1</span></span><br><span class="line">	<span class="keyword">return</span> (<span class="type">uint64</span>(head) &lt;&lt; dequeueBits) |</span><br><span class="line">		<span class="type">uint64</span>(tail&amp;mask)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="gc"><a class="markdownIt-Anchor" href="#gc"></a> GC</h3>
+<p>对于 <code>sync.Pool</code>，它不能无限扩展，否则它将占用太多的内存而造成内存泄漏。几乎所有的池化技术中，某些对象在某个时刻要被清空掉。在 <code>pool.go</code> 的 init 函数中，注册了用于在GC时清理pool 的函数。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	runtime_registerPoolCleanup(poolCleanup)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">poolCleanup</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// This function is called with the world stopped, at the beginning of a garbage collection.</span></span><br><span class="line">	<span class="comment">// It must not allocate and probably should not call any runtime functions.</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Because the world is stopped, no pool user can be in a</span></span><br><span class="line">	<span class="comment">// pinned section (in effect, this has all Ps pinned).</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Drop victim caches from all pools.</span></span><br><span class="line">	<span class="keyword">for</span> _, p := <span class="keyword">range</span> oldPools &#123;</span><br><span class="line">		p.victim = <span class="literal">nil</span></span><br><span class="line">		p.victimSize = <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Move primary cache to victim cache.</span></span><br><span class="line">	<span class="keyword">for</span> _, p := <span class="keyword">range</span> allPools &#123;</span><br><span class="line">		p.victim = p.local</span><br><span class="line">		p.victimSize = p.localSize</span><br><span class="line">		p.local = <span class="literal">nil</span></span><br><span class="line">		p.localSize = <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The pools with non-empty primary caches now have non-empty</span></span><br><span class="line">	<span class="comment">// victim caches and no pools have primary caches.</span></span><br><span class="line">	oldPools, allPools = allPools, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>poolCleanup</code> 的设计十分简单，仅仅是交换 local 和 victim，交换之前将旧的 victim 置为空，</p>
+<h2 id="参考文章"><a class="markdownIt-Anchor" href="#参考文章"></a> 参考文章</h2>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://developpaper.com/deep-decryption-of-go-language-sync-pool/">https://developpaper.com/deep-decryption-of-go-language-sync-pool/</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/" title="【Golang】sync.Pool 的设计与实现">https://blog.fudenglong.site/2021/12/04/Go/【Golang】sync-Pool-的设计与实现/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/sync-Pool/" rel="tag"># sync.Pool</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/09/16/Go/%E3%80%90Golang%E3%80%91Go-Modules/" rel="prev" title="【Golang】Go Modules">
+                  <i class="fa fa-angle-left"></i> 【Golang】Go Modules
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/" rel="next" title="【k8s】本地k8s集群部署dapr应用">
+                  【k8s】本地k8s集群部署dapr应用 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

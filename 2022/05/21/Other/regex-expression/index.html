@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="一直以来，从 JavaScript，PHP，Python到Golang，然后还有linux系统中，无处不见正则表达式的身影，可是一致困扰在POSIX和PCRE的概念中，分不清这两个是个啥，今天就来翻翻正则表达式的老底，了解了解正则表达式的前世今生。 Regular Expression的Regular一般被译为正则、正规、常规。此处的Regular即是规则的意思，Regular Expressio">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Regex】正则表达式">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/05/21/Other/regex-expression/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="一直以来，从 JavaScript，PHP，Python到Golang，然后还有linux系统中，无处不见正则表达式的身影，可是一致困扰在POSIX和PCRE的概念中，分不清这两个是个啥，今天就来翻翻正则表达式的老底，了解了解正则表达式的前世今生。 Regular Expression的Regular一般被译为正则、正规、常规。此处的Regular即是规则的意思，Regular Expressio">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/21/Other/regex-expression/1.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/21/Other/regex-expression/posix.png">
+<meta property="article:published_time" content="2022-05-21T07:05:16.000Z">
+<meta property="article:modified_time" content="2022-05-21T07:05:16.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="regex">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/05/21/Other/regex-expression/1.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/05/21/Other/regex-expression/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/05/21/Other/regex-expression/","path":"2022/05/21/Other/regex-expression/","title":"【Regex】正则表达式"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Regex】正则表达式 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%86%E5%8F%B2"><span class="nav-number">1.</span> <span class="nav-text"> 历史</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#pcre"><span class="nav-number">2.</span> <span class="nav-text"> PCRE</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#posix"><span class="nav-number">3.</span> <span class="nav-text"> POSIX</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BC%98%E5%85%88%E6%9D%83"><span class="nav-number">4.</span> <span class="nav-text"> 优先权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B"><span class="nav-number">5.</span> <span class="nav-text"> 示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%98%85%E8%AF%BB"><span class="nav-number">6.</span> <span class="nav-text"> 参考阅读</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/05/21/Other/regex-expression/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Regex】正则表达式 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Regex】正则表达式
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-05-21 15:05:16" itemprop="dateCreated datePublished" datetime="2022-05-21T15:05:16+08:00">2022-05-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/linux/" itemprop="url" rel="index"><span itemprop="name">linux</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>16 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>一直以来，从 <code>JavaScript</code>，<code>PHP</code>，<code>Python</code>到<code>Golang</code>，然后还有<code>linux</code>系统中，无处不见正则表达式的身影，可是一致困扰在<code>POSIX</code>和<code>PCRE</code>的概念中，分不清这两个是个啥，今天就来翻翻正则表达式的老底，了解了解正则表达式的前世今生。</p>
+<p><code>Regular Expression</code>的<code>Regular</code>一般被译为正则、正规、常规。此处的<code>Regular</code>即是规则的意思，<code>Regular Expression</code>即描述某种规则的表达式之意。</p>
+<p>正则表达式（英语：<code>Regular Expression</code>，在代码中常简写为<code>regex</code>、<code>regexp</code>或<code>RE</code>），是计算机科学的一个概念。正则表达式使用单个字符串来描述、匹配一系列匹配某个句法规则的字符串。在很多文本编辑器里，正则表达式通常被用来检索、替换那些匹配某个模式的文本。</p>
+<p>许多程序设计语言都支持利用正则表达式进行字符串操作。例如，在<code>Perl</code>中就内建了一个功能强大的正则表达式引擎。正则表达式这个概念最初是由<code>Unix</code>中的工具软件（例如<code>sed</code>和<code>grep</code>）普及开的。正则表达式通常缩写成<code>regex</code>，单数有<code>regexp</code>、<code>regex</code>，复数有<code>regexps</code>、<code>regexes</code>、<code>regexen</code>。</p>
+<span id="more"></span>
+<h3 id="历史"><a class="markdownIt-Anchor" href="#历史"></a> 历史</h3>
+<p>正则表示式这一概念最早可以追溯到20世纪40年代的两个神经物理学家<code>Warren McCulloch</code>与<code>Walter Pitts</code>，他们将神经系统中的神经元描述成小而简单的自动控制元。</p>
+<p>紧接着，在<code>50</code>年代，数学家<code>1950</code>年代，数学家<code>Stephen Kleene</code>利用称之为<code>正则集合</code>的数学符号来描述此模型，并且建议使用一个简单的概念来表示，于是<code>regular expressions</code>就正式登上历史舞台了。</p>
+<p><code>1968</code>年，<code>Ken Thompson</code>发表了<a target="_blank" rel="noopener" href="http://www.fing.edu.uy/inco/cursos/intropln/material/p419-thompson.pdf">Regular Expression Search Algorithm</a>, 紧接着大神<code>Thompson</code>根据这个论文实现了<code>Unix</code>上编辑器<code>ed</code>的前身<a target="_blank" rel="noopener" href="http://en.wikipedia.org/wiki/QED_%28text_editor%29"><code>qed</code></a>。<code>ed</code>所支持的正则表示式并不比<code>qed</code>的高级，但是<code>ed</code>是第一个在非技术圈广泛传播的工具，<code>ed</code>有一个命令可以展示文本中符合给定正则表达式的行，这个命令是<code>g/Regular Expression/p</code>，在英文中读作**<code>Global Regular Expression Print</code>**，由于这个命令非常实用，所以后来有了<code>grep</code>、<code>egrep</code>这两个命令。</p>
+<p>相比<code>egrep</code>，<code>grep</code>只支持很少的元符号，<code>＊</code>是支持的（但不能用于分组中），但是<code>+</code>、<code>|</code>与<code>?</code>是不支持的；而且，分组时需要加上反斜线转义，像<code>\( ...\)</code>这样才行，由于<code>grep</code>的缺陷性日渐明显，<code>AT&amp;T</code>的<code>Alfred Aho</code>实在受不了了，于是<code>egrep</code>诞生了，这里的<code>e</code>表示<code>extended</code>，加强版的意思，支持了<code>+</code>、<code>|</code>与<code>?</code>这三个元符号，并且可以在分组中使用<code>*</code>，分组可以直接写成<code>(...)</code>，同时用<code>\1,\2...</code>来引用分组。</p>
+<p>在<code>grep</code>、<code>egrep</code>发展的同时，<code>awk</code>、<code>lex</code>、<code>sed</code>等程序也开始发展起来，而且每个程序所支持的正则表达式都或多或少的和其他的不一样，这应该算是正则表达式发展的混乱期，因为这些程序在不断的发展过程中，有时新增加的功能因为<code>bug</code>原因，在后期的版本中取消了该功能，例如，如果让<code>grep</code>支持元符号<code>+</code>的话，那么<code>grep</code>就不能表示字符<code>+</code>了，而且<code>grep</code>的老用户会对这很反感。</p>
+<p>这种门派自居的时代混乱不堪，总得有人来统一吧。到了<code>1986</code>年，这个人终于来了，他就是**<code>POSIX(Portable Operating System Interface)</code>标准**，<code>POSIX</code>制定了不同操作系统之间都需要遵守的一套规则。当然了，正则表达式也包括其中，终于来个管事的，<code>POSIX</code>规范分为基本正则表达式<code>BRE(Basic Regular Expressions)</code>和扩展正则表达式<code>ERE(Extended Regular Express，ERE)</code>两个流派，所有的<code>POSIX</code>程序可以选择支持其中的一种，具体规范详见下表：</p>
+<p><img data-src="1.png" alt="posix-regexp-favor" /></p>
+<p>从上图可以看出，有三个空白栏，那么是不是就意味这无法使用该功能了呢？答案是否定的，因为我们现在使用的<code>linux</code>发行版，都是集成<code>GNU</code>套件的，<code>GNU</code>是<code>Gnu’s Not Unix</code>的缩写，<code>GNU</code>在实现了<code>POSIX</code>标准的同时，做了一定的扩展，所以上面空白栏中的功能也能使用。下面一一讲解：</p>
+<ul>
+<li><code>BRE</code>如何使用<code>+</code>、<code>?</code>呢？需要用<code>\+</code>、<code>\?</code>；</li>
+<li><code>BRE</code>如何使用<code>|</code>呢？需要用<code>\|</code>；</li>
+<li><code>ERE</code>如何使用<code>\1、\2…\9</code>这样的反引用？和<code>BRE</code>一样，就是<code>\1、\2…\9</code>；</li>
+</ul>
+<p>通过上面总结，可以发现：<code>GNU</code>中的<code>ERE</code>与<code>BRE</code>的功能相同，只是语法不同（<code>BRE</code>需要用<code>\</code>进行转义，才能表示特殊含义）。例如<code>a&#123;1,2&#125;</code>，在<code>ERE</code>表示的是<code>a</code>或<code>aa</code>，在<code>BRE</code>中表示的是<code>a&#123;1,2&#125;</code>这个字符串。为了能够在Linux下熟练使用文本处理工具，我们必须知道这些命令支持那种正则表达式。现对常见的命令总结如下：</p>
+<ul>
+<li>使用<code>BRE</code>语法的命令有：<code>grep、ed、sed、vim</code></li>
+<li>使用<code>ERE</code>语法的命令有：<code>egrep、awk、emacs</code></li>
+</ul>
+<p>当然，这也不是绝对的，比如 <code>sed</code> 通过<code>-r</code>选项就可以使用<code>ERE</code>了，大家到时自己<code>man</code>一下就可以了。还值得一提的是<code>POSIX</code>还定义了一些<code>shorthand</code>，具体如下：</p>
+<ul>
+<li><code>[:alnum:]</code></li>
+<li><code>[:alpha:]</code></li>
+<li><code>[:cntrl:]</code></li>
+<li><code>[:digit:]</code></li>
+<li><code>[:graph:]</code></li>
+<li><code>[:lower:]</code></li>
+<li><code>[:print:]</code></li>
+<li><code>[:punct:]</code></li>
+<li><code>[:space:]</code></li>
+<li><code>[:upper:]</code></li>
+<li><code>[:xdigit:]</code></li>
+</ul>
+<p>在使用这些<code>shorthand</code>时有一个约束：<strong>必须在<code>[]</code>中使用</strong>，也就是说如果像匹配<code>0-9</code>的数字，需要这么写<code>[[:alnum:]]</code>，取反就是<code>[^[:alnum:]]</code>。<code>shorhand</code> 在<code>BRE</code>与<code>EBE</code>中的用法相同。</p>
+<p>如果你对<code>sed</code>、<code>awk</code>比较熟悉，你会发现我们平常在变成语言中用的<code>\d</code>、<code>\w</code>在这些命令中不能用，原因很简单，因为<code>POSIX</code>规范根本没有定义这些<code>shorthand</code>，这些是由下面将要说的<code>PCRE</code>中定义的。</p>
+<p>除了<code>POSIX</code>标准外，还有一个<code>Perl</code>分支，也就是我们现在熟知的<code>PCRE（Perl兼容正则表达式，Perl Compatible Regular Expressions)</code>，源自于<code>Henry Spencer</code>于<code>1986</code>年<code>1</code>月<code>19</code>日发布的<code>regex</code>，随着<code>Perl</code>语言的发展<code>，Perl</code>语言中的正则表达式功能越来越强悍，为了把<code>Perl</code>语言中正则的功能移植到其他语言中，<code>PCRE</code>就诞生了。<strong>现在的编程语言中的正则表达式，大部分都属于PCRE这个分支</strong>。</p>
+<p><code>Perl</code>语言第一版是由<code>Larry Wall</code>发布于<code>1987</code>年<code>12</code>月，<code>Perl</code>在发布之初，就因其强大的功能而一票走红，<code>Perl</code>的定位目标就是天天要使用的工具。</p>
+<p><code>Perl</code>比较显诸特征之一是与<code>sed</code>与<code>awk</code>兼容，这造就了<code>Perl</code>成为第一个通用性脚本语言。</p>
+<p>随着<code>Perl</code>的不断发展，其支持的正则表达式的功能也越来越强大。其中影响较大的是于<code>1994</code>年<code>10</code>月发布的<code>Perl 5</code>，其增加了很多特性，比如<code>non-capturing parentheses</code>、<code>lazy quantifiers</code>、<code>look-ahead</code>、元符号<code>\G</code>等等。</p>
+<p>正好这时也是 <code>WWW</code> 兴起的时候，而<code>Perl</code>就是为了文本处理而发明的，所以<code>Perl</code>基本上成了<code>web</code>开发的首选语言。<code>Perl</code>语言应用是如此广泛，以至于其他语言开始移植 <code>Perl</code>，最终<code>Perl compatible</code>（兼容）的<code>PCRE</code>诞生了，这其中包括了<code>Tcl</code>, <code>Python</code>, <code>Microsoft’s .NET</code>，<code>Ruby</code>，<code>PHP</code>，<code>C/C++</code>， <code>Java</code>等等。</p>
+<p>前面说了<code>shorthand</code>在<code>POSIX</code>与<code>PCRE</code>是不同的，<code>PCRE</code>中我们常用的有如下这些：</p>
+<ul>
+<li><code>\w</code> 表示<code>[a-zA-Z]</code></li>
+<li><code>\W</code> 表示<code>[^a-zA-Z]</code></li>
+<li><code>\s</code> 表示<code>[ \t\r\n\f]</code></li>
+<li><code>\S</code> 表示<code>[^ \t\r\n\f]</code></li>
+<li><code>\d</code> 表示<code>[1-9]</code></li>
+<li><code>\D</code> 表示<code>[^1-9]</code></li>
+<li><code>\&lt;</code> 表示一个单词的起始</li>
+<li><code>\&gt;</code> 表示一个单词的结尾</li>
+</ul>
+<h3 id="pcre"><a class="markdownIt-Anchor" href="#pcre"></a> <code>PCRE</code></h3>
+<ol>
+<li>
+<p><code>\</code>, 将下一个字符标记为一个<code>特殊字符(File Format Escape)</code>、或一个<code>原义字符（Identity Escape，有^$()*+?.[\&#123;|共计12个)</code>、或一个向<code>后引用(backreferences)</code>、或一个<code>八进制转义符</code>。例如，<code>n</code>匹配字符<code>n</code>。<code>\n</code>匹配一个换行符。序列<code>\\</code>匹配<code>\</code>而<code>\(</code>则匹配<code>(</code>。</p>
+</li>
+<li>
+<p><code>^</code>, 匹配输入字符串的开始位置。如果设置了<code>RegExp</code>对象的<code>Multiline</code>属性，<code>^</code>也匹配<code>\n</code>或<code>\r</code>之后的位置。</p>
+</li>
+<li>
+<p><code>$</code>, 匹配输入字符串的结束位置。如果设置了<code>RegExp</code>对象的<code>Multiline</code>属性，<code>$</code>也匹配<code>\n</code>或<code>\r</code>之前的位置。</p>
+</li>
+<li>
+<p><code>*</code>, 匹配前面的子表达式零次或多次。例如，<code>zo*</code>能匹配<code>z</code>、<code>zo</code>以及<code>zoo</code>。<code>*</code>等价于<code>&#123;0,&#125;</code>。</p>
+</li>
+<li>
+<p><code>+</code>, 匹配前面的子表达式一次或多次。例如，<code>zo+</code>能匹配<code>zo</code>以及<code>zoo</code>，但不能匹配<code>z</code>。<code>+</code>等价于<code>&#123;1,&#125;</code>。</p>
+</li>
+<li>
+<p><code>?</code>, 匹配前面的子表达式零次或一次。例如，<code>do(es)?</code>可以匹配<code>do</code>或<code>does</code>中的<code>do</code>。<code>?</code>等价于<code>&#123;0,1&#125;</code>。</p>
+</li>
+<li>
+<p><code>&#123;n&#125;</code>, <code>n</code>是一个非负整数。匹配确定的<code>n</code>次。例如，<code>o&#123;2&#125;</code>不能匹配<code>Bob</code>中的<code>o</code>，但是能匹配<code>food</code>中的两个<code>o</code>。</p>
+</li>
+<li>
+<p><code>&#123;n,&#125;</code>, n是一个非负整数。至少匹配n次。例如，<code>o&#123;2,&#125;</code>不能匹配<code>Bob</code>中的<code>o</code>，但能匹配<code>foooood</code>中的所有<code>o</code>。<code>o&#123;1,&#125;</code>等价于<code>o+</code>。<code>o&#123;0,&#125;</code>则等价于<code>o*</code>。</p>
+</li>
+<li>
+<p><code>&#123;m,n&#125;</code>, <code>m</code>和<code>n</code>均为非负整数，其中<code>n&lt;=m</code>。最少匹配<code>n</code>次且最多匹配<code>m</code>次。例如，<code>o&#123;1,3&#125;</code>将匹配<code>fooooood</code>中的前三个<code>o</code>。<code>o&#123;0,1&#125;</code>等价于<code>o?</code>。<strong>请注意在逗号和两个数之间不能有空格</strong>。</p>
+</li>
+<li>
+<p><code>?</code>, <strong>非贪心量化（<code>Non-greedy quantifiers</code>）</strong>：当该字符紧跟在任何一个其他重复修饰符（<code>*,+,?，&#123;n&#125;，&#123;n,&#125;，&#123;n,m&#125;</code>）后面时，匹配模式是非贪婪的。非贪婪模式尽可能少的匹配所搜索的字符串，而默认的贪婪模式则尽可能多的匹配所搜索的字符串。例如，对于字符串<code>oooo</code>，<code>o+?</code>将匹配单个<code>o</code>，而<code>o+</code>将匹配所有<code>o</code>。</p>
+</li>
+<li>
+<p><code>.</code>, 匹配除<code>\r</code> <code>\n</code>之外的任何单个字符。要匹配包括<code>\r</code> <code>\n</code>在内的任何字符，请使用像<code>(.|\r|\n)</code>的模式。</p>
+</li>
+<li>
+<p><code>(pattern)</code>, 匹配<code>pattern</code>并获取这一匹配的子字符串。该子字符串用于向后引用。所获取的匹配可以从产生的<code>Matches</code>集合得到，在<code>VBScript</code>中使用<code>SubMatches</code>集合，在<code>JScript</code>中则使用<code>$0…$9</code>属性，要匹配圆括号字符，请使用<code>\(</code>或<code>\)</code>。</p>
+</li>
+<li>
+<p><code>(?:pattern)</code>, 匹配<code>pattern</code>但不获取匹配的子字符串，也就是说这是一个非获取匹配，不存储匹配的子字符串用于向后引用。这在使用或字符<code>(|)</code>来组合一个模式的各个部分是很有用。例如<code>industr(?:y|ies)</code>就是一个比<code>industry|industries</code>更简略的表达式。</p>
+</li>
+<li>
+<p><code>(?=pattern)</code>, 正向肯定预查（<code>look ahead positive assert</code>），在任何匹配<code>pattern</code>的字符串开始处匹配查找字符串。<strong>这是一个非获取匹配，也就是说，该匹配不需要获取供以后使用</strong>。例如，<code>Windows(?=95|98|NT|2000)</code>能匹配<code>Windows2000</code>中的<code>Windows</code>，但不能匹配<code>Windows3.1</code>中的<code>Windows</code>。预查不消耗字符，也就是说，在一个匹配发生后，在最后一次匹配之后立即开始下一次匹配的搜索，而不是从包含预查的字符之后开始。</p>
+</li>
+<li>
+<p><code>(?!pattern)</code>, 正向否定预查(<code>negative assert</code>)，在任何不匹配<code>pattern</code>的字符串开始处匹配查找字符串。这是一个非获取匹配，也就是说，该匹配不需要获取供以后使用。例如<code>Windows(?!95|98|NT|2000)</code>能匹配<code>Windows3.1</code>中的<code>Windows</code>，但不能匹配<code>Windows2000</code>中的<code>Windows</code>。预查不消耗字符，也就是说，在一个匹配发生后，在最后一次匹配之后立即开始下一次匹配的搜索，而不是从包含预查的字符之后开始。</p>
+</li>
+<li>
+<p><code>(?&lt;=pattern)</code>, 反向(<code>look behind</code>)肯定预查，与正向肯定预查类似，只是方向相反。例如，<code>(?&lt;=95|98|NT|2000)Windows</code>能匹配<code>2000Windows</code>中的<code>Windows</code>，但不能匹配<code>3.1Windows</code>中的<code>Windows</code>。</p>
+</li>
+<li>
+<p><code>(?&lt;!pattern)</code>, 反向否定预查，与正向否定预查类似，只是方向相反。例如<code>(?&lt;!95|98|NT|2000)Windows</code>能匹配<code>3.1Windows</code>中的<code>Windows</code>，但不能匹配<code>2000Windows</code>中的<code>Windows</code>。</p>
+</li>
+<li>
+<p><code>x|y</code>, 匹配<code>x</code>或<code>y</code>。例如，<code>z|food</code>能匹配<code>z</code>或<code>food</code>。<code>(?:z|f)ood</code>则匹配<code>zood</code>或<code>food</code>。</p>
+</li>
+<li>
+<p><code>[xyz]</code>, 字符集合（<code>character class</code>）。匹配所包含的任意一个字符。例如，<code>[abc]</code>可以匹配<code>plain</code>中的<code>a</code>。特殊字符仅有反斜线<code>\</code>保持特殊含义，用于转义字符。其它特殊字符如<code>*</code>、<code>+</code>、各种括号等均作为普通字符。<code>^</code>如果出现在首位则表示不在字符集合；如果出现在字符串中间就仅作为普通字符。连字符 <code>-</code> 如果出现在字符串中间表示字符范围描述；如果如果出现在首位（或末尾）则仅作为普通字符。右方括号应转义出现，也可以作为首位字符出现。</p>
+</li>
+<li>
+<p><code>[^xyz]</code>, 排除型字符集合（<code>negated character classes</code>）。匹配未列出的任意字符。例如，<code>[^abc]</code>可以匹配<code>plain</code>中的<code>plin</code>。</p>
+</li>
+<li>
+<p><code>[a-z]</code>, 字符范围。匹配指定范围内的任意字符。例如，<code>[a-z]</code>可以匹配<code>a</code>到<code>z</code>范围内的任意小写字母字符。</p>
+</li>
+<li>
+<p><code>[^a-z]</code>, 排除型的字符范围。匹配任何不在指定范围内的任意字符。例如，<code>[^a-z]</code>可以匹配任何不在<code>a</code>到<code>z</code>范围内的任意字符。</p>
+</li>
+<li>
+<p><code>\b</code>, 匹配一个单词边界，也就是指单词和空格间的位置。例如，<code>er\b</code>可以匹配<code>never</code>中的<code>er</code>，但不能匹配<code>verb</code>中的<code>er</code>。</p>
+</li>
+<li>
+<p><code>\B</code>, 匹配非单词边界。<code>er\B</code>能匹配<code>verb</code>中的<code>er</code>，但不能匹配<code>never</code>中的<code>er</code>。</p>
+</li>
+<li>
+<p><code>\cx</code>, 匹配由x指明的控制字符。例如，<code>\cM</code>匹配一个<code>Control-M</code>或回车符。<code>x</code>的值必须为<code>A-Z</code>或<code>a-z</code>之一。否则，将<code>c</code>视为一个原义的<code>c</code>字符。</p>
+</li>
+<li>
+<p><code>\d</code>, 匹配一个数字字符。等价于<code>[0-9]</code>。注意<code>Unicode</code>正则表达式会匹配全角数字字符。</p>
+</li>
+<li>
+<p><code>\D</code>, 匹配一个非数字字符。等价于<code>[^0-9]</code>。</p>
+</li>
+<li>
+<p><code>\f</code>, 匹配一个换页符。等价于<code>\x0c</code>和<code>\cL</code>。</p>
+</li>
+<li>
+<p><code>\n</code>, 匹配一个换行符。等价于<code>\x0a</code>和<code>\cJ</code>。</p>
+</li>
+<li>
+<p><code>\r</code>, 匹配一个回车符。等价于<code>\x0d</code>和<code>\cM</code>。</p>
+</li>
+<li>
+<p><code>\s</code>, 匹配任何空白字符，包括空格、制表符、换页符等等。等价于<code>[ \f\n\r\t\v]</code>。注意<code>Unicode</code>正则表达式会匹配全角空格符。</p>
+</li>
+<li>
+<p><code>\S</code>, 匹配任何非空白字符。等价于<code>[^ \f\n\r\t\v]</code>。</p>
+</li>
+<li>
+<p><code>\t</code>, 匹配一个制表符。等价于<code>\x09</code>和<code>\cI</code>。</p>
+</li>
+<li>
+<p><code>\v</code>, 匹配一个垂直制表符。等价于<code>\x0b</code>和<code>\cK</code>。</p>
+</li>
+<li>
+<p><code>\w</code>, 匹配包括下划线的任何单词字符。等价于<code>[A-Za-z0-9_]</code>。注意<code>Unicode</code>正则表达式会匹配中文字符。</p>
+</li>
+<li>
+<p><code>\W</code>, 匹配任何非单词字符。等价于<code>[^A-Za-z0-9_]</code>。</p>
+</li>
+<li>
+<p><code>\ck</code>, 匹配控制转义字符。<code>k</code>代表一个字符。等价于<code>Ctrl-k</code>。用于<code>ECMA</code>语法。</p>
+</li>
+<li>
+<p><code>\xnn</code>, 十六进制转义字符序列。匹配两个十六进制数字nn表示的字符。例如，<code>\x41</code>匹配<code>A</code>。<code>\x041</code>则等价于<code>\x04&amp;1</code>。正则表达式中可以使用<code>ASCII</code>编码。</p>
+</li>
+<li>
+<p><code>\num</code>, 向后引用（<code>back-reference</code>）一个子字符串（<code>substring</code>），该子字符串与正则表达式的第<code>num</code>个用括号围起来的捕捉群（<code>capture group</code>）子表达式（<code>subexpression</code>）匹配。其中<code>num</code>是从<code>1</code>开始的十进制正整数，其上限可能是<code>9</code>、<code>31</code>、<code>99</code>甚至无限。例如：<code>(.)\1</code>匹配两个连续的相同字符。</p>
+</li>
+<li>
+<p><code>\n</code>, 标识一个八进制转义值或一个向后引用。如果<code>\n</code>之前至少<code>n</code>个获取的子表达式，则<code>n</code>为向后引用。否则，如果<code>n</code>为八进制数字<code>（0-7）</code>，则<code>n</code>为一个八进制转义值。</p>
+</li>
+<li>
+<p><code>\nm</code>, <code>3</code>位八进制数字，标识一个八进制转义值或一个向后引用。如果<code>\nm</code>之前至少有<code>nm</code>个获得子表达式，则<code>nm</code>为向后引用。如果<code>\nm</code>之前至少有<code>n</code>个获取，则<code>n</code>为一个后跟文字<code>m</code>的向后引用。如果前面的条件都不满足，若<code>n</code>和<code>m</code>均为八进制数字（<code>0-7</code>），则<code>\nm</code>将匹配八进制转义值<code>nm</code>。</p>
+</li>
+<li>
+<p><code>\nml</code>, 如果<code>n</code>为八进制数字（<code>0-3</code>），且<code>m</code>和<code>l</code>均为八进制数字（<code>0-7</code>），则匹配八进制转义值<code>nml</code>。</p>
+</li>
+<li>
+<p><code>\un</code>, <code>Unicode</code>转义字符序列。其中<code>n</code>是一个用四个十六进制数字表示的<code>Unicode</code>字符。例如，<code>\u00A9</code>匹配版权符号（<code>©</code>）。</p>
+</li>
+</ol>
+<h3 id="posix"><a class="markdownIt-Anchor" href="#posix"></a> <code>POSIX</code></h3>
+<p><img data-src="posix.png" alt="posix" /></p>
+<h3 id="优先权"><a class="markdownIt-Anchor" href="#优先权"></a> 优先权</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">优先权</th>
+<th style="text-align:center">符号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">最高</td>
+<td style="text-align:center"><code>\</code></td>
+</tr>
+<tr>
+<td style="text-align:center">高</td>
+<td style="text-align:center"><code>( )、(?: )、(?= )、[ ]</code></td>
+</tr>
+<tr>
+<td style="text-align:center">中</td>
+<td style="text-align:center"><code>*、+、?、&#123;n&#125;、&#123;n,&#125;、&#123;m,n&#125;</code></td>
+</tr>
+<tr>
+<td style="text-align:center">低</td>
+<td style="text-align:center">^、$、中介字符</td>
+</tr>
+<tr>
+<td style="text-align:center">次最低</td>
+<td style="text-align:center">串接，即相邻字符连接在一起</td>
+</tr>
+<tr>
+<td style="text-align:center">最低</td>
+<td style="text-align:center">|</td>
+</tr>
+</tbody>
+</table>
+<h3 id="示例"><a class="markdownIt-Anchor" href="#示例"></a> 示例</h3>
+<ul>
+<li>
+<p>匹配至少同时包含大小写字母，数字以及符号中其中两个的密码字符串：<code>^(?![A-Z]+$)(?![a-z]+$)(?!\d+$)(?!\W+$)\S&#123;8,16&#125;$</code></p>
+<p>123131sdadad<br />
+#%sdad@#$dsd</p>
+</li>
+</ul>
+<h3 id="参考阅读"><a class="markdownIt-Anchor" href="#参考阅读"></a> 参考阅读</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F">正则表达式</a></li>
+<li><a target="_blank" rel="noopener" href="http://en.wikipedia.org/wiki/Regular_expression">Regular_expression</a></li>
+<li><a target="_blank" rel="noopener" href="http://regularexp.wordpress.com/">正则表达式应用示例</a></li>
+<li><a target="_blank" rel="noopener" href="http://liujiacai.net/blog/2014/12/07/regexp-favors/">正则表达式“派别”简述</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.regular-expressions.info/posixbrackets.html">POSIX Bracket Expressions</a></li>
+<li><a target="_blank" rel="noopener" href="http://msdn.microsoft.com/zh-cn/library/ae5bf541(v=vs.100).aspx">MSDN正则表达式语法介绍</a></li>
+<li><a target="_blank" rel="noopener" href="http://deerchao.net/tutorials/regex/regex.htm">正则表达式30分钟入门教程</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.regular-expressions.info/gnu.html"><code>GNU Regular Expression Extensions</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://regexr.com/"><code>RegExr: Learn, Build, &amp; Test RegEx</code></a></li>
+<li><a target="_blank" rel="noopener" href="http://www.infoq.com/cn/news/2011/07/regular-expressions-6-POSIX">Linux/Unix工具与正则表达式的POSIX规范</a></li>
+<li><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/w/index.php?title=Comparison_of_regular_expression_engines&amp;action=edit&amp;redlink=1"><code>Comparison of regular expression engines</code></a></li>
+<li><a target="_blank" rel="noopener" href="http://www.greenend.org.uk/rjk/2002/06/regexp.html">各种语言或工具软件的不同风格的正则表达式文法规定</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.gnu.org/software/gnulib/manual/html_node/Regular-expression-syntaxes.html"><code>Different types of regular expressions Gnulib supports</code></a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/05/21/Other/regex-expression/" title="【Regex】正则表达式">https://blog.fudenglong.site/2022/05/21/Other/regex-expression/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/regex/" rel="tag"># regex</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/05/17/Rust/phantom-data/" rel="prev" title="【Rust】幽灵数据（PhantomData）">
+                  <i class="fa fa-angle-left"></i> 【Rust】幽灵数据（PhantomData）
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/05/22/Go/map-undeylying-implement/" rel="next" title="【Golang】谈谈 map 是怎么实现的">
+                  【Golang】谈谈 map 是怎么实现的 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/05/21/Other/regex-expression/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>
