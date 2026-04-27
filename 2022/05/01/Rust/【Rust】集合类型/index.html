@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Rust 标准库包含几个集合，用于在内存中存储数据的泛型类型。我们已经在前面使用了集合，例如 Vec 和 HashMap。在本章中，我们将详细介绍这两种类型的方法，以及其他6个标准集合。 Rust 一共有8个标准集合类型，它们都是泛型：    Vec&lt;T&gt;：一个可增长的、堆分配的 T 类型值数组；   VecDeque&lt;T&gt;：与 Vec&lt;T&gt; 类似，但更适合用作">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】集合类型">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Rust 标准库包含几个集合，用于在内存中存储数据的泛型类型。我们已经在前面使用了集合，例如 Vec 和 HashMap。在本章中，我们将详细介绍这两种类型的方法，以及其他6个标准集合。 Rust 一共有8个标准集合类型，它们都是泛型：    Vec&lt;T&gt;：一个可增长的、堆分配的 T 类型值数组；   VecDeque&lt;T&gt;：与 Vec&lt;T&gt; 类似，但更适合用作">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/std-collections.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/vec-collections.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/vec-multiple-mut-ref.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/vec-dequeue.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/hashmap-inmem.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/btreemap-inmem.png">
+<meta property="article:published_time" content="2022-05-01T05:52:56.000Z">
+<meta property="article:modified_time" content="2022-05-01T05:52:56.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta property="article:tag" content="集合类型">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/std-collections.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/","path":"2022/05/01/Rust/【Rust】集合类型/","title":"【Rust】集合类型"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】集合类型 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#vect"><span class="nav-number">1.</span> <span class="nav-text"> Vec&lt;T&gt;</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%83%E7%B4%A0%E8%AE%BF%E9%97%AE"><span class="nav-number">1.1.</span> <span class="nav-text"> 元素访问</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#iteration"><span class="nav-number">1.2.</span> <span class="nav-text"> Iteration</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%89%A9%E5%AE%B9%E7%BC%A9%E5%AE%B9"><span class="nav-number">1.3.</span> <span class="nav-text"> 扩容缩容</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#joining"><span class="nav-number">1.4.</span> <span class="nav-text"> Joining</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#splitting"><span class="nav-number">1.5.</span> <span class="nav-text"> Splitting</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#sliceiter-sliceiter_mut"><span class="nav-number">1.5.1.</span> <span class="nav-text"> slice.iter()、slice.iter_mut()</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicesplit_atindex-slicesplit_at_mutindex"><span class="nav-number">1.5.2.</span> <span class="nav-text"> slice.split_at(index)、slice.split_at_mut(index)</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicesplit_first-slicesplit_first_mut"><span class="nav-number">1.5.3.</span> <span class="nav-text"> slice.split_first()、slice.split_first_mut()</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicesplit_last-slicesplit_last_mut"><span class="nav-number">1.5.4.</span> <span class="nav-text"> slice.split_last()、slice.split_last_mut()</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicesplitis_sep-slicesplit_mutis_sep"><span class="nav-number">1.5.5.</span> <span class="nav-text"> slice.split(is_sep)、 slice.split_mut(is_sep)</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicersplitis_sep-slicersplit_mutis_sep"><span class="nav-number">1.5.6.</span> <span class="nav-text"> slice.rsplit(is_sep)、slice.rsplit_mut(is_sep)</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicesplitnn-is_sep-slicesplitn_mutn-is_sep"><span class="nav-number">1.5.7.</span> <span class="nav-text"> slice.splitn(n, is_sep)、slice.splitn_mut(n, is_sep)</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicersplitnn-is_sep-slicersplitn_mutn-is_sep"><span class="nav-number">1.5.8.</span> <span class="nav-text"> slice.rsplitn(n, is_sep)、slice.rsplitn_mut(n, is_sep)</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicechunksn-slicechunks_mutn"><span class="nav-number">1.5.9.</span> <span class="nav-text"> slice.chunks(n)、slice.chunks_mut(n)</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicerchunksn-slicerchunks_mutn"><span class="nav-number">1.5.10.</span> <span class="nav-text"> slice.rchunks(n)、 slice.rchunks_mut(n)</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicechunks_exactn-slicechunks_exact_mutn"><span class="nav-number">1.5.11.</span> <span class="nav-text"> slice.chunks_exact(n)、slice.chunks_exact_mut(n)</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicerchunks_exactn-slicerchunks_exact_mutn"><span class="nav-number">1.5.12.</span> <span class="nav-text"> slice.rchunks_exact(n)、slice.rchunks_exact_mut(n)</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#slicewindowsn"><span class="nav-number">1.5.13.</span> <span class="nav-text"> slice.windows(n)</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#swapping"><span class="nav-number">1.6.</span> <span class="nav-text"> Swapping</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%90%9C%E7%B4%A2%E5%92%8C%E6%8E%92%E5%BA%8F"><span class="nav-number">1.7.</span> <span class="nav-text"> 搜索和排序</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#slice-%E6%AF%94%E8%BE%83"><span class="nav-number">1.8.</span> <span class="nav-text"> Slice 比较</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%9A%8F%E6%9C%BA%E5%85%83%E7%B4%A0"><span class="nav-number">1.9.</span> <span class="nav-text"> 随机元素</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#vecdequet"><span class="nav-number">2.</span> <span class="nav-text"> VecDeque&lt;T&gt;</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#binaryheapt"><span class="nav-number">3.</span> <span class="nav-text"> BinaryHeap&lt;T&gt;</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hashmapk-v-btreemapk-v"><span class="nav-number">4.</span> <span class="nav-text"> HashMap&lt;K, V&gt;、BTreeMap&lt;K, V&gt;</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-map"><span class="nav-number">4.1.</span> <span class="nav-text"> 创建 map</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%94%AE%E5%80%BC%E5%A4%84%E7%90%86"><span class="nav-number">4.2.</span> <span class="nav-text"> 键值处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#entry"><span class="nav-number">4.3.</span> <span class="nav-text"> Entry</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BF%AD%E4%BB%A3-map"><span class="nav-number">4.4.</span> <span class="nav-text"> 迭代 Map</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hashsett-btreesett"><span class="nav-number">5.</span> <span class="nav-text"> HashSet&lt;T&gt;、BTreeSet&lt;T&gt;</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BF%AD%E4%BB%A3"><span class="nav-number">5.1.</span> <span class="nav-text"> 迭代</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%90%E4%BA%9B%E6%96%B9%E6%B3%95"><span class="nav-number">5.2.</span> <span class="nav-text"> 某些方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%9B%86%E5%90%88%E6%93%8D%E4%BD%9C"><span class="nav-number">5.3.</span> <span class="nav-text"> 集合操作</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hashing"><span class="nav-number">6.</span> <span class="nav-text"> Hashing</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89-hash-%E7%AE%97%E6%B3%95"><span class="nav-number">7.</span> <span class="nav-text"> 自定义 Hash 算法</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】集合类型 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】集合类型
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-05-01 13:52:56" itemprop="dateCreated datePublished" datetime="2022-05-01T13:52:56+08:00">2022-05-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>25 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>Rust 标准库包含几个集合，用于在内存中存储数据的泛型类型。我们已经在前面使用了集合，例如 <code>Vec</code> 和 <code>HashMap</code>。在本章中，我们将详细介绍这两种类型的方法，以及其他<code>6</code>个标准集合。</p>
+<p><code>Rust</code> 一共有<code>8</code>个标准集合类型，它们都是泛型：</p>
+<img data-src="/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/std-collections.png" class="">
+<ul>
+<li>
+<p><code>Vec&lt;T&gt;</code>：一个可增长的、堆分配的 <code>T</code> 类型值数组；</p>
+</li>
+<li>
+<p><code>VecDeque&lt;T&gt;</code>：与 <code>Vec&lt;T&gt;</code> 类似，但更适合用作先进先出队列，它支持在列表的前面和后面有效地添加和删除值；</p>
+</li>
+<li>
+<p><code>BinaryHeap&lt;T&gt;</code>：一个优先队列，<code>BinaryHeap</code> 中的值是有组织的，所以它总是有效地找到并删除最大值；</p>
+</li>
+<li>
+<p><code>HashMap&lt;K, V&gt;</code>：键值对表，通过键查找值很快，<code>item</code> 以任意顺序存储；</p>
+</li>
+<li>
+<p><code>BTreeMap&lt;K, V&gt;</code>：与 <code>HashMap&lt;K, V&gt;</code> 类似，但它保持<code>entries</code>按键排序。 <code>BTreeMap&lt;String, i32&gt;</code> 以字符串比较顺序存储其<code>entries</code>。除非需要<code>entries</code>保持排序，否则 <code>HashMap</code> 更快；</p>
+</li>
+<li>
+<p><code>HashSet&lt;T&gt;</code>：一组 <code>T</code> 类型的值。添加和删除值很快，查询给定值是否在集合中也很快；</p>
+</li>
+<li>
+<p><code>BTreeSet&lt;T&gt;</code>：与 <code>HashSet&lt;T&gt;</code> 类似，但它保持元素按值排序。 同样，除非需要对数据进行排序，否则 <code>HashSet</code> 更快；</p>
+</li>
+</ul>
+<span id="more"></span>
+<h3 id="vect"><a class="markdownIt-Anchor" href="#vect"></a> <code>Vec&lt;T&gt;</code></h3>
+<p><code>vector</code>具有 <code>3</code> 个字段：长度、容量和指向存储元素的堆分配的指针。空 <code>vector</code>，容量为 <code>0</code>，在添加第一个元素之前，不会为其分配堆内存。和所有其他集合类型一样，<code>Vec&lt;T&gt;</code> 实现了 <code>std::iter::FromIterator</code>，所以我们可以通过 <code>.collect()</code> 方法创建，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">my_vec</span> = my_set.<span class="title function_ invoke__">into_iter</span>().collect::&lt;<span class="type">Vec</span>&lt;<span class="type">String</span>&gt;&gt;();</span><br></pre></td></tr></table></figure>
+<p>我们再来回顾下 <code>vector</code> 的内存表示：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Create an empty vector</span></span><br><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">numbers</span>: <span class="type">Vec</span>&lt;<span class="type">i32</span>&gt; = <span class="built_in">vec!</span>[];</span><br><span class="line"><span class="comment">// Create a vector with given contents</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">words</span> = <span class="built_in">vec!</span>[<span class="string">&quot;step&quot;</span>, <span class="string">&quot;on&quot;</span>, <span class="string">&quot;no&quot;</span>, <span class="string">&quot;pets&quot;</span>];</span><br><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">buffer</span> = <span class="built_in">vec!</span>[<span class="number">0u8</span>; <span class="number">1024</span>]; <span class="comment">// 1024 zeroed-out bytes</span></span><br></pre></td></tr></table></figure>
+<p>内存表示如下图：</p>
+<p><img data-src="vec-collections.png" alt="" /></p>
+<h4 id="元素访问"><a class="markdownIt-Anchor" href="#元素访问"></a> 元素访问</h4>
+<p>最直接的访问是通过索引，如果索引越界会 <code>panic</code>，<code>vector</code> 长度和索引是 <code>usize</code> 类型，尝试使用 <code>u32</code>、<code>u64</code> 或 i<code>size</code> 作为<code>vector</code>索引是错误的，可以根据需要使用 <code>n as usize</code> 进行转换：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Get a reference to an element</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">first_line</span> = &amp;lines[<span class="number">0</span>];</span><br><span class="line"><span class="comment">// Get a copy of an element</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">fifth_number</span> = numbers[<span class="number">4</span>]; <span class="comment">// requires Copy</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">second_line</span> = lines[<span class="number">1</span>].<span class="title function_ invoke__">clone</span>(); <span class="comment">// requires Clone</span></span><br><span class="line"><span class="comment">// Get a reference to a slice</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">my_ref</span> = &amp;buffer[<span class="number">4</span>..<span class="number">12</span>];</span><br><span class="line"><span class="comment">// Get a copy of a slice</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">my_copy</span> = buffer[<span class="number">4</span>..<span class="number">12</span>].<span class="title function_ invoke__">to_vec</span>(); <span class="comment">// requires Clone</span></span><br></pre></td></tr></table></figure>
+<p>有几种方法可以轻松访问 <code>vector</code> 或<code>slice</code>的特定元素（请注意，所有<code>slice</code>方法也可用于数组和<code>vector</code>）：</p>
+<ul>
+<li>
+<p><code>slice.first()</code>：返回第一个元素的引用以 <code>Option&lt;&amp;T&gt;</code> 的形式，如果没有就返回 <code>None</code>：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Some</span>(item) = v.<span class="title function_ invoke__">first</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;We got one! &#123;&#125;&quot;</span>, item);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>slice.last()</code>：类似于 <code>slice.first()</code>，但返回最后一个；</p>
+</li>
+<li>
+<p><code>slice.get(index)</code>：返回第 <code>index</code> 个元素，不存在返回 <code>None</code>：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">slice</span> = [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line"><span class="built_in">assert_eq!</span>(slice.<span class="title function_ invoke__">get</span>(<span class="number">2</span>), <span class="title function_ invoke__">Some</span>(&amp;<span class="number">2</span>));</span><br><span class="line"><span class="built_in">assert_eq!</span>(slice.<span class="title function_ invoke__">get</span>(<span class="number">4</span>), <span class="literal">None</span>);</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>slice.first_mut(), slice.last_mut(), slice.get_mut(index)</code>：前面几个的变种，只是返回可变借用：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">slice</span> = [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">last</span> = slice.<span class="title function_ invoke__">last_mut</span>().<span class="title function_ invoke__">unwrap</span>(); <span class="comment">// type of last: &amp;mut i32</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(*last, <span class="number">3</span>);</span><br><span class="line">    *last = <span class="number">100</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">assert_eq!</span>(slice, [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">100</span>]);</span><br></pre></td></tr></table></figure>
+<p>因为按值返回 <code>T</code> 意味着转移所有权，所以访问 <code>item</code> 的方法通常通过引用返回这些 <code>item</code>。</p>
+</li>
+<li>
+<p><code>slice.to_vec()</code>：克隆整个 <code>slice</code>，返回新的，仅仅用于可以 <code>Clone</code> 的 <code>item</code>：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">v</span> = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">9</span>];</span><br><span class="line"><span class="built_in">assert_eq!</span>(v.<span class="title function_ invoke__">to_vec</span>(),</span><br><span class="line"><span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>, <span class="number">9</span>]);</span><br><span class="line"><span class="built_in">assert_eq!</span>(v[<span class="number">0</span>..<span class="number">6</span>].<span class="title function_ invoke__">to_vec</span>(),</span><br><span class="line"><span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>]);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="iteration"><a class="markdownIt-Anchor" href="#iteration"></a> <code>Iteration</code></h4>
+<p>可以通过值或者引用迭代 <code>vector</code> 或者 <code>slice</code>：</p>
+<ul>
+<li>
+<p>如果迭代 <code>Vec&lt;T&gt;</code>，将返回 <code>T</code>，<code>vector</code> 中的值被移除并且消费掉所有权；</p>
+</li>
+<li>
+<p>如果迭代 <code>&amp;[T; N]，&amp;[T]，&amp;Vec&lt;T&gt;</code>，将返回 <code>&amp;T</code>，引用到单独的 <code>item</code>，不会转移它们的所有权；</p>
+</li>
+<li>
+<p>如果迭代 <code>&amp;mut [T; N]，&amp;mut [T]，&amp;mut Vec&lt;T&gt;</code>，将返回 <code>&amp;mut T</code>。</p>
+</li>
+</ul>
+<h4 id="扩容缩容"><a class="markdownIt-Anchor" href="#扩容缩容"></a> 扩容缩容</h4>
+<p>数组，<code>vector</code> 或者 <code>slice</code> 的长度是它包含的元素的数量，例如：</p>
+<ul>
+<li>
+<p><code>slice.len()</code>：<code>slice</code> 长度，类型是 <code>usize</code>；</p>
+</li>
+<li>
+<p><code>slice.is_empty()</code>：等价于 <code>slice.len() == 0</code>；</p>
+</li>
+</ul>
+<p>下面的方法用于 <code>vector</code> 扩缩容，不能用在数组上，它们的长度在创建的时候就确定了：</p>
+<ul>
+<li>
+<p><code>Vec::with_capacity(n)</code>：创建新的能容纳 <code>n</code> 个元素的 <code>vector</code>；</p>
+</li>
+<li>
+<p><code>vec.capacity()</code>：返回 <code>vector</code> 的容量，<code>vec.capacity() &gt;= vec.len()</code>；</p>
+</li>
+<li>
+<p><code>vec.reserve(n)</code>：确认这里有足够的的空间再容纳 <code>n</code> 个元素，即 <code>vec.capacity() &gt;= vec.len() + n</code>，如果已经满足，则什么也不做，如果不够就会申请足够的空间并且将当前的内容移进去；</p>
+</li>
+<li>
+<p><code>vec.reserve_exact(n)</code>：和 <code>vec.reserve(n)</code> 类似，但是不会申请额外的空间为未来的增长，也就是扩容之后 <code>vec.capacity() = exactly vec.len() + n</code>；</p>
+</li>
+<li>
+<p><code>vec.shrink_to_fit()</code>：尝试释放额外的空闲空间；</p>
+</li>
+</ul>
+<p><code>Vec&lt;T&gt;</code> 有许多方法可以添加或删除元素，从而改变<code>vector</code>的长度。这些中的每一个都通过 <code>mut</code> 引用获取其自身参数。这两种方法在<code>vector</code>末尾添加或删除单个值：</p>
+<ul>
+<li>
+<p><code>vec.push(value)</code>：将 <code>value</code> 添加到末尾；</p>
+</li>
+<li>
+<p><code>vec.pop()</code>：移除和返回最后一个元素，返回类型是 <code>Option&lt;T&gt;</code>，返回的是值而不是引用；</p>
+</li>
+<li>
+<p><code>vec.insert(index, value)</code>：将给定的值插入到指定的 <code>index</code> 处，并且将 <code>vec[index..]</code> 往后移动，如果 <code>index &gt; vec.len()</code>，就会 <code>panic</code>；</p>
+</li>
+<li>
+<p><code>vec.remove(index)</code>：将给定索引处的值删除，并且将 <code>vec[index+1..]</code> 的值向左移动；</p>
+</li>
+<li>
+<p><code>vec.resize(new_len, value)</code>：设置 <code>vec</code> 的新长度，如果这会增加长度，将会使用 <code>value</code> 填充增加的值，<code>value</code> 必须实现 <code>Clone</code>；</p>
+</li>
+<li>
+<p><code>vec.resize_with(new_len, closure)</code>：像 <code>vec.resize()</code>，但是使用闭包构造新的 <code>item</code>，可以用于没有实现 <code>Clone</code> 的场景；</p>
+</li>
+<li>
+<p><code>vec.truncate(new_len)</code>：设置 <code>vec</code> 的新长度为 <code>new_len</code>，删除 <code>vec[new_len..]</code>，如果 <code>vec.len() &lt; new_len</code>，啥也不做；</p>
+</li>
+<li>
+<p><code>vec.clear()</code>：删除 <code>vec</code> 所有的元素，类似 <code>vec.truncate(0)</code>；</p>
+</li>
+<li>
+<p><code>vec.extend(iterable)</code>：将 <code>iterable</code> 中的所有 <code>item</code> 添加到 <code>vec</code> 中；</p>
+</li>
+<li>
+<p><code>vec.split_off(index)</code>：类似 <code>vec.truncate(index)</code>，但是它返回一个包含被移除值的 <code>Vec</code>，就像多次调用 <code>pop</code>；</p>
+</li>
+<li>
+<p><code>vec.append(&amp;mut vec2)</code>：将 <code>vec2</code> 中的所有元素移到 <code>vec</code> 中，之后，<code>vec2</code> 就成为空的了，有点类似 <code>extend</code>，但是 <code>extend</code> 会保留 <code>vec2</code>；</p>
+</li>
+<li>
+<p><code>vec.drain(range)</code>：移除区间内的 <code>item</code>，并且返回移除的元素；</p>
+</li>
+<li>
+<p><code>vec.retain(test)</code>：删除所有没有通过 <code>test</code> 的 <code>item</code>，<code>test</code> 是 <code>FnMut(&amp;T) -&gt; bool</code> 类型的函数；</p>
+</li>
+<li>
+<p><code>vec.dedup()</code>：删除连续重复的元素，删除完之后仍然有两个 <code>s</code>：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">byte_vec</span> = <span class="string">b&quot;Misssssssissippi&quot;</span>.<span class="title function_ invoke__">to_vec</span>();</span><br><span class="line">byte_vec.<span class="title function_ invoke__">dedup</span>();</span><br><span class="line"><span class="built_in">assert_eq!</span>(&amp;byte_vec, <span class="string">b&quot;Misisipi&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>如果要删除所有重复的 <code>item</code>，可以：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::HashSet;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">byte_vec</span> = <span class="string">b&quot;Misssssssissippi&quot;</span>.<span class="title function_ invoke__">to_vec</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">seen</span> = HashSet::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    byte_vec.<span class="title function_ invoke__">retain</span>(|r| seen.<span class="title function_ invoke__">insert</span>(*r));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(&amp;byte_vec, <span class="string">b&quot;Misp&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>vec.dedup_by(same)</code>：类似于 <code>vec.dedup()</code>，但是它使用闭包函数判断是否相等，而不是 <code>==</code>；</p>
+</li>
+<li>
+<p><code>vec.dedup_by_key(key)</code>：类似于 <code>vec.dedup()</code>，判断两个元素的想等是通过 <code>key(&amp;mut elem1) == key(&amp;mut elem2)</code>，例如，如果 <code>errors</code> 是 <code>Vec&lt;Box&lt;dyn Error&gt;&gt;</code>，你可以这样写：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 删除具有重复 Messge 的 err</span></span><br><span class="line">errors.<span class="title function_ invoke__">dedup_by_key</span>(|err| err.<span class="title function_ invoke__">to_string</span>());</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="joining"><a class="markdownIt-Anchor" href="#joining"></a> <code>Joining</code></h4>
+<p>下面的量方法用于元素本身是数组、<code>slice</code>或<code>vector</code>的数组、<code>slice</code>或<code>vector</code>：</p>
+<ul>
+<li>
+<p><code>slices.concat()</code>：连接所有的<code>item</code>并且返回新的 <code>vector</code>：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>([[<span class="number">1</span>, <span class="number">2</span>], [<span class="number">3</span>, <span class="number">4</span>], [<span class="number">5</span>, <span class="number">6</span>]].<span class="title function_ invoke__">concat</span>(), <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>]);</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>slices.join(&amp;separator)</code>：类似于前者，但是在连接的过程中可以插入一个分割 <code>item</code>：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(</span><br><span class="line">    [[<span class="number">1</span>, <span class="number">2</span>], [<span class="number">3</span>, <span class="number">4</span>], [<span class="number">5</span>, <span class="number">6</span>]].<span class="title function_ invoke__">join</span>(&amp;<span class="number">0</span>),</span><br><span class="line">    <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">0</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">0</span>, <span class="number">5</span>, <span class="number">6</span>]</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="splitting"><a class="markdownIt-Anchor" href="#splitting"></a> <code>Splitting</code></h4>
+<p>由于 <code>Rust</code> 安全规则的限制，我们没法得到 <code>vector</code> 的多个可变引用，例如：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">v</span> = <span class="built_in">vec!</span>[<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line"><span class="keyword">let</span> <span class="variable">a</span> = &amp;<span class="keyword">mut</span> v[i];</span><br><span class="line"><span class="keyword">let</span> <span class="variable">b</span> = &amp;<span class="keyword">mut</span> v[j]; <span class="comment">// error: cannot borrow `v` as mutable</span></span><br><span class="line">                   <span class="comment">// more than once at a time</span></span><br><span class="line">*a = <span class="number">6</span>; <span class="comment">// references `a` and `b` get used here,</span></span><br><span class="line">*b = <span class="number">7</span>; <span class="comment">// so their lifetimes must overlap</span></span><br></pre></td></tr></table></figure></div>
+<p>如果 <code>i == j</code>，就会出先可变借用了同一个 <code>item</code>。<code>Rust</code> 有几种方法可以同时借用对数组、<code>slice</code>或向量的两个或多个部分的 <code>mut</code> 引用。 与前面的代码不同，这些方法是安全的，因为根据设计，它们总是将数据拆分为不重叠的区域。 其中许多方法对于使用非 <code>mut</code> <code>slice</code>也很方便，因此每种方法都有 <code>mut</code> 和 <code>non-mut</code> 版本。</p>
+<p><img data-src="vec-multiple-mut-ref.png" alt="" /></p>
+<p>这些方法都没有直接修改数组、<code>slice</code>或向量。 它们只是返回对内部部分数据的新引用：</p>
+<h5 id="sliceiter-sliceiter_mut"><a class="markdownIt-Anchor" href="#sliceiter-sliceiter_mut"></a> <code>slice.iter()</code>、<code>slice.iter_mut()</code></h5>
+<p>生成对每个 <code>slice</code> 中 <code>item</code> 的引用，<a href="/2022/04/30/%E3%80%90Rust%E3%80%91%E8%BF%AD%E4%BB%A3%E5%99%A8/#iter-%E5%92%8C-iter_mut">详见</a>。</p>
+<h5 id="slicesplit_atindex-slicesplit_at_mutindex"><a class="markdownIt-Anchor" href="#slicesplit_atindex-slicesplit_at_mutindex"></a> <code>slice.split_at(index)</code>、<code>slice.split_at_mut(index)</code></h5>
+<p>将 <code>slice</code> 分成一对返回，<code>slice.split_at(index)</code> 等价于 <code>(&amp;slice[..index], &amp;slice[index..])</code>，如果长度超出越界，就会 <code>panic</code>。</p>
+<h5 id="slicesplit_first-slicesplit_first_mut"><a class="markdownIt-Anchor" href="#slicesplit_first-slicesplit_first_mut"></a> <code>slice.split_first()</code>、<code>slice.split_first_mut()</code></h5>
+<p>返回 <code>(&amp;slice[0], &amp;slice[1..])</code>，<code>slice.split_first()</code> 返回 <code>Option&lt;(&amp;T, &amp;[T])&gt;</code>，如果 <code>slice</code> 为空返回 <code>None</code>。</p>
+<h5 id="slicesplit_last-slicesplit_last_mut"><a class="markdownIt-Anchor" href="#slicesplit_last-slicesplit_last_mut"></a> <code>slice.split_last()</code>、<code>slice.split_last_mut()</code></h5>
+<p><code>slice.split_last()</code> 的返回类型是 <code>Option&lt;(&amp;T, &amp;[T])&gt;</code>。</p>
+<h5 id="slicesplitis_sep-slicesplit_mutis_sep"><a class="markdownIt-Anchor" href="#slicesplitis_sep-slicesplit_mutis_sep"></a> <code>slice.split(is_sep)</code>、<code> slice.split_mut(is_sep)</code></h5>
+<p>将 <code>slice</code> 分割成一个或者多个子 <code>slice</code>，根据传入的 <code>is_sep</code> 函数后者闭包，输出至少包含一个子 <code>slice</code>。</p>
+<h5 id="slicersplitis_sep-slicersplit_mutis_sep"><a class="markdownIt-Anchor" href="#slicersplitis_sep-slicersplit_mutis_sep"></a> <code>slice.rsplit(is_sep)</code>、<code>slice.rsplit_mut(is_sep)</code></h5>
+<p>从右往左找 <code>split</code>。</p>
+<h5 id="slicesplitnn-is_sep-slicesplitn_mutn-is_sep"><a class="markdownIt-Anchor" href="#slicesplitnn-is_sep-slicesplitn_mutn-is_sep"></a> <code>slice.splitn(n, is_sep)</code>、<code>slice.splitn_mut(n, is_sep)</code></h5>
+<p>和 <code>slice.split(is_sep)</code> 相同，但是最多 <code>n</code> 个子<code>slcie</code>，多出来的放在最后的子 <code>slice</code> 中；</p>
+<h5 id="slicersplitnn-is_sep-slicersplitn_mutn-is_sep"><a class="markdownIt-Anchor" href="#slicersplitnn-is_sep-slicersplitn_mutn-is_sep"></a> <code>slice.rsplitn(n, is_sep)</code>、<code>slice.rsplitn_mut(n, is_sep)</code></h5>
+<p>和前面的类似，只是从右往左。</p>
+<h5 id="slicechunksn-slicechunks_mutn"><a class="markdownIt-Anchor" href="#slicechunksn-slicechunks_mutn"></a> <code>slice.chunks(n)</code>、<code>slice.chunks_mut(n)</code></h5>
+<p>返回长度为 <code>n</code> 的子 <code>slcie</code>，最后一个可以包含少于 <code>n</code> 个 <code>item</code>。</p>
+<h5 id="slicerchunksn-slicerchunks_mutn"><a class="markdownIt-Anchor" href="#slicerchunksn-slicerchunks_mutn"></a> <code>slice.rchunks(n)</code>、<code> slice.rchunks_mut(n)</code></h5>
+<p>和前面的相同，只是从右往左。</p>
+<h5 id="slicechunks_exactn-slicechunks_exact_mutn"><a class="markdownIt-Anchor" href="#slicechunks_exactn-slicechunks_exact_mutn"></a> <code>slice.chunks_exact(n)</code>、<code>slice.chunks_exact_mut(n)</code></h5>
+<p>精确按照 <code>n</code> 进行分片，如果最后一个不足 <code>n</code> 个，可以通过 <code>remainder()</code> 访问。</p>
+<h5 id="slicerchunks_exactn-slicerchunks_exact_mutn"><a class="markdownIt-Anchor" href="#slicerchunks_exactn-slicerchunks_exact_mutn"></a> <code>slice.rchunks_exact(n)</code>、<code>slice.rchunks_exact_mut(n)</code></h5>
+<p>同上，只是从右往左。</p>
+<h5 id="slicewindowsn"><a class="markdownIt-Anchor" href="#slicewindowsn"></a> <code>slice.windows(n)</code></h5>
+<p>采用滑动窗口的方式返回子<code>slice</code>，例如第一个是 <code>slice[0..n]</code>，第二个就是 <code>slice[1..n+1]</code>。如果 <code>n</code> 大于 <code>slice.len()</code> 什么也不会返回，如果 <code>n == 0</code>，<code>panic</code>。</p>
+<p>例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>].<span class="title function_ invoke__">windows</span>(<span class="number">2</span>).for_each(|items| &#123;</span><br><span class="line">        <span class="keyword">for</span> <span class="variable">item</span> <span class="keyword">in</span> items &#123;</span><br><span class="line">            <span class="built_in">print!</span>(<span class="string">&quot;&#123;&#125; &quot;</span>, item);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>该代码输出：</p>
+<pre><code>    1 2 2 3 3 4 4 5 
+</code></pre>
+<h4 id="swapping"><a class="markdownIt-Anchor" href="#swapping"></a> <code>Swapping</code></h4>
+<ul>
+<li>
+<p><code>slice.swap(i, j)</code>：交换 <code>slice[i]</code> 和 <code>slice[j]</code>；</p>
+</li>
+<li>
+<p><code>slice_a.swap_slice(&amp;mut slice_b)</code>：将两个 <code>slice</code> 完整交换，它们必须要有相同的长度；</p>
+</li>
+<li>
+<p><code>vec.swap_remove(i)</code>：删除并返回 <code>vec[i]</code>，并且将最后一个元素填充到 <code>vec[i]</code>；</p>
+</li>
+</ul>
+<h4 id="搜索和排序"><a class="markdownIt-Anchor" href="#搜索和排序"></a> 搜索和排序</h4>
+<ul>
+<li>
+<p><code>slice.sort()</code>：升序排序；</p>
+</li>
+<li>
+<p><code>slice.sort_by(cmp)</code>：自定义排序函数或闭包，<code>cmp</code> 必须实现 <code> Fn(&amp;T, &amp;T) -&gt; std::cmp::Ordering</code>；</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">students.<span class="title function_ invoke__">sort_by</span>(|a, b| a.last_name.<span class="title function_ invoke__">cmp</span>(&amp;b.last_name));</span><br><span class="line"></span><br><span class="line">students.<span class="title function_ invoke__">sort_by</span>(|a, b| &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">a_key</span> = (&amp;a.last_name, &amp;a.first_name);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">b_key</span> = (&amp;b.last_name, &amp;b.first_name);</span><br><span class="line">    a_key.<span class="title function_ invoke__">cmp</span>(&amp;b_key)</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>slice.sort_by_key(key)</code>：通过自定义的闭包或者函数 <code>key</code> 升序排列，<code>key</code> 的类型是 <code> Fn(&amp;T) -&gt; K where K: Ord</code>。这个很有用当 <code>T</code> 包含一个或者多个可排序字段时：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Sort by grade point average, lowest first.</span></span><br><span class="line">students.<span class="title function_ invoke__">sort_by_key</span>(|s| s.<span class="title function_ invoke__">grade_point_average</span>());</span><br></pre></td></tr></table></figure>
+<p><code>key</code> 不能返回任何元素的引用：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">students.<span class="title function_ invoke__">sort_by_key</span>(|s| &amp;s.last_name); <span class="comment">// error: can&#x27;t infer lifetime</span></span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>slice.reverse()</code>：就地反转 <code>slice</code>；</p>
+</li>
+<li>
+<p><code>slice.binary_search(&amp;value)</code>：</p>
+</li>
+<li>
+<p><code>slice.binary_search_by(&amp;value, cmp)</code>：</p>
+</li>
+<li>
+<p><code>slice.binary_search_by_key(&amp;value, key)</code>：在已排序的<code>slice</code>上二分查找给定值，这些方法的返回类型是 <code>Result&lt;usize, usize&gt;</code>。 如果 <code>slice[index]</code> 在指定的排序顺序下等于 <code>value</code>，则返回 <code>Ok(index)</code>。 如果没有这样的索引，则它们返回 <code>Err(insertion_point)</code> 以便在 <code>insert_point</code> 插入值将保留顺序。</p>
+</li>
+<li>
+<p><code>slice.contains(&amp;value)</code>：返回 <code>true</code> 如果 <code>slice</code> 有 <code>item</code> 等于 <code>value</code>。</p>
+</li>
+</ul>
+<h4 id="slice-比较"><a class="markdownIt-Anchor" href="#slice-比较"></a> <code>Slice</code> 比较</h4>
+<p>如果类型 <code>T</code> 支持 <code>==</code> 和 <code>!=</code> 运算符，那么 <code>[T; N]</code>，<code>[T]</code> 以及 <code>Vec&lt;T&gt;</code> 也支持，两个 <code>slice</code> 是相等的，如果他们的值和长度都相等；</p>
+<p>如果类型 <code>T</code> 支持 <code>&lt; &lt;= &gt; &gt;=</code> 和 <code>!=</code> 运算符，那么 <code>[T; N]</code>，<code>[T]</code> 以及 <code>Vec&lt;T&gt;</code> 也支持。</p>
+<p>还有两个比较方法：</p>
+<ul>
+<li>
+<p><code>slice.starts_with(other)</code>：如果 <code>slice</code> 以 <code>other</code> 为前缀，返回 <code>true</code>。</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>].<span class="title function_ invoke__">starts_with</span>(&amp;[<span class="number">1</span>, <span class="number">2</span>]), <span class="literal">true</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>].<span class="title function_ invoke__">starts_with</span>(&amp;[<span class="number">2</span>, <span class="number">3</span>]), <span class="literal">false</span>);</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>slice.starts_with(other)</code>：如果 <code>slice</code> 以 <code>other</code> 为后缀，返回 <code>true</code>。</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>].<span class="title function_ invoke__">ends_with</span>(&amp;[<span class="number">3</span>, <span class="number">4</span>]), <span class="literal">true</span>);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="随机元素"><a class="markdownIt-Anchor" href="#随机元素"></a> 随机元素</h4>
+<ul>
+<li>
+<p><code>slice.choose(&amp;mut rng)</code>：随即返回 <code>slice</code> 一个元素的引用，他返回 <code>Option&lt;&amp;T&gt;</code>，<code>slice</code> 为空时返回 <code>None</code>；</p>
+</li>
+<li>
+<p><code>slice.shuffle(&amp;mut rng)</code>：随机就地打乱 <code>slice</code>；</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> rand::seq::SliceRandom;</span><br><span class="line"><span class="keyword">use</span> rand::thread_rng;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">my_vec</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];</span><br><span class="line">    my_vec.<span class="title function_ invoke__">shuffle</span>(&amp;<span class="keyword">mut</span> <span class="title function_ invoke__">thread_rng</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, my_vec);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="vecdequet"><a class="markdownIt-Anchor" href="#vecdequet"></a> <code>VecDeque&lt;T&gt;</code></h3>
+<p><code>Vec</code> 仅支持在结尾高效增删元素，而 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/collections/struct.VecDeque.html"><code>std::collections::VecDeque&lt;T&gt;</code></a> 是一个双端队列，支持在两端增删元素：</p>
+<ul>
+<li>
+<p><code>deque.push_front(value)</code>：用于在队列前面插入值；</p>
+</li>
+<li>
+<p><code>deque.push_back(value)</code>：用于在队尾插入值；</p>
+</li>
+<li>
+<p><code>deque.pop_front()</code>：删除队首元素；</p>
+</li>
+<li>
+<p><code>deque.pop_back()</code>：删除队尾元素；</p>
+</li>
+<li>
+<p><code>deque.front(), deque.back()</code>：获取队首或者队尾元素的引用，返回值是 <code>Option&lt;&amp;T&gt;</code>；</p>
+</li>
+<li>
+<p><code>deque.front_mut(), deque.back_mut()</code> 类似于前者，只是返回值的可变借用 <code>Option&lt;&amp;mut T&gt;</code>；</p>
+</li>
+</ul>
+<p><code>std::collections::VecDeque&lt;T&gt;</code> 的实现是一个环形 <code>buffer</code>，如下图所示：</p>
+<p><img data-src="vec-dequeue.png" alt="" /></p>
+<p>与<code>vector</code>一样，双端队列可以按值、共享引用或 <code>mut</code> 引用进行迭代。 它们具有三个迭代器方法 <code>.into_iter(</code>)、<code>.iter()</code> 和 <code>.iter_mut()</code>，它们可以以通常的方式被索引：<code>deque[index]</code>。</p>
+<p>因为双端队列不会将它们的元素连续存储在内存中，所以它们不能继承<code>slice</code>的所有方法。 但是，如果您愿意支付转移内容的成本，<code>VecDeque</code> 提供了一种可以解决此问题的方法：</p>
+<ul>
+<li>
+<p><code>deque.make_contiguous()</code>：将队列整理成连续内存的形式，返回 <code> &amp;mut [T]</code>；</p>
+</li>
+<li>
+<p><code>Vec::from(deque)</code>：<code>Vec</code> 实现了 <code>From&lt;VecDeque&lt;T&gt;&gt;</code>，这将队列转换成 <code>Vec</code>；</p>
+</li>
+<li>
+<p><code>VecDeque::from(vec)</code>：<code>VecDeque</code> 实现了 <code>From&lt;Vec&lt;T&gt;&gt;</code>，将 <code>vector</code> 转换成队列，这也是 <code>O(n)</code>，但它通常很快，即使向量很大，因为向量的堆内存可以简单地移动到新的双端队列；这使得从已有 <code>vector</code> 创建队列很方便：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::VecDeque;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">v</span> = VecDeque::<span class="title function_ invoke__">from</span>(<span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>]);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="binaryheapt"><a class="markdownIt-Anchor" href="#binaryheapt"></a> <code>BinaryHeap&lt;T&gt;</code></h3>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/collections/struct.BinaryHeap.html#"><code>std::collections::BinaryHeap</code></a> 是一个二叉堆实现的大顶堆，它只实现了 <code>Vec</code> 的某些方法，例如：<code>BinaryHeap::new()</code>，<code>.len()</code>，<code>.is_empty()</code>，<code>.capacity()</code>，<code>.clear()</code>和<br />
+<code>.append(&amp;mut heap2)</code>，下面是它独有的一些方法。</p>
+<ul>
+<li>
+<p><code>heap.push(value)</code>：增加元素到堆；</p>
+</li>
+<li>
+<p><code>heap.pop()</code>：删除并且返回堆中的最大值，返回值是 <code>Option&lt;T&gt;</code>，如果堆是空的；</p>
+</li>
+<li>
+<p><code>heap.peek()</code>：返回最大值的引用，返回类型是 <code>Option&lt;&amp;T&gt;</code>；</p>
+</li>
+<li>
+<p><code>heap.peek_mut()</code>：返回类型是 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/collections/binary_heap/struct.PeekMut.html"><code>PeekMut&lt;T&gt;</code></a>，它代表了堆中最大值的可变引用，并且提供了一个类型关联方法 <code>pop()</code> 以从堆中弹出数据。用这个方法，我们可以基于最大值判断是否要从堆中弹出数据：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::binary_heap::PeekMut;</span><br><span class="line"><span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Some</span>(top) = heap.<span class="title function_ invoke__">peek_mut</span>() &#123;</span><br><span class="line">    <span class="keyword">if</span> *top &gt; <span class="number">10</span> &#123;</span><br><span class="line">        PeekMut::<span class="title function_ invoke__">pop</span>(top);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p><code>BinaryHeap</code> 是可迭代的，它有一个 <code>.iter()</code> 方法，但迭代器以任意顺序产生堆的元素，而不是从大到小。要按优先级顺序使用 <code>BinaryHeap</code> 中的值，请使用 <code>while</code> 循环：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> <span class="keyword">let</span> <span class="variable">Some</span>(task) = heap.<span class="title function_ invoke__">pop</span>() &#123;</span><br><span class="line">    <span class="title function_ invoke__">handle</span>(task);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="hashmapk-v-btreemapk-v"><a class="markdownIt-Anchor" href="#hashmapk-v-btreemapk-v"></a> <code>HashMap&lt;K, V&gt;</code>、<code>BTreeMap&lt;K, V&gt;</code></h3>
+<p><code>map</code> 是键值对的集合，叫做 <code>entries</code>，<code>map</code> 中可以高效地通过 <code>key</code> 查找，不存在两个不同的 <code>entries</code> 有相同的 <code>key</code>。<code>Rust</code> 有两种 <code>map</code> 的实现，<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/collections/struct.HashMap.html"><code>HashMap&lt;K, V&gt;</code></a> 和 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/collections/struct.BTreeMap.html"><code>BTreeMap&lt;K, V&gt;</code></a>，它们两个有相同的方法，不同的地方在于两者如何保持<code>entries</code>排列以进行快速查找。</p>
+<p><code>HashMap</code> 存储键值在<code>hash</code>表中，所以要求键的类型必须实现 <code>Hash</code> 和 <code>Eq</code>，下图展示了它在内存中的表示，深色区域是未使用的。所有键、值和缓存的哈希码都存储在单个堆分配表中。 添加<code>entries</code>最终会迫使 <code>HashMap</code> 分配一个更大的表并将所有数据移入其中。</p>
+<p><img data-src="hashmap-inmem.png" alt="" /></p>
+<p><code>BTreeMap</code> 将<code>entries</code>按键顺序存储在树结构中，因此它需要一个实现 <code>Ord</code> 的键类型 <code>K</code>。 下图显示了一个 <code>BTreeMap</code>。 同样，较暗的区域是未使用的备用容量。</p>
+<p><img data-src="btreemap-inmem.png" alt="" /></p>
+<p><code>BTreeMap</code> 将其<code>entries</code>存储在节点中。<code>BTreeMap</code> 中的大多数节点只包含键值对。非叶节点，如该图所示的根节点，也为指向子节点的指针留有空间。 <code>(20, 'q')</code> 和 <code>(30, 'r')</code> 之间的指针指向包含 <code>20</code> 到 <code>30</code> 之间的键的子节点。添加<code>entries</code>通常需要将节点的一些现有<code>entries</code>向右滑动，以保持它们的排序，有时还涉及分配新节点。</p>
+<p><code>Rust</code> 标准库使用 <code>BTree</code> 而不是平衡二叉树，因为 <code>BTree</code> 在现代硬件上更快。 与 <code>BTree</code> 相比，二叉树每次搜索使用的比较次数可能更少，但搜索 <code>BTree</code> 具有更好的局部性——也就是说，内存访问被分组在一起，而不是分散在整个堆中，这会提高内存缓存的命中率，这是一个显着的速度提升。</p>
+<h4 id="创建-map"><a class="markdownIt-Anchor" href="#创建-map"></a> 创建 <code>map</code></h4>
+<ul>
+<li>
+<p><code>HashMap::new()</code>、<code>BTreeMap::new()</code>：创建空的 <code>map</code>；</p>
+</li>
+<li>
+<p><code>iter.collect()</code>：可以从一个 <code>Iterator&lt;Item=(K, V)&gt;</code> 创建新的 <code>HashMap</code> 或者 <code>BTreeMap</code>；</p>
+</li>
+<li>
+<p><code>HashMap::with_capacity(n)</code>：创建空的 <code>map</code> 至少能存储 <code>n</code> 个 <code>entries</code>，由于它们存储 <code>entries</code> 在一个整个的堆内存中，所以他们有容量及相关的方法 <code>hash_map.capacity()</code>，<code>hash_map.reserve(additional)</code> 和 <code>hash_map.shrink_to_fit()</code>，<code>BTreeMaps</code> 没有这些。</p>
+</li>
+</ul>
+<h4 id="键值处理"><a class="markdownIt-Anchor" href="#键值处理"></a> 键值处理</h4>
+<ul>
+<li>
+<p><code>map.len()</code>：返回 <code>entries</code> 的数量；</p>
+</li>
+<li>
+<p><code>map.is_empty()</code>：如果 <code>map</code> 没有 <code>entries</code> 返回 <code>true</code>；</p>
+</li>
+<li>
+<p><code>map.contains_key(&amp;key)</code>：返回 <code>true</code> 如果 <code>map</code> 包含指定 <code>key</code>；</p>
+</li>
+<li>
+<p><code>map.get(&amp;key)</code>：在 <code>map</code> 中搜索指定 <code>key</code>。如果找到，返回 <code>Some(r)</code>，<code>r</code> 是一个指向对应值的引用。否则，返回 <code>None</code>；</p>
+</li>
+<li>
+<p><code>map.get_mut(&amp;key)</code>：类似于 <code>map.get(&amp;key)</code>，但是返回指定值的可变引用。一般来说，<code>map</code>允许对存储在其中的值进行 <code>mut</code> 访问，但不能访问键。 这些值是可以随意修改的。键属于<code>map</code>本身；它需要确保它们不会改变，因为<code>entries</code>是按它们的键组织的。就地修改<code>key</code>将是一个错误；</p>
+</li>
+<li>
+<p><code>map.insert(key, value)</code>：插入或者更新一个 <code>(key, entry)</code> 到 <code>map</code> 中，如果存在旧值返回；</p>
+</li>
+<li>
+<p><code>map.extend(iterable)</code>：迭代 <code>iterable</code> 将得到 <code>(K, V)</code> 插入到 <code>map</code> 中；</p>
+</li>
+<li>
+<p><code>map.append(&amp;mut map2)</code>：将 <code>map2</code> 的所有 <code>entries</code> 移动到 <code>map</code> 中；</p>
+</li>
+<li>
+<p><code>map.remove(&amp;key)</code>：找到并且删除指定 <code>key</code>，如果存在返回删除对应 <code>key</code> 的值，返回类型是 <code>Option&lt;V&gt;</code>；</p>
+</li>
+<li>
+<p><code>map.remove_entry(&amp;key)</code>：找到并且删除指定 <code>key</code>，如果存在返回删除对应键值对，返回类型是 <code>Option&lt;K, V&gt;</code>；</p>
+</li>
+<li>
+<p><code>map.retain(test)</code>：删除所有未通过 <code>test</code> 函数的键值对，<code>test</code> 的类型是 <code>FnMut(&amp;K, &amp;mut V) -&gt; bool</code>。对于 <code>map</code> 的每个元素都会调用 <code>test(&amp;key, &amp;mut value)</code>，如果返回 <code>false</code>，这个 <code>key</code> 就会从 <code>map</code> 中删除；不考虑性能，就像这样写：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">map = map.<span class="title function_ invoke__">into_iter</span>().<span class="title function_ invoke__">filter</span>(test).<span class="title function_ invoke__">collect</span>();</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>map.clear()</code>：删除所有键值对；</p>
+</li>
+</ul>
+<p>一个 <code>map</code> 也可以通过 <code>map[&amp;key]</code> 这种形式查询，<code>map</code> 实现了内建的 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/ops/trait.Index.html"><code>std::ops::Index</code></a>。但是如果给定的 <code>key</code> 不存在，就会 <code>panic</code>，这就像数组越界访问。</p>
+<p>对于 <code>.contains_key()</code>，<code>.get()</code>，<code>.get_mut()</code>，<code>.remove()</code> 中的 <code>key</code>，没必要是精确的 <code>&amp;T</code> 类型，这些方法是泛型，它们可以从 <code>K</code> 借用。所以，在 <code>HashMap&lt;String, Fish&gt;</code> 中这样调用 <code>fish_map.contains_key(&quot;conger&quot;)</code> 是没有问题的，即使 <code>&quot;conger&quot;</code> 不是 <code>String</code> 类型，但是它实现了 <code>Borrow&lt;&amp;str&gt;</code>。</p>
+<p>由于 <code>BTreeMap&lt;K, V&gt;</code> 按 <code>key</code>顺序存储，所以支持额外的操作：</p>
+<ul>
+<li><code>btree_map.split_off(&amp;key)</code>：将 <code>btree_map</code> 一分为二，键小于<code>key</code>的<code>entries</code>留在 <code>btree_map</code> 中，返回包含其他<code>entries</code>的新 <code>BTreeMap&lt;K, V&gt;</code>；</li>
+</ul>
+<h4 id="entry"><a class="markdownIt-Anchor" href="#entry"></a> <code>Entry</code></h4>
+<p><code>HashMap</code> 和 <code>BTreeMap</code> 都有对应的 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/collections/hash_map/enum.Entry.html"><code>std::collections::hash_map::Entry</code></a> 或者 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/collections/btree_map/enum.Entry.html"><code>std::collections::btree_map::Entry</code></a> 类型，<code>Entry</code> 的重点是消除冗余的映射查找，例如，这里有一些获取或创建学生记录的代码：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Do we already have a record for this student?</span></span><br><span class="line"><span class="keyword">if</span> !student_map.<span class="title function_ invoke__">contains_key</span>(name) &#123;</span><br><span class="line">    <span class="comment">// No: create one.</span></span><br><span class="line">    student_map.<span class="title function_ invoke__">insert</span>(name.<span class="title function_ invoke__">to_string</span>(), Student::<span class="title function_ invoke__">new</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Now a record definitely exists.</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">record</span> = student_map.<span class="title function_ invoke__">get_mut</span>(name).<span class="title function_ invoke__">unwrap</span>();</span><br></pre></td></tr></table></figure>
+<p>这可以完成工作，但是访问了 <code>student_map</code> 两三次，每次都要查找，其实我们要的只是有这个 <code>key</code> 更新没有的话插入。<code>entries</code>的想法是我们只进行一次查找，生成一个<code>entries</code>值，然后用于所有后续操作。这个单行代码等效于前面的所有代码，只是它只进行一次查找：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">record</span> = student_map.<span class="title function_ invoke__">entry</span>(name.<span class="title function_ invoke__">to_string</span>()).<span class="title function_ invoke__">or_insert_with</span>(Student::new);</span><br></pre></td></tr></table></figure>
+<p><code>student_map.entry(name.to_string())</code> 返回的 <code>Entry</code> 就像对 <code>map</code> 中某个位置的可变引用，该位置要么被键值对占用，要么空置，这意味着那里还没有<code>Entry</code>。如果为空，则 <code>Entry</code>的 <code>.or_insert_with()</code> 方法会插入一个新记录。</p>
+<p>所有的 <code>Entry</code> 都是使用相同的方法创建的：</p>
+<ul>
+<li>
+<p><code>map.entry(key)</code>：返回给定键的 <code>Entry</code>，如果<code>map</code>中没有这样的键，则返回一个空 <code>Entry</code>。此方法通过 <code>mut</code> 引用获取其 <code>self</code> 参数并返回具有匹配生命周期的 <code>Entry</code>：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">entry</span>&lt;<span class="symbol">&#x27;a</span>&gt;(&amp;<span class="symbol">&#x27;a</span> <span class="keyword">mut</span> <span class="keyword">self</span>, key: K) <span class="punctuation">-&gt;</span> Entry&lt;<span class="symbol">&#x27;a</span>, K, V&gt;</span><br></pre></td></tr></table></figure>
+<p><code>Entry</code> 类型有一个生命周期参数 <code>'a</code>，因为它实际上是一种对<code>map</code>的 <code>mut</code> 引用，只要<code>Entry</code> 存在，它就拥有对<code>map</code>的独占访问权。</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">enum</span> <span class="title class_">Entry</span>&lt;<span class="symbol">&#x27;a</span>, K: <span class="symbol">&#x27;a</span>, V: <span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    <span class="title function_ invoke__">Occupied</span>(OccupiedEntry&lt;<span class="symbol">&#x27;a</span>, K, V&gt;),</span><br><span class="line">    <span class="title function_ invoke__">Vacant</span>(VacantEntry&lt;<span class="symbol">&#x27;a</span>, K, V&gt;),</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>不幸的是，如果<code>map</code>具有 <code>String</code> 键，则无法将 <code>&amp;str</code> 类型的引用传递给此方法。在这种情况下，<code>.entry()</code> 方法需要一个真正的字符串。</p>
+</li>
+</ul>
+<p><code>Entry</code> 提供了三种处理空条目的方法：</p>
+<ul>
+<li>
+<p><code>map.entry(key).or_insert(value)</code>：确保<code>map</code>包含具有给定键的条目，如果需要，插入具有给定值的新条目。它返回对新值或现有值的 <code>mut</code> 引用。假设我们需要统计投票，可以这样写：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">ballots</span> = <span class="built_in">vec!</span>[];</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">vote_counts</span>: HashMap&lt;<span class="type">String</span>, <span class="type">usize</span>&gt; = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">name</span> <span class="keyword">in</span> ballots &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">count</span> = vote_counts.<span class="title function_ invoke__">entry</span>(name).<span class="title function_ invoke__">or_insert</span>(<span class="number">0</span>);</span><br><span class="line">        *count += <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>map.entry(key).or_default()</code>：确保 <code>map</code> 包含具有给定键的条目，如果需要，插入具有 <code>Default::default()</code> 返回的值的新条目。这仅适用于实现 <code>Default</code> 的类型。与 <code>or_insert</code> 一样，此方法返回对新值或现有值的<code> mut</code> 引用；</p>
+</li>
+<li>
+<p><code>map.entry(key).or_insert_with(default_fn)</code>：和前两个方法相同，只是它调用 <code>default_fn()</code> 生成默认值。如果已经存在，<code>default_fn</code> 是不会调用的；假设我们想知道哪些单词出现在哪些文件中。 我们可以写：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">word_occurrence</span>: HashMap&lt;<span class="type">String</span>, HashSet&lt;<span class="type">String</span>&gt;&gt; = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line"><span class="keyword">for</span> <span class="variable">file</span> <span class="keyword">in</span> files &#123;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">word</span> <span class="keyword">in</span> <span class="title function_ invoke__">read_words</span>(file)? &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">set</span> = word_occurrence.<span class="title function_ invoke__">entry</span>(word).<span class="title function_ invoke__">or_insert_with</span>(HashSet::new);</span><br><span class="line">        set.<span class="title function_ invoke__">insert</span>(file.<span class="title function_ invoke__">clone</span>());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>map.entry(key).and_modify(closure)</code>：如果指定 <code>key</code> 的 <code>Entry</code> 已经存在，将调用闭包并且传入 <code>Entry</code> 的可变借用，然后将 <code>Entry</code> 返回，所以它可以和其他方法串联起来使用；</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This map contains all the words in a given string,</span></span><br><span class="line"><span class="comment">// along with the number of times they occur.</span></span><br><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">word_frequency</span>: HashMap&lt;&amp;<span class="type">str</span>, <span class="type">u32</span>&gt; = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line"><span class="keyword">for</span> <span class="variable">c</span> <span class="keyword">in</span> text.<span class="title function_ invoke__">split_whitespace</span>() &#123;</span><br><span class="line">    word_frequency</span><br><span class="line">        .<span class="title function_ invoke__">entry</span>(c)</span><br><span class="line">        .<span class="title function_ invoke__">and_modify</span>(|count| *count += <span class="number">1</span>)</span><br><span class="line">        .<span class="title function_ invoke__">or_insert</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p><code>Entry</code> 是枚举类型，例如，<code>HashMap</code> 中的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// (in std::collections::hash_map)</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">enum</span> <span class="title class_">Entry</span>&lt;<span class="symbol">&#x27;a</span>, K, V&gt; &#123;</span><br><span class="line">    <span class="title function_ invoke__">Occupied</span>(OccupiedEntry&lt;<span class="symbol">&#x27;a</span>, K, V&gt;),</span><br><span class="line">    <span class="title function_ invoke__">Vacant</span>(VacantEntry&lt;<span class="symbol">&#x27;a</span>, K, V&gt;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="迭代-map"><a class="markdownIt-Anchor" href="#迭代-map"></a> 迭代 <code>Map</code></h4>
+<p>这里还有几个迭代 <code>map</code> 的方法：</p>
+<ul>
+<li>
+<p>通过值迭代， <code>for (k, v) in map</code> 产生 <code>(K，V)</code> 对，这将消费 <code>map</code>；</p>
+</li>
+<li>
+<p>通过引用迭代，<code>for (k, v) in &amp;map</code> 产生 <code>(&amp;K, &amp;V)</code> 对；</p>
+</li>
+<li>
+<p>通过可变引用迭代，<code>for (k, v) in &amp;mut map</code> 产生 <code>(&amp;K, &amp;mutV)</code> 对；</p>
+</li>
+</ul>
+<p>而 <code>.iter()</code> 和 <code>.iter_mut()</code> 就像按 <code>&amp;map</code> 和 <code>&amp;mut map</code> 迭代。除此之外，还有：</p>
+<ul>
+<li>
+<p><code>map.keys()</code>：返回一个所有 <code>key</code> 引用的迭代器；</p>
+</li>
+<li>
+<p><code>map.values()</code>：返回一个所有 <code>value</code> 引用的迭代器；</p>
+</li>
+<li>
+<p><code>map.values_mut()</code>：返回一个所有 <code>value</code> 可变引用的迭代器；</p>
+</li>
+</ul>
+<h3 id="hashsett-btreesett"><a class="markdownIt-Anchor" href="#hashsett-btreesett"></a> <code>HashSet&lt;T&gt;</code>、<code>BTreeSet&lt;T&gt;</code></h3>
+<p>集合中的值都是唯一的，<code>Map</code> 和 <code>Set</code> 有不同的方法，但在实现上，<code>Set</code> 就像只有键的映射，而不是键值对。 事实上，<code>Rust</code> 的两种集合类型 <code>HashSet&lt;T&gt;</code> 和 <code>BTreeSet&lt;T&gt;</code> 被实现为 <code>HashMap&lt;T, ()&gt;</code> 和 <code>BTreeMap&lt;T, ()&gt;</code>。</p>
+<p>这里有一些集合常用的方法：</p>
+<ul>
+<li>
+<p><code>HashSet::new()</code>、<code>BTreeSet::new()</code>：创建新的集合；</p>
+</li>
+<li>
+<p><code>iter.collect()</code>：可以用于从迭代器创建一个集合，如果迭代器产生重复值，将会被自动丢弃；</p>
+</li>
+<li>
+<p><code>HashSet::with_capacity(n)</code>：创建至少能容纳 <code>n</code> 个值的集合；</p>
+</li>
+<li>
+<p><code>set.len()</code>：返回集合中值的数量；</p>
+</li>
+<li>
+<p><code>set.is_empty()</code>：返回 <code>true</code> 当集合为空时；</p>
+</li>
+<li>
+<p><code>set.contains(&amp;value)</code>：当集合包含 <code>value</code> 是返回 <code>true</code>；</p>
+</li>
+<li>
+<p><code>set.insert(value)</code>：插入集合新的值，返回 <code>true</code> 如果值被添加，如果已经存在返回 <code>false</code>；</p>
+</li>
+<li>
+<p><code>set.remove(&amp;value)</code>：从集合中删除值，删除成功则返回 <code>true</code>，如果之前不存在则返回 <code>false</code>；</p>
+</li>
+<li>
+<p><code>set.retain(test)</code>：删除所有没通过测试的值，<code>test</code> 的类型是 <code>FnMut(&amp;T) -&gt; bool</code>，对于集合的每个元素，将调用 <code>test(&amp;value)</code>，如果返回 <code>false</code>，这个值就会被移除；</p>
+</li>
+</ul>
+<h4 id="迭代"><a class="markdownIt-Anchor" href="#迭代"></a> 迭代</h4>
+<p>有两种迭代集合的方式：</p>
+<ol>
+<li>
+<p>按值迭代，<code>for v in set</code> 返回集合的成员；</p>
+</li>
+<li>
+<p>按共享引用迭代，<code>for v in &amp;set</code> 返回集合值的引用；</p>
+</li>
+</ol>
+<p>通过可变引用迭代集合是不支持的，这里没有方法获取集合中值的可变引用，而 <code>set.iter()</code> 返回一个迭代器包含集合中值的引用。</p>
+<p><code>HashSet</code> 迭代器，就像 <code>HashMap</code> 迭代器，以任意顺序获取它们的值，而 <code>BTreeSet</code> 迭代器产生的值是有序的。</p>
+<h4 id="某些方法"><a class="markdownIt-Anchor" href="#某些方法"></a> 某些方法</h4>
+<ul>
+<li>
+<p><code>set.get(&amp;value)</code>：返回 <code> Option&lt;&amp;T&gt;</code>，等于 <code>value</code> 的集合中成员的引用；</p>
+</li>
+<li>
+<p><code>set.take(&amp;value)</code>：像 <code>set.remove(&amp;value)</code>，但是他返回移除的值；</p>
+</li>
+<li>
+<p><code>set.replace(value)</code>：就像 <code>set.insert(value)</code>，但是如果集合已经包含这个值，这个会返回并替换旧的值，返回类型是 <code>Option&lt;T&gt;</code>；</p>
+</li>
+</ul>
+<h4 id="集合操作"><a class="markdownIt-Anchor" href="#集合操作"></a> 集合操作</h4>
+<ul>
+<li>
+<p><code>set1.intersection(&amp;set2)</code>：返回两个集合之间的交集；</p>
+</li>
+<li>
+<p><code>set1.union(&amp;set2)</code>：求集合之间的并集；</p>
+</li>
+<li>
+<p><code>set1.difference(&amp;set2)</code>：求集合之间的差集；</p>
+</li>
+<li>
+<p><code>set1.symmetric_difference(&amp;set2)</code>：返回只存在其中一个集合中的值的新集合；</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::HashSet;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">a</span> = HashSet::<span class="title function_ invoke__">from</span>([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">b</span> = HashSet::<span class="title function_ invoke__">from</span>([<span class="number">4</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>]);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Print 1, 4 in arbitrary order.</span></span><br><span class="line"><span class="keyword">for</span> <span class="variable">x</span> <span class="keyword">in</span> a.<span class="title function_ invoke__">symmetric_difference</span>(&amp;b) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, x);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">diff1</span>: HashSet&lt;_&gt; = a.<span class="title function_ invoke__">symmetric_difference</span>(&amp;b).<span class="title function_ invoke__">collect</span>();</span><br><span class="line"><span class="keyword">let</span> <span class="variable">diff2</span>: HashSet&lt;_&gt; = b.<span class="title function_ invoke__">symmetric_difference</span>(&amp;a).<span class="title function_ invoke__">collect</span>();</span><br><span class="line"></span><br><span class="line"><span class="built_in">assert_eq!</span>(diff1, diff2);</span><br><span class="line"><span class="built_in">assert_eq!</span>(diff1, [<span class="number">1</span>, <span class="number">4</span>].<span class="title function_ invoke__">iter</span>().<span class="title function_ invoke__">collect</span>());</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>set1.is_disjoint(set2)</code>：如果 <code>self</code> 与 <code>other</code> 没有共同的元素，则返回 <code>true</code>；</p>
+</li>
+<li>
+<p><code>set1.is_subset(set2)</code>：如果 <code>set1</code> 是 <code>set2</code> 的子集，将返回 <code>true</code>；</p>
+</li>
+<li>
+<p><code>set1.is_superset(set2)</code>：如果 <code>set1</code> 是 <code>set2</code> 的超集，将返回 <code>true</code>；</p>
+</li>
+</ul>
+<h3 id="hashing"><a class="markdownIt-Anchor" href="#hashing"></a> <code>Hashing</code></h3>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/hash/trait.Hash.html"><code>std::hash::Hash</code></a> 是标准库中所有可 hash 类型必须实现的，<code>HashMap</code> 的键和 <code>HashSet</code> 的元素都必须实现 <code>Hash</code> 和 <code>Eq</code>。</p>
+<p>大对数内部实现了 <code>Eq</code> 的类型也都实现了 <code>Hash</code>，整数，字符和 <code>String</code> 都是可 <code>hash</code> 的，以及 <code>tuple</code>，<code>array</code>，<code>slice</code> 和 <code>vector</code>，只要他们的元素时可 <code>hash</code> 的。</p>
+<p>标准库的一个原则是一个值不管存在哪里或者你如何引用，它们都有相同的<code>hash</code>值。因此，一个值和它的引用有相同的hash值，<code>Box&lt;T&gt;</code> 也和它包含的值有相同的 <code>hash</code> 值，一个 <code>vector</code> 和包含相同的数据的<code>slice</code>有同样的<code>hash</code>值。一个字符串和包含相同字符的 <code>&amp;str</code> 有相同的<code>hash</code>值。</p>
+<p>结构体和枚举默认没有实现 <code>Hash</code>，但是可以自动派生，只有所有元素可 <code>hash</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Clone, PartialEq, Eq, Hash)]</span></span><br><span class="line"><span class="keyword">enum</span> <span class="title class_">MuseumNumber</span> &#123;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果你为一个类型手动实现 <code>PartialEq</code>，你也应该手动实现 <code>Hash</code>。</p>
+<h3 id="自定义-hash-算法"><a class="markdownIt-Anchor" href="#自定义-hash-算法"></a> 自定义 <code>Hash</code> 算法</h3>
+<p><code>hash</code> 方法是通用的，因此前面显示的 <code>Hash</code> 实现可以将数据提供给任何实现 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/hash/trait.Hasher.html"><code>Hasher</code></a> 的类型，这就是 <code>Rust</code> 支持可插入哈希算法的方式。</p>
+<p><code>std::hash::BuildHasher</code> 是表示散列算法初始状态的类型的特征。每个 <code>Hasher</code> 都是一次性使用的，就像一个迭代器：你使用一次就扔掉它，<code>BuildHasher</code> 是可重用的。</p>
+<p>每个 <code>HashMap</code> 都包含一个 <code>BuildHasher</code>，每次需要计算哈希码时都会使用它。<code>BuildHasher</code> 值包含哈希算法每次运行时所需的键、初始状态或其他参数。完整计算一个 <code>hash</code> 值如下所示：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::hash::&#123;Hash, Hasher, BuildHasher&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">compute_hash</span>&lt;B, T&gt;(builder: &amp;B, value: &amp;T) <span class="punctuation">-&gt;</span> <span class="type">u64</span></span><br><span class="line">    <span class="keyword">where</span> B: BuildHasher, T: Hash</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">hasher</span> = builder.<span class="title function_ invoke__">build_hasher</span>(); <span class="comment">// 1. start the algorithm</span></span><br><span class="line">    value.<span class="title function_ invoke__">hash</span>(&amp;<span class="keyword">mut</span> hasher); <span class="comment">// 2. feed it data</span></span><br><span class="line">    hasher.<span class="title function_ invoke__">finish</span>() <span class="comment">// 3. finish, producing a u64</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>HashMap</code> 每次在需要计算 <code>hash</code> 值的时候会调用这三个方法，所有方法都是可以内联的，所以非常快。</p>
+<p><code>Rust</code> 的默认哈希算法是 <code>SipHash-1-3</code>，<code>SipHash</code> 速度很快，并且非常擅长最小化哈希冲突。事实上，它是一种密码算法：没有已知的有效方法来生成 <code>SipHash-1-3</code> 冲突。 只要为每个哈希表使用不同的、不可预测的密钥，<code>Rust</code> 就可以抵御一种称为 <code>HashDoS</code> 的拒绝服务攻击，在这种攻击中，攻击者故意使用哈希冲突来触发服务器中最坏情况的性能。</p>
+<p>但也许您的应用程序不需要它，如果要存储许多小密钥，例如整数或非常短的字符串，则可以实现更快的哈希函数，但会牺牲 <code>HashDoS</code> 安全性。 <a target="_blank" rel="noopener" href="https://doc.servo.org/fnv/"><code>fnv</code></a> 实现了一种这样的算法，即 <code>FNV</code> 哈希，要尝试它，请将此行添加到您的 <code>Cargo.toml</code>：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[dependencies]</span></span><br><span class="line"><span class="attr">fnv</span> = <span class="string">&quot;1.0&quot;</span></span><br></pre></td></tr></table></figure>
+<p>然后导入使用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> fnv::&#123;FnvHashMap, FnvHashSet&#125;;</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/" title="【Rust】集合类型">https://blog.fudenglong.site/2022/05/01/Rust/【Rust】集合类型/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+              <a href="/tags/%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/" rel="tag"># 集合类型</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E8%BF%AD%E4%BB%A3%E5%99%A8/" rel="prev" title="【Rust】迭代器">
+                  <i class="fa fa-angle-left"></i> 【Rust】迭代器
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/" rel="next" title="【Rust】字符串和文本">
+                  【Rust】字符串和文本 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>
