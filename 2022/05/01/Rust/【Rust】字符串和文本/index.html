@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Unicode 和 ASCII 匹配所有 ASCII 字符，从 0 到 0x7f。例如，都将字符 * 分配给码点 42。类似地，Unicode 将 0 到 0xff 分配给与 ISO&#x2F;IEC 8859-1 字符集相同的字符，用于西欧语言的 8 位 ASCII 超集。Unicode 将此码点范围称为 Latin-1 代码块。 因为 Unicode 是 Latin-1 的超集，所以从 Latin-1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】字符串和文本">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Unicode 和 ASCII 匹配所有 ASCII 字符，从 0 到 0x7f。例如，都将字符 * 分配给码点 42。类似地，Unicode 将 0 到 0xff 分配给与 ISO&#x2F;IEC 8859-1 字符集相同的字符，用于西欧语言的 8 位 ASCII 超集。Unicode 将此码点范围称为 Latin-1 代码块。 因为 Unicode 是 Latin-1 的超集，所以从 Latin-1">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/utf8-example.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/char-classfication.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/char-ascii-method.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/string0-explaination.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/string-iter.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/format-exmaple.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/text-format-exmaple.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/number-format-exmaple.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/float-format-exmaple.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/format-custom-type.png">
+<meta property="article:published_time" content="2022-05-01T15:53:59.000Z">
+<meta property="article:modified_time" content="2022-05-01T15:53:59.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta property="article:tag" content="String 和文本">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/utf8-example.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/","path":"2022/05/01/Rust/【Rust】字符串和文本/","title":"【Rust】字符串和文本"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】字符串和文本 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6"><span class="nav-number">1.</span> <span class="nav-text"> 字符</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%86%E7%B1%BB"><span class="nav-number">1.1.</span> <span class="nav-text"> 分类</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%B0%E5%AD%97%E5%A4%84%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text"> 数字处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%A7%E5%B0%8F%E5%86%99%E8%BD%AC%E6%8D%A2"><span class="nav-number">1.3.</span> <span class="nav-text"> 大小写转换</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%8E%E6%95%B0%E5%AD%97%E4%B9%8B%E9%97%B4%E7%9A%84%E8%BD%AC%E6%8D%A2"><span class="nav-number">1.4.</span> <span class="nav-text"> 与数字之间的转换</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#string-str"><span class="nav-number">2.</span> <span class="nav-text"> String、str</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-string"><span class="nav-number">2.1.</span> <span class="nav-text"> 创建 String</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AE%80%E5%8D%95%E6%93%8D%E4%BD%9C"><span class="nav-number">2.2.</span> <span class="nav-text"> 简单操作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BF%BD%E5%8A%A0-%E6%8F%92%E5%85%A5"><span class="nav-number">2.3.</span> <span class="nav-text"> 追加、插入</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%A0%E9%99%A4-%E6%9B%BF%E6%8D%A2"><span class="nav-number">2.4.</span> <span class="nav-text"> 删除、替换</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%90%9C%E7%B4%A2%E6%A8%A1%E5%BC%8F"><span class="nav-number">2.5.</span> <span class="nav-text"> 搜索模式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%90%9C%E7%B4%A2-%E6%9B%BF%E6%8D%A2"><span class="nav-number">2.6.</span> <span class="nav-text"> 搜索、替换</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%96%87%E6%9C%AC%E8%BF%AD%E4%BB%A3"><span class="nav-number">2.7.</span> <span class="nav-text"> 文本迭代</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#trim"><span class="nav-number">2.8.</span> <span class="nav-text"> Trim</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BD%AC%E6%8D%A2%E6%88%90%E5%85%B6%E4%BB%96%E7%B1%BB%E5%9E%8B"><span class="nav-number">2.9.</span> <span class="nav-text"> 转换成其他类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%8E%E5%85%B6%E4%BB%96%E7%B1%BB%E5%9E%8B%E8%BD%AC%E6%8D%A2"><span class="nav-number">2.10.</span> <span class="nav-text"> 从其他类型转换</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%80%9F%E7%94%A8%E4%B8%BA%E5%85%B6%E4%BB%96%E7%B1%BB%E5%9E%8B"><span class="nav-number">2.11.</span> <span class="nav-text"> 借用为其他类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BD%AC%E5%8C%96%E4%B8%BA%E5%AD%97%E8%8A%82%E5%BA%8F%E5%88%97"><span class="nav-number">2.12.</span> <span class="nav-text"> 转化为字节序列</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%8E%E5%AD%97%E8%8A%82%E5%BA%8F%E5%88%97%E7%94%9F%E6%88%90"><span class="nav-number">2.13.</span> <span class="nav-text"> 从字节序列生成</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BB%B6%E8%BF%9F%E5%88%86%E9%85%8D"><span class="nav-number">2.14.</span> <span class="nav-text"> 延迟分配</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0-default"><span class="nav-number">2.15.</span> <span class="nav-text"> 实现 Default</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%BC%E5%BC%8F%E5%8C%96"><span class="nav-number">3.</span> <span class="nav-text"> 格式化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%96%87%E6%9C%AC%E6%A0%BC%E5%BC%8F%E5%8C%96"><span class="nav-number">3.1.</span> <span class="nav-text"> 文本格式化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%B0%E5%80%BC%E6%A0%BC%E5%BC%8F%E5%8C%96"><span class="nav-number">3.2.</span> <span class="nav-text"> 数值格式化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%85%B6%E4%BB%96%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.3.</span> <span class="nav-text"> 格式化其他类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%94%A8%E4%BA%8E%E8%B0%83%E8%AF%95%E7%9A%84%E6%A0%BC%E5%BC%8F%E5%8C%96"><span class="nav-number">3.4.</span> <span class="nav-text"> 用于调试的格式化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%8C%87%E9%92%88"><span class="nav-number">3.5.</span> <span class="nav-text"> 格式化指针</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%80%9A%E8%BF%87%E7%B4%A2%E5%BC%95%E6%88%96%E8%80%85%E5%90%8D%E7%A7%B0%E5%BC%95%E7%94%A8%E5%8F%82%E6%95%B0"><span class="nav-number">3.6.</span> <span class="nav-text"> 通过索引或者名称引用参数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E5%AE%BD%E5%BA%A6%E5%92%8C%E7%B2%BE%E5%BA%A6"><span class="nav-number">3.7.</span> <span class="nav-text"> 动态宽度和精度</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%BC%E5%BC%8F%E5%8C%96%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.8.</span> <span class="nav-text"> 格式化自定义类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#format_args"><span class="nav-number">3.9.</span> <span class="nav-text"> format_args!</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F"><span class="nav-number">4.</span> <span class="nav-text"> 正则表达式</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8"><span class="nav-number">4.1.</span> <span class="nav-text"> 基本使用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%87%92%E6%83%B0%E6%9E%84%E5%BB%BA-regex"><span class="nav-number">4.2.</span> <span class="nav-text"> 懒惰构建 Regex</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#normalization"><span class="nav-number">5.</span> <span class="nav-text"> Normalization</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#normalization-forms"><span class="nav-number">5.1.</span> <span class="nav-text"> Normalization Forms</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#unicode-normalization"><span class="nav-number">5.2.</span> <span class="nav-text"> unicode-normalization</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】字符串和文本 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】字符串和文本
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-05-01 23:53:59" itemprop="dateCreated datePublished" datetime="2022-05-01T23:53:59+08:00">2022-05-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>10k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>38 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>Unicode</code> 和 <code>ASCII</code> 匹配所有 <code>ASCII</code> 字符，从 <code>0</code> 到 <code>0x7f</code>。例如，都将字符 <code>*</code> 分配给码点 <code>42</code>。类似地，<code>Unicode</code> 将 <code>0</code> 到 <code>0xff</code> 分配给与 <code>ISO/IEC 8859-1</code> 字符集相同的字符，用于西欧语言的 <code>8</code> 位 <code>ASCII</code> 超集。<code>Unicode</code> 将此码点范围称为 <code>Latin-1</code> 代码块。</p>
+<p>因为 <code>Unicode</code> 是 <code>Latin-1</code> 的超集，所以从 <code>Latin-1</code> 转换到 <code>Unicode</code> 是完全允许的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">latin1_to_char</span>(latin1: <span class="type">u8</span>) <span class="punctuation">-&gt;</span> <span class="type">char</span> &#123;</span><br><span class="line">    latin1 <span class="keyword">as</span> <span class="type">char</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>假设码点在 <code>Latin-1</code> 范围内，反向转换也很简单：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">char_to_latin1</span>(c: <span class="type">char</span>) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;<span class="type">u8</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> c <span class="keyword">as</span> <span class="type">u32</span> &lt;= <span class="number">0xff</span> &#123;</span><br><span class="line">        <span class="title function_ invoke__">Some</span>(c <span class="keyword">as</span> <span class="type">u8</span>)</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="literal">None</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>Rust</code> 中 <code>String</code> 和 <code>str</code> 类型都是使用 <code>UTF-8</code> 编码格式，它是一种变长编码，使用<code>1</code>到<code>4</code>个字节对字符进行编码。有效的 <code>UTF-8</code> 序列有两个限制。首先，对于任何给定码点，只有最短的编码被认为是有效的，也就是不能花费<code>4</code>个字节来编码一个适合<code>3</code>个字节的码点。 此规则确保给定代码点只有一个 <code>UTF-8</code> 编码。其次，有效的 <code>UTF-8</code> 不得编码为 <code>0xd800</code> 到 <code>0xdfff</code> 或超过 <code>0x10ffff</code> 的数字：这些数字要么保留用于非字符目的，要么完全超出 <code>Unicode</code> 的范围。</p>
+<img data-src="/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/utf8-example.png" class="">
+<span id="more"></span>
+<h3 id="字符"><a class="markdownIt-Anchor" href="#字符"></a> 字符</h3>
+<p><code>Rust</code> 中使用一个 <code>32</code> 位值存储 <code>Unicode</code> 码点，<code>char</code> 保证落在 <code>0</code> 到 <code>0xd7ff</code> 或 <code>0xe000</code> 到 <code>0x10ffff</code> 的范围内，所有用于创建和操作 <code>char</code> 值的方法都确保这个规则。<code>char</code> 类型实现了 <code>Copy</code> 和 <code>Clone</code>，以及用于比较、<code>hash</code> 和格式化的所有常用 <code>Trait</code>。</p>
+<p>例如，通过 <code>&amp;str</code> 获得字符序列：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(<span class="string">&quot;カニ&quot;</span>.<span class="title function_ invoke__">chars</span>().<span class="title function_ invoke__">next</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;カ&#x27;</span>));</span><br></pre></td></tr></table></figure>
+<h4 id="分类"><a class="markdownIt-Anchor" href="#分类"></a> 分类</h4>
+<p>下表是一些常用的字符类型的分类方法：</p>
+<p><img data-src="char-classfication.png" alt="" /></p>
+<p>下标是一些专门用于 <code>ASCII</code> 字符的方法：</p>
+<p><img data-src="char-ascii-method.png" alt="" /></p>
+<p>所有的 <code>is_ascii_</code> 开头的方法在 <code>u8</code> 类型上都是可用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert!</span>(<span class="number">32u8</span>.<span class="title function_ invoke__">is_ascii_whitespace</span>());</span><br><span class="line"><span class="built_in">assert!</span>(<span class="string">b&#x27;9&#x27;</span>.<span class="title function_ invoke__">is_ascii_digit</span>());</span><br></pre></td></tr></table></figure>
+<p>在使用这些函数来实现现有规范时要小心，因为分类可能不同。例如 <code>is_whitespace</code> 和 <code>is_ascii_whitespace</code> 在对某些字符的处理上有所不同：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">line_tab</span> = <span class="string">&#x27;<span class="char escape_">\u</span>&#123;000b&#125;&#x27;</span>; <span class="comment">// &#x27;line tab&#x27;, AKA &#x27;vertical tab&#x27;</span></span><br><span class="line"><span class="built_in">assert_eq!</span>(line_tab.<span class="title function_ invoke__">is_whitespace</span>(), <span class="literal">true</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(line_tab.<span class="title function_ invoke__">is_ascii_whitespace</span>(), <span class="literal">false</span>);</span><br></pre></td></tr></table></figure>
+<p>因为 <code>is_ascii_whitespace</code> 实现了 <code>web</code> 标准的空白字符，而 <code>is_whitespace</code> 实现了 <code>Unicode</code> 标准的字符。</p>
+<h4 id="数字处理"><a class="markdownIt-Anchor" href="#数字处理"></a> 数字处理</h4>
+<p>下面是一些用于处理数字的方法：</p>
+<ul>
+<li>
+<p><code>ch.to_digit(radix)</code>：转换成 <code>radix</code> 进制数字，返回 <code>Some(num)</code>，<code>num</code> 是 <code>u32</code> 类型；</p>
+</li>
+<li>
+<p><code>std::char::from_digit(num, radix)</code>：从数字转换成字符，返回 <code>Some(ch)</code>；</p>
+</li>
+<li>
+<p><code>ch.is_digit(radix)</code>：判断字符是否是一个 <code>ASCII</code> 数字，等价于 <code>ch.to_digit(radix) != None</code>；</p>
+</li>
+</ul>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&#x27;F&#x27;</span>.<span class="title function_ invoke__">to_digit</span>(<span class="number">16</span>), <span class="title function_ invoke__">Some</span>(<span class="number">15</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(std::<span class="type">char</span>::<span class="title function_ invoke__">from_digit</span>(<span class="number">15</span>, <span class="number">16</span>), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;f&#x27;</span>));</span><br><span class="line">    <span class="built_in">assert!</span>(<span class="type">char</span>::<span class="title function_ invoke__">is_digit</span>(<span class="string">&#x27;f&#x27;</span>, <span class="number">16</span>));</span><br><span class="line">    <span class="built_in">assert!</span>(<span class="type">char</span>::<span class="title function_ invoke__">is_digit</span>(<span class="string">&#x27;8&#x27;</span>, <span class="number">10</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="大小写转换"><a class="markdownIt-Anchor" href="#大小写转换"></a> 大小写转换</h4>
+<ul>
+<li>
+<p><code>ch.is_lowercase()</code>、<code> ch.is_uppercase()</code>：判断字符是否是一个小写或者大写字母；</p>
+</li>
+<li>
+<p><code>ch.to_lowercase()</code>、<code>ch.to_uppercase()</code>：转换成小写或者大小可迭代字符序列，根据 <code>Unicode</code> 大小写转换算法；</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">upper</span> = <span class="string">&#x27;s&#x27;</span>.<span class="title function_ invoke__">to_uppercase</span>();</span><br><span class="line"><span class="built_in">assert_eq!</span>(upper.<span class="title function_ invoke__">next</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;S&#x27;</span>));</span><br><span class="line"><span class="built_in">assert_eq!</span>(upper.<span class="title function_ invoke__">next</span>(), <span class="literal">None</span>);</span><br></pre></td></tr></table></figure>
+<p>这些方法返回一个迭代器而不是单个字符，因为 <code>Unicode</code> 中不是一对一转换：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// The uppercase form of the German letter &quot;sharp S&quot; is &quot;SS&quot;:</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">upper</span> = <span class="string">&#x27;ß&#x27;</span>.<span class="title function_ invoke__">to_uppercase</span>();</span><br><span class="line">    <span class="built_in">assert_eq!</span>(upper.<span class="title function_ invoke__">next</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;S&#x27;</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(upper.<span class="title function_ invoke__">next</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;S&#x27;</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(upper.<span class="title function_ invoke__">next</span>(), <span class="literal">None</span>);</span><br><span class="line">    <span class="comment">// Unicode says to lowercase Turkish dotted capital &#x27;İ&#x27; to &#x27;i&#x27;</span></span><br><span class="line">    <span class="comment">// followed by `&#x27;\u&#123;307&#125;&#x27;`, COMBINING DOT ABOVE, so that a</span></span><br><span class="line">    <span class="comment">// subsequent conversion back to uppercase preserves the dot.</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">ch</span> = <span class="string">&#x27;İ&#x27;</span>; <span class="comment">// `&#x27;\u&#123;130&#125;&#x27;`</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">lower</span> = ch.<span class="title function_ invoke__">to_lowercase</span>();</span><br><span class="line">    <span class="built_in">assert_eq!</span>(lower.<span class="title function_ invoke__">next</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;i&#x27;</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(lower.<span class="title function_ invoke__">next</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;<span class="char escape_">\u</span>&#123;307&#125;&#x27;</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(lower.<span class="title function_ invoke__">next</span>(), <span class="literal">None</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>为了方便，这些迭代器实现了 <code>std::fmt::Display</code>。</p>
+</li>
+</ul>
+<h4 id="与数字之间的转换"><a class="markdownIt-Anchor" href="#与数字之间的转换"></a> 与数字之间的转换</h4>
+<p>使用 <code>as</code> 操作符可以将字符转换成整数，高位字节可能会被删除：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(<span class="string">&#x27;B&#x27;</span> <span class="keyword">as</span> <span class="type">u32</span>, <span class="number">66</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(<span class="string">&#x27;饂&#x27;</span> <span class="keyword">as</span> <span class="type">u8</span>, <span class="number">66</span>); <span class="comment">// upper bits truncated</span></span><br><span class="line"><span class="built_in">assert_eq!</span>(<span class="string">&#x27;二&#x27;</span> <span class="keyword">as</span> <span class="type">i8</span>, -<span class="number">116</span>); <span class="comment">// same</span></span><br></pre></td></tr></table></figure>
+<p><code>u8</code> 可以转换成 <code>char</code>，<code>char</code> 也实现了 <code>From&lt;u8&gt;</code>。但是更宽的字符可能代表无效的字符，所以必须使用 <code>std::char::from_u32</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(<span class="type">char</span>::<span class="title function_ invoke__">from</span>(<span class="number">66</span>), <span class="string">&#x27;B&#x27;</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(std::<span class="type">char</span>::<span class="title function_ invoke__">from_u32</span>(<span class="number">0x9942</span>), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;饂&#x27;</span>));</span><br><span class="line"><span class="built_in">assert_eq!</span>(std::<span class="type">char</span>::<span class="title function_ invoke__">from_u32</span>(<span class="number">0xd800</span>), <span class="literal">None</span>); <span class="comment">// reserved for UTF-16</span></span><br></pre></td></tr></table></figure>
+<h3 id="string-str"><a class="markdownIt-Anchor" href="#string-str"></a> <code>String</code>、<code>str</code></h3>
+<p><code>Rust</code> 的 <code>String</code> 和 <code>str</code> 类型保证只保存有效的 <code>UTF-8</code>。通过限制可以创建 <code>String</code> 和 <code>str</code> 值的方式以及可以对它们执行的操作来确保这一点，这样这些值在引入时有效并在使用它们时保持不变。他们所有的方法都保护了这一保证：对它们的任何安全操作都不会引入无效的 <code>UTF-8</code>，这简化了处理文本的代码。</p>
+<p><code>Rust</code> 将文本处理方法放置在 <code>str</code> 或 <code>String</code> 上，具体取决于该方法是否需要可调整大小的缓冲区或内容只是为了使用适当的文本。由于 <code>String</code> 解引用就是 <code>&amp;str</code>，因此在 <code>str</code> 上定义的每个方法也可以直接在 <code>String</code> 上使用。</p>
+<p><code>String</code> 被实现为 <code>Vec&lt;u8&gt;</code> 的包装器，以确保 <code>vector</code> 的内容总是有效的 <code>UTF-8</code>。</p>
+<p>下表包含后续的解释中用到的词汇：</p>
+<p><img data-src="string0-explaination.png" alt="" /></p>
+<h4 id="创建-string"><a class="markdownIt-Anchor" href="#创建-string"></a> 创建 <code>String</code></h4>
+<ul>
+<li>
+<p><code>String::new()</code>：返回新的空字符串，没有堆内存申请；</p>
+</li>
+<li>
+<p><code>String::with_capacity(n)</code>：返回新的，预申请 <code>n</code> 字节的字符串；</p>
+</li>
+<li>
+<p><code>str_slice.to_string()</code>：重新申请一个新的 <code>String</code>，它的整个内容都是字符串切片，例如：<code>&quot;literal text&quot;.to_string()</code>；</p>
+</li>
+<li>
+<p><code>iter.collect()</code>：通过连接迭代器 <code>item</code> 创建 <code>String</code>，例如：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">spacey</span> = <span class="string">&quot;man hat tan&quot;</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">spaceless</span>: <span class="type">String</span> =</span><br><span class="line">spacey.<span class="title function_ invoke__">chars</span>().<span class="title function_ invoke__">filter</span>(|c| !c.<span class="title function_ invoke__">is_whitespace</span>()).<span class="title function_ invoke__">collect</span>();</span><br><span class="line"><span class="built_in">assert_eq!</span>(spaceless, <span class="string">&quot;manhattan&quot;</span>);</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>slice.to_owned()</code>：Returns a copy of slice as a freshly allocated String. The str type cannot implement Clone: the trait would require clone on a &amp;str to return a str value, but str is unsized. However, &amp;str does implement ToOwned, which lets the implementer specify its owned equivalent.</p>
+</li>
+</ul>
+<h4 id="简单操作"><a class="markdownIt-Anchor" href="#简单操作"></a> 简单操作</h4>
+<p>这些方法能获取字符串基本信息：</p>
+<ul>
+<li>
+<p><code>slice.len()</code>：字符串字节长度；</p>
+</li>
+<li>
+<p><code>slice.is_empty()</code>：即 <code>slice.len() == 0</code>；</p>
+</li>
+<li>
+<p><code>slice[range]</code>：返回给定部分的切片，有界和无界范围都可以，例如：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">full</span> = <span class="string">&quot;bookkeeping&quot;</span>;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(&amp;full[..<span class="number">4</span>], <span class="string">&quot;book&quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(&amp;full[<span class="number">5</span>..], <span class="string">&quot;eeping&quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(&amp;full[<span class="number">2</span>..<span class="number">4</span>], <span class="string">&quot;ok&quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(full[..].<span class="title function_ invoke__">len</span>(), <span class="number">11</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(full[<span class="number">5</span>..].<span class="title function_ invoke__">contains</span>(<span class="string">&quot;boo&quot;</span>), <span class="literal">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>不能通过括号单个索引字符，必须要先将字符串转换成 <code>Unicode</code> 字符序列，然后进行迭代：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">full</span> = <span class="string">&quot;你好啊&quot;</span>;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(full.<span class="title function_ invoke__">chars</span>().<span class="title function_ invoke__">next</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;你&#x27;</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>slice.split_at(i)</code>：返回 <code>(slice[..i], slice[i..])</code> 这样的 <code>tuple</code>；</p>
+</li>
+<li>
+<p><code>slice.is_char_boundary(i)</code>：返回 <code>true</code> 如果 <code>i</code> 是一个字符的边界，这样他就可以作为 <code>slice</code> 的边界；</p>
+</li>
+</ul>
+<p>自然地，可以比较切片的相等性、排序和散列。有序比较只是将字符串视为 <code>Unicode</code> 代码点序列，并按字典顺序比较它们。</p>
+<h4 id="追加-插入"><a class="markdownIt-Anchor" href="#追加-插入"></a> 追加、插入</h4>
+<ul>
+<li>
+<p><code>string.push(ch)</code>：插入单个字符 <code>ch</code> 到字符串；</p>
+</li>
+<li>
+<p><code>string.push_str(slice)</code>：追加 <code>slice</code> 的全部内容；</p>
+</li>
+<li>
+<p><code>string.extend(iter)</code>：将迭代器产生的所有 <code>item</code> 追加到 <code>String</code>，迭代器可以产生 <code>char</code>，<code>str</code> 或者 <code>String</code>，这些都被 <code>String</code> 实现：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">also_spaceless</span> = <span class="string">&quot;con&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">also_spaceless.<span class="title function_ invoke__">extend</span>(<span class="string">&quot;tri but ion&quot;</span>.<span class="title function_ invoke__">split_whitespace</span>());</span><br><span class="line"><span class="built_in">assert_eq!</span>(also_spaceless, <span class="string">&quot;contribution&quot;</span>);</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>string.insert(i, ch)</code>：插入一个单个的字符在 <code>i</code> 字节处，这会涉及字符串的向后移动；</p>
+</li>
+<li>
+<p><code>string.insert_str(i, slice)</code>：在 <code>i</code> 字节处插入一个 <code>slice</code>；</p>
+</li>
+</ul>
+<p><code>String</code> 实现了 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/fmt/trait.Write.html"><code>std::fmt::Write</code></a>，这就意味着 <code>write!</code> 和 <code>writeln!</code> 可以被用来向 <code>String</code> 中追加格式化文本：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), std::fmt::Error&gt; &#123;</span><br><span class="line">    <span class="keyword">use</span> std::fmt::Write;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">letter</span> = <span class="type">String</span>::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    <span class="built_in">writeln!</span>(letter, <span class="string">&quot;Whose &#123;&#125; these are I think I know&quot;</span>, <span class="string">&quot;rutabagas&quot;</span>)?;</span><br><span class="line">    <span class="built_in">writeln!</span>(letter, <span class="string">&quot;His house is in the village though;&quot;</span>)?;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        letter,</span><br><span class="line">        <span class="string">&quot;Whose rutabagas these are I think I know\n\</span></span><br><span class="line"><span class="string">His house is in the village though;\n&quot;</span></span><br><span class="line">    );</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为 <code>String</code> 实现了 <code>Add&lt;&amp;str&gt;</code> 和 <code>AddAssign&lt;&amp;str&gt;</code>，所以你可以使用 <code>+</code> 和 <code>+=</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">left</span> = <span class="string">&quot;partners&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">right</span> = <span class="string">&quot;crime&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">    <span class="built_in">assert_eq!</span>(left + <span class="string">&quot; in &quot;</span> + &amp;right, <span class="string">&quot;partners in crime&quot;</span>);</span><br><span class="line">    right += <span class="string">&quot; doesn&#x27;t pay&quot;</span>;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(right, <span class="string">&quot;crime doesn&#x27;t pay&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是左操作数不能是 <code>&amp;str</code>，所以下面的写法是不可以的：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">parenthetical</span> = <span class="string">&quot;(&quot;</span> + string + <span class="string">&quot;)&quot;</span>;</span><br></pre></td></tr></table></figure></div>
+<p>而是应该这样写：</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">parenthetical</span> = <span class="string">&quot;(&quot;</span>.<span class="title function_ invoke__">to_string</span>() + &amp;string + <span class="string">&quot;)&quot;</span>;</span><br></pre></td></tr></table></figure></div>
+<p>但是，不鼓励从末尾向后构建字符串。字符串的行为方式与向量相同，当它需要更多容量时，它的缓冲区大小总是至少翻倍。这使重新复制开销与最终大小成正比。即便如此，使用  <code>String::with_capacity</code> 创建具有正确缓冲区大小的字符串可以完全避免调整大小，并且可以减少重新的内存分配。</p>
+<h4 id="删除-替换"><a class="markdownIt-Anchor" href="#删除-替换"></a> 删除、替换</h4>
+<p><code>String</code> 有一些删除文本的方法，这个不会影响字符串容量，如果需要可以使用 <code> shrink_to_fit</code>：</p>
+<ul>
+<li>
+<p><code>string.clear()</code>：重置 <code>String</code> 称为空的；</p>
+</li>
+<li>
+<p><code>string.truncate(n)</code>：丢掉 <code>n</code> 字节后的所有字符如果原来的字符串就少于 <code>n</code>，不做任何操作；</p>
+</li>
+<li>
+<p><code>string.pop()</code>：删除字符串中最后一个字符，返回 <code>Option&lt;char&gt;</code>；</p>
+</li>
+<li>
+<p><code>string.remove(i)</code>：从 <code>String</code> 中删除 <code>i</code> 字节偏移的字符并且返回；</p>
+</li>
+<li>
+<p><code>string.drain(range)</code>：删除指定范围的资费并且返回，后面的字符会前移：</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">choco</span> = <span class="string">&quot;chocolate&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">    <span class="built_in">assert_eq!</span>(choco.<span class="title function_ invoke__">drain</span>(<span class="number">3</span>..<span class="number">6</span>).collect::&lt;<span class="type">String</span>&gt;(), <span class="string">&quot;col&quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(choco, <span class="string">&quot;choate&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+<p>如果你仅仅是想去删除区间内的字符，可以立即丢掉返回的迭代器：</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">winston</span> = <span class="string">&quot;Churchill&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">    winston.<span class="title function_ invoke__">drain</span>(<span class="number">2</span>..<span class="number">6</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(winston, <span class="string">&quot;Chill&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+<li>
+<p><code>string.replace_range(range, replacement)</code>：用给定的替换字符串切片替换字符串中的给定范围。切片的长度不必与被替换的范围相同，但除非被替换的范围到达字符串的末尾，否则将需要移动范围末尾之后的所有字节：</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">beverage</span> = <span class="string">&quot;a piña colada&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">    beverage.<span class="title function_ invoke__">replace_range</span>(<span class="number">2</span>..<span class="number">7</span>, <span class="string">&quot;kahlua&quot;</span>); <span class="comment">// &#x27;ñ&#x27; is two bytes!</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(beverage, <span class="string">&quot;a kahlua colada&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+</ul>
+<h4 id="搜索模式"><a class="markdownIt-Anchor" href="#搜索模式"></a> 搜索模式</h4>
+<p>当标准库函数需要搜索、匹配、拆分或修剪文本时，它接受几种不同的类型来表示要查找的内容：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">haystack</span> = <span class="string">&quot;One fine day, in the middle of the night&quot;</span>;</span><br><span class="line"><span class="built_in">assert_eq!</span>(haystack.<span class="title function_ invoke__">find</span>(<span class="string">&#x27;,&#x27;</span>), <span class="title function_ invoke__">Some</span>(<span class="number">12</span>));</span><br><span class="line"><span class="built_in">assert_eq!</span>(haystack.<span class="title function_ invoke__">find</span>(<span class="string">&quot;night&quot;</span>), <span class="title function_ invoke__">Some</span>(<span class="number">35</span>));</span><br><span class="line"><span class="built_in">assert_eq!</span>(haystack.<span class="title function_ invoke__">find</span>(<span class="type">char</span>::is_whitespace), <span class="title function_ invoke__">Some</span>(<span class="number">3</span>));</span><br></pre></td></tr></table></figure>
+<p>这些类型叫做 <code>pattern</code>，大多数操作都支持它们：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(</span><br><span class="line">    <span class="string">&quot;## Elephants&quot;</span>.<span class="title function_ invoke__">trim_start_matches</span>(|ch: <span class="type">char</span>| ch == <span class="string">&#x27;#&#x27;</span> || ch.<span class="title function_ invoke__">is_whitespace</span>()),</span><br><span class="line">    <span class="string">&quot;Elephants&quot;</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<p>标准库支持四种类型的模式：</p>
+<ol>
+<li>
+<p><code>char</code> 类型作为字符匹配的模式；</p>
+</li>
+<li>
+<p><code>String</code>，<code>&amp;str</code> 或者 <code>&amp;&amp;str</code> 匹配等于它们表示的一个子串；</p>
+</li>
+<li>
+<p><code>FnMut(char) -&gt; bool</code> 使用闭包匹配单个的字符；</p>
+</li>
+<li>
+<p><code>&amp;[char]</code> 匹配任何出现在 <code>char</code> 列表中的字符，如果使用数组字面量，需要使用 <code>as_ref</code> 进行类型转换：</p>
+<pre><code> <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">code</span> = <span class="string">&quot;\t function noodle() &#123; &quot;</span>;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        code.<span class="title function_ invoke__">trim_start_matches</span>([<span class="string">&#x27; &#x27;</span>, <span class="string">&#x27;<span class="char escape_">\t</span>&#x27;</span>].<span class="title function_ invoke__">as_ref</span>()),</span><br><span class="line">        <span class="string">&quot;function noodle() &#123; &quot;</span></span><br><span class="line">    );</span><br><span class="line">    <span class="comment">// Shorter equivalent: &amp;[&#x27; &#x27;, &#x27;\t&#x27;][..]</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+</ol>
+<p>而在库代码中，<code>pattern</code> 是任何实现了 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/str/pattern/trait.Pattern.html"><code>std::str::pattern::Pattern</code></a> 的类型，该类型目前还是实验性质，所以为避免引起兼容性问题，不要为自己的类型实现。</p>
+<h4 id="搜索-替换"><a class="markdownIt-Anchor" href="#搜索-替换"></a> 搜索、替换</h4>
+<p><code>Rust</code> 提供了几种方法用于<code>slice</code>模式搜索以及替换：</p>
+<ul>
+<li>
+<p><code>slice.contains(pattern)</code>：如果 <code>slice</code> 包含指定模式，返回 <code>true</code>；</p>
+</li>
+<li>
+<p><code>slice.starts_with(pattern), slice.ends_with(pattern)</code>：<code>slice</code> 是否以某个 <code>pattern</code> 为前缀或者后缀；</p>
+</li>
+<li>
+<p><code>slice.find(pattern), slice.rfind(pattern)</code>：返回 <code>Some(i)</code> 表示 <code>slice</code> 包含指定的模式，<code>i</code> 是偏移量，<code>find</code> 找到最后一个匹配的，而 <code>rfind</code> 找到最后一个匹配的：</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">quip</span> = <span class="string">&quot;We also know there are known unknowns&quot;</span>;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(quip.<span class="title function_ invoke__">find</span>(<span class="string">&quot;know&quot;</span>), <span class="title function_ invoke__">Some</span>(<span class="number">8</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(quip.<span class="title function_ invoke__">rfind</span>(<span class="string">&quot;know&quot;</span>), <span class="title function_ invoke__">Some</span>(<span class="number">31</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(quip.<span class="title function_ invoke__">find</span>(<span class="string">&quot;ya know&quot;</span>), <span class="literal">None</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(quip.<span class="title function_ invoke__">rfind</span>(<span class="type">char</span>::is_uppercase), <span class="title function_ invoke__">Some</span>(<span class="number">0</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+<li>
+<p><code>slice.replace(pattern, replacement)</code>：替换所有匹配 <code>pattern</code> 子串：</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="string">&quot;The only thing we have to fear is fear itself&quot;</span>.<span class="title function_ invoke__">replace</span>(<span class="string">&quot;fear&quot;</span>, <span class="string">&quot;spin&quot;</span>),</span><br><span class="line">        <span class="string">&quot;The only thing we have to spin is spin itself&quot;</span></span><br><span class="line">    );</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="string">&quot;`Borrow` and `BorrowMut`&quot;</span>.<span class="title function_ invoke__">replace</span>(|ch: <span class="type">char</span>| !ch.<span class="title function_ invoke__">is_alphanumeric</span>(), <span class="string">&quot;&quot;</span>),</span><br><span class="line">        <span class="string">&quot;BorrowandBorrowMut&quot;</span></span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+<p><code>.replace()</code> 在重叠匹配上的行为可能有点怪，在这里，模式<code>&quot;aba&quot;</code>有四个实例，但在替换第一个和第三个后，第二个和第四个不再匹配：</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(<span class="string">&quot;cabababababbage&quot;</span>.<span class="title function_ invoke__">replace</span>(<span class="string">&quot;aba&quot;</span>, <span class="string">&quot;***&quot;</span>), <span class="string">&quot;c***b***babbage&quot;</span>)</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+<li>
+<p><code>slice.replacen(pattern, replacement, n)</code>：和前者相同，但是至多替换 <code>n</code> 次；</p>
+</li>
+</ul>
+<h4 id="文本迭代"><a class="markdownIt-Anchor" href="#文本迭代"></a> 文本迭代</h4>
+<p>标准库提供了几种迭代文本的方式，例如：</p>
+<p><img data-src="string-iter.png" alt="" /></p>
+<p>大多数这些方法返回的迭代器是可反转的，也就是实现了 <code>DoubleEndedIterator</code>：</p>
+<ul>
+<li>
+<p><code>slice.chars()</code>：返回包含 <code>slice</code> 中所有字符的迭代器；</p>
+</li>
+<li>
+<p><code>slice.char_indices()</code>：返回 <code>slice</code> 中所有字符的字节的偏移量；</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="string">&quot;élan&quot;</span>.<span class="title function_ invoke__">char_indices</span>().collect::&lt;<span class="type">Vec</span>&lt;_&gt;&gt;(),</span><br><span class="line">        <span class="built_in">vec!</span>[</span><br><span class="line">            (<span class="number">0</span>, <span class="string">&#x27;é&#x27;</span>), <span class="comment">// has a two-byte UTF-8 encoding</span></span><br><span class="line">            (<span class="number">2</span>, <span class="string">&#x27;l&#x27;</span>),</span><br><span class="line">            (<span class="number">3</span>, <span class="string">&#x27;a&#x27;</span>),</span><br><span class="line">            (<span class="number">4</span>, <span class="string">&#x27;n&#x27;</span>)</span><br><span class="line">        ]</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+<p>这个和 <code>.chars().enumerate()</code> 不等价。</p>
+</li>
+<li>
+<p><code>slice.bytes()</code>：返回切片各个字节的迭代器：</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(</span><br><span class="line">    <span class="string">&quot;élan&quot;</span>.<span class="title function_ invoke__">bytes</span>().collect::&lt;<span class="type">Vec</span>&lt;_&gt;&gt;(),</span><br><span class="line">    <span class="built_in">vec!</span>[<span class="number">195</span>, <span class="number">169</span>, <span class="string">b&#x27;l&#x27;</span>, <span class="string">b&#x27;a&#x27;</span>, <span class="string">b&#x27;n&#x27;</span>]</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+<li>
+<p><code>slice.lines()</code>：以 <code>\n</code> 或者 <code>\r\n</code> 分割字符，返回一个 <code>&amp;str</code> 的迭代器；</p>
+</li>
+<li>
+<p><code>slice.split(pattern)</code>：由匹配 <code>pattern</code> 的子串进行分割，如果模式是 <code>&amp;str</code>，返回的迭代器是不可反转的；</p>
+</li>
+<li>
+<p><code>slice.rsplit(pattern)</code>：方法是相同的，只是从右至左扫描；</p>
+</li>
+<li>
+<p><code>slice.split_terminator(pattern), slice.rsplit_terminator(pattern)</code>：模式被视为终止符，而不是分隔符，如果模式在切片的最后匹配，迭代器不会产生一个空切片，例如：</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// The &#x27;:&#x27; characters are separators here. Note the final &quot;&quot;.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="string">&quot;jimb:1000:Jim Blandy:&quot;</span>.<span class="title function_ invoke__">split</span>(<span class="string">&#x27;:&#x27;</span>).collect::&lt;<span class="type">Vec</span>&lt;_&gt;&gt;(),</span><br><span class="line">        <span class="built_in">vec!</span>[<span class="string">&quot;jimb&quot;</span>, <span class="string">&quot;1000&quot;</span>, <span class="string">&quot;Jim Blandy&quot;</span>, <span class="string">&quot;&quot;</span>]</span><br><span class="line">    );</span><br><span class="line">    <span class="comment">// The &#x27;\n&#x27; characters are terminators here.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="string">&quot;127.0.0.1 localhost\n\</span></span><br><span class="line"><span class="string">127.0.0.1 www.reddit.com\n&quot;</span></span><br><span class="line">            .<span class="title function_ invoke__">split_terminator</span>(<span class="string">&#x27;<span class="char escape_">\n</span>&#x27;</span>)</span><br><span class="line">            .collect::&lt;<span class="type">Vec</span>&lt;_&gt;&gt;(),</span><br><span class="line">        <span class="built_in">vec!</span>[<span class="string">&quot;127.0.0.1 localhost&quot;</span>, <span class="string">&quot;127.0.0.1 www.reddit.com&quot;</span>]</span><br><span class="line">    );</span><br><span class="line">    <span class="comment">// Note, no final &quot;&quot;!</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+<li>
+<p><code>slice.splitn(n, pattern), slice.rsplitn(n, pattern)</code>：限定最左分割成 <code>n</code> 个 <code>slice</code>；</p>
+</li>
+<li>
+<p><code>slice.split_whitespace(), slice.split_ascii_whitespace()</code>：通过 <code>Unicode</code> 定义的空格和 <code>ASCII</code> 空格来分割字符串：</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">poem</span> = <span class="string">&quot;This is just to say\n\</span></span><br><span class="line"><span class="string">I have eaten\n\</span></span><br><span class="line"><span class="string">the plums\n\</span></span><br><span class="line"><span class="string">again\n&quot;</span>;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        poem.<span class="title function_ invoke__">split_whitespace</span>().collect::&lt;<span class="type">Vec</span>&lt;_&gt;&gt;(),</span><br><span class="line">        <span class="built_in">vec!</span>[<span class="string">&quot;This&quot;</span>, <span class="string">&quot;is&quot;</span>, <span class="string">&quot;just&quot;</span>, <span class="string">&quot;to&quot;</span>, <span class="string">&quot;say&quot;</span>, <span class="string">&quot;I&quot;</span>, <span class="string">&quot;have&quot;</span>, <span class="string">&quot;eaten&quot;</span>, <span class="string">&quot;the&quot;</span>, <span class="string">&quot;plums&quot;</span>, <span class="string">&quot;again&quot;</span>]</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+<li>
+<p><code>slice.matches(pattern)</code>：返回切片中匹配 <code>pattern</code> 的迭代器，<code>slice.rmatches(pattern)</code> 是相同的，但从右往左迭代；</p>
+</li>
+<li>
+<p><code>slice.match_indices(pattern), slice.rmatch_indices(pattern)</code>：返回 <code>(offset, match)</code> 对，<code>offset</code> 是匹配到的 <code>match</code> 开始字节偏移量；</p>
+</li>
+</ul>
+<h4 id="trim"><a class="markdownIt-Anchor" href="#trim"></a> <code>Trim</code></h4>
+<p>修剪字符串是从字符串的开头或结尾删除文本，通常是空格。</p>
+<ul>
+<li>
+<p><code>slice.trim()</code>：返回删除了前后空格的子串，<code>slice.trim_start()</code> 和 <code>slice.trim_end()</code> 仅删除前或后空格：</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&quot;\t*.rs &quot;</span>.<span class="title function_ invoke__">trim</span>(), <span class="string">&quot;*.rs&quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&quot;\t*.rs &quot;</span>.<span class="title function_ invoke__">trim_start</span>(), <span class="string">&quot;*.rs &quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&quot;\t*.rs &quot;</span>.<span class="title function_ invoke__">trim_end</span>(), <span class="string">&quot;\t*.rs&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+<li>
+<p><code>slice.trim_matches(pattern)</code>：删除 <code>slice</code> 前后匹配 <code>pattern</code> 的子串，<code>trim_start_matches</code> 和 <code>trim_end_matches</code> 仅作用于前面或者后面：</p>
+<pre><code>  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(<span class="string">&quot;001990&quot;</span>.<span class="title function_ invoke__">trim_start_matches</span>(<span class="string">&#x27;0&#x27;</span>), <span class="string">&quot;1990&quot;</span>);</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+</ul>
+<h4 id="转换成其他类型"><a class="markdownIt-Anchor" href="#转换成其他类型"></a> 转换成其他类型</h4>
+<p>如果一个类型实现了 <code>std::str::FromStr</code>，那么它就提供了一个标准的方式可以从字符串生成它的值：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">trait</span> <span class="title class_">FromStr</span>: <span class="built_in">Sized</span> &#123;</span><br><span class="line">    <span class="keyword">type</span> <span class="title class_">Err</span>;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">from_str</span>(s: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;<span class="keyword">Self</span>, <span class="keyword">Self</span>::<span class="literal">Err</span>&gt;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所有常用的机器类型都实现了 <code>FromStr</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">use</span> std::<span class="type">str</span>::FromStr;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="type">usize</span>::<span class="title function_ invoke__">from_str</span>(<span class="string">&quot;3628800&quot;</span>), <span class="title function_ invoke__">Ok</span>(<span class="number">3628800</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="type">f64</span>::<span class="title function_ invoke__">from_str</span>(<span class="string">&quot;128.5625&quot;</span>), <span class="title function_ invoke__">Ok</span>(<span class="number">128.5625</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="type">bool</span>::<span class="title function_ invoke__">from_str</span>(<span class="string">&quot;true&quot;</span>), <span class="title function_ invoke__">Ok</span>(<span class="literal">true</span>));</span><br><span class="line">    <span class="built_in">assert!</span>(<span class="type">f64</span>::<span class="title function_ invoke__">from_str</span>(<span class="string">&quot;not a float at all&quot;</span>).<span class="title function_ invoke__">is_err</span>());</span><br><span class="line">    <span class="built_in">assert!</span>(<span class="type">bool</span>::<span class="title function_ invoke__">from_str</span>(<span class="string">&quot;TRUE&quot;</span>).<span class="title function_ invoke__">is_err</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>char</code> 也实现了 <code>FromStr</code>，但是只针对哪些只包含一个字符的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(<span class="type">char</span>::<span class="title function_ invoke__">from_str</span>(<span class="string">&quot;é&quot;</span>), <span class="title function_ invoke__">Ok</span>(<span class="string">&#x27;é&#x27;</span>));</span><br><span class="line"><span class="built_in">assert!</span>(<span class="type">char</span>::<span class="title function_ invoke__">from_str</span>(<span class="string">&quot;abcdefg&quot;</span>).<span class="title function_ invoke__">is_err</span>());</span><br></pre></td></tr></table></figure>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/net/enum.IpAddr.html"><code>std::net::IpAddr</code></a> 也实现了 <code>FromStr</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::net::&#123;AddrParseError, IpAddr&#125;;</span><br><span class="line"><span class="keyword">use</span> std::<span class="type">str</span>::FromStr;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), AddrParseError&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">address</span> = IpAddr::<span class="title function_ invoke__">from_str</span>(<span class="string">&quot;fe80::0000:3ea9:f4ff:fe34:7a50&quot;</span>)?;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        address,</span><br><span class="line">        IpAddr::<span class="title function_ invoke__">from</span>([<span class="number">0xfe80</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0x3ea9</span>, <span class="number">0xf4ff</span>, <span class="number">0xfe34</span>, <span class="number">0x7a50</span>])</span><br><span class="line">    );</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>字符串切片有一个 <code>parse</code> 方法，可以将切片解析为想要的任何类型，只要它实现了 <code>FromStr</code>，但是需要拼出所需的类型：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">address</span> = <span class="string">&quot;fe80::0000:3ea9:f4ff:fe34:7a50&quot;</span>.parse::&lt;IpAddr&gt;()?;</span><br></pre></td></tr></table></figure>
+<h4 id="从其他类型转换"><a class="markdownIt-Anchor" href="#从其他类型转换"></a> 从其他类型转换</h4>
+<p>这有三种方式转换非文本值到字符串：</p>
+<ul>
+<li>
+<p>对于实现了 <code>std::fmt::Display</code> 的类型，可以使用 <code>format!</code> 通过 <code>&#123;&#125;</code> 格式符来构建字符串：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), AddrParseError&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">address</span> = <span class="string">&quot;fe80::0000:3ea9:f4ff:fe34:7a50&quot;</span>.parse::&lt;IpAddr&gt;()?;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125;, wow&quot;</span>, <span class="string">&quot;doge&quot;</span>), <span class="string">&quot;doge, wow&quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="literal">true</span>), <span class="string">&quot;true&quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;(&#123;:.3&#125;, &#123;:.3&#125;)&quot;</span>, <span class="number">0.5</span>, <span class="type">f64</span>::<span class="title function_ invoke__">sqrt</span>(<span class="number">3.0</span>) / <span class="number">2.0</span>),</span><br><span class="line">        <span class="string">&quot;(0.500, 0.866)&quot;</span></span><br><span class="line">    );</span><br><span class="line">    <span class="comment">// Using `address` from above.</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">formatted_addr</span>: <span class="type">String</span> = <span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, address);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(formatted_addr, <span class="string">&quot;fe80::3ea9:f4ff:fe34:7a50&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所有 <code>Rust</code> 的数字类型，字符以及字符串都实现了 <code>Display</code>，智能指针 <code>Box&lt;T&gt;, Rc&lt;T&gt;, Arc&lt;T&gt;</code> 在 <code>T</code> 实现 <code>Display</code> 时也会实现 <code>Display</code>，<code>Vec</code> 和 <code>HashMap</code> 没有实现 <code>Display</code>。</p>
+</li>
+<li>
+<p>如果一个类型实现了 <code>Display</code>，那么他就会自动实现 <code>std::str::ToString</code>，可以通过调用 <code>.to_string()</code> 达到目的：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(address.<span class="title function_ invoke__">to_string</span>(), <span class="string">&quot;fe80::3ea9:f4ff:fe34:7a50&quot;</span>);</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>标准库里面的导出类型都实现了 <code>std::fmt::Debug</code>，可以通过 <code>&#123;:?&#125;</code> 格式声明生成字符串：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), AddrParseError&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">address</span> = <span class="string">&quot;fe80::0000:3ea9:f4ff:fe34:7a50&quot;</span>.parse::&lt;IpAddr&gt;()?;</span><br><span class="line">    <span class="comment">// Continued from above.</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">addresses</span> = <span class="built_in">vec!</span>[address, IpAddr::<span class="title function_ invoke__">from_str</span>(<span class="string">&quot;192.168.0.1&quot;</span>)?];</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, addresses),</span><br><span class="line">        <span class="string">&quot;[fe80::3ea9:f4ff:fe34:7a50, 192.168.0.1]&quot;</span></span><br><span class="line">    );</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>对于任何实现了 <code>Debug</code> 的 <code>T</code>，<code>Vec&lt;T&gt;</code> 也实现了 <code>Debug</code>，所有 <code>Rust</code> 集合类型都有这样的实现。可以通过派生为自己的类型实现 <code>Debug</code>：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Copy, Clone, Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Complex</span> &#123; re: <span class="type">f64</span>, im: <span class="type">f64</span> &#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="借用为其他类型"><a class="markdownIt-Anchor" href="#借用为其他类型"></a> 借用为其他类型</h4>
+<ul>
+<li>
+<p>切片和字符串实现 <code>AsRef&lt;str&gt;</code>、<code>AsRef&lt;[u8]&gt;</code>、<code>AsRef&lt;Path&gt;</code> 和 <code>AsRef&lt;OsStr&gt;</code>。许多标准库函数使用这些<code>Trait</code>作为其参数类型的界限，因此可以直接将切片和字符串传递给它们，即使它们真正想要的是其他类型，详细请查看 <a href="/2022/04/29/%E3%80%90Rust%E3%80%91%E5%B8%B8%E7%94%A8-Trait/#asref-asmut">AsRef、AsMut</a>；</p>
+</li>
+<li>
+<p><code>slice</code> 和字符串也实现了 <code>std::borrow::Borrow&lt;str&gt;</code>，<code>HashMap</code> 和 <code>BTreeMap</code> 使用 <code>Borrow</code> 使 <code>String</code> 可以很好地作为表中的键工作，详细请查看 <a href="/2022/04/29/%E3%80%90Rust%E3%80%91%E5%B8%B8%E7%94%A8-Trait/#borrow-borrowmut">Borrow、BorrowMut</a>。</p>
+</li>
+</ul>
+<h4 id="转化为字节序列"><a class="markdownIt-Anchor" href="#转化为字节序列"></a> 转化为字节序列</h4>
+<ul>
+<li>
+<p><code>slice.as_bytes()</code>：将 <code>slice</code> 转换为 <code>&amp;[u8]</code>，由于这不是一个可变引用，所以 <code>slice</code> 可以假设它的字节将保持有效的 <code>UTF-8</code>。</p>
+</li>
+<li>
+<p><code>string.into_bytes()</code>：获取 <code>String</code> 的所有权，并且转换为 <code>Vec&lt;u8&gt;</code>，这是一种廉价的转换，因为它只是将字符串一直用作其缓冲区的 <code>Vec&lt;u8&gt;</code> 交出。由于字符串不再存在，因此无法再确保是正确的 <code>UTF-8</code> 编码，调用者可以随意修改 <code>Vec&lt;u8&gt;</code>。</p>
+</li>
+</ul>
+<h4 id="从字节序列生成"><a class="markdownIt-Anchor" href="#从字节序列生成"></a> 从字节序列生成</h4>
+<p>这里有一些方法从字节序列转换成 <code>String</code> 或者 <code>slice</code>，取决于你如何处理错误：</p>
+<ul>
+<li>
+<p><code>str::from_utf8(byte_slice)</code>：以 <code>&amp;[u8]</code> 作为输入，返回 <code>Result</code>，如果正确将生成 <code>Ok(&amp;str)</code>；</p>
+</li>
+<li>
+<p><code>String::from_utf8(vec)</code>：尝试去构建字符串从 <code>Vec&lt;u8&gt;</code>，如果转化成功，返回 <code>Ok(String)</code>，并且将 <code>Vec</code> 中缓冲区的所有权转移至 <code>String</code>，以至于没有额外的内存申请。如果转换失败，返回 <code>Err(e)</code>，<code>e</code> 的类型是 <code>FromUtf8Error</code>，可以调用 <code>e.into_bytes()</code> 获得原 <code>vec</code> 的所有权：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">good_utf8</span>: <span class="type">Vec</span>&lt;<span class="type">u8</span>&gt; = <span class="built_in">vec!</span>[<span class="number">0xe9</span>, <span class="number">0x8c</span>, <span class="number">0x86</span>];</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="type">String</span>::<span class="title function_ invoke__">from_utf8</span>(good_utf8).<span class="title function_ invoke__">ok</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&quot;錆&quot;</span>.<span class="title function_ invoke__">to_string</span>()));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">bad_utf8</span>: <span class="type">Vec</span>&lt;<span class="type">u8</span>&gt; = <span class="built_in">vec!</span>[<span class="number">0x9f</span>, <span class="number">0xf0</span>, <span class="number">0xa6</span>, <span class="number">0x80</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">result</span> = <span class="type">String</span>::<span class="title function_ invoke__">from_utf8</span>(bad_utf8);</span><br><span class="line">    <span class="built_in">assert!</span>(result.<span class="title function_ invoke__">is_err</span>());</span><br><span class="line">    <span class="comment">// Since String::from_utf8 failed, it didn&#x27;t consume the original</span></span><br><span class="line">    <span class="comment">// vector, and the error value hands it back to us unharmed.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        result.<span class="title function_ invoke__">unwrap_err</span>().<span class="title function_ invoke__">into_bytes</span>(),</span><br><span class="line">        <span class="built_in">vec!</span>[<span class="number">0x9f</span>, <span class="number">0xf0</span>, <span class="number">0xa6</span>, <span class="number">0x80</span>]</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>String::from_utf8_lossy(byte_slice)</code>：尝试从 <code>&amp;[u8]</code> 共享字节片构造字符串或 <code>&amp;str</code>。此转换始终成功，将任何无效的 <code>UTF-8</code> 替换为 <code>Unicode</code> 替换字符。返回值是一个 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/borrow/enum.Cow.html"><code>Cow&lt;str&gt;</code></a>，如果它包含有效的 <code>UTF-8</code>，则直接从 <code>byte_slice</code> 借用 <code>&amp;str</code>，或者拥有一个新分配的字符串，其中替换字符替换了无效的字节。 因此，当 <code>byte_slice</code> 有效时，不会发生堆分配或复制。</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/string/struct.String.html#method.from_utf8_unchecked"><code>String::from_utf8_unchecked</code></a>：如果知道 <code>Vec&lt;u8&gt;</code> 包含有效的 <code>UTF-8</code>，那么可以调用 <code>unsafe</code> 函数。这只是将 <code>Vec&lt;u8&gt;</code> 包装为一个字符串并返回它，根本不检查字节，开发者有责任确保你没有将无效的 <code>UTF-8</code> 引入系统，这就是为什么这个函数被标记为不安全的原因。</p>
+</li>
+<li>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/str/fn.from_utf8_unchecked.html"><code>str::from_utf8_unchecked</code></a>：类似地，这需要一个 <code>&amp;[u8]</code> 并将其作为 <code>&amp;str</code> 返回，而不检查它是否包含有效的 <code>UTF-8</code>。</p>
+</li>
+</ul>
+<h4 id="延迟分配"><a class="markdownIt-Anchor" href="#延迟分配"></a> 延迟分配</h4>
+<p>来看一个示例：</p>
+<div class="note warning"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">get_name</span>() <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">    std::env::<span class="title function_ invoke__">var</span>(<span class="string">&quot;USER&quot;</span>) <span class="comment">// Windows uses &quot;USERNAME&quot;</span></span><br><span class="line">    .<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;whoever you are&quot;</span>.<span class="title function_ invoke__">to_string</span>())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>这个函数要求返回一个 <code>String</code>，但是实际上它应该返回一个 <code>String</code> 或一个静态文本，我们没必要为静态文本 <code>&amp;'static str</code> 再次分配内存把它转换成 <code>String</code> 返回。这个时候应该使用 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/borrow/enum.Cow.html"><code>std::borrow::Cow</code></a>，<code>Cow&lt;'a, T&gt;</code> 是一个有两种变体的枚举：<code>Owned</code> 和 <code>Borrowed</code>。 <code>Borrowed</code> 持有引用 <code>&amp;'a T</code>，<code>Owned</code> 能将持有的 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/primitive.str.html#impl-ToOwned"><code>&amp;str</code> 转换为 <code>String</code></a>，<code>&amp;[i32]</code> 转换为 <code>Vec&lt;i32&gt;</code>，依此类推。无论是 <code>Owned</code> 还是 <code>Borrowed</code>，<code>Cow&lt;'a, T&gt;</code> 总能产生一个 <code>&amp;T</code> 供你使用。事实上，<code>Cow&lt;'a, T&gt;</code> 解引用 <code>&amp;T</code> 很像智能指针。</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::borrow::Cow;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">get_name</span>() <span class="punctuation">-&gt;</span> Cow&lt;<span class="symbol">&#x27;static</span>, <span class="type">str</span>&gt; &#123;</span><br><span class="line">    std::env::<span class="title function_ invoke__">var</span>(<span class="string">&quot;USER&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">map</span>(|v| Cow::<span class="title function_ invoke__">Owned</span>(v))</span><br><span class="line">        .<span class="title function_ invoke__">unwrap_or</span>(Cow::<span class="title function_ invoke__">Borrowed</span>(<span class="string">&quot;whoever you are&quot;</span>))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>由于 <code>Cow</code> 经常用于字符串，标准库对 <code>Cow&lt;'a, str&gt;</code> 有一些特殊的支持。它提供了来自 <code>String</code> 和 <code>&amp;str</code> 的 <code>From</code> 和 <code>Into</code> 转换，因此可以更简洁地编写 <code>get_name</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">get_name</span>() <span class="punctuation">-&gt;</span> Cow&lt;<span class="symbol">&#x27;static</span>, <span class="type">str</span>&gt; &#123;</span><br><span class="line">    std::env::<span class="title function_ invoke__">var</span>(<span class="string">&quot;USER&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">map</span>(|v| v.<span class="title function_ invoke__">into</span>())</span><br><span class="line">        .<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;whoever you are&quot;</span>.<span class="title function_ invoke__">into</span>())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>Cow</code> 也实现了 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/borrow/enum.Cow.html#impl-Add%3C%26%27a%20str%3E"><code>Add&lt;&amp;'a str&gt;</code></a>，<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/borrow/enum.Cow.html#impl-Add%3CCow%3C%27a%2C%20str%3E%3E"><code>Add&lt;Cow&lt;'a str&gt;&gt;</code></a>，<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/borrow/enum.Cow.html#impl-AddAssign%3C%26%27a%20str%3E"><code>AddAsign&lt;&amp;'a str&gt;</code></a>以及<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/borrow/enum.Cow.html#impl-AddAssign%3CCow%3C%27a%2C%20str%3E%3E"><code>AddAssign&lt;Cow&lt;'a, str&gt;&gt;</code></a> 所以可以使用 <code>+</code> 和 <code>+=</code> 运算符：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Some</span>(title) = <span class="title function_ invoke__">get_title</span>() &#123;</span><br><span class="line">    name += <span class="string">&quot;, &quot;</span>;</span><br><span class="line">    name += title;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="实现-default"><a class="markdownIt-Anchor" href="#实现-default"></a> 实现 <code>Default</code></h4>
+<p><code>String</code> 是下了 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/default/trait.Default.html"><code>std::default::Default</code></a> 和 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/iter/trait.Extend.html"><code>std::iter::Extend</code></a>：返回空的字符串，以及追加字符，<code>&amp;[str]</code>，<code>Cow&lt;.., str&gt;</code>或者其他字符串。这与 Rust 的其他集合类型（如 <code>Vec</code> 和 <code>HashMap</code>）实现的特征组合相同，用于通用构造模式（如 <code>collect</code> 和 <code>partition</code>）。</p>
+<p><code>&amp;str</code> 也实现了 <code>Default</code>，返回空切片。</p>
+<h3 id="格式化"><a class="markdownIt-Anchor" href="#格式化"></a> 格式化</h3>
+<p><code>Rust</code> 的格式化工具被设计为开放式的。 可以通过实现 <code>std::fmt</code> 模块的格式化特征来扩展这些宏以支持自己的类型。可以使用 <code>format_args！</code> 宏和 <code>std::fmt::Arguments</code> 类型以使自己的函数和宏支持格式化语言。</p>
+<p>格式化宏总是借用对其参数的共享引用，他们从不获取所有权或改变它们。</p>
+<p><code>&#123;...&#125;</code> 叫做格式化参数，形式是：<code>&#123;which:how&#125;</code>，<code>which</code> 和 <code>how</code> 都可以省略，<code>&#123;&#125;</code> 是我们常用的格式。</p>
+<p><code>which</code> 用于指定应该使用模板后面的哪个参数，格式化参数中没有 <code>&#123;&#125;</code> 就会简单的从左到右按序取。</p>
+<p><code>how</code> 用来表示参数如何被格式化，填充多少、精度、数字基数等等。 如果 <code>how</code> 存在，则它前面的<code>:</code>是必需的。</p>
+<p>下面是一些常用的例子：</p>
+<p><img data-src="format-exmaple.png" alt="" /></p>
+<h4 id="文本格式化"><a class="markdownIt-Anchor" href="#文本格式化"></a> 文本格式化</h4>
+<p>对于 <code>String</code> 或者 <code>&amp;str</code> 类型，<code>how</code> 参数的值有几个部分，都是可选的：</p>
+<ol>
+<li>
+<p>文本长度限制。如果声明，超过这个长度的文本就会被截断；</p>
+</li>
+<li>
+<p>最小字段宽度。在任何截断之后，如果你的参数比这个短，<code>Rust</code> 会在右边（默认）用空格（默认）填充它，以形成这个宽度的字段。如果省略，<code>Rust </code>不会填充；</p>
+</li>
+<li>
+<p>对齐方式。可以通过 <code>&lt; ^ &gt;</code> 声明位左对齐，中对齐，右对齐；</p>
+</li>
+<li>
+<p>填充字符，如果省略，会自动使用空格；如果声明填充字符，必须声明对齐方式；</p>
+</li>
+</ol>
+<p>文本格式化示例：</p>
+<p><img data-src="text-format-exmaple.png" alt="" /></p>
+<p><code>Rust</code> 的格式化程序假设每个字符占据一列，而不考虑组合字符、全角半角、零宽度空格或 <code>Unicode</code> 的其他现实。例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(<span class="built_in">format!</span>(<span class="string">&quot;&#123;:4&#125;&quot;</span>, <span class="string">&quot;th\u&#123;e9&#125;&quot;</span>), <span class="string">&quot;th\u&#123;e9&#125; &quot;</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(<span class="built_in">format!</span>(<span class="string">&quot;&#123;:4&#125;&quot;</span>, <span class="string">&quot;the\u&#123;301&#125;&quot;</span>), <span class="string">&quot;the\u&#123;301&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>尽管 <code>Unicode</code> 说这些字符串都等价于 <code>thé</code>，但 <code>Rust</code> 的格式化程序并不知道像 <code>\u&#123;301&#125;</code> 这样的字符，结合了重音符号需要特殊处理。 它正确地填充了第一个字符串，但假定第二个字符串是四列宽并且不添加任何填充。尽管很容易看出 <code>Rust</code> 在这种特定情况下如何改进，但所有 <code>Unicode</code> 脚本的真正多语言文本格式化是一项艰巨的任务，最好依靠平台的用户界面工具包来处理。有一个流行的包 <a target="_blank" rel="noopener" href="https://crates.io/crates/unicode-width">unicode-width</a>，可以处理这方面的某些方面。</p>
+<p>就像 <code>&amp;str</code> 和 <code>String</code>，还可以传递带有文本引用的格式化宏智能指针类型，例如 <code>Rc&lt;String&gt;</code> 或 <code>Cow&lt;'a, str&gt;</code>。</p>
+<p>由于文件名路径不一定是有效的 <code>UTF-8</code>，<code>std::path::Path</code> 不是一个文本类型；不能将 <code>std::path::Path</code> 直接传递给格式化宏。但是，<code>Path</code> 的 <code>display</code> 方法返回一个值，可以以适合平台的方式格式化它：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;processing file: &#123;&#125;&quot;</span>, path.<span class="title function_ invoke__">display</span>());</span><br></pre></td></tr></table></figure>
+<h4 id="数值格式化"><a class="markdownIt-Anchor" href="#数值格式化"></a> 数值格式化</h4>
+<p><code>Rust</code> 提供了用于格式化数字的方式：</p>
+<ol>
+<li>类似于文本的填充和对齐方式；</li>
+<li><code>+</code> 显示有数值的正负号；</li>
+<li><code>#</code> 要求显示的前缀 <code>0x</code>、<code>0b</code> 或者 <code>0o</code>；</li>
+<li><code>0</code> 要求通过在数字中包含前导<code>0</code>来满足最小字段宽度，而不是通常的填充方法；</li>
+<li>最小字段宽度。如果格式化后的数字至少没有这么宽，<code>Rust</code> 在左边（默认）用空格（默认）填充它，以形成一个给定宽度的字段；</li>
+<li>浮点参数的精度，指示 <code>Rust</code> 应该在小数点后包含多少位。<code>Rust</code> 会根据需要进行四舍五入或零扩展，以准确生成这么多小数位数。如果省略了精度，<code>Rust</code> 会尝试使用尽可能少的数字来准确地表示该值，对于整数类型的参数，精度被忽略；</li>
+<li>一个符号。对于整数类型，这可以是 <code>b</code> 表示二进制，<code>o</code> 表示八进制，或者 <code>x</code> 或 <code>X</code> 表示带有小写或大写字母的十六进制。如果包含 <code>#</code> 字符，则这些字符包括显式的 <code>Rust</code> 样式基数前缀、<code>0b</code>、<code>0o</code>、<code>0x</code> 或 <code>0X</code>。对于浮点类型，<code>e</code> 或 <code>E</code> 的基数要求科学记数法，具有归一化系数，使用 <code>e</code> 或 <code>E</code> 作为指数。如果你不指定任何符号，<code>Rust</code> 会以十进制格式格式化数字；</li>
+</ol>
+<p>下面是一些数字格式化的例子，示例 <code>1234_i32</code>：</p>
+<p><img data-src="number-format-exmaple.png" alt="" /></p>
+<p>如最后两个示例所示，最小字段宽度适用于整个数字、符号、基数前缀等。负数总是包括它们的符号。 结果与“强制符号”示例中显示的结果类似。当要求前导零时，对齐和填充字符将被忽略，因为零会扩展数字以填充整个字段。</p>
+<p>下面以 <code>1234.5678</code> 为例，演示浮点数格式化：</p>
+<p><img data-src="float-format-exmaple.png" alt="" /></p>
+<h4 id="格式化其他类型"><a class="markdownIt-Anchor" href="#格式化其他类型"></a> 格式化其他类型</h4>
+<p>除了数字和字符串之外，你还可以格式化下面几种标注库类型：</p>
+<ol>
+<li>
+<p>错误类型都可以直接格式化，便于将它们包含在错误消息中。每个错误类型都应该实现 <code>std::error::Error</code>，它扩展了默认的格式化<code>std::fmt::Display</code>。因此，任何实现 <code>Error</code> 的类型都可以格式化；</p>
+</li>
+<li>
+<p>可以格式化互联网协议地址类型，例如 <code>std::net::IpAddr</code> 和 <code>std::net::SocketAddr</code>；</p>
+</li>
+<li>
+<p><code>true</code> 和 <code>false</code> 可以格式化，尽管这些通常不是直接呈现给最终用户的最佳字符串；</p>
+</li>
+</ol>
+<h4 id="用于调试的格式化"><a class="markdownIt-Anchor" href="#用于调试的格式化"></a> 用于调试的格式化</h4>
+<p>为了帮助调试和记录，<code>&#123;:?&#125;</code> 参数以对程序员有帮助的方式格式化 <code>Rust</code> 标准库中的任何公共类型。可以使用它来调试 <code>vector</code>、切片、元组、哈希表、线程和数百种其他类型。</p>
+<p>例如，你可这样写：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">map</span> = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    map.<span class="title function_ invoke__">insert</span>(<span class="string">&quot;Portland&quot;</span>, (<span class="number">45.5237606</span>, -<span class="number">122.6819273</span>));</span><br><span class="line">    map.<span class="title function_ invoke__">insert</span>(<span class="string">&quot;Taipei&quot;</span>, (<span class="number">25.0375167</span>, <span class="number">121.5637</span>));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, map);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这将输出：</p>
+<pre><code>&#123;&quot;Taipei&quot;: (25.0375167, 121.5637), &quot;Portland&quot;: (45.5237606, -122.6819273)&#125;
+</code></pre>
+<p>可以使用 <code>&#123;:#?&#125;</code> 以更适合阅读的方式打印：</p>
+<pre><code>&#123;
+    &quot;Taipei&quot;: (
+        25.0375167,
+        121.5637,
+    ),
+    &quot;Portland&quot;: (
+        45.5237606,
+        -122.6819273,
+    ),
+&#125;
+</code></pre>
+<p>调试格式通常以十进制打印数字，但可以在问号前放置一个 <code>x</code> 或 <code>X</code> 来请求十六进制。前导<code>0</code>和字段宽度语法也可以接受。例如，可以编写：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;ordinary: &#123;:02?&#125;&quot;</span>, [<span class="number">9</span>, <span class="number">15</span>, <span class="number">240</span>]);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;hex: &#123;:02x?&#125;&quot;</span>, [<span class="number">9</span>, <span class="number">15</span>, <span class="number">240</span>]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这将输出：</p>
+<pre><code>ordinary: [09, 15, 240]
+hex: [09, 0f, f0]
+</code></pre>
+<p>可以通过 <code>#[derive(Debug)]</code> 让自己的类型支持 <code>&#123;:?&#125;</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Copy, Clone, Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Complex</span> &#123; re: <span class="type">f64</span>, im: <span class="type">f64</span> &#125;</span><br></pre></td></tr></table></figure>
+<p>例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">third</span> = Complex &#123; re: -<span class="number">0.5</span>, im: <span class="type">f64</span>::<span class="title function_ invoke__">sqrt</span>(<span class="number">0.75</span>) &#125;;</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, third);</span><br></pre></td></tr></table></figure>
+<p>这将输出：</p>
+<pre><code>Complex &#123; re: -0.5, im: 0.8660254037844386 &#125;
+</code></pre>
+<h4 id="格式化指针"><a class="markdownIt-Anchor" href="#格式化指针"></a> 格式化指针</h4>
+<p>通常，如果将任何类型的指针传递给格式化宏——<code>引用</code>、<code>Box</code>、<code>Rc</code>——宏只会格式化引用的对象，指针本身并不重要。但是在调试时，有时查看指针会很有帮助：地址可以作为单个值的粗略“名称”，这在检查具有循环或共享的结构时会很有启发性。</p>
+<p><code>&#123;:p&#125;</code> 将引用和智能指针格式化为地址：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">use</span> std::rc::Rc;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">original</span> = Rc::<span class="title function_ invoke__">new</span>(<span class="string">&quot;mazurka&quot;</span>.<span class="title function_ invoke__">to_string</span>());</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">cloned</span> = original.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">impostor</span> = Rc::<span class="title function_ invoke__">new</span>(<span class="string">&quot;mazurka&quot;</span>.<span class="title function_ invoke__">to_string</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;text: &#123;&#125;, &#123;&#125;, &#123;&#125;&quot;</span>, original, cloned, impostor);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;pointers: &#123;:p&#125;, &#123;:p&#125;, &#123;:p&#125;&quot;</span>, original, cloned, impostor);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这可能输出：</p>
+<pre><code>text: mazurka, mazurka, mazurka
+pointers: 0x6000024ac2b0, 0x6000024ac2b0, 0x6000024ac2e0
+</code></pre>
+<p>从结果可以看出 <code>original</code> 和 <code>cloned</code> 具有相同的地址，这也符合 <code>Rc</code> 的定义。</p>
+<h4 id="通过索引或者名称引用参数"><a class="markdownIt-Anchor" href="#通过索引或者名称引用参数"></a> 通过索引或者名称引用参数</h4>
+<p>可以简单的通过索引来指定格式化参数使用哪个值，也就是指定开始所说的 <code>which</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;&#123;1&#125;,&#123;0&#125;,&#123;2&#125;&quot;</span>, <span class="string">&quot;zeroth&quot;</span>, <span class="string">&quot;first&quot;</span>, <span class="string">&quot;second&quot;</span>),</span><br><span class="line">        <span class="string">&quot;first,zeroth,second&quot;</span></span><br><span class="line">    );</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;&#123;2:#06x&#125;,&#123;1:b&#125;,&#123;0:=&gt;10&#125;&quot;</span>, <span class="string">&quot;first&quot;</span>, <span class="number">10</span>, <span class="number">100</span>),</span><br><span class="line">        <span class="string">&quot;0x0064,1010,=====first&quot;</span></span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>也可以通过名称选择参数，有点像<code>Python</code>的关键字参数，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="built_in">format!</span>(</span><br><span class="line">            <span class="string">&quot;&#123;description:.&lt;25&#125;&#123;quantity:2&#125; @ &#123;price:5.2&#125;&quot;</span>,</span><br><span class="line">            price = <span class="number">3.25</span>,</span><br><span class="line">            quantity = <span class="number">3</span>,</span><br><span class="line">            description = <span class="string">&quot;Maple Turmeric Latte&quot;</span></span><br><span class="line">        ),</span><br><span class="line">        <span class="string">&quot;Maple Turmeric Latte..... 3 @ 3.25&quot;</span></span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以将命名参数，位置参数，索引参数混合起来使用，只是命名参数必须出现在最后。位置参数与参数从左到右配对，就好像索引和命名参数不存在一样：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="built_in">format!</span>(</span><br><span class="line">            <span class="string">&quot;&#123;mode&#125; &#123;2&#125; &#123;&#125; &#123;&#125;&quot;</span>,</span><br><span class="line">            <span class="string">&quot;people&quot;</span>,</span><br><span class="line">            <span class="string">&quot;eater&quot;</span>,</span><br><span class="line">            <span class="string">&quot;purple&quot;</span>,</span><br><span class="line">            mode = <span class="string">&quot;flying&quot;</span></span><br><span class="line">        ),</span><br><span class="line">        <span class="string">&quot;flying purple people eater&quot;</span></span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="动态宽度和精度"><a class="markdownIt-Anchor" href="#动态宽度和精度"></a> 动态宽度和精度</h4>
+<p>之前我们看到的宽度和精度都是固定值，也可以在运行时确定：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">format!</span>(<span class="string">&quot;&#123;:&gt;1$&#125;&quot;</span>, content, <span class="title function_ invoke__">get_width</span>())</span><br></pre></td></tr></table></figure>
+<p><code>1$</code> 告诉 <code>format!</code> 使用第二个参数作为宽度，宽度的类型必须是 <code>usize</code>，也可以使用命名参数：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">format!</span>(<span class="string">&quot;&#123;:&gt;width$&#125;&quot;</span>, content, width=<span class="title function_ invoke__">get_width</span>())</span><br></pre></td></tr></table></figure>
+<p>相同的方式处理文本长度限制：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">format!</span>(</span><br><span class="line">        <span class="string">&quot;&#123;:&gt;width$.limit$&#125;&quot;</span>,</span><br><span class="line">        content,</span><br><span class="line">        width = <span class="title function_ invoke__">get_width</span>(),</span><br><span class="line">        limit = <span class="title function_ invoke__">get_limit</span>()</span><br><span class="line">    );</span><br></pre></td></tr></table></figure>
+<p>在文本长度或者浮点参数的位置，你还可以写 <code>*</code>，来使用下一个位置参数作为精度。例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">get_width</span>() <span class="punctuation">-&gt;</span> <span class="type">usize</span> &#123;</span><br><span class="line">    <span class="number">10</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">get_limit</span>() <span class="punctuation">-&gt;</span> <span class="type">usize</span> &#123;</span><br><span class="line">    <span class="number">10</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">content</span> = <span class="string">&quot;hello world&quot;</span>;</span><br><span class="line">    <span class="built_in">println!</span>(</span><br><span class="line">        <span class="string">&quot;&#123;:&gt;width$.limit$&#125;&quot;</span>,</span><br><span class="line">        content,</span><br><span class="line">        width = <span class="title function_ invoke__">get_width</span>(),</span><br><span class="line">        limit = <span class="title function_ invoke__">get_limit</span>()</span><br><span class="line">    );</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:.*&#125;&quot;</span>, <span class="title function_ invoke__">get_limit</span>(), content);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这将输出：</p>
+<pre><code>hello worl
+hello worl
+</code></pre>
+<h4 id="格式化自定义类型"><a class="markdownIt-Anchor" href="#格式化自定义类型"></a> 格式化自定义类型</h4>
+<p>格式化宏实际上是 <code>std::fmt</code> 中定义的一系列宏，可以通过自己实现这些特征中的一个或多个来使 <code>Rust</code> 的格式化宏格式化自己的类型。</p>
+<p><img data-src="format-custom-type.png" alt="" /></p>
+<p>用于格式化的 <code>Trait</code> 都有相同的结构，仅仅是名字不同，以 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fmt/trait.Display.html"><code>std::fmt::Display</code></a> 为例：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">trait</span> <span class="title class_">Display</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">fmt</span>(&amp;<span class="keyword">self</span>, dest: &amp;<span class="keyword">mut</span> std::fmt::Formatter)</span><br><span class="line">    <span class="punctuation">-&gt;</span> std::fmt::<span class="type">Result</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>fmt</code> 方法的工作是生成有效的 <code>self</code> 表示并将其字符写入 <code>dest</code>。 除了作为输出流之外，<code>dest</code> 参数还携带从格式参数解析的详细信息，例如对齐方式和最小字段宽度。</p>
+<p>下面是一个完整的实现用于 <code>Complex</code> 格式化输出：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::fmt;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Complex</span> &#123;</span><br><span class="line">    re: <span class="type">f64</span>,</span><br><span class="line">    im: <span class="type">f64</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">fmt</span>::Display <span class="keyword">for</span> <span class="title class_">Complex</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">fmt</span>(&amp;<span class="keyword">self</span>, dest: &amp;<span class="keyword">mut</span> fmt::Formatter) <span class="punctuation">-&gt;</span> fmt::<span class="type">Result</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> (re, im) = (<span class="keyword">self</span>.re, <span class="keyword">self</span>.im);</span><br><span class="line">        <span class="keyword">if</span> dest.<span class="title function_ invoke__">alternate</span>() &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">abs</span> = <span class="type">f64</span>::<span class="title function_ invoke__">sqrt</span>(re * re + im * im);</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">angle</span> = <span class="type">f64</span>::<span class="title function_ invoke__">atan2</span>(im, re) / std::<span class="type">f64</span>::consts::PI * <span class="number">180.0</span>;</span><br><span class="line">            <span class="built_in">write!</span>(dest, <span class="string">&quot;&#123;&#125; ∠ &#123;&#125;°&quot;</span>, abs, angle)</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">im_sign</span> = <span class="keyword">if</span> im &lt; <span class="number">0.0</span> &#123; <span class="string">&#x27;-&#x27;</span> &#125; <span class="keyword">else</span> &#123; <span class="string">&#x27;+&#x27;</span> &#125;;</span><br><span class="line">            <span class="built_in">write!</span>(dest, <span class="string">&quot;&#123;&#125; &#123;&#125; &#123;&#125;i&quot;</span>, re, im_sign, <span class="type">f64</span>::<span class="title function_ invoke__">abs</span>(im))</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">ninety</span> = Complex &#123; re: <span class="number">0.0</span>, im: <span class="number">2.0</span> &#125;;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, ninety), <span class="string">&quot;0 + 2i&quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="built_in">format!</span>(<span class="string">&quot;&#123;:#&#125;&quot;</span>, ninety), <span class="string">&quot;2 ∠ 90°&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果格式化参数中携带 <code>#</code>，我们以极坐标的形式显示负数，否则我们按照常规的方式展示。虽然 <code>fmt</code> 返回 <code>Result</code>，但是我们通常不用处理错误，只需向上传递，<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fmt/struct.Formatter.html#implementations"><code>Formatter</code></a> 还有很多其他有用的方法，<code>alternate</code> 只是其中一个。</p>
+<h4 id="format_args"><a class="markdownIt-Anchor" href="#format_args"></a> <code>format_args!</code></h4>
+<p>可以使用 <code>Rust</code> 的 <code>format_args</code> 编写自己的函数和宏来接受类型为 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/fmt/struct.Arguments.html"><code>std::fmt::Arguments</code></a> 的参数。例如，假设程序需要在运行时记录状态消息，并且想使用 <code>Rust</code> 的文本格式化语言来生成它们，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#![allow(dead_code, unused_imports)]</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> std::fmt;</span><br><span class="line"><span class="keyword">use</span> std::fs::OpenOptions;</span><br><span class="line"><span class="keyword">use</span> std::io::Write;</span><br><span class="line"></span><br><span class="line"><span class="built_in">macro_rules!</span> log &#123;</span><br><span class="line">    ($format:tt, $($arg:expr),*) =&gt; (</span><br><span class="line">        <span class="title function_ invoke__">write_log_entry</span>(<span class="built_in">format_args!</span>($format, $($arg),*))</span><br><span class="line">    )</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">logging_enabled</span>() <span class="punctuation">-&gt;</span> <span class="type">bool</span> &#123;</span><br><span class="line">    <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">write_log_entry</span>(entry: std::fmt::Arguments) &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="title function_ invoke__">logging_enabled</span>() &#123;</span><br><span class="line">        <span class="comment">// Keep things simple for now, and just</span></span><br><span class="line">        <span class="comment">// open the file every time.</span></span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">log_file</span> = OpenOptions::<span class="title function_ invoke__">new</span>()</span><br><span class="line">            .<span class="title function_ invoke__">append</span>(<span class="literal">true</span>)</span><br><span class="line">            .<span class="title function_ invoke__">create</span>(<span class="literal">true</span>)</span><br><span class="line">            .<span class="title function_ invoke__">open</span>(<span class="string">&quot;log-file-name&quot;</span>)</span><br><span class="line">            .<span class="title function_ invoke__">expect</span>(<span class="string">&quot;failed to open log file&quot;</span>);</span><br><span class="line"></span><br><span class="line">        log_file.<span class="title function_ invoke__">write_fmt</span>(entry).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;failed to write to log&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Complex</span> &#123;</span><br><span class="line">    re: <span class="type">f64</span>,</span><br><span class="line">    im: <span class="type">f64</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">mysterious_value</span> = Complex &#123; re: <span class="number">0.2</span>, im: <span class="number">1.2</span> &#125;;</span><br><span class="line"></span><br><span class="line">    log!(</span><br><span class="line">        <span class="string">&quot;O day and night, but this is wondrous strange! &#123;:?&#125;\n&quot;</span>,</span><br><span class="line">        mysterious_value</span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在编译时，<code>format_args!</code> 宏解析模板字符串并根据参数类型检查它，如果有任何问题则报告错误。在运行时，它计算参数值并构建一个 <code>Arguments</code> ，其中包含格式化文本所需的所有信息：模板的预解析形式，以及对参数值的共享引用。</p>
+<p>构造一个 <code>Arguments</code> 没有什么消耗：它只是收集一些指针，还没有进行格式化工作。这很重要：如果未启用日志记录，则将数字转换为十进制、填充值等所花费的任何时间都将被浪费。</p>
+<p><code>File</code> 类型实现了 <code>std::io::Write</code> 特征，其 <code>write_fmt</code> 方法接受 <code>Argument</code> 并进行格式化，它将结果写入底层流。</p>
+<h3 id="正则表达式"><a class="markdownIt-Anchor" href="#正则表达式"></a> 正则表达式</h3>
+<p><a target="_blank" rel="noopener" href="https://crates.io/crates/regex"><code>regex</code></a> 是 <code>Rust</code> 的官方正则表达式库，它提供通常的搜索和匹配功能。它对 <code>Unicode</code> 有很好的支持，但它也可以搜索字节字符串，尽管它不支持在其他正则表达式包中经常发现的某些功能，例如反向引用和环视模式，但这些简化允许正则表达式确保搜索时间与表达式的大小和正在搜索的文本长度呈线性关系。除其他外，这些保证使正则表达式可以安全使用，即使是在搜索不可信文本的不可信表达式中也是如此。</p>
+<p>尽管 <code>regex</code> 不在 <code>std</code> 中，但它由 <code>Rust</code> 库团队维护。要使用正则表达式，请将以下行放在<code>Cargo.toml</code> 文件的 <code>[dependencies]</code> 部分中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">regex = &quot;1&quot;</span><br></pre></td></tr></table></figure>
+<h4 id="基本使用"><a class="markdownIt-Anchor" href="#基本使用"></a> 基本使用</h4>
+<p><code>Regex</code> 值表示已解析的正则表达式可供使用。<code>Regex::new</code> 构造函数尝试将 <code>&amp;str</code> 解析为正则表达式，并返回一个结果：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> regex::&#123;Error, Regex&#125;;</span><br><span class="line"><span class="keyword">use</span> std::error::Error <span class="keyword">as</span> StdError;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), <span class="type">Box</span>&lt;<span class="keyword">dyn</span> StdError + <span class="built_in">Send</span> + <span class="built_in">Sync</span> + <span class="symbol">&#x27;static</span>&gt;&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">semver</span> = Regex::<span class="title function_ invoke__">new</span>(<span class="string">r&quot;(\d+)\.(\d+)\.(\d+)(-[-.[:alnum:]]*)?&quot;</span>)?;</span><br><span class="line">    <span class="comment">// Simple search, with a Boolean result.</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">haystack</span> = <span class="string">r#&quot;regex = &quot;0.2.5&quot;&quot;#</span>;</span><br><span class="line">    <span class="built_in">assert!</span>(semver.<span class="title function_ invoke__">is_match</span>(haystack));</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>Regex::captures</code> 方法在字符串中搜索第一个匹配项，并返回一个 <code>regex::Captures</code> 值，其中包含表达式中每个组的匹配信息：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// You can retrieve capture groups:</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">captures</span> = semver</span><br><span class="line">    .<span class="title function_ invoke__">captures</span>(haystack)</span><br><span class="line">    .<span class="title function_ invoke__">ok_or</span>(<span class="string">&quot;semver regex should have matched&quot;</span>)?;</span><br><span class="line"><span class="built_in">assert_eq!</span>(&amp;captures[<span class="number">0</span>], <span class="string">&quot;0.2.5&quot;</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(&amp;captures[<span class="number">1</span>], <span class="string">&quot;0&quot;</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(&amp;captures[<span class="number">2</span>], <span class="string">&quot;2&quot;</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(&amp;captures[<span class="number">3</span>], <span class="string">&quot;5&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>使用索引可能会发生 <code>panic</code>，可以使用 <code>Captures::get</code>，它返回一个 <code>Option&lt;regex::Match&gt;</code>，<code>Match</code> 包含了的那个的组匹配：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(captures.<span class="title function_ invoke__">get</span>(<span class="number">4</span>), <span class="literal">None</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(captures.<span class="title function_ invoke__">get</span>(<span class="number">3</span>).<span class="title function_ invoke__">unwrap</span>().<span class="title function_ invoke__">start</span>(), <span class="number">13</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(captures.<span class="title function_ invoke__">get</span>(<span class="number">3</span>).<span class="title function_ invoke__">unwrap</span>().<span class="title function_ invoke__">end</span>(), <span class="number">14</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(captures.<span class="title function_ invoke__">get</span>(<span class="number">3</span>).<span class="title function_ invoke__">unwrap</span>().<span class="title function_ invoke__">as_str</span>(), <span class="string">&quot;5&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p><code>find_iter</code> 为文本中每个连续的非重叠匹配返回一个迭代器，返回相对于文本的开始和结束字节索引。例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">haystack</span> = <span class="string">&quot;In the beginning, there was 1.0.0. \</span></span><br><span class="line"><span class="string">For a while, we used 1.0.1-beta, \</span></span><br><span class="line"><span class="string">but in the end, we settled on 1.2.4.&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">matches</span>: <span class="type">Vec</span>&lt;&amp;<span class="type">str</span>&gt; = semver</span><br><span class="line">    .<span class="title function_ invoke__">find_iter</span>(haystack)</span><br><span class="line">    .<span class="title function_ invoke__">map</span>(|match_| match_.<span class="title function_ invoke__">as_str</span>())</span><br><span class="line">    .<span class="title function_ invoke__">collect</span>();</span><br><span class="line"><span class="built_in">assert_eq!</span>(matches, <span class="built_in">vec!</span>[<span class="string">&quot;1.0.0&quot;</span>, <span class="string">&quot;1.0.1-beta&quot;</span>, <span class="string">&quot;1.2.4&quot;</span>]);</span><br></pre></td></tr></table></figure>
+<p><code>captures_iter</code> 产生的 <a target="_blank" rel="noopener" href="https://docs.rs/regex/1.5.5/regex/struct.Captures.html"><code>Captures</code></a> 包含所有匹配组：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> <span class="variable">caps</span> <span class="keyword">in</span> semver.<span class="title function_ invoke__">captures_iter</span>(haystack) &#123;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">m</span> <span class="keyword">in</span> caps.<span class="title function_ invoke__">iter</span>() &#123;</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Some</span>(m) = m &#123;</span><br><span class="line">            <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; -&gt; &#123;&#125;, &#123;&#125;&quot;</span>, m.<span class="title function_ invoke__">start</span>(), m.<span class="title function_ invoke__">end</span>(), &amp;haystack[m.<span class="title function_ invoke__">range</span>()]);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这将输出：</p>
+<pre><code>28 -&gt; 33, 1.0.0
+56 -&gt; 66, 1.0.1-beta
+98 -&gt; 103, 1.2.4
+</code></pre>
+<h4 id="懒惰构建-regex"><a class="markdownIt-Anchor" href="#懒惰构建-regex"></a> 懒惰构建 <code>Regex</code></h4>
+<p><code>Regex::new</code> 构造函数可能很昂贵：为 <code>1,200</code> 个字符的正则表达式构造 <code>Regex</code> 即使在快速机器上也需要一毫秒，即使是很小的表达式也需要数微秒，因此，最好将 <code>Regex</code> 构造排除在繁重的计算循环之外，而是应该构建一次正则表达式，然后重用同一个。</p>
+<p><a target="_blank" rel="noopener" href="https://docs.rs/lazy_static/latest/lazy_static/"><code>lazy_static</code></a> 提供了一种比较好的方式用于延迟初始化静态值，这些值只有在第一次使用时才会被初始化，在 <code>Cargo.toml</code> 添加如下依赖：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[dependencies]</span></span><br><span class="line"><span class="attr">lazy_static</span> = <span class="string">&quot;1&quot;</span></span><br></pre></td></tr></table></figure>
+<p>示例代码：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> regex::&#123;Error, Regex&#125;;</span><br><span class="line"><span class="keyword">use</span> std::error::Error <span class="keyword">as</span> StdError;</span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> lazy_static::lazy_static;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;(), <span class="type">Box</span>&lt;<span class="keyword">dyn</span> StdError + <span class="built_in">Send</span> + <span class="built_in">Sync</span> + <span class="symbol">&#x27;static</span>&gt;&gt; &#123;</span><br><span class="line">    lazy_static! &#123;</span><br><span class="line">        <span class="keyword">static</span> <span class="keyword">ref</span> SEMVER: Regex =</span><br><span class="line">            Regex::<span class="title function_ invoke__">new</span>(<span class="string">r&quot;(\d+)\.(\d+)\.(\d+)(-[-.[:alnum:]]*)?&quot;</span>).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;error parsing regex&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Simple search, with a Boolean result.</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">haystack</span> = <span class="string">r#&quot;regex = &quot;0.2.5&quot;&quot;#</span>;</span><br><span class="line">    <span class="built_in">assert!</span>(SEMVER.<span class="title function_ invoke__">is_match</span>(haystack));</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>该宏为一个名为 <code>SEMVER</code> 的静态变量的声明，但它的类型不完全是 <code>Regex</code>。 相反，它是实现 <code>Deref&lt;Target=Regex&gt;</code> 的宏生成类型，因此公开了与 <code>Regex</code> 相同的所有方法。第一次解引用 <code>SEMVER</code> 时会进行初始化，并保存该值以供以后使用。由于 <code>SEMVER</code> 是一个静态变量，而不仅仅是一个局部变量，因此初始化程序在每次程序执行时最多运行一次。</p>
+<h3 id="normalization"><a class="markdownIt-Anchor" href="#normalization"></a> Normalization</h3>
+<p>大多数用户会认为茶的法语单词 <code>thé</code> 是三个字符长。然而，<code>Unicode</code> 实际上有两种方式来表示这个文本：</p>
+<ul>
+<li>
+<p>在<code>composed</code>形式中，<code>thé</code> 包含三个字符 <code>t</code>、<code>h</code> 和 <code>é</code>，其中 <code>é</code> 是单个 <code>Unicode</code> 字符，代码点为 <code>0xe9</code>。</p>
+</li>
+<li>
+<p>在<code>decomposed</code>形式中，<code>thé</code> 包含四个字符 <code>t</code>、<code>h</code>、<code>e</code> 和 <code>\u&#123;301&#125;</code>，其中 <code>e</code> 是纯 <code>ASCII</code> 字符，没有重音符号，代码点 <code>0x301</code> 是“组合重音符号”字符，它为它后面的任何字符添加一个尖锐的重音。</p>
+</li>
+</ul>
+<p><code>Unicode</code> 不认为 <code>é</code> 的组合形式或分解形式是“正确的”形式；相反，它认为它们都是相同抽象字符的等效表示。<code>Unicode</code> 表示两种表单都应该以相同的方式显示，并且允许使用文本输入法生成任何一种，因此用户通常不会知道他们正在查看或输入哪种表单。（<code>Rust</code> 允许直接在字符串文字中使用 <code>Unicode</code> 字符，因此如果不在乎获得哪种编码，可以简单地编写 <code>thé</code>。为了清楚起见，我们将使用 <code>\u</code> 转义。）</p>
+<p>然而，考虑到 <code>Rust</code> 中 <code>&amp;str</code> 或 <code>String</code> 值，<code>“th\u&#123;e9&#125;”</code>和<code>“the\u&#123;301&#125;”</code>是完全不同的。它们有不同的长度，比较不相等，有不同的哈希值，并且相对于其他字符串有不同的顺序：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::hash_map::DefaultHasher;</span><br><span class="line"><span class="keyword">use</span> std::hash::&#123;Hash, Hasher&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">hash</span>&lt;T: ?<span class="built_in">Sized</span> + Hash&gt;(t: &amp;T) <span class="punctuation">-&gt;</span> <span class="type">u64</span> &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">s</span> = DefaultHasher::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    t.<span class="title function_ invoke__">hash</span>(&amp;<span class="keyword">mut</span> s);</span><br><span class="line">    s.<span class="title function_ invoke__">finish</span>()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert!</span>(<span class="string">&quot;th\u&#123;e9&#125;&quot;</span> != <span class="string">&quot;the\u&#123;301&#125;&quot;</span>);</span><br><span class="line">    <span class="built_in">assert!</span>(<span class="string">&quot;th\u&#123;e9&#125;&quot;</span> &gt; <span class="string">&quot;the\u&#123;301&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="title function_ invoke__">hash</span>(<span class="string">&quot;th\u&#123;e9&#125;&quot;</span>), <span class="number">0x53e2d0734eb1dff3</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="title function_ invoke__">hash</span>(<span class="string">&quot;the\u&#123;301&#125;&quot;</span>), <span class="number">0x90d837f0a0928144</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>显然，如果打算比较用户提供的文本或将其用作哈希表或 <code>Btree</code> 中的键，则需要首先将每个字符串放在某种规范形式中。</p>
+<p>幸运的是，<code>Unicode</code> 指定了字符串的规范化形式。每当根据 <code>Unicode</code> 规则将两个字符串视为等效时，它们的规范化形式是逐字符相同的。当使用 <code>UTF-8</code> 编码时，它们是逐字节相同的。这意味着可以将规范化的字符串与 <code>==</code> 进行比较，将它们用作 <code>HashMap</code> 或 <code>HashSet</code> 中的键等。</p>
+<p>未能规范化甚至会产生安全后果，例如，如果网站在某些情况下对用户名进行了规范化，但在其他情况下没有规范化用户名，最终可能会得到两个不同的用户，名为 <code>bananasflambé</code>，代码的某些部分将其视为同一个用户，但其他部分将其区别开来，从而导致一个人的权限被错误地扩展到另一个。当然，有很多方法可以避免此类问题，但历史表明也有很多方法可以避免。</p>
+<h4 id="normalization-forms"><a class="markdownIt-Anchor" href="#normalization-forms"></a> <code>Normalization Forms</code></h4>
+<p><code>Unicode</code> 定义了四种规范化形式，每一种都适用于不同的用途。 有两个问题需要回答：</p>
+<ul>
+<li>
+<p>首先，更喜欢字符是尽可能组合还是尽可能分开？例如，越南语单词 <code>Phở</code> 的 <code>composed</code> 形式是三个字符串<code>&quot;Ph\u&#123;1edf&#125;&quot;</code>，其中声调符号̉和元音符号̛都应用于单个字符的基本字符<code>&quot;o&quot;</code>，<code>Unicode</code> 负责将拉丁小写字母 <code>o</code> 命名为上面带有角和钩的字符。</p>
+<p><code>decomposed</code> 形式将基本字母及其两个标记拆分为三个单独的 <code>Unicode</code> 字符：<code>o</code>、<code>\u&#123;31b&#125;</code>和 <code>\u&#123;309&#125;</code>，从而产生 <code>Pho\u&#123;31b&#125;\u&#123;309&#125;</code>。组合形式通常兼容性问题较少，因为它与大多数语言在 <code>Unicode</code> 建立之前用于其文本的表示形式更加匹配。它还可以很好地与 <code>Rust</code> 的 <code>format!</code> 工作。另一方面，<code>decomposed</code> 形式可能更适合显示文本或搜索，因为它使文本的详细结构更加明确。</p>
+</li>
+<li>
+<p>第二个问题是：如果两个字符序列表示相同的基本文本，但文本格式的方式不同，你想将它们视为等价还是保持不同？</p>
+<p><code>Unicode</code> 对普通数字 <code>5</code>、上标数字 <code>⁵</code>（或 <code>\u&#123;2075&#125;</code>）和带圆圈的数字 <code>⑤</code>（或<code>\u&#123;2464&#125;</code>）有单独的字符，但声明所有这三个是兼容性等价的。类似地，<code>Unicode</code> 有一个用于连字的单个字符 <a target="_blank" rel="noopener" href="https://www.compart.com/en/unicode/U+FB03"><code>\u&#123;fb03&#125;</code></a>，但声明它与三个字符序列 <code>ffi</code> 等效。</p>
+<p>兼容性等价对搜索有意义：仅使用 <code>ASCII</code> 字符搜索<code>&quot;difficult&quot;</code>，应该匹配字符串<code>&quot;di\u&#123;fb03&#125;cult&quot;</code>。对后一个字符串应用兼容性分解会将连字替换为三个纯字母“ffi”，从而使搜索更容易。但是将文本规范化为兼容性等效形式可能会丢失基本信息，因此不应粗心地应用它。例如，在大多数情况下将<code>2⁵</code>存储为<code>25</code>是不正确的。</p>
+</li>
+</ul>
+<p><code>Unicode</code> 规范化形式 <code>NFC</code> 和规范化形式 <code>NFD</code> 使用每个字符的最大组合和最大分解形式，但不尝试统一兼容性等效序列。而<code>NFKC</code> 和 <code>NFKD</code> 规范化形式类似于 <code>NFC</code> 和 <code>NFD</code>，但将所有兼容性等价序列规范化为它们类的一些简单代表。</p>
+<p>万维网联盟的建议对所有内容使用 <code>NFC</code>。 <code>Unicode</code> 标识符和模式语法建议在编程语言中使用 <code>NFKC</code> 作为标识符，并提供必要时调整格式的原则。</p>
+<h4 id="unicode-normalization"><a class="markdownIt-Anchor" href="#unicode-normalization"></a> <code>unicode-normalization</code></h4>
+<p><code>Rust</code> 的 <code>unicode-normalization</code> 提供了一个 <code>trait</code>，它向 <code>&amp;str</code> 添加方法以将文本置于四种规范化形式中的任何一种。要使用它，将以下行添加到 <code>Cargo.toml</code> 文件的 <code>[dependencies]</code> 部分：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">unicode-normalization</span> = <span class="string">&quot;0.1.17&quot;</span></span><br></pre></td></tr></table></figure>
+<p>有了这个声明，<code>&amp;str</code> 有四个新方法，它们返回对特定规范化字符串形式的迭代器：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> unicode_normalization::UnicodeNormalization;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// No matter what representation the left-hand string uses</span></span><br><span class="line">    <span class="comment">// (you shouldn&#x27;t be able to tell just by looking),</span></span><br><span class="line">    <span class="comment">// these assertions will hold.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&quot;Phở&quot;</span>.<span class="title function_ invoke__">nfd</span>().collect::&lt;<span class="type">String</span>&gt;(), <span class="string">&quot;Pho\u&#123;31b&#125;\u&#123;309&#125;&quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&quot;Phở&quot;</span>.<span class="title function_ invoke__">nfc</span>().collect::&lt;<span class="type">String</span>&gt;(), <span class="string">&quot;Ph\u&#123;1edf&#125;&quot;</span>);</span><br><span class="line">    <span class="comment">// The left-hand side here uses the &quot;ffi&quot; ligature character.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(</span><br><span class="line">        <span class="string">&quot;① Di\u&#123;fb03&#125;culty&quot;</span>.<span class="title function_ invoke__">nfkc</span>().collect::&lt;<span class="type">String</span>&gt;(),</span><br><span class="line">        <span class="string">&quot;1 Difficulty&quot;</span></span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Taking a normalized string and normalizing it again in the same form is guaranteed to return identical text.</p>
+<p>Although any substring of a normalized string is itself normalized, the concatenation of two normalized strings is not necessarily normalized: for example, the second string might start with combining characters that should be placed before combining characters at the end of the first string.</p>
+<p>As long as a text uses no unassigned code points when it is normalized, Unicode promises that its normalized form will not change in future versions of the standard. This means that normalized forms are generally safe to use in persistent storage, even as the Unicode standard evolves.</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/" title="【Rust】字符串和文本">https://blog.fudenglong.site/2022/05/01/Rust/【Rust】字符串和文本/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+              <a href="/tags/String-%E5%92%8C%E6%96%87%E6%9C%AC/" rel="tag"># String 和文本</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/" rel="prev" title="【Rust】集合类型">
+                  <i class="fa fa-angle-left"></i> 【Rust】集合类型
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/" rel="next" title="【Rust】输入输出">
+                  【Rust】输入输出 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

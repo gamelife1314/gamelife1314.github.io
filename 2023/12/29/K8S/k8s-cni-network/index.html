@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="在容器网络-跨主机容器通信中，我们使用flannel实现了容器的跨主机通信，在使用kubeadm创建多借点集群时，在集群初始化之后，首先安装了kube-flannel CNI插件，用于k8s集群pod之间互通，这是集群节点Ready的必要条件，因为k8s自身并不能实现pod之间互通，需要借助CNI完成此功能。 单机容器通信是将主上的容器通过连接在docker0网桥实现，然后跨主机容器通信是通过vx">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kubernetes CNI 网络">
+<meta property="og:url" content="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="在容器网络-跨主机容器通信中，我们使用flannel实现了容器的跨主机通信，在使用kubeadm创建多借点集群时，在集群初始化之后，首先安装了kube-flannel CNI插件，用于k8s集群pod之间互通，这是集群节点Ready的必要条件，因为k8s自身并不能实现pod之间互通，需要借助CNI完成此功能。 单机容器通信是将主上的容器通过连接在docker0网桥实现，然后跨主机容器通信是通过vx">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/k8s-cni-network.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/flannel-cni-config.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/flannel-cni-binary.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/setup-pod-network-log.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/cni-plugin-params.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/cni-assign-ip.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/general-net-plugin.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/pod-status.png">
+<meta property="og:image" content="https://github.com/k8snetworkplumbingwg/multus-cni/raw/master/docs/images/multus-pod-image.svg">
+<meta property="article:published_time" content="2023-12-29T08:07:44.000Z">
+<meta property="article:modified_time" content="2023-12-29T08:07:44.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="cni">
+<meta property="article:tag" content="multus-cni">
+<meta property="article:tag" content="flannel">
+<meta property="article:tag" content="cni plugin">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/k8s-cni-network.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/","path":"2023/12/29/K8S/k8s-cni-network/","title":"Kubernetes CNI 网络"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Kubernetes CNI 网络 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#pod%E7%BD%91%E7%BB%9C%E5%88%9B%E5%BB%BA"><span class="nav-number">1.</span> <span class="nav-text"> Pod网络创建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cni%E6%8F%92%E4%BB%B6%E5%8F%82%E6%95%B0"><span class="nav-number">2.</span> <span class="nav-text"> CNI插件参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E7%BD%91%E7%BB%9C%E6%8F%92%E4%BB%B6"><span class="nav-number">3.</span> <span class="nav-text"> 通用网络插件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%9A%E4%B8%AA%E7%BD%91%E7%BB%9C%E6%8F%92%E4%BB%B6"><span class="nav-number">4.</span> <span class="nav-text"> 多个网络插件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="nav-number">5.</span> <span class="nav-text"> 参考链接</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Kubernetes CNI 网络 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Kubernetes CNI 网络
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-12-29 16:07:44" itemprop="dateCreated datePublished" datetime="2023-12-29T16:07:44+08:00">2023-12-29</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>14 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>在<a href="/2023/12/12/Network/container-network-cross-host/">容器网络-跨主机容器通信</a>中，我们使用<code>flannel</code>实现了容器的跨主机通信，在<a href="/2023/12/17/K8S/kubeadm-deploy/#%E9%9B%86%E7%BE%A4%E5%88%9D%E5%A7%8B%E5%8C%96">使用kubeadm创建多借点集群</a>时，在集群初始化之后，首先安装了<a target="_blank" rel="noopener" href="https://github.com/flannel-io/flannel"><code>kube-flannel CNI</code></a>插件，用于<code>k8s</code>集群<code>pod</code>之间互通，这是集群节点<code>Ready</code>的必要条件，因为<code>k8s</code>自身并不能实现<code>pod</code>之间互通，需要借助<a target="_blank" rel="noopener" href="https://www.cni.dev/docs/spec/">CNI</a>完成此功能。</p>
+<p>单机容器通信是将主上的容器通过连接在<code>docker0</code>网桥实现，然后跨主机容器通信是通过<code>vxlan</code>中的<code>flannel.x</code>设备实现跨主机之间的容器通信，<code>k8s</code>的<code>flannel-cni</code>插件处理不同<code>pod</code>之间互通的方式就和跨主机容器通信的方式一样，只不过在<code>k8s</code>集群中将用于单机上容器互通的<code>docker0</code>网桥换成了<code>cni0</code>。</p>
+<p><code>k8s</code>之所以要创建一个与<code>docker0</code>功能相同的网桥，是因为<code>k8s</code>并没有使用<code>Docker</code>的网络模型，它并不希望和<code>Docker</code>之间有强依赖，所以不具备配置这样一个网桥的能力。</p>
+<p>所以在使用<code>flannel-cni</code>插件的模式下，<code>k8s</code>之间不同<code>pod</code>互通的模式下如下图所示，和<a href="/2023/12/12/Network/container-network-cross-host/">容器网络-跨主机容器通信</a>唯一区别是网桥名称的变化：</p>
+<img data-src="/2023/12/29/K8S/k8s-cni-network/k8s-cni-network.png" class="">
+<span id="more"></span>
+<h3 id="pod网络创建"><a class="markdownIt-Anchor" href="#pod网络创建"></a> Pod网络创建</h3>
+<p>在<a href="/2023/12/17/K8S/kubeadm-deploy/#%E9%9B%86%E7%BE%A4%E5%88%9D%E5%A7%8B%E5%8C%96">使用kubeadm创建多借点集群</a>中，使用了如下的命令的来初始化<a target="_blank" rel="noopener" href="https://github.com/flannel-io/flannel">flannel-cni</a> 插件：</p>
+<blockquote>
+<p><code>kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml</code></p>
+</blockquote>
+<p>这个过程会在各个节点上创建<a target="_blank" rel="noopener" href="https://github.com/flannel-io/cni-plugin">flannel-cni</a>的配置，并且会运行一个和<a href="/2023/12/12/Network/container-network-cross-host/">容器网络-跨主机容器通信</a>中<code>flanneld</code>相同功能的<a target="_blank" rel="noopener" href="https://github.com/flannel-io/flannel/blob/e8fb8108622bb9646dc7de84df19adbae319acb8/Documentation/kube-flannel.yml#L106">Flannel DaemonSet</a>，<code>flannel DaemonSet</code>的配置以<a target="_blank" rel="noopener" href="https://github.com/flannel-io/flannel/blob/e8fb8108622bb9646dc7de84df19adbae319acb8/Documentation/kube-flannel.yml#L98C1-L98C1">ConfigMap</a>的形式创建并且挂到了容器中，如果你初始化<code>k8s</code>集群时没有使用<code>10.244.0.0/16</code>这个<code>Pod</code>网络，就需要修改<code>kube-flannel.yml</code>。可以使用如下命令查看配置信息：</p>
+<blockquote>
+<p><code>kubectl describe configmaps -n kube-flannel kube-flannel-cfg</code></p>
+</blockquote>
+<p><code>flannel-cni</code>的配置也是放在了<code>kube-flannel-cfg</code>中，它最终挂在到了每个节点上的 <code>/etc/cni/net.d/10-flannel.conflist</code> 中：</p>
+<p><img data-src="flannel-cni-config.png" alt="" /></p>
+<p>还有它会把<code>flannel-cni</code>的二进制文件放在节点上的 <code>/opt/cni/bin/flannel</code>：</p>
+<p><img data-src="flannel-cni-binary.png" alt="" /></p>
+<p>这个配置文件的使用者是<code>CRI</code>，在我的集群配置中就是<code>containerd</code>，由<code>CRI</code>容器运行时负责调用<code>CNI</code>实现<code>Pod</code>的网络配置。这里要注意的是，目前<code>k8s</code>不支持多个<code>CNI</code>插件使用，所以即使你在<code>/etc/cni/net.d/</code>目录中配置多个<code>CNI</code>插件，它也只会加载一个，可以点击查看<a target="_blank" rel="noopener" href="https://github.com/containerd/containerd/blob/1f76ca4081424eaba0aae06e66cc5bd4beb0c776/pkg/cri/config/config_unix.go#L61">containerd 默认配置</a>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DefaultConfig</span><span class="params">()</span></span> PluginConfig &#123;</span><br><span class="line">    <span class="keyword">var</span> m <span class="keyword">map</span>[<span class="type">string</span>]<span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">	toml.Unmarshal([]<span class="type">byte</span>(defaultRuncV2Opts), &amp;m)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> PluginConfig&#123;</span><br><span class="line">		CniConfig: CniConfig&#123;</span><br><span class="line">			NetworkPluginBinDir:        <span class="string">&quot;/opt/cni/bin&quot;</span>,</span><br><span class="line">			NetworkPluginConfDir:       <span class="string">&quot;/etc/cni/net.d&quot;</span>,</span><br><span class="line">			NetworkPluginMaxConfNum:    <span class="number">1</span>, <span class="comment">// only one CNI plugin config file will be loaded</span></span><br><span class="line">			NetworkPluginSetupSerially: <span class="literal">false</span>,</span><br><span class="line">			NetworkPluginConfTemplate:  <span class="string">&quot;&quot;</span>,</span><br><span class="line">		&#125;,</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在<code>containerd</code>启动的过程中，会<a target="_blank" rel="noopener" href="https://github.com/containerd/containerd/blob/1f76ca4081424eaba0aae06e66cc5bd4beb0c776/pkg/cri/server/service_linux.go#L64">读取配置</a>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *criService)</span></span> initPlatform() (err <span class="type">error</span>) &#123;</span><br><span class="line">    ....</span><br><span class="line">    c.netPlugin = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">string</span>]cni.CNI)</span><br><span class="line">	<span class="keyword">for</span> name, dir := <span class="keyword">range</span> pluginDirs &#123;</span><br><span class="line">		max := c.config.NetworkPluginMaxConfNum</span><br><span class="line">		<span class="keyword">if</span> name != defaultNetworkPlugin &#123;</span><br><span class="line">			<span class="keyword">if</span> m := c.config.Runtimes[name].NetworkPluginMaxConfNum; m != <span class="number">0</span> &#123;</span><br><span class="line">				max = m</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// Pod needs to attach to at least loopback network and a non host network,</span></span><br><span class="line">		<span class="comment">// hence networkAttachCount is 2. If there are more network configs the</span></span><br><span class="line">		<span class="comment">// pod will be attached to all the networks but we will only use the ip</span></span><br><span class="line">		<span class="comment">// of the default network interface as the pod IP.</span></span><br><span class="line">		i, err := cni.New(cni.WithMinNetworkCount(networkAttachCount),</span><br><span class="line">			cni.WithPluginConfDir(dir),</span><br><span class="line">			cni.WithPluginMaxConfNum(max),</span><br><span class="line">			cni.WithPluginDir([]<span class="type">string</span>&#123;c.config.NetworkPluginBinDir&#125;))</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;failed to initialize cni: %w&quot;</span>, err)</span><br><span class="line">		&#125;</span><br><span class="line">		c.netPlugin[name] = i</span><br><span class="line">	&#125;</span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当<code>kubelet</code>创建<code>Pod</code>的时候，它首先调用<code>containerd</code>的<a target="_blank" rel="noopener" href="https://github.com/containerd/containerd/blob/1f76ca4081424eaba0aae06e66cc5bd4beb0c776/pkg/cri/server/sandbox_run.go#L52">RunPodSandbox</a>方法创建一个沙盒，在这个沙盒里面创建用于<code>pod</code>内网络共享的的命名空间并且设置网络，而<code>containerd</code>并不会自己创建网络，它必须调用<code>flannel-cni</code>插件来实现，所以在这个 <code>RunPodSandbox</code> 中就是准备<code>flannel-cni</code> 所需的参数，并且调用它，这部分的实现主要在<a target="_blank" rel="noopener" href="https://github.com/containerd/containerd/blob/1f76ca4081424eaba0aae06e66cc5bd4beb0c776/pkg/cri/server/sandbox_run.go#L451">setupPodNetwork</a>中：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *criService)</span></span> setupPodNetwork(ctx context.Context, sandbox *sandboxstore.Sandbox) <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		id        = sandbox.ID</span><br><span class="line">		config    = sandbox.Config</span><br><span class="line">		path      = sandbox.NetNSPath</span><br><span class="line">		netPlugin = c.getNetworkPlugin(sandbox.RuntimeHandler)</span><br><span class="line">		err       <span class="type">error</span></span><br><span class="line">		result    *cni.Result</span><br><span class="line">	)</span><br><span class="line">	<span class="keyword">if</span> netPlugin == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">&quot;cni config not initialized&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	opts, err := cniNamespaceOpts(id, config)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;get cni namespace options: %w&quot;</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	log.G(ctx).WithField(<span class="string">&quot;podsandboxid&quot;</span>, id).Debugf(<span class="string">&quot;begin cni setup&quot;</span>)</span><br><span class="line">	netStart := time.Now()</span><br><span class="line">	<span class="keyword">if</span> c.config.CniConfig.NetworkPluginSetupSerially &#123;</span><br><span class="line">		result, err = netPlugin.SetupSerially(ctx, id, path, opts...)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		result, err = netPlugin.Setup(ctx, id, path, opts...)</span><br><span class="line">	&#125;</span><br><span class="line">	networkPluginOperations.WithValues(networkSetUpOp).Inc()</span><br><span class="line">	networkPluginOperationsLatency.WithValues(networkSetUpOp).UpdateSince(netStart)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		networkPluginOperationsErrors.WithValues(networkSetUpOp).Inc()</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	logDebugCNIResult(ctx, id, result)</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="cni插件参数"><a class="markdownIt-Anchor" href="#cni插件参数"></a> CNI插件参数</h3>
+<p>从<a target="_blank" rel="noopener" href="https://www.cni.dev/docs/spec/#cni-operations">cni-operations</a>规范我们可以看到，它定义了四种操作：<code>ADD</code>，<code>DEL</code>，<code>CHECK</code> 和 和<code>VERSION</code>，其实有用的只有<code>ADD</code>，<code>DEL</code>，给这两操作传递参数是通过环境变量和标准输入进行的。以<code>ADD</code>操作为例，我们需要在调用<code>CNI</code>插件的时候，将操作的名称通过环境变量<code>CNI_COMMAND</code>设置，另外还需要设置<code>CNI_IFNAME</code>（网卡名称）、<code>CNI_NETNS</code>（Pod的网络命名空间路径）以及 <code>CNI_CONTAINERID</code>（容器ID）。</p>
+<p>对于 <code>flannel-cni</code> 为例，它实现 <code>CNI</code> 的插件在 <code>/opt/cni/bin/flannel</code>，我们来看看它里面实现的<a target="_blank" rel="noopener" href="https://github.com/flannel-io/cni-plugin/blob/3716355d73841816c2049448c5ad0afe0e42e939/flannel_linux.go#L84">ADD</a>操作如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">doCmdAdd</span><span class="params">(args *skel.CmdArgs, n *NetConf, fenv *subnetEnv)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	n.Delegate[<span class="string">&quot;name&quot;</span>] = n.Name</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> !hasKey(n.Delegate, <span class="string">&quot;type&quot;</span>) &#123;</span><br><span class="line">		n.Delegate[<span class="string">&quot;type&quot;</span>] = <span class="string">&quot;bridge&quot;</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> !hasKey(n.Delegate, <span class="string">&quot;ipMasq&quot;</span>) &#123;</span><br><span class="line">		<span class="comment">// if flannel is not doing ipmasq, we should</span></span><br><span class="line">		ipmasq := !*fenv.ipmasq</span><br><span class="line">		n.Delegate[<span class="string">&quot;ipMasq&quot;</span>] = ipmasq</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> !hasKey(n.Delegate, <span class="string">&quot;mtu&quot;</span>) &#123;</span><br><span class="line">		mtu := fenv.mtu</span><br><span class="line">		n.Delegate[<span class="string">&quot;mtu&quot;</span>] = mtu</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> n.Delegate[<span class="string">&quot;type&quot;</span>].(<span class="type">string</span>) == <span class="string">&quot;bridge&quot;</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> !hasKey(n.Delegate, <span class="string">&quot;isGateway&quot;</span>) &#123;</span><br><span class="line">			n.Delegate[<span class="string">&quot;isGateway&quot;</span>] = <span class="literal">true</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> n.CNIVersion != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">		n.Delegate[<span class="string">&quot;cniVersion&quot;</span>] = n.CNIVersion</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ipam, err := getDelegateIPAM(n, fenv)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;failed to assemble Delegate IPAM: %w&quot;</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	n.Delegate[<span class="string">&quot;ipam&quot;</span>] = ipam</span><br><span class="line">	fmt.Fprintf(os.Stderr, <span class="string">&quot;\n%#v\n&quot;</span>, n.Delegate)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> delegateAdd(args.ContainerID, n.DataDir, n.Delegate)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">delegateAdd</span><span class="params">(cid, dataDir <span class="type">string</span>, netconf <span class="keyword">map</span>[<span class="type">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	netconfBytes, err := json.Marshal(netconf)</span><br><span class="line">	fmt.Fprintf(os.Stderr, <span class="string">&quot;delegateAdd: netconf sent to delegate plugin:\n&quot;</span>)</span><br><span class="line">	os.Stderr.Write(netconfBytes)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;error serializing delegate netconf: %v&quot;</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// save the rendered netconf for cmdDel</span></span><br><span class="line">	<span class="keyword">if</span> err = saveScratchNetConf(cid, dataDir, netconfBytes); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	result, err := invoke.DelegateAdd(context.TODO(), netconf[<span class="string">&quot;type&quot;</span>].(<span class="type">string</span>), netconfBytes, <span class="literal">nil</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		err = fmt.Errorf(<span class="string">&quot;failed to delegate add: %w&quot;</span>, err)</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> result.Print()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>/opt/cni/bin/flannel</code>在每次被调用的时候会读取配置每个节点上的配置文件 <code>/run/flannel/subnet.env</code>，这部分代码实现请看<a target="_blank" rel="noopener" href="https://github.com/flannel-io/cni-plugin/blob/3716355d73841816c2049448c5ad0afe0e42e939/flannel.go#L131C6-L131C26">这里</a>。在<code>setupPodNetwork</code>中，沿着 <code>netPlugin.SetupSerially</code> 最终会到达<a target="_blank" rel="noopener" href="https://github.com/containernetworking/cni/blob/66c292a7c5d69b6f285e6c519a472107b09a19ca/libcni/api.go#L482">这里</a>，由它去调用<code>/opt/cni/bin/flannel</code>:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *CNIConfig)</span></span> addNetwork(ctx context.Context, name, cniVersion <span class="type">string</span>, net *NetworkConfig, prevResult types.Result, rt *RuntimeConf) (types.Result, <span class="type">error</span>) &#123;</span><br><span class="line">	c.ensureExec()</span><br><span class="line">	pluginPath, err := c.exec.FindInPath(net.Network.Type, c.Path)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := utils.ValidateContainerID(rt.ContainerID); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := utils.ValidateNetworkName(name); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := utils.ValidateInterfaceName(rt.IfName); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	newConf, err := buildOneConfig(name, cniVersion, net, prevResult, rt)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> invoke.ExecPluginWithResult(ctx, pluginPath, newConf.Bytes, c.args(<span class="string">&quot;ADD&quot;</span>, rt), c.exec)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>打开<code>containerd</code>的<code>debug</code>日志之后，通过下面的命令可以查看在创建<code>Pod</code>的时候，通过标准输入提供给<code>/opt/cni/bin/flannel</code>的参数：</p>
+<blockquote>
+<p><code>SYSTEMD_LESS=&quot;&quot; journalctl  -eu containerd</code></p>
+</blockquote>
+<p><img data-src="setup-pod-network-log.png" alt="" /></p>
+<details class="note success"><summary><p>点击查看示例</p>
+</summary>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;cniVersion&quot;</span><span class="punctuation">:</span> <span class="string">&quot;0.3.1&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;hairpinMode&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;ipMasq&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">false</span></span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;ipam&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;ranges&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">      <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">          <span class="attr">&quot;subnet&quot;</span><span class="punctuation">:</span> <span class="string">&quot;10.244.1.0/24&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">      <span class="punctuation">]</span></span><br><span class="line">    <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;routes&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">      <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;dst&quot;</span><span class="punctuation">:</span> <span class="string">&quot;10.244.0.0/16&quot;</span></span><br><span class="line">      <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;host-local&quot;</span></span><br><span class="line">  <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;isDefaultGateway&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;isGateway&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;mtu&quot;</span><span class="punctuation">:</span> <span class="number">1450</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;cbr0&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;bridge&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+</details>
+<p>上面的参数还会保存在<code>/var/lib/cni/flannel/</code>路径下，按照<code>PodID</code>保存：</p>
+<p><img data-src="cni-plugin-params.png" alt="" /></p>
+<p>而且在<code>/var/lib/cni/networks/cbr0/</code>目录下还保存了已分配的<code>IP</code>和<code>Pod</code>的对应关系，<code>cbr0</code>指的是网络插件的名称，和 <code>/etc/cni/net.d/10-flannel.conflist</code> 里面的保持一致：</p>
+<p><img data-src="cni-assign-ip.png" alt="" /></p>
+<h3 id="通用网络插件"><a class="markdownIt-Anchor" href="#通用网络插件"></a> 通用网络插件</h3>
+<p>当我们去看 <code>/opt/cni/bin/flannel</code> 的代码实现的时候，发现它并没有做什么创建网络的操作，它又调用了其他的插件：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">delegateAdd</span><span class="params">(cid, dataDir <span class="type">string</span>, netconf <span class="keyword">map</span>[<span class="type">string</span>]<span class="keyword">interface</span>&#123;&#125;)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	netconfBytes, err := json.Marshal(netconf)</span><br><span class="line">	fmt.Fprintf(os.Stderr, <span class="string">&quot;delegateAdd: netconf sent to delegate plugin:\n&quot;</span>)</span><br><span class="line">	os.Stderr.Write(netconfBytes)</span><br><span class="line">	...</span><br><span class="line">    <span class="comment">// 调用其他插件实现</span></span><br><span class="line">	result, err := invoke.DelegateAdd(context.TODO(), netconf[<span class="string">&quot;type&quot;</span>].(<span class="type">string</span>), netconfBytes, <span class="literal">nil</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		err = fmt.Errorf(<span class="string">&quot;failed to delegate add: %w&quot;</span>, err)</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> result.Print()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从<code>CRI</code>传递给<code>flannel</code>的参数来看，实际调用的是<code>bridge</code>，所以说 <code>flannel</code> 这个网络插件实际上并没有做什么，他把具体的活又委托了出去。在<code>flannel-cni</code>插件的配置中有一个<code>delegate</code>字段，这个字段的意思表明了这个插件需要调用其他<code>CNI</code>的内置插件来完成，对于<code>flannel</code>来说，如果没有指定，就是 <code>bridge</code>，这些通用的<a target="_blank" rel="noopener" href="https://www.cni.dev/plugins/current/">网络插件</a> 由官方维护，它会被统一安装在 <code>/opt/cni/bin</code> 目录下：</p>
+<p><img data-src="general-net-plugin.png" alt="" /></p>
+<p>这些插件可以分为三类：</p>
+<ol>
+<li><code>Main</code>插件，它们是用来创建具体网络设备的二进制文件，比如：<code>bridge</code>、<code>ipvlan</code>、<code>loopback</code>、<code>tap</code>、<code>macvlan</code> 等；</li>
+<li><code>IPAM</code>插件，负责IP地址的分配，比如 <code>dhcp</code>，它会向<code>DHCP</code>服务器发起请求；<code>host-local</code> 会使用预先配置的地址段来进行分配，<code>flannel</code> 使用这种方式，它的本机上的分配的地址段放在了<code>/run/flannel/subnet.env</code>文件中，已分配的<code>IP</code>放在了 <code>/var/lib/cni/networks/cbr0/</code> 中；</li>
+<li><code>Meta</code>插件，例如通过<code>sysctl</code>调整网络设备参数的<code>tuning</code>，通过<code>iptables</code>配置端口映射的<code>portmap</code>，以及使用<code>TBF</code>来进行限流的<code>bandwidth</code>等，<code>flannel</code>也属于这一类，委托其他插件干活；</li>
+</ol>
+<p>这些插件可以从<a target="_blank" rel="noopener" href="https://github.com/containernetworking/plugins/releases">containernetworking/plugins</a> 预编译的包中获取，解压到 <code>/opt/cni/bin</code> 目录下就可以了。</p>
+<p>我们的<code>cni0</code>网桥就是在<code>bridge</code>中创建的，它在创建<code>Pod</code>网络的时候会检查<code>cni0</code>是否存在，不存在就创建，具体代码可以查看<a target="_blank" rel="noopener" href="https://github.com/containernetworking/plugins/blob/b6a0e0bc96906f0d3bd6bfcaab0b5ae72292f46c/plugins/main/bridge/bridge.go#L336">这里</a>。</p>
+<p>通过一些简单的命令来演示下上述<code>bridge</code>创建网络的过程，首先 <code>bridge</code> 会检查宿主机上的 <code>cni0</code> 是否存在，没有的话就创建，相当于：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在宿主机上</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ip <span class="built_in">link</span> add cni0 <span class="built_in">type</span> bridge</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ip <span class="built_in">link</span> <span class="built_in">set</span> cni0 up</span></span><br></pre></td></tr></table></figure>
+<p>接下来就是进入到<code>pod</code>的网络空间内，创建一对 <code>veth</code> 设备，并且把其中一端移动到<code>Host</code>上：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在容器里</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">创建一对 veth 设备</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ip <span class="built_in">link</span> add eth0 <span class="built_in">type</span> veth peer name vethb4963f3</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">启动eth0设备</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ip <span class="built_in">link</span> <span class="built_in">set</span> eth0 up</span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">将veth一端移动到host</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ip <span class="built_in">link</span> <span class="built_in">set</span> vethb4963f3 netns <span class="variable">$HOST_NS</span></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">启用vethb4963f3</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ip netns <span class="built_in">exec</span> <span class="variable">$HOST_NS</span> ip <span class="built_in">link</span> <span class="built_in">set</span> vethb4963f3 up</span></span><br></pre></td></tr></table></figure>
+<p>然后在宿主机上将 <code>vethb4963f3</code> 加入 <code>cni0</code> 网桥：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在宿主机上</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ip <span class="built_in">link</span> <span class="built_in">set</span> vethb4963f3 master cni0</span></span><br></pre></td></tr></table></figure>
+<p>这部分请看<a target="_blank" rel="noopener" href="https://github.com/containernetworking/plugins/blob/b6a0e0bc96906f0d3bd6bfcaab0b5ae72292f46c/plugins/main/bridge/bridge.go#L413">这里</a>，如下所示：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">setupVeth</span><span class="params">(netns ns.NetNS, br *netlink.Bridge, ifName <span class="type">string</span>, mtu <span class="type">int</span>, hairpinMode <span class="type">bool</span>, vlanID <span class="type">int</span>, vlans []<span class="type">int</span>, preserveDefaultVlan <span class="type">bool</span>, mac <span class="type">string</span>)</span></span> (*current.Interface, *current.Interface, <span class="type">error</span>) &#123;</span><br><span class="line">	contIface := &amp;current.Interface&#123;&#125;</span><br><span class="line">	hostIface := &amp;current.Interface&#123;&#125;</span><br><span class="line"></span><br><span class="line">	err := netns.Do(<span class="function"><span class="keyword">func</span><span class="params">(hostNS ns.NetNS)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">		<span class="comment">// create the veth pair in the container and move host end into host netns</span></span><br><span class="line">		hostVeth, containerVeth, err := ip.SetupVeth(ifName, mtu, mac, hostNS)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		contIface.Name = containerVeth.Name</span><br><span class="line">		contIface.Mac = containerVeth.HardwareAddr.String()</span><br><span class="line">		contIface.Sandbox = netns.Path()</span><br><span class="line">		hostIface.Name = hostVeth.Name</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// need to lookup hostVeth again as its index has changed during ns move</span></span><br><span class="line">	hostVeth, err := netlink.LinkByName(hostIface.Name)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, fmt.Errorf(<span class="string">&quot;failed to lookup %q: %v&quot;</span>, hostIface.Name, err)</span><br><span class="line">	&#125;</span><br><span class="line">	hostIface.Mac = hostVeth.Attrs().HardwareAddr.String()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// connect host veth end to the bridge</span></span><br><span class="line">	<span class="keyword">if</span> err := netlink.LinkSetMaster(hostVeth, br); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, fmt.Errorf(<span class="string">&quot;failed to connect %q to bridge %v: %v&quot;</span>, hostVeth.Attrs().Name, br.Attrs().Name, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// set hairpin mode</span></span><br><span class="line">	<span class="keyword">if</span> err = netlink.LinkSetHairpin(hostVeth, hairpinMode); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, fmt.Errorf(<span class="string">&quot;failed to setup hairpin mode for %v: %v&quot;</span>, hostVeth.Attrs().Name, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	...</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> hostIface, contIface, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里有意思的是在将<code>veth</code>设备加入到网桥之后，还会将它设置为发夹模式（<code>HairPin Mode</code>），这是因为默认情况下，网桥设备不允许数据包从一个端口进来再从这个端口出去，但是设置为<code>HairPin Mode</code>就取消这个限制了。</p>
+<p>这个特性，主要用在容器需要通过<code>NAT</code>（即：端口映射）的方式，自己访问自己的场景下。举个例子，比如我们执行<code>docker run -p 8080:80</code>，就是在宿主机上通过<code>iptables</code>设置了一条<code>DNAT</code>（目的地址转换）转发规则。这条规则的作用是，当宿主机上的进程访问<code>＜宿主机的IP地址＞:8080</code>时，<code>iptables</code>会把该请求直接转发到<code>＜容器的IP地址＞:80</code>上。也就是说，这个请求最终会经过<code>docker0</code>网桥进入容器里面。但如果是在容器里面访问宿主机的<code>8080</code>端口，那么这个容器里发出的<code>IP</code>包会经过<code>vethb4963f3</code>设备（端口）和<code>docker0</code>网桥，来到宿主机上。此时，根据上述<code>DNAT</code>规则，这个<code>IP</code>包又需要回到<code>docker0</code>网桥，并且还是通过<code>vethb4963f3</code>端口进入到容器里。所以，这种情况下，我们就需要开启<code>vethb4963f3</code>端口的<code>Hairpin Mode</code>了。</p>
+<p>因此，<code>Flannel</code>插件要在<code>CNI</code>配置文件里声明<code>hairpinMode=true</code>。这样，将来这个集群里的<code>Pod</code>才可以通过它自己的<code>Service</code>访问到自己。<br />
+接下来，<code>bridge</code>插件会调用<code>CNI ipam</code>插件，从<code>ipam.subnet</code>字段规定的网段里为容器分配一个可用的<code>IP</code>地址。然后，<code>CNI bridge</code>插件就会把这个<code>IP</code>地址添加在容器的<code>eth0</code>网卡上，同时为容器设置默认路由。这相当于在容器里执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在容器里</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ip addr add 10.244.1.9/24 dev eth0</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ip route add default via 10.244.1.1 dev eth0</span></span><br></pre></td></tr></table></figure>
+<p>最后<code>bridge</code>会为<code>cni0</code>设置<code>IP</code>地址，相当于执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在主机上</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ip addr add 10.244.0.1/24 dev cni0</span></span><br></pre></td></tr></table></figure>
+<p>上述这一系列昨晚之后，<code>CNI</code>插件会把结果一路返回到<code>containerd</code>中，这是我们从<code>containerd</code>的日志中获取到的结果信息：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;Interfaces&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;cni0&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;IPConfigs&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">null</span></span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;Mac&quot;</span><span class="punctuation">:</span><span class="string">&quot;5e:bb:f4:89:bb:2b&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;Sandbox&quot;</span><span class="punctuation">:</span><span class="string">&quot;&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;eth0&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;IPConfigs&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span></span><br><span class="line">                <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;IP&quot;</span><span class="punctuation">:</span><span class="string">&quot;10.244.1.9&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;Gateway&quot;</span><span class="punctuation">:</span><span class="string">&quot;10.244.1.1&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;Mac&quot;</span><span class="punctuation">:</span><span class="string">&quot;5e:0a:b7:ed:b0:24&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;Sandbox&quot;</span><span class="punctuation">:</span><span class="string">&quot;/var/run/netns/cni-ff86766a-0712-7eab-d629-f315c74bb91b&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;lo&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;IPConfigs&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span></span><br><span class="line">                <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;IP&quot;</span><span class="punctuation">:</span><span class="string">&quot;127.0.0.1&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;Gateway&quot;</span><span class="punctuation">:</span><span class="string">&quot;&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;IP&quot;</span><span class="punctuation">:</span><span class="string">&quot;::1&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;Gateway&quot;</span><span class="punctuation">:</span><span class="string">&quot;&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;Mac&quot;</span><span class="punctuation">:</span><span class="string">&quot;00:00:00:00:00:00&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;Sandbox&quot;</span><span class="punctuation">:</span><span class="string">&quot;/var/run/netns/cni-ff86766a-0712-7eab-d629-f315c74bb91b&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;veth8d17d860&quot;</span><span class="punctuation">:</span><span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;IPConfigs&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">null</span></span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;Mac&quot;</span><span class="punctuation">:</span><span class="string">&quot;1e:a5:f7:be:fa:57&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;Sandbox&quot;</span><span class="punctuation">:</span><span class="string">&quot;&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;DNS&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span><span class="punctuation">&#123;</span><span class="punctuation">&#125;</span><span class="punctuation">,</span><span class="punctuation">&#123;</span><span class="punctuation">&#125;</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;Routes&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;dst&quot;</span><span class="punctuation">:</span><span class="string">&quot;10.244.0.0/16&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;dst&quot;</span><span class="punctuation">:</span><span class="string">&quot;0.0.0.0/0&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;gw&quot;</span><span class="punctuation">:</span><span class="string">&quot;10.244.1.1&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+<p><img data-src="pod-status.png" alt="" /></p>
+<h3 id="多个网络插件"><a class="markdownIt-Anchor" href="#多个网络插件"></a> 多个网络插件</h3>
+<p>通常 <code>Pod</code> 内只有一个 <code>eth0</code> 网口，如果通过创建多个网络接口实现网络流量隔离，可以考虑使用<a target="_blank" rel="noopener" href="https://github.com/k8snetworkplumbingwg/multus-cni">multus-cni</a>。<code>Multus CNI</code> 是 <code>Kubernetes</code> 的一个容器网络接口 (<code>CNI</code>) 插件，可为 <code>Pod</code> 附加多个网络接口。下面是由 <code>Multus CNI</code> 提供的连接到 <code>pod</code> 的网络接口示意图。图中显示 <code>pod</code> 有三个接口：<code>eth0</code>、<code>net0</code> 和 <code>net1</code>。<code>eth0</code> 连接 <code>kubernetes</code> 集群网络，用于连接 <code>kubernetes</code> 服务器（如 <code>kubernetes api-server</code>、<code>kubelet</code> 等），属于集群默认网络。<code>net0</code> 和 <code>net1</code> 是附加网络接口，通过使用其他 <code>CNI</code> 插件（如 <code>vlan/vxlan/ptp</code>）连接其他网络。</p>
+<p><img data-src="https://github.com/k8snetworkplumbingwg/multus-cni/raw/master/docs/images/multus-pod-image.svg" alt="" /></p>
+<p><code>Multus CNI</code> 有两种类型，<code>thick and thin</code>，其中 <code>thick</code> 由 <code>multus-daemon</code> 和 <code>multus-shim</code> 两个二进制文件组成 插件。<code>multus-daemon</code> 将作为本地代理部署到所有节点，相比 <code>thin</code> 具备额外功能（如度量），由于具有这些附加功能，要比 <code>thin</code> 消耗更多资源。<code>Multus CNI</code> 需要部署在已经安装默认 <code>CNI</code> 的集群中，并将其作为集群网络插件，可以参考它的 <a target="_blank" rel="noopener" href="https://github.com/k8snetworkplumbingwg/multus-cni/blob/master/docs/quickstart.md">quick-start</a> 进行安装，这里使用 <code>thick</code> 类型：</p>
+<blockquote>
+<p><code>kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/master/deployments/multus-daemonset-thick.yml</code></p>
+</blockquote>
+<p>安装之后，可以看到类似的<code>Pod</code>正常运行即可：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get pods --all-namespaces | grep -i multus</span><br><span class="line">kube-system         kube-multus-ds-m7gqc                      1/1     Running   0               158m</span><br></pre></td></tr></table></figure>
+<p>如果遇到启动失败，提示 <code>Error response from daemon: path /opt/cni/bin is mounted on / but it is not a shared mount</code> 这样的信息时，需要将<code>Host</code>的<code>/</code>目录标记为共享的，在<code>Host</code>上执行命令 <code>mount --make-rshared /</code>。如果默认的 <code>CNI</code> 插件使用 <a target="_blank" rel="noopener" href="https://docs.cilium.io/">cilium</a>，需要编辑它的<code>Agent</code>配置，设置 <code>cni-exclusive: &quot;false&quot;</code>（<code>kubectl edit cm -n kube-system cilium-config</code>）。</p>
+<p>接下来创建附加网络的定义，这里的 <code>master</code> 指的的 <code>macvlan</code> 模式下的父接口，不同的插件配置有所不同：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">kubectl create -n default -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: &quot;k8s.cni.cncf.io/v1&quot;</span><br><span class="line">kind: NetworkAttachmentDefinition</span><br><span class="line">metadata:</span><br><span class="line">  name: macvlan-conf</span><br><span class="line">spec:</span><br><span class="line">  config: &#x27;&#123;</span><br><span class="line">      &quot;cniVersion&quot;: &quot;0.3.1&quot;,</span><br><span class="line">      &quot;type&quot;: &quot;macvlan&quot;,</span><br><span class="line">      &quot;master&quot;: &quot;eth0&quot;,</span><br><span class="line">      &quot;mode&quot;: &quot;bridge&quot;,</span><br><span class="line">      &quot;ipam&quot;: &#123;</span><br><span class="line">        &quot;type&quot;: &quot;host-local&quot;,</span><br><span class="line">        &quot;subnet&quot;: &quot;172.28.240.0/20&quot;,</span><br><span class="line">        &quot;rangeStart&quot;: &quot;172.28.252.2&quot;,</span><br><span class="line">        &quot;rangeEnd&quot;: &quot;172.28.252.250&quot;,</span><br><span class="line">        &quot;routes&quot;: [</span><br><span class="line">          &#123; &quot;dst&quot;: &quot;0.0.0.0/0&quot; &#125;</span><br><span class="line">        ],</span><br><span class="line">        &quot;gateway&quot;: &quot;172.28.240.1&quot;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;&#x27;</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>然后创建 <code>Pod</code> 进行测试：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: samplepod</span><br><span class="line">  annotations:</span><br><span class="line">    k8s.v1.cni.cncf.io/networks: macvlan-conf</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">  - name: samplepod</span><br><span class="line">    command: [&quot;/bin/ash&quot;, &quot;-c&quot;, &quot;trap : TERM INT; sleep infinity &amp; wait&quot;]</span><br><span class="line">    image: alpine</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>验证 <code>samplepod</code> 具有多个网口 <code>net1</code> 和 <code>eth0</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl exec -it samplepod -- ip a</span><br><span class="line">1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN qlen 1000</span><br><span class="line">    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00</span><br><span class="line">    inet 127.0.0.1/8 scope host lo</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">2: tunl0@NONE: &lt;NOARP&gt; mtu 1480 qdisc noop state DOWN qlen 1000</span><br><span class="line">    link/ipip 0.0.0.0 brd 0.0.0.0</span><br><span class="line">3: sit0@NONE: &lt;NOARP&gt; mtu 1480 qdisc noop state DOWN qlen 1000</span><br><span class="line">    link/sit 0.0.0.0 brd 0.0.0.0</span><br><span class="line">4: net1@tunl0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN&gt; mtu 1500 qdisc noqueue state UP</span><br><span class="line">    link/ether e2:28:17:2f:d7:f3 brd ff:ff:ff:ff:ff:ff</span><br><span class="line">    inet 172.28.244.2/20 brd 172.28.255.255 scope global net1</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">315: eth0@if316: &lt;BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN&gt; mtu 1500 qdisc noqueue state UP qlen 1000</span><br><span class="line">    link/ether 4e:dd:fe:fa:67:28 brd ff:ff:ff:ff:ff:ff</span><br><span class="line">    inet 10.0.0.213/32 scope global eth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br></pre></td></tr></table></figure>
+<h3 id="参考链接"><a class="markdownIt-Anchor" href="#参考链接"></a> 参考链接</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://www.cni.dev/plugins/current/ipam/host-local/">CNI</a></li>
+<li><a target="_blank" rel="noopener" href="https://ubuntu.com/kubernetes/docs/cni-multus">CNI with Multus</a></li>
+<li><a target="_blank" rel="noopener" href="https://devopstales.github.io/kubernetes/multus/">Use Multus CNI in Kubernetes</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.zentao.pm/blog/kubernetes-network-model-1379.html">Kubernetes Network Model</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/" title="Kubernetes CNI 网络">https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/cni/" rel="tag"># cni</a>
+              <a href="/tags/multus-cni/" rel="tag"># multus-cni</a>
+              <a href="/tags/flannel/" rel="tag"># flannel</a>
+              <a href="/tags/cni-plugin/" rel="tag"># cni plugin</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/12/25/Network/iptables-introduce-and-practice/" rel="prev" title="深入理解 iptables">
+                  <i class="fa fa-angle-left"></i> 深入理解 iptables
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/01/02/K8S/k8s-service/" rel="next" title="Kubernetes Service & Ingress">
+                  Kubernetes Service & Ingress <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2023/12/29/K8S/k8s-cni-network/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

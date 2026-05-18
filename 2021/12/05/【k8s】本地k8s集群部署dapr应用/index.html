@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Dapr 在 2021 年发布了 v1.0 生产可用版本，预示着这个号称分布式运行时的框架终于可以进入各种大企业。说是尝鲜那已经是晚了很多，讲内部实现目前还不了解，本文主要是记录自己在本地创建 k8s 集群并且跑起来我第一个基于dapr应用的辛酸过程，辛酸是因为对k8s及dapr都不熟悉，加之国内网络限制，M1 芯片对某些软件不支持导致。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【k8s】本地k8s集群部署dapr应用">
+<meta property="og:url" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Dapr 在 2021 年发布了 v1.0 生产可用版本，预示着这个号称分布式运行时的框架终于可以进入各种大企业。说是尝鲜那已经是晚了很多，讲内部实现目前还不了解，本文主要是记录自己在本地创建 k8s 集群并且跑起来我第一个基于dapr应用的辛酸过程，辛酸是因为对k8s及dapr都不熟悉，加之国内网络限制，M1 芯片对某些软件不支持导致。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/service-invocation.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/rancher-dashboard.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/dashboard-inscure.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/dashboard-secure.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/nginx-deployment.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/nginx-service.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/nginx-ingress.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/nginx-middleware.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/nodeapp-log.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/all-ingress.png">
+<meta property="article:published_time" content="2021-12-05T13:25:38.000Z">
+<meta property="article:modified_time" content="2021-12-05T13:25:38.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="dapr">
+<meta property="article:tag" content="k3d">
+<meta property="article:tag" content="k3s">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="traefik">
+<meta property="article:tag" content="rancher">
+<meta property="article:tag" content="helm">
+<meta property="article:tag" content="docker">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/service-invocation.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/","path":"2021/12/05/【k8s】本地k8s集群部署dapr应用/","title":"【k8s】本地k8s集群部署dapr应用"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【k8s】本地k8s集群部署dapr应用 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A2%84%E8%A3%85%E8%BD%AF%E4%BB%B6"><span class="nav-number">1.</span> <span class="nav-text"> 预装软件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#docker"><span class="nav-number">1.1.</span> <span class="nav-text"> docker</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#k3d"><span class="nav-number">1.2.</span> <span class="nav-text"> k3d</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#helm"><span class="nav-number">1.3.</span> <span class="nav-text"> helm</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#dapr"><span class="nav-number">1.4.</span> <span class="nav-text"> dapr</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BAk8s%E9%9B%86%E7%BE%A4"><span class="nav-number">2.</span> <span class="nav-text"> 创建k8s集群</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85rancher"><span class="nav-number">3.</span> <span class="nav-text"> 安装rancher</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#mysqljust-for-fun"><span class="nav-number">3.1.</span> <span class="nav-text"> MySQL（just for fun）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#k8s-%E4%BB%AA%E8%A1%A8%E7%9B%98"><span class="nav-number">4.</span> <span class="nav-text"> K8S 仪表盘</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E9%9B%86%E7%BE%A4"><span class="nav-number">5.</span> <span class="nav-text"> 验证集群</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8"><span class="nav-number">6.</span> <span class="nav-text"> 部署dapr应用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2-dapr-%E7%BB%84%E4%BB%B6"><span class="nav-number">7.</span> <span class="nav-text"> 部署 dapr 组件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="nav-number">8.</span> <span class="nav-text"> 参考文章</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【k8s】本地k8s集群部署dapr应用 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【k8s】本地k8s集群部署dapr应用
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2021-12-05 21:25:38" itemprop="dateCreated datePublished" datetime="2021-12-05T21:25:38+08:00">2021-12-05</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/dapr/" itemprop="url" rel="index"><span itemprop="name">dapr</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.1k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>8 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><a target="_blank" rel="noopener" href="https://dapr.io/"><code>Dapr</code></a> 在 2021 年发布了 v1.0 生产可用版本，预示着这个号称分布式运行时的框架终于可以进入各种大企业。说是尝鲜那已经是晚了很多，讲内部实现目前还不了解，本文主要是记录自己在本地创建 k8s 集群并且跑起来我第一个基于dapr应用的辛酸过程，辛酸是因为对k8s及dapr都不熟悉，加之国内网络限制，M1 芯片对某些软件不支持导致。</p>
+<img data-src="/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/service-invocation.png" class="" title="dapr服务调用">
+<span id="more"></span>
+<h3 id="预装软件"><a class="markdownIt-Anchor" href="#预装软件"></a> 预装软件</h3>
+<p>在开始操作之前，我们需要安装很多软件，当然我相信大多数开发者已经装了大部分软件。</p>
+<h4 id="docker"><a class="markdownIt-Anchor" href="#docker"></a> docker</h4>
+<p>首先自然是 <a target="_blank" rel="noopener" href="https://www.docker.com/products/docker-desktop">docker</a>，虽然不是容器技术的创造者，但容器技术的发扬光大，肯定有 docker 的功劳。docker 安装比较简单，在 MaxOS 上，直接下载 Desktop 版本即可。</p>
+<h4 id="k3d"><a class="markdownIt-Anchor" href="#k3d"></a> k3d</h4>
+<p><a target="_blank" rel="noopener" href="https://k3d.io/v5.0.0/">k3d</a> 是讲 <a target="_blank" rel="noopener" href="https://k3s.io/">k3s</a> 运行在 docker 中的社区软件，k3s 是轻量级的 k8s，主要部署于物联网设备，ARM 芯片设备上，耗电少体积小，易部署，我们在本地开发中想创建 k8s 集群，可以选择 k3d+k3s 的方式，当然也有 <a href="https://link.juejin.cn/?target=https%3A%2F%2Fminikube.sigs.k8s.io%2Fdocs%2F">minikube</a>，<a href="https://link.juejin.cn/?target=https%3A%2F%2Fmicrok8s.io%2F">microk8s</a>，<a href="https://link.juejin.cn/?target=https%3A%2F%2Fkind.sigs.k8s.io%2F">kind</a> 等，我首选了 <code>minikube</code> + <a target="_blank" rel="noopener" href="https://multipass.run/">multipass</a> 的方式，奈何国内网络限制，加之 multipass 某些想要的功能 M1 还不支持，就放弃了。在 Mac 上安装 k3d 很简单：</p>
+<blockquote>
+<p>brew install k3d kubectl kubecm</p>
+</blockquote>
+<h4 id="helm"><a class="markdownIt-Anchor" href="#helm"></a> helm</h4>
+<p>k8s 用于容器编排，但是如果手动通过 k8s API 管理集群，那是非常累的，所以有了 <a target="_blank" rel="noopener" href="https://helm.sh/">helm</a>，k8s 的包管理器，通过简单的命令就可以部署应用，MaxOS 上安装比较简单：</p>
+<blockquote>
+<p>brew install helm</p>
+</blockquote>
+<h4 id="dapr"><a class="markdownIt-Anchor" href="#dapr"></a> dapr</h4>
+<p>今天的主角是 <a target="_blank" rel="noopener" href="https://docs.dapr.io/zh-hans/getting-started/install-dapr-cli/">dapr</a>，所以安装 dapr 也是必不可少的：</p>
+<blockquote>
+<p>brew install dapr/tap/dapr-cli</p>
+</blockquote>
+<p>可能会遇到下载失败，编译失败，所以配置下 <code>GOPROXY</code>，有条件的话可以将 <code>https_proxy</code> 设置成可以科学上网的代理，加速下载。</p>
+<h3 id="创建k8s集群"><a class="markdownIt-Anchor" href="#创建k8s集群"></a> 创建k8s集群</h3>
+<p>本接创建 k8s 集群的方式参考自 <a target="_blank" rel="noopener" href="https://juejin.cn/post/6940850465504493576">如何在本地快速启动一个 K8S 集群</a>，执行一条命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">export CLUSTER_NAME=&quot;local-cluster&quot; </span><br><span class="line">k3d cluster create local-cluster --port 8080:80@loadbalancer --port 8443:443@loadbalancer --api-port 6443 --servers 1 --agents 2</span><br><span class="line">k3d cluster list</span><br></pre></td></tr></table></figure>
+<pre><code>$ k3d cluster list
+NAME           SERVERS   AGENTS   LOADBALANCER
+test-cluster   1/1       3/3      true
+</code></pre>
+<p>创建完成之后，会看到新建的集群已经就绪。</p>
+<h3 id="安装rancher"><a class="markdownIt-Anchor" href="#安装rancher"></a> 安装rancher</h3>
+<p>根据官网描述，<a target="_blank" rel="noopener" href="https://rancher.com/docs/rancher/v2.6/en/"><code>Rancher</code></a> 是一个开源的企业级容器管理平台。通过Rancher，企业再也不必自己使用一系列的开源软件去从头搭建容器服务平台。Rancher提供了在生产环境中使用的管理Docker和Kubernetes的全栈化容器部署与管理平台。Rancher由以下四个部分组成：</p>
+<ul>
+<li>基础设施编排</li>
+<li>容器编排与调度</li>
+<li>应用商店</li>
+<li>企业级权限管理</li>
+</ul>
+<p>安装 rancher 的过程很痛苦，失败了很多次，但是我还是要把它装好，最后总结起来就是以下的命令，最关键的就是等：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">设置相应的环境变量</span></span><br><span class="line">export RANCHER_SERVER_HOSTNAME=&quot;rancher.localhost&quot;</span><br><span class="line">export KUBECONFIG_FILE=&quot;$&#123;CLUSTER_NAME&#125;.yaml&quot;</span><br><span class="line">k3d kubeconfig get $CLUSTER_NAME &gt; $KUBECONFIG_FILE</span><br><span class="line">export KUBECONFIG=$KUBECONFIG_FILE</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 cer-manager</span> </span><br><span class="line">helm repo add jetstack https://charts.jetstack.io</span><br><span class="line">helm repo update</span><br><span class="line">kubectl create namespace cert-manager</span><br><span class="line">helm install cert-manager jetstack/cert-manager --namespace cert-manager --version v1.6.1 --set installCRDs=true --wait</span><br><span class="line">kubectl -n cert-manager rollout status deploy/cert-manager</span><br><span class="line">date</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装 Rancher</span></span><br><span class="line">helm repo add rancher-latest https://releases.rancher.com/server-charts/latest</span><br><span class="line">helm repo update</span><br><span class="line">kubectl create namespace cattle-system</span><br><span class="line">helm install rancher rancher-latest/rancher --namespace cattle-system --set hostname=$&#123;RANCHER_SERVER_HOSTNAME&#125; --wait</span><br><span class="line">kubectl -n cattle-system rollout status deploy/rancher</span><br><span class="line">date</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">如果你想卸载</span></span><br><span class="line">helm uninstall  -n cattle-system rancher</span><br><span class="line">helm uninstall  -n cert-manager cert-manager</span><br></pre></td></tr></table></figure>
+<p>成功安装 Rancher 之后，登录到 rancher 后台，我们可以在后台安装我们想要的组件，例如：<a target="_blank" rel="noopener" href="https://prometheus.io/">prometheus</a>，<a target="_blank" rel="noopener" href="https://grafana.com/">grafana</a>等。</p>
+<p><img data-src="rancher-dashboard.png" alt="" /></p>
+<h4 id="mysqljust-for-fun"><a class="markdownIt-Anchor" href="#mysqljust-for-fun"></a> MySQL（just for fun）</h4>
+<p>参考 <a target="_blank" rel="noopener" href="https://kubernetes.io/zh/docs/tasks/run-application/run-single-instance-stateful-application/">https://kubernetes.io/zh/docs/tasks/run-application/run-single-instance-stateful-application/</a>，在我的机器上唯一不同的是，我是arm机器，<code>mysql:5.6</code> 镜像无法下载，替换成了 <code>arm64v8/mariadb:latest</code>。</p>
+<h3 id="k8s-仪表盘"><a class="markdownIt-Anchor" href="#k8s-仪表盘"></a> K8S 仪表盘</h3>
+<p>本节内容参考：<a target="_blank" rel="noopener" href="https://docs.rancher.cn/docs/k3s/installation/kube-dashboard/_index">https://docs.rancher.cn/docs/k3s/installation/kube-dashboard/_index</a></p>
+<ol>
+<li>
+<p>部署仪表盘</p>
+ <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">GITHUB_URL=https://github.com/kubernetes/dashboard/releases</span><br><span class="line">VERSION_KUBE_DASHBOARD=$(curl -w &#x27;%&#123;url_effective&#125;&#x27; -I -L -s -S $&#123;GITHUB_URL&#125;/latest -o /dev/null | sed -e &#x27;s|.*/||&#x27;)</span><br><span class="line">sudo k3s kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/$&#123;VERSION_KUBE_DASHBOARD&#125;/aio/deploy/recommended.yaml</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>仪表盘RBAC配置</p>
+ <figure class="highlight yaml"><figcaption><span>dashboard.admin-user.yml</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ServiceAccount</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">kubernetes-dashboard</span></span><br></pre></td></tr></table></figure>
+ <figure class="highlight yaml"><figcaption><span>dashboard.admin-user-role.yml</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterRoleBinding</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line"><span class="attr">roleRef:</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">ClusterRole</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">cluster-admin</span></span><br><span class="line"><span class="attr">subjects:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">kind:</span> <span class="string">ServiceAccount</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line">    <span class="attr">namespace:</span> <span class="string">kubernetes-dashboard</span></span><br></pre></td></tr></table></figure>
+<p>部署 <code>admin-user</code> 配置：</p>
+<blockquote>
+<p>kubectl create -f dashboard.admin-user.yml -f dashboard.admin-user-role.yml</p>
+</blockquote>
+</li>
+<li>
+<p>获得 Token</p>
+<blockquote>
+<p>kubectl -n kubernetes-dashboard describe secret admin-user-token | grep ‘^token’</p>
+</blockquote>
+</li>
+<li>
+<p>要访问仪表盘，你必须创建一个安全通道到你的 K3s 集群</p>
+<blockquote>
+<p>kubectl proxy --port=7788 --address=‘0.0.0.0’ --disable-filter=true --accept-hosts ‘.*’</p>
+</blockquote>
+<p>使用类似下面的URL访问仪表盘， <a target="_blank" rel="noopener" href="http://192.168.64.9:7788/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login">http://192.168.64.9:7788/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login</a> ，正常情况下，部署在自己的电脑上，直接使用localhost即可，但我是将集群部署到虚拟机里面，所以在访问的时候被检测到不安全访问：</p>
+<p><img data-src="dashboard-inscure.png" alt="" /></p>
+<p>为了解决这个问题，使用 ssh 进行建立了一个转发隧道，参考：<a target="_blank" rel="noopener" href="https://blog.fundebug.com/2017/04/24/ssh-port-forwarding/">https://blog.fundebug.com/2017/04/24/ssh-port-forwarding/</a></p>
+<blockquote>
+<p>ssh -L localhost:8877:localhost:7788 -NT <a href="mailto:ubuntu@192.168.64.9">ubuntu@192.168.64.9</a></p>
+</blockquote>
+<p>然后就访问OK了：</p>
+<p><img data-src="dashboard-secure.png" alt="" /></p>
+</li>
+</ol>
+<h3 id="验证集群"><a class="markdownIt-Anchor" href="#验证集群"></a> 验证集群</h3>
+<p>作为测试我们创建一个nginx应用来验证我们的集群：</p>
+<ol>
+<li>创建包含一个 nginx 的 Deployment</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl create deployment nginx --image=nginx</span><br></pre></td></tr></table></figure>
+<ol start="2">
+<li>创建Service，通过 ClusterIP 的方式暴露服务：</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl create service clusterip nginx --tcp=80:80</span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>创建 Ingress，Ingress 会代理我们的入口流量给我们的service，k3s 默认安装的 ingress 是 <a target="_blank" rel="noopener" href="https://doc.traefik.io/traefik/routing/routers/#configuring-http-routers">traefik 2.x</a>，这里因为我不想把根目录直接暴露出去，每个服务都有一个前缀，例如到达 <code>nginx service</code> 的都得以 <code>/nginx</code> 开始，所以应该要有个路由重写的过程，最终采用中间件进行路由重写：</li>
+</ol>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> &lt;&lt;<span class="string">EOF | kubectl apply -f -</span></span><br><span class="line"><span class="string">apiVersion: networking.k8s.io/v1</span></span><br><span class="line"><span class="string">kind: Ingress</span></span><br><span class="line"><span class="string">metadata:</span></span><br><span class="line"><span class="string">  name: nginx</span></span><br><span class="line"><span class="string">  annotations:</span></span><br><span class="line"><span class="string">    ingress.kubernetes.io/ssl-redirect: &quot;false&quot;</span></span><br><span class="line"><span class="string">    traefik.ingress.kubernetes.io/router.middlewares: default-nginx-ingress-strip-prefix@kubernetescrd</span></span><br><span class="line"><span class="string">spec:</span></span><br><span class="line"><span class="string">  rules:</span></span><br><span class="line"><span class="string">  - http:</span></span><br><span class="line"><span class="string">      paths:</span></span><br><span class="line"><span class="string">      - path: /nginx</span></span><br><span class="line"><span class="string">        pathType: Prefix</span></span><br><span class="line"><span class="string">        backend:</span></span><br><span class="line"><span class="string">          service:</span></span><br><span class="line"><span class="string">            name: nginx</span></span><br><span class="line"><span class="string">            port:</span></span><br><span class="line"><span class="string">              number: 80</span></span><br><span class="line"><span class="string">---</span></span><br><span class="line"><span class="string">apiVersion: traefik.containo.us/v1alpha1</span></span><br><span class="line"><span class="string">kind: Middleware</span></span><br><span class="line"><span class="string">metadata:</span></span><br><span class="line"><span class="string">  name: nginx-ingress-strip-prefix</span></span><br><span class="line"><span class="string">spec:</span></span><br><span class="line"><span class="string">  stripPrefix:</span></span><br><span class="line"><span class="string">    prefixes:</span></span><br><span class="line"><span class="string">      - /nginx</span></span><br><span class="line"><span class="string">EOF</span></span><br></pre></td></tr></table></figure>
+<p>安装 rancher 的好处就是能看得到，像我们刚才创建的 nginx Deployment，nginx Service，nginx Ingress以及 nginx-ingress-strip-prefix 中间件都可以在 Rancher 中观察到：</p>
+<p><img data-src="nginx-deployment.png" alt="nginx deployment" /><br />
+<img data-src="nginx-service.png" alt="nginx service" /><br />
+<img data-src="nginx-ingress.png" alt="nginx ingress" /><br />
+<img data-src="nginx-middleware.png" alt="nginx middleware" /></p>
+<h3 id="部署dapr应用"><a class="markdownIt-Anchor" href="#部署dapr应用"></a> 部署dapr应用</h3>
+<p>k8s集群中安装dapr，参考<a target="_blank" rel="noopener" href="https://docs.dapr.io/zh-hans/operations/hosting/kubernetes/kubernetes-deploy/#%E6%B7%BB%E5%8A%A0%E5%92%8C%E5%AE%89%E8%A3%85-dapr-helm-%E5%9B%BE%E8%A1%A8">添加和安装-dapr-helm-图表</a>，我使用下面的命令安装：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">helm upgrade --install dapr dapr/dapr --version=1.5.1-rc.3 --namespace dapr-system --create-namespace --set global.mtls.enabled=false --wait </span><br></pre></td></tr></table></figure>
+<p>这里我们部署他的 <a target="_blank" rel="noopener" href="https://github.com/dapr/quickstarts/tree/v1.0.0/secretstore#run-in-kubernetes"><code>secretstore</code></a> 示例应用：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># clone 示例应用</span></span><br><span class="line">git <span class="built_in">clone</span> git@github.com:dapr/quickstarts.git</span><br><span class="line"><span class="built_in">cd</span> quickstarts</span><br><span class="line"></span><br><span class="line"><span class="comment"># 创建 secret</span></span><br><span class="line">kubectl create secret generic mysecret --from-file ./mysecret</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看创建的 secret</span></span><br><span class="line">$ kubectl get secret mysecret -o yaml</span><br><span class="line"></span><br><span class="line">apiVersion: v1</span><br><span class="line">data:</span><br><span class="line">  mysecret: eHl6OTg3Ng==</span><br><span class="line">kind: Secret</span><br><span class="line">metadata:</span><br><span class="line">  creationTimestamp: <span class="string">&quot;2021-12-05T08:34:56Z&quot;</span></span><br><span class="line">  name: mysecret</span><br><span class="line">  namespace: default</span><br><span class="line">  resourceVersion: <span class="string">&quot;34650&quot;</span></span><br><span class="line">  uid: b46d011e-4e91-4ce5-93c1-843bb272208e</span><br><span class="line"><span class="built_in">type</span>: Opaque</span><br><span class="line"></span><br><span class="line"><span class="comment"># 部署 nodeJs 写的 APP并且注入 Dapr sidecar</span></span><br><span class="line">kubectl apply -f ./deploy/node.yaml</span><br></pre></td></tr></table></figure>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ./deploy/node.yaml</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nodeapp</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">node</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">node</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">      <span class="attr">port:</span> <span class="number">48080</span></span><br><span class="line">      <span class="attr">targetPort:</span> <span class="number">3000</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">LoadBalancer</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">nodeapp</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">node</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">1</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">node</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">node</span></span><br><span class="line">      <span class="attr">annotations:</span></span><br><span class="line">        <span class="attr">dapr.io/enabled:</span> <span class="string">&quot;true&quot;</span></span><br><span class="line">        <span class="attr">dapr.io/app-id:</span> <span class="string">&quot;nodeapp&quot;</span></span><br><span class="line">        <span class="attr">dapr.io/app-port:</span> <span class="string">&quot;3000&quot;</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">node</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">dapriosamples/secretstorenode:latest</span></span><br><span class="line">          <span class="attr">env:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">SECRET_STORE</span></span><br><span class="line">              <span class="attr">value:</span> <span class="string">&quot;kubernetes&quot;</span></span><br><span class="line">          <span class="attr">ports:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">3000</span></span><br><span class="line">          <span class="attr">imagePullPolicy:</span> <span class="string">Always</span></span><br></pre></td></tr></table></figure>
+<p>查看我们创建的service：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl get svc nodeapp</span><br></pre></td></tr></table></figure>
+<pre><code>NAME      TYPE           CLUSTER-IP     EXTERNAL-IP                        PORT(S)           AGE
+nodeapp   LoadBalancer   10.43.203.13   172.18.0.3,172.18.0.4,172.18.0.5   48080:31093/TCP   3h34m
+</code></pre>
+<p>为了能够访问到我们的服务，还必须创建一个 Ingress，像之前的 nginx service 那样，执行下面的命令：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> &lt;&lt;<span class="string">EOF | kubectl apply -f -</span></span><br><span class="line"><span class="string">apiVersion: networking.k8s.io/v1</span></span><br><span class="line"><span class="string">kind: Ingress</span></span><br><span class="line"><span class="string">metadata:</span></span><br><span class="line"><span class="string">  name: nodeapp</span></span><br><span class="line"><span class="string">  annotations:</span></span><br><span class="line"><span class="string">    ingress.kubernetes.io/ssl-redirect: &quot;false&quot;</span></span><br><span class="line"><span class="string">    traefik.ingress.kubernetes.io/router.middlewares: default-nodeapp-ingress-strip-prefix@kubernetescrd</span></span><br><span class="line"><span class="string">spec:</span></span><br><span class="line"><span class="string">  rules:</span></span><br><span class="line"><span class="string">  - http:</span></span><br><span class="line"><span class="string">      paths:</span></span><br><span class="line"><span class="string">      - path: /nodeapp</span></span><br><span class="line"><span class="string">        pathType: Prefix</span></span><br><span class="line"><span class="string">        backend:</span></span><br><span class="line"><span class="string">          service:</span></span><br><span class="line"><span class="string">            name: nodeapp</span></span><br><span class="line"><span class="string">            port:</span></span><br><span class="line"><span class="string">              number: 48080</span></span><br><span class="line"><span class="string">---</span></span><br><span class="line"><span class="string">apiVersion: traefik.containo.us/v1alpha1</span></span><br><span class="line"><span class="string">kind: Middleware</span></span><br><span class="line"><span class="string">metadata:</span></span><br><span class="line"><span class="string">  name: nodeapp-ingress-strip-prefix</span></span><br><span class="line"><span class="string">spec:</span></span><br><span class="line"><span class="string">  stripPrefix:</span></span><br><span class="line"><span class="string">    prefixes:</span></span><br><span class="line"><span class="string">      - /nodeapp</span></span><br><span class="line"><span class="string">EOF</span></span><br></pre></td></tr></table></figure>
+<p>验证我们的密码获取请求：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -k  https://127.0.0.1:8443/nodeapp/getsecret</span><br></pre></td></tr></table></figure>
+<pre><code>eHl6OTg3Ng==
+</code></pre>
+<p>去我们的 nodeJs 应用查看日志，确认我们的请求被正确处理：</p>
+<p><img data-src="nodeapp-log.png" alt="nodeapp 日志" /></p>
+<p>可以再确认下我们的 Ingress：</p>
+<p><img data-src="all-ingress.png" alt="all ingress" /></p>
+<h3 id="部署-dapr-组件"><a class="markdownIt-Anchor" href="#部署-dapr-组件"></a> 部署 dapr 组件</h3>
+<p>这里我们参考<a target="_blank" rel="noopener" href="https://docs.dapr.io/zh-hans/getting-started/configure-state-pubsub/">官方文档</a> 部署状态组件，第一步，安装 redis:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">helm repo add bitnami https://charts.bitnami.com/bitnami</span><br><span class="line">helm repo update</span><br><span class="line">helm install redis bitnami/redis</span><br></pre></td></tr></table></figure>
+<p>redis 启动完成之后，首先部署状态组件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ cat &lt;&lt;EOF | kubectl apply -f -</span><br><span class="line">apiVersion: dapr.io/v1alpha1</span><br><span class="line">kind: Component</span><br><span class="line">metadata:</span><br><span class="line">  name: statestore</span><br><span class="line">  namespace: default</span><br><span class="line">spec:</span><br><span class="line">  type: state.redis</span><br><span class="line">  version: v1</span><br><span class="line">  metadata:</span><br><span class="line">  - name: redisHost</span><br><span class="line">    value: redis-master.default.svc.cluster.local:6379</span><br><span class="line">  - name: redisPassword</span><br><span class="line">    secretKeyRef:</span><br><span class="line">      name: redis</span><br><span class="line">      key: redis-password</span><br><span class="line"></span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>然后部署发布订阅消息代理组件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ cat &lt;&lt;EOF | kubectl apply -f -</span><br><span class="line">apiVersion: dapr.io/v1alpha1</span><br><span class="line">kind: Component</span><br><span class="line">metadata:</span><br><span class="line">  name: pubsub</span><br><span class="line">  namespace: default</span><br><span class="line">spec:</span><br><span class="line">  type: pubsub.redis</span><br><span class="line">  version: v1</span><br><span class="line">  metadata:</span><br><span class="line">  - name: redisHost</span><br><span class="line">    value: redis-master.default.svc.cluster.local:6379</span><br><span class="line">  - name: redisPassword</span><br><span class="line">    secretKeyRef:</span><br><span class="line">      name: redis</span><br><span class="line">      key: redis-password</span><br><span class="line"></span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<h3 id="参考文章"><a class="markdownIt-Anchor" href="#参考文章"></a> 参考文章</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/6940850465504493576">https://juejin.cn/post/6940850465504493576</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/" title="【k8s】本地k8s集群部署dapr应用">https://blog.fudenglong.site/2021/12/05/【k8s】本地k8s集群部署dapr应用/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/dapr/" rel="tag"># dapr</a>
+              <a href="/tags/k3d/" rel="tag"># k3d</a>
+              <a href="/tags/k3s/" rel="tag"># k3s</a>
+              <a href="/tags/k8s/" rel="tag"># k8s</a>
+              <a href="/tags/traefik/" rel="tag"># traefik</a>
+              <a href="/tags/rancher/" rel="tag"># rancher</a>
+              <a href="/tags/helm/" rel="tag"># helm</a>
+              <a href="/tags/docker/" rel="tag"># docker</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/12/04/Go/%E3%80%90Golang%E3%80%91sync-Pool-%E7%9A%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/" rel="prev" title="【Golang】sync.Pool 的设计与实现">
+                  <i class="fa fa-angle-left"></i> 【Golang】sync.Pool 的设计与实现
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/12/12/%E3%80%90dapr%E3%80%91dapr%E5%BA%94%E7%94%A8%E7%9A%84%E6%9C%AC%E5%9C%B0%E5%BC%80%E5%8F%91%E4%B8%8E%E8%B0%83%E8%AF%95/" rel="next" title="【dapr】应用的本地开发与调试">
+                  【dapr】应用的本地开发与调试 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2021/12/05/%E3%80%90k8s%E3%80%91%E6%9C%AC%E5%9C%B0k8s%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2dapr%E5%BA%94%E7%94%A8/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="构造 Double Free 使用 unsafe 特性构造指向同一块内存的两个变量，导致 Double Free： 12345678910111213141516use std::&#123;mem, ptr&#125;;fn main() &#123;    let mut d &#x3D; String::from(&quot;cccc&quot;);    let d_len &#x3D; d.len();">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】代码片段">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/05/12/Rust/some-useful-code/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="构造 Double Free 使用 unsafe 特性构造指向同一块内存的两个变量，导致 Double Free： 12345678910111213141516use std::&#123;mem, ptr&#125;;fn main() &#123;    let mut d &#x3D; String::from(&quot;cccc&quot;);    let d_len &#x3D; d.len();">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-05-12T12:34:14.000Z">
+<meta property="article:modified_time" content="2022-05-12T12:34:14.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/05/12/Rust/some-useful-code/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/05/12/Rust/some-useful-code/","path":"2022/05/12/Rust/some-useful-code/","title":"【Rust】代码片段"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】代码片段 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9E%84%E9%80%A0-double-free"><span class="nav-number">1.</span> <span class="nav-text"> 构造 Double Free</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#arc-%E6%97%A0%E6%B3%95-derefmove"><span class="nav-number">2.</span> <span class="nav-text"> Arc 无法 DerefMove</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E6%95%B0%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%BB%A7%E6%89%BF"><span class="nav-number">3.</span> <span class="nav-text"> 参数生命周期继承</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%A9%E6%9C%9F%E7%BB%91%E5%AE%9A-%E6%99%9A%E6%9C%9F%E7%BB%91%E5%AE%9A"><span class="nav-number">4.</span> <span class="nav-text"> 早期绑定、晚期绑定</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/05/12/Rust/some-useful-code/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】代码片段 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】代码片段
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-05-12 20:34:14" itemprop="dateCreated datePublished" datetime="2022-05-12T20:34:14+08:00">2022-05-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>5 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h3 id="构造-double-free"><a class="markdownIt-Anchor" href="#构造-double-free"></a> 构造 <code>Double Free</code></h3>
+<p>使用 <code>unsafe</code> 特性构造指向同一块内存的两个变量，导致 <code>Double Free</code>：</p>
+<div class="note warning"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::&#123;mem, ptr&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">d</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;cccc&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">d_len</span> = d.<span class="title function_ invoke__">len</span>();</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">c</span> = <span class="type">String</span>::<span class="title function_ invoke__">with_capacity</span>(d_len);</span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        ptr::<span class="title function_ invoke__">copy</span>(&amp;d, &amp;<span class="keyword">mut</span> c, <span class="number">1</span>);</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, c.<span class="title function_ invoke__">as_ptr</span>());</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, d.<span class="title function_ invoke__">as_ptr</span>());</span><br><span class="line">    d.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot;c&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, d);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<span id="more"></span>
+<h3 id="arc-无法-derefmove"><a class="markdownIt-Anchor" href="#arc-无法-derefmove"></a> <code>Arc</code> 无法 <code>DerefMove</code></h3>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::sync::Arc;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>()&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">s</span> = Arc::<span class="title function_ invoke__">new</span>(<span class="string">&quot;hello&quot;</span>.<span class="title function_ invoke__">to_string</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:p&#125;&quot;</span>, &amp;s);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:p&#125;&quot;</span>, s.<span class="title function_ invoke__">as_ptr</span>());</span><br><span class="line">    <span class="comment">// DerefMove Error : cannot move out of an `Arc`</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">s2</span> = *s;</span><br><span class="line">    <span class="comment">// println!(&quot;&#123;:p&#125;&quot;, s.as_ptr()); // Moved s</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:p&#125;&quot;</span>, s2.<span class="title function_ invoke__">as_ptr</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>但如果换成 <code>Box</code> 是可以的。</p>
+<h3 id="参数生命周期继承"><a class="markdownIt-Anchor" href="#参数生命周期继承"></a> 参数生命周期继承</h3>
+<p>下面的代码中说明 <code>'a</code> 的生命周期要大于 <code>'c</code>，可以这样理解，如果一个引用的生命周期满足 <code>'a</code>，那么它必然可以满足 <code>'c</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#![allow(unused)]</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">the_longest</span>&lt;<span class="symbol">&#x27;c</span>, <span class="symbol">&#x27;a</span>: <span class="symbol">&#x27;c</span>&gt;(s1: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>, s2: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;c</span> <span class="type">str</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> s1.<span class="title function_ invoke__">len</span>() &gt; s2.<span class="title function_ invoke__">len</span>() &#123;</span><br><span class="line">        s1</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        s2</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">s1</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">s1_r</span> = &amp;s1;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">s2</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;C&quot;</span>);</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">res</span> = <span class="title function_ invoke__">the_longest</span>(s1_r, &amp;s2);</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; is the longest&quot;</span>, res);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>或者我们可以给每个引用都声明一个单独的声明周期参数：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">the_longest</span>&lt;<span class="symbol">&#x27;c</span>, <span class="symbol">&#x27;a</span>: <span class="symbol">&#x27;c</span>, <span class="symbol">&#x27;b</span>: <span class="symbol">&#x27;c</span>&gt;(s1: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>, s2: &amp;<span class="symbol">&#x27;b</span> <span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;c</span> <span class="type">str</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> s1.<span class="title function_ invoke__">len</span>() &gt; s2.<span class="title function_ invoke__">len</span>() &#123;</span><br><span class="line">        s1</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        s2</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="早期绑定-晚期绑定"><a class="markdownIt-Anchor" href="#早期绑定-晚期绑定"></a> 早期绑定、晚期绑定</h3>
+<p>可以阅读：<a target="_blank" rel="noopener" href="https://dtolnay.github.io/rust-quiz/11">https://dtolnay.github.io/rust-quiz/11</a></p>
+<p>泛型参数可以是早期绑定或晚期绑定，当前（以及在可预见的将来）类型参数总是早期绑定，但生命周期参数可以是早期绑定或后绑定。</p>
+<p>早期绑定参数由编译器在单态化期间确定，由于类型参数始终是早期绑定的，因此不能拥具有未解析类型参数的值。例如：</p>
+<div class="note warning"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">m</span>&lt;T&gt;() &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">m1</span> = m::&lt;<span class="type">u8</span>&gt;; <span class="comment">// ok</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">m2</span> = m; <span class="comment">// error: cannot infer type for `T`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>但是这个对于生命周期却是允许的，因为生命周期 <code>'a</code> 的实际选择取决于它的调用方式，因此我们可以省略生命周期参数，它将在调用的地方确定：每次调用的生命周期甚至可能不同：</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">m</span>&lt;<span class="symbol">&#x27;a</span>&gt;(_: &amp;<span class="symbol">&#x27;a</span> ()) &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">m1</span> = m; <span class="comment">// ok even though &#x27;a isn&#x27;t provided</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>}
+<p>出于这个原因，我们不能指定生命周期直到它被调用，也不能让借用检查器去推断它：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// error: cannot specify lifetime arguments explicitly if late bound lifetime parameters are present</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">m2</span> = m::&lt;<span class="symbol">&#x27;static</span>&gt;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// error: cannot specify lifetime arguments explicitly if late bound lifetime parameters are present</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">m3</span> = m::&lt;<span class="symbol">&#x27;_</span>&gt;;</span><br></pre></td></tr></table></figure></div>
+<p>晚期绑定参数的想法与 <code>Rust</code> 的一个称为“高级<code>Trait</code>边界”（<code>HRTB</code>）的特性有很大的重叠，这是一种机制，用于表示<code>trait</code>参数的界限是后期界限。目前这仅限于生命周期参数，可以使用 <code>for</code> 关键字表达生命周期的<code>HRTB</code>，例如，对于上面的 <code>m1</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">let m1: impl for&lt;&#x27;r&gt; Fn(&amp;&#x27;r ()) = m;</span><br></pre></td></tr></table></figure>
+<p>可以把它理解为这里有一个生命周期，但是我们目前还不需要知道它。</p>
+<p>后期绑定生命周期总是无限的；没有语法来表示必须比其他生命周期更长的后期绑定生命周期：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">_</span>: <span class="keyword">for</span>&lt;<span class="symbol">&#x27;b</span>: <span class="symbol">&#x27;a</span>&gt; <span class="title function_ invoke__">fn</span>(&amp;<span class="symbol">&#x27;b</span> ()); <span class="comment">// 错误</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>}
+<p>除非开发人员明确使用 <code>HRTB</code> 作为语法，否则数据类型的生命周期总是提前绑定的。在函数上，生命周期默认为后期绑定，但在以下情况下可以提前绑定：</p>
+<ul>
+<li>
+<p>生命周期在函数签名之外声明，例如在结构体的关联方法中，它可以来自结构体本身；</p>
+</li>
+<li>
+<p>生命周期参数以它必须超过的其他生命周期为界；</p>
+</li>
+</ul>
+<p>通过这些规则，我们来看个例子：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">f</span>&lt;<span class="symbol">&#x27;a</span>&gt;() &#123;&#125;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">g</span>&lt;<span class="symbol">&#x27;a</span>: <span class="symbol">&#x27;a</span>&gt;() &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">pf</span> = f::&lt;<span class="symbol">&#x27;static</span>&gt; <span class="keyword">as</span> <span class="title function_ invoke__">fn</span>(); <span class="comment">// error</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">pg</span> = g::&lt;<span class="symbol">&#x27;static</span>&gt; <span class="keyword">as</span> <span class="title function_ invoke__">fn</span>(); <span class="comment">// ok</span></span><br><span class="line">    <span class="built_in">print!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, pf == pg);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>根据这些规则，签名 <code>fn f&lt;'a&gt;()</code> 具有后期绑定生命周期参数，而签名 <code>fn g&lt;'a: 'a&gt;()</code> 具有早期绑定生命周期参数（即使此处的约束无效）。</p>
+<div class="tabs" id="早晚期绑定"><ul class="nav-tabs"><li class="tab active"><a href="#早晚期绑定-1">示例一（错误）</a></li><li class="tab"><a href="#早晚期绑定-2">示例二（通过）</a></li></ul><div class="tab-content"><div class="tab-pane active" id="早晚期绑定-1"><p>下面这段代码编译失败，原因很很直接，我们对 <code>buf</code> 存在两次可变借用，但是我们的第一次可变借用在获取 <code>b1</code> 之后就应该失效，只要 <code>buf</code> 存在，<code>b1</code> 和 <code>b2</code> 就应该保持有效。但是从 <code>read_bytes</code> 的实现中我们可以看出，它有一个后期绑定生命周期参数，返回值还和每次调用的可变借用必须具有相同生命周期，所以可变借用得保留到返回值最后一次使用位置。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Buffer</span> &#123;</span><br><span class="line">    buf: <span class="type">Vec</span>&lt;<span class="type">u8</span>&gt;,</span><br><span class="line">    pos: <span class="type">usize</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Buffer</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">new</span>() <span class="punctuation">-&gt;</span> Buffer &#123;</span><br><span class="line">        Buffer &#123;</span><br><span class="line">            buf: <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>],</span><br><span class="line">            pos: <span class="number">0</span>,</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">read_bytes</span>&lt;<span class="symbol">&#x27;a</span>&gt;(&amp;<span class="symbol">&#x27;a</span> <span class="keyword">mut</span> <span class="keyword">self</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;a</span> [<span class="type">u8</span>] &#123;</span><br><span class="line">        <span class="keyword">self</span>.pos += <span class="number">3</span>;</span><br><span class="line">        &amp;<span class="keyword">self</span>.buf[<span class="keyword">self</span>.pos - <span class="number">3</span>..<span class="keyword">self</span>.pos]</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">print</span>(b1: &amp;[<span class="type">u8</span>], b2: &amp;[<span class="type">u8</span>]) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:#?&#125; &#123;:#?&#125;&quot;</span>, b1, b2)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">buf</span> = Buffer::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">b1</span> = buf.<span class="title function_ invoke__">read_bytes</span>();   <span class="comment">// -----------第一次-----------+</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">b2</span> = buf.<span class="title function_ invoke__">read_bytes</span>();   <span class="comment">// -----------第二次-----------|</span></span><br><span class="line">    <span class="title function_ invoke__">print</span>(b1, b2)                <span class="comment">// --------------------------\|/</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="早晚期绑定-2"><p>但是我们将我们的 <code>Buffer</code> 改改，让它拥有一个具有 <code>'a</code> 的 <code>buf</code>，而且让 <code>read_bytes</code> 的返回值生命周期跟 <code>buf</code> 相同，这样就和它的调用者没关系了，生成 <code>b1</code> 和 <code>b2</code> 的可变借用在它们使用完就结束了，这里 <code>read_bytes</code> 的参数生命周期是早期绑定的，在编译期间就能但太态化。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">v</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">buf</span> = Buffer::<span class="title function_ invoke__">new</span>(&amp;v);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">b1</span> = buf.<span class="title function_ invoke__">read_bytes</span>();    <span class="comment">// 第一次可变借用，相当于 (&amp;mut buf).read_bytes()</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">b2</span> = buf.<span class="title function_ invoke__">read_bytes</span>();    <span class="comment">// 第二次可变借用</span></span><br><span class="line">    <span class="title function_ invoke__">print</span>(b1, b2)                 <span class="comment">// b1 和 b2 引用至 v，和 v 有相同的生命周期</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">print</span>(b1: &amp;[<span class="type">u8</span>], b2: &amp;[<span class="type">u8</span>]) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:#?&#125; &#123;:#?&#125;&quot;</span>, b1, b2)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Buffer</span>&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    buf: &amp;<span class="symbol">&#x27;a</span> [<span class="type">u8</span>],</span><br><span class="line">    pos: <span class="type">usize</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;<span class="symbol">&#x27;b</span>, <span class="symbol">&#x27;a</span>: <span class="symbol">&#x27;b</span>&gt; Buffer&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">new</span>(b: &amp;<span class="symbol">&#x27;a</span> [<span class="type">u8</span>]) <span class="punctuation">-&gt;</span> Buffer &#123;</span><br><span class="line">        Buffer &#123; buf: b, pos: <span class="number">0</span> &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">read_bytes</span>(&amp;<span class="symbol">&#x27;b</span> <span class="keyword">mut</span> <span class="keyword">self</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;a</span> [<span class="type">u8</span>] &#123;</span><br><span class="line">        <span class="keyword">self</span>.pos += <span class="number">3</span>;</span><br><span class="line">        &amp;<span class="keyword">self</span>.buf[<span class="keyword">self</span>.pos - <span class="number">3</span>..<span class="keyword">self</span>.pos]</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div></div></div>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/05/12/Rust/some-useful-code/" title="【Rust】代码片段">https://blog.fudenglong.site/2022/05/12/Rust/some-useful-code/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/05/11/Rust/anyhow-and-thiserror/" rel="prev" title="【Rust】anyhow & thiserror">
+                  <i class="fa fa-angle-left"></i> 【Rust】anyhow & thiserror
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/05/15/Rust/mutex-multithre-share/" rel="next" title="【Rust】Mutex 使用示例">
+                  【Rust】Mutex 使用示例 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/05/12/Rust/some-useful-code/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

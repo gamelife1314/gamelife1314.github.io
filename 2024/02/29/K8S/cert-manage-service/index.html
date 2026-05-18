@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="本篇文章主要简单讲解TLS证书的基本知识以及如何在K8S中使用证书提供安全服务。  证书 TLS证书用于证明访问目标的有效性，当访问某个网站时，浏览器会自动验证证书是否有效，并且会通过证书中提供的Server公钥和Server协商出用于接下来安全数据传输的对称加密秘钥。浏览器（或者客户端，例如：curl）验证服务端证书的流程如下：  浏览器或者客户端在和服务端建立加密通信的流程中，会下载服务端的证">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8S 证书管理">
+<meta property="og:url" content="https://blog.fudenglong.site/2024/02/29/K8S/cert-manage-service/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="本篇文章主要简单讲解TLS证书的基本知识以及如何在K8S中使用证书提供安全服务。  证书 TLS证书用于证明访问目标的有效性，当访问某个网站时，浏览器会自动验证证书是否有效，并且会通过证书中提供的Server公钥和Server协商出用于接下来安全数据传输的对称加密秘钥。浏览器（或者客户端，例如：curl）验证服务端证书的流程如下：  浏览器或者客户端在和服务端建立加密通信的流程中，会下载服务端的证">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-02-29T01:35:32.000Z">
+<meta property="article:modified_time" content="2024-02-29T01:35:32.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="证书">
+<meta property="article:tag" content="cert-manager">
+<meta property="article:tag" content="mkcert">
+<meta property="article:tag" content="openssl">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2024/02/29/K8S/cert-manage-service/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2024/02/29/K8S/cert-manage-service/","path":"2024/02/29/K8S/cert-manage-service/","title":"K8S 证书管理"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>K8S 证书管理 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%81%E4%B9%A6"><span class="nav-number">1.</span> <span class="nav-text"> 证书</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#openssl"><span class="nav-number">1.1.</span> <span class="nav-text"> openssl</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#mkcert"><span class="nav-number">1.2.</span> <span class="nav-text"> mkcert</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#k8s-tls-%E8%AF%81%E4%B9%A6"><span class="nav-number">2.</span> <span class="nav-text"> K8S TLS 证书</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#mkcert-2"><span class="nav-number">2.1.</span> <span class="nav-text"> mkcert</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#cert-manager"><span class="nav-number">2.2.</span> <span class="nav-text"> cert-manager</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%87%AA%E7%AD%BE%E5%90%8D%E8%AF%81%E4%B9%A6"><span class="nav-number">2.2.1.</span> <span class="nav-text"> 自签名证书</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#ca-issuer"><span class="nav-number">2.2.2.</span> <span class="nav-text"> CA Issuer</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#gateway"><span class="nav-number">2.3.</span> <span class="nav-text"> Gateway</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#certificate"><span class="nav-number">2.4.</span> <span class="nav-text"> Certificate</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="nav-number">3.</span> <span class="nav-text"> 参考链接</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2024/02/29/K8S/cert-manage-service/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="K8S 证书管理 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          K8S 证书管理
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-02-29 09:35:32" itemprop="dateCreated datePublished" datetime="2024-02-29T09:35:32+08:00">2024-02-29</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>20 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>本篇文章主要简单讲解TLS证书的基本知识以及如何在K8S中使用证书提供安全服务。</p>
+<h3 id="证书"><a class="markdownIt-Anchor" href="#证书"></a> 证书</h3>
+<p>TLS证书用于证明访问目标的有效性，当访问某个网站时，浏览器会自动验证证书是否有效，并且会通过证书中提供的Server公钥和Server协商出用于接下来安全数据传输的对称加密秘钥。浏览器（或者客户端，例如：<code>curl</code>）验证服务端证书的流程如下：</p>
+<ol>
+<li>浏览器或者客户端在和服务端建立加密通信的流程中，会下载服务端的证书到本地，这个证书中包含了服务端证书的公钥，并且这个证书会使用可信任的CA机构的私钥进行签名；</li>
+<li>浏览器或者操作系统中安装了大多数著名机构的根证书，浏览器或者客户端会使用这些机构根证书的公钥验证收到的证书是否是可信任机构颁发的；</li>
+<li>如果浏览器或者客户端收到的证书是有效的，紧接着会验证证书中包含的服务器或者IP地址是不是和当前打开的地址匹配；</li>
+<li>紧接着浏览器会和服务端协商出用于本次数据加密的对称秘钥，使用对称秘钥一是这个秘钥是在每次数据通信时动态协商出来的，会话结束就是小了，防止公钥泄漏带来的安全问题，而是对称加解密密相比非对称加解密有更好的性能表现；</li>
+</ol>
+<p><code>X.509</code> 公钥证书中有一些常用的扩展名，如下所示是它们的含义：</p>
+<ul>
+<li><code>.csr</code>：证书请求文件，是由 RFC 2986定义的<code>PKCS10</code>格式，包含部分/全部的请求证书的信息，比如，主题, 机构，国家等，并且包含了请求证书的公玥，这些被<code>CA</code>中心签名后返回一张证书，返回的证书是公钥证书（只包含公玥不含私钥）；</li>
+<li><code>.pem</code>：是一种容器格式，可能仅包含公钥证书，也可以包含完整的证书链（包括公玥，私钥，和根证书）。也可能用来编码 CSR文件；</li>
+<li><code>.key</code>：就是一个<code>pem</code>格式只包含私玥的文件，<code>.key</code> 作为文件名只是作为一个明显的别名；</li>
+<li><code>.pkcs12 .pfx .p12</code>：<code>pkcs</code>即 RSA定义的公玥密码学(<code>Public-Key Cryptography Standards</code>)标准，有多个标准<code>pkcs12</code>只是其一，是描述个人信息交换语法标准，有的文件直接使用其作为文件后缀名。这种文件包含公钥和私玥证书对，跟<code>pem</code>文件不同的是，它的内容是完全加密的。用<code>openssl</code>可以把其转换成包含公玥和私玥的<code>.pem</code>文件。命令：<code>openssl pkcs12 -in file-to-convert.p12 -out converted-file.pem -nodes</code>；</li>
+<li><code>.der</code>：<code>der</code>是<code>ASN.1</code>众多编码方案中的一个，使用<code>der</code>编码方案编码的<code>pem</code>文件。<code>der</code>编码是使用二进制编码，一般<code>pem</code>文件使用的是<code>base64</code>进行编码，所以完全可以把<code>der</code>编码的文件转换成<code>pem</code>文件，命令：<code>openssl x509 -inform der -in to-convert.der -out converted.pem</code> 使用<code>der</code>编码的<code>pem</code>文件，后缀名可以为<code>.der</code>，也可以为 <code>.cert .cer .crt</code>；</li>
+<li><code>.cert .cer .crt</code>：<code>pem</code>或者<code>der</code>编码格式的证书文件，这些文件后缀名都会被<code>windows</code>资源管理器认为是证书文件。有趣的是, <code>.pem</code> 反而不会被认为是证书文件；</li>
+</ul>
+<span id="more"></span>
+<h4 id="openssl"><a class="markdownIt-Anchor" href="#openssl"></a> openssl</h4>
+<p>本节使用 <code>openssl</code> 生成自签名的证书，首先第一步生成 <code>CA</code> 证书的私钥及其证书文件：</p>
+<blockquote>
+<p><code>openssl req -x509 -sha256 -days 356 -nodes -newkey rsa:2048 -subj &quot;/CN=ca.local.dev/C=CN/L=SH&quot; -keyout rootCA.key -out rootCA.crt</code></p>
+</blockquote>
+<p>从证书文件中解析公钥：</p>
+<blockquote>
+<p><code>openssl x509 -inform pem -in rootCA.crt -pubkey -noout</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ openssl x509 -inform pem -in rootCA.crt -pubkey -noout</span><br><span class="line">-----BEGIN PUBLIC KEY-----</span><br><span class="line">MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2gI2HyMaiheUr/vkhoX3</span><br><span class="line">Cp7Fy5dOl0eSOxQPOscK4svUopEwke1sme8h/e8NWNgnqGKmsa+lqg4Y8q3WDTdG</span><br><span class="line">Z1CA7dI5QKFQUQyFU1gqanJBSx0Bzsa+QvrwFt2BMCw05tvowfOa9PxPgGs+k+Oj</span><br><span class="line">E5Me/0vmznidUm31NHQZinCCLXYBrVD7GFfXFNZjOqJmV4v5EWkoP/FL7zJ+7uz6</span><br><span class="line">tjfI4paxn6su2qf88eAUq4ZmsS3cxjvWY4EqiJok8R4x5ln0Pg1RYz8kPV8cfMZc</span><br><span class="line">rdsncoks0XXOU6MMfWzvA3dWSYAPGsef9Ehy8u+7DsWBPyECGksQ7X+QX3oQrWnz</span><br><span class="line">VQIDAQAB</span><br><span class="line">-----END PUBLIC KEY-----</span><br></pre></td></tr></table></figure>
+<p>生成<code>Server</code>的私钥以及证书请求文件：</p>
+<blockquote>
+<p><code>openssl req -newkey rsa:2048 -nodes -days 365 -keyout server.key -out server.csr</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">$ openssl req -newkey rsa:2048 -nodes -days 365 -keyout server.key -out server.csr</span><br><span class="line">....</span><br><span class="line">-----</span><br><span class="line">You are about to be asked to enter information that will be incorporated</span><br><span class="line">into your certificate request.</span><br><span class="line">What you are about to enter is what is called a Distinguished Name or a DN.</span><br><span class="line">There are quite a few fields but you can leave some blank</span><br><span class="line">For some fields there will be a default value,</span><br><span class="line">If you enter &#x27;.&#x27;, the field will be left blank.</span><br><span class="line">-----</span><br><span class="line">Country Name (2 letter code) [AU]:CN</span><br><span class="line">State or Province Name (full name) [Some-State]:SH</span><br><span class="line">Locality Name (eg, city) []:PU DONG</span><br><span class="line">Organization Name (eg, company) [Internet Widgits Pty Ltd]:HW</span><br><span class="line">Organizational Unit Name (eg, section) []:TEC</span><br><span class="line">Common Name (e.g. server FQDN or YOUR name) []:test.local.dev</span><br><span class="line">Email Address []:</span><br><span class="line"></span><br><span class="line">Please enter the following &#x27;extra&#x27; attributes</span><br><span class="line">to be sent with your certificate request</span><br><span class="line">A challenge password []:</span><br><span class="line">An optional company name []:</span><br></pre></td></tr></table></figure>
+<p>根据<code>server.csr</code>生成证书，并且使用<code>rootCA.key</code>进行签名：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ openssl x509 -req -days 365 -set_serial 01 -in server.csr -out server.crt \</span><br><span class="line">&gt; -CA rootCA.crt -CAkey rootCA.key -extensions SAN \</span><br><span class="line">&gt; -extfile &lt;(printf &quot;\n[SAN]\nsubjectAltName=DNS:test.local.dev,IP:127.0.0.1\nextendedKeyUsage=serverAuth&quot;)</span><br><span class="line">Certificate request self-signature ok</span><br><span class="line">subject=C = CN, ST = SH, L = PU DONG, O = HW, OU = TEC, CN = test.local.dev</span><br></pre></td></tr></table></figure>
+<p>至此生成了<code>CA</code>和<code>Server</code>的私钥和证书文件。使用如下的一段<code>python</code>代码启用<code>https</code>服务器：</p>
+<blockquote>
+<p><code>pip install Flask</code></p>
+</blockquote>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> flask <span class="keyword">import</span> Flask</span><br><span class="line">app = Flask(__name__)</span><br><span class="line"></span><br><span class="line"><span class="meta">@app.route(<span class="params"><span class="string">&#x27;/hello&#x27;</span></span>)</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">hello_world</span>():</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Hello World!&#x27;</span></span><br><span class="line">    </span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    app.run(host=<span class="string">&quot;0.0.0.0&quot;</span>, port=<span class="number">8091</span>, ssl_context=(<span class="string">&#x27;server.crt&#x27;</span>, <span class="string">&#x27;server.key&#x27;</span>))</span><br></pre></td></tr></table></figure>
+<p>启动<code>Server</code>：</p>
+<blockquote>
+<p><code>python3 server.py</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ python3 server.py</span><br><span class="line"> * Serving Flask app &#x27;server&#x27;</span><br><span class="line"> * Debug mode: off</span><br><span class="line">WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.</span><br><span class="line"> * Running on all addresses (0.0.0.0)</span><br><span class="line"> * Running on https://127.0.0.1:8091</span><br><span class="line"> * Running on https://172.19.106.26:8091</span><br><span class="line">Press CTRL+C to quit</span><br></pre></td></tr></table></figure>
+<p>打开另外一个终端使用<code>curl</code>命令进行测试：</p>
+<blockquote>
+<p><code>curl https://127.0.0.1:8091/hello</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ curl https://127.0.0.1:8091/hello</span><br><span class="line">curl: (60) SSL certificate problem: unable to get local issuer certificate</span><br><span class="line">More details here: https://curl.se/docs/sslcerts.html</span><br><span class="line"></span><br><span class="line">curl failed to verify the legitimacy of the server and therefore could not</span><br><span class="line">establish a secure connection to it. To learn more about this situation and</span><br><span class="line">how to fix it, please visit the web page mentioned above.</span><br></pre></td></tr></table></figure>
+<p>这里显示找不到证书签名的机构，没法对证书进行验证，这是因为没把自签名的根证书放入系统的证书链中。系统保存的根证书在目录 <code>/etc/ssl/certs/</code> 中，但是如果要添加自定义的根证书，只需按照如下的方式操作：</p>
+<blockquote>
+<p><code>apt install -y ca-certificates</code><br />
+<code>cp rootCA.crt /usr/local/share/ca-certificates</code><br />
+<code>sudo update-ca-certificates</code></p>
+</blockquote>
+<p>再次使用 <code>curl</code> 命令进行验证正确返回结果：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ curl https://127.0.0.1:8091/hello</span><br><span class="line">Hello World!</span><br></pre></td></tr></table></figure>
+<p>可以使用如下的命令获取到服务端的证书：</p>
+<blockquote>
+<p><code>openssl s_client -connect 127.0.0.1:8091 -showcerts</code></p>
+</blockquote>
+<p>可以使用如下的命令进行证书验证：</p>
+<blockquote>
+<p><code>openssl verify -CAfile rootCA.crt server.crt</code></p>
+</blockquote>
+<h4 id="mkcert"><a class="markdownIt-Anchor" href="#mkcert"></a> mkcert</h4>
+<p>除了使用 <code>openssl</code> 工具进行证书的创建，还可以使用<a target="_blank" rel="noopener" href="https://github.com/FiloSottile/mkcert">mkcert</a>这个开源工具进行证书的创建，下载之后，首先安装根证书到系统的证书链中，执行下面的命令：</p>
+<blockquote>
+<p><code>mkcert -install</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ mkcert -install</span><br><span class="line">The local CA is already installed in the system trust store! 👍</span><br><span class="line">The local CA is already installed in Java&#x27;s trust store! 👍</span><br></pre></td></tr></table></figure>
+<p>然后生成服务端的证书文件：</p>
+<blockquote>
+<p><code>mkcert --cert-file test1.server.crt -key-file test1.server.key test1.local.dev localhost 127.0.0.1 ::1</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ mkcert --cert-file test1.server.crt -key-file test1.server.key test1.local.dev localhost 127.0.0.1 ::1</span><br><span class="line"></span><br><span class="line">Created a new certificate valid for the following names 📜</span><br><span class="line"> - &quot;test1.local.dev&quot;</span><br><span class="line"> - &quot;localhost&quot;</span><br><span class="line"> - &quot;127.0.0.1&quot;</span><br><span class="line"> - &quot;::1&quot;</span><br><span class="line"></span><br><span class="line">The certificate is at &quot;test1.server.crt&quot; and the key at &quot;test1.server.key&quot; ✅</span><br><span class="line"></span><br><span class="line">It will expire on 29 May 2026 🗓</span><br></pre></td></tr></table></figure>
+<p>使用下面的命令查看证书的内容：</p>
+<blockquote>
+<p><code>openssl x509 -in test1.server.crt -noout -text</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line">$ openssl x509 -in test1.server.crt -noout -text</span><br><span class="line">Certificate:</span><br><span class="line">    Data:</span><br><span class="line">        Version: 3 (0x2)</span><br><span class="line">        Serial Number:</span><br><span class="line">            ec:29:52:0f:3c:c4:7d:63:d1:aa:97:43:a9:e2:4a:61</span><br><span class="line">        Signature Algorithm: sha256WithRSAEncryption</span><br><span class="line">        Issuer: O = mkcert development CA, OU = root@F00596107-PX, CN = mkcert root@F00596107-PX</span><br><span class="line">        Validity</span><br><span class="line">            Not Before: Feb 29 06:39:56 2024 GMT</span><br><span class="line">            Not After : May 29 06:39:56 2026 GMT</span><br><span class="line">        Subject: O = mkcert development certificate, OU = root@F00596107-PX</span><br><span class="line">        Subject Public Key Info:</span><br><span class="line">            Public Key Algorithm: rsaEncryption</span><br><span class="line">                Public-Key: (2048 bit)</span><br><span class="line">                Modulus:</span><br><span class="line">                    00:af:df:c7:21:0e:02:5d:b7:63:8d:ee:ea:89:72:</span><br><span class="line">                    1a:74:ec:3c:d3:aa:c2:6e:1c:1d:bf:db:64:0a:a6:</span><br><span class="line">                    6a:6b:cd:58:8e:49:42:d8:a4:b2:db:de:c6:d8:73:</span><br><span class="line">                    d2:bc:a2:51:5e:1e:89:8d:89:21:96:d2:02:1d:93:</span><br><span class="line">                    86:a5:1c:59:cb:4e:b2:75:84:3f:95:3a:75:9c:d9:</span><br><span class="line">                    79:13:f2:12:1f:de:61:5d:19:ee:40:16:6d:a8:2a:</span><br><span class="line">                    3c:f0:91:c2:7e:72:ab:87:ce:8b:41:54:35:24:d4:</span><br><span class="line">                    9a:2b:a1:00:59:da:75:d2:5b:c0:c5:6b:d9:c3:de:</span><br><span class="line">                    7e:2a:64:32:03:7f:67:76:a4:0f:00:6b:ab:c2:51:</span><br><span class="line">                    b3:b6:e1:2b:6b:b6:28:f2:2f:1a:c2:71:0e:3b:fd:</span><br><span class="line">                    ff:86:c1:0e:fc:95:fe:34:38:83:62:83:b8:cb:df:</span><br><span class="line">                    4b:2e:30:f2:cc:3d:39:bb:cd:c8:82:f2:d3:28:68:</span><br><span class="line">                    7d:dd:aa:8a:bf:6e:48:dc:e9:f2:a8:42:83:24:dd:</span><br><span class="line">                    76:86:db:bd:5d:0e:f9:cd:76:3a:1b:d1:9a:0e:ff:</span><br><span class="line">                    85:8b:24:c1:76:55:93:43:26:77:51:56:a8:0b:51:</span><br><span class="line">                    07:0f:17:77:f9:1c:e3:aa:41:e8:ea:f9:6b:ec:cb:</span><br><span class="line">                    77:0f:a9:ac:4d:0d:6b:a7:00:4b:7b:1d:04:d9:9c:</span><br><span class="line">                    e8:c3</span><br><span class="line">                Exponent: 65537 (0x10001)</span><br><span class="line">        X509v3 extensions:</span><br><span class="line">            X509v3 Key Usage: critical</span><br><span class="line">                Digital Signature, Key Encipherment</span><br><span class="line">            X509v3 Extended Key Usage:</span><br><span class="line">                TLS Web Server Authentication</span><br><span class="line">            X509v3 Authority Key Identifier:</span><br><span class="line">                68:7C:66:79:31:AC:0C:88:BA:5D:58:86:BD:94:A3:89:95:D3:B2:2F</span><br><span class="line">            X509v3 Subject Alternative Name:</span><br><span class="line">                DNS:test1.local.dev, DNS:localhost, IP Address:127.0.0.1, IP Address:0:0:0:0:0:0:0:1</span><br><span class="line">    Signature Algorithm: sha256WithRSAEncryption</span><br><span class="line">    Signature Value:</span><br><span class="line">        2a:1d:9a:e4:5a:9b:d4:73:d5:b0:6b:61:fe:f7:64:ba:95:d9:</span><br><span class="line">        10:06:f0:bd:39:70:0a:a2:8a:f1:b9:eb:b1:96:00:bf:ab:67:</span><br><span class="line">        31:31:27:d9:4e:e8:94:9c:35:31:cd:25:c9:92:62:b8:8e:b7:</span><br><span class="line">        5e:3b:b5:9a:ac:fc:f0:2f:d0:cd:a9:65:f0:74:0f:a7:ef:75:</span><br><span class="line">        e2:1b:0f:82:d2:ad:1d:fc:72:42:42:de:dc:1e:dc:0e:ff:c0:</span><br><span class="line">        3f:34:b8:77:dd:d6:39:bf:b4:ba:bc:58:c6:2d:5f:0d:ef:de:</span><br><span class="line">        f4:87:d7:64:e0:6d:39:c7:5a:07:20:a3:31:50:51:13:9b:e1:</span><br><span class="line">        b2:c0:17:f6:97:51:96:d4:84:07:62:24:ce:89:d6:1c:5b:cf:</span><br><span class="line">        9a:c3:90:96:94:bb:04:ed:88:cd:0a:94:e7:51:00:2c:86:48:</span><br><span class="line">        de:16:fb:2b:b5:c7:c6:10:d3:8f:2c:9c:3e:dc:f0:7a:ae:ca:</span><br><span class="line">        24:b0:8f:a1:60:a3:9b:7a:9c:7f:5f:9a:4a:17:81:dd:b2:19:</span><br><span class="line">        d9:54:d3:dd:b5:17:e7:08:15:9b:0d:8f:28:01:6e:bb:42:0f:</span><br><span class="line">        e6:2d:70:87:70:41:51:45:94:fa:6e:c3:21:a8:50:ad:44:28:</span><br><span class="line">        28:b7:4a:0c:f6:40:b7:09:c7:b4:28:af:11:1e:74:67:43:cb:</span><br><span class="line">        e6:88:1d:3f:41:1f:fb:e4:8a:dc:73:0b:ff:f9:43:6a:fc:94:</span><br><span class="line">        cb:e8:4e:c9:41:03:66:00:84:b6:17:1b:eb:d4:0e:b3:c6:bd:</span><br><span class="line">        1c:0d:1a:18:58:01:c3:72:89:48:f6:41:18:aa:d0:ba:db:46:</span><br><span class="line">        5e:09:0f:b5:7e:6b:45:6b:9a:35:5c:71:dc:e0:a7:63:08:1f:</span><br><span class="line">        4e:09:9b:78:fc:4b:37:62:83:09:a2:db:e2:64:d6:70:6e:0d:</span><br><span class="line">        97:35:4b:f4:02:94:a6:5a:7d:35:d7:9c:66:d2:2f:01:7a:7a:</span><br><span class="line">        65:41:dd:b3:02:81:5a:df:31:e4:b6:2b:09:0a:cf:15:20:f0:</span><br><span class="line">        81:19:ed:2a:4c:d7</span><br></pre></td></tr></table></figure>
+<h3 id="k8s-tls-证书"><a class="markdownIt-Anchor" href="#k8s-tls-证书"></a> K8S TLS 证书</h3>
+<p>假设我们使用如下的方式创建了一个 <code>Ingress</code> 服务，然后使用不同的方式进行创建<code>TLS</code>证书并加载（这部分要求安装 <code>nginx ingress controller</code> 和 <code>metalb</code>）：</p>
+<blockquote>
+<p>kubectl create ns ingress-tls<br />
+kubectl create -n ingress-tls  deployment whoami --image=traefik/whoami -r 3 --port=80<br />
+kubectl expose -n ingress-tls deployment whoami --port=8080 --target-port=80 --type=ClusterIP --name=whoami</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.k8s.io/v1</span><br><span class="line">kind: Ingress</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-ingress</span><br><span class="line">  namespace: ingress-tls</span><br><span class="line">spec:</span><br><span class="line">  ingressClassName: nginx</span><br><span class="line">  rules:</span><br><span class="line">    - host: &quot;whoami.svc.local&quot;</span><br><span class="line">      http:</span><br><span class="line">        paths:</span><br><span class="line">          - pathType: Prefix</span><br><span class="line">            path: &quot;/&quot;</span><br><span class="line">            backend:</span><br><span class="line">              service:</span><br><span class="line">                name: whoami</span><br><span class="line">                port:</span><br><span class="line">                  number: 8080</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>查看 <code>ingress</code> 的入口地址：</p>
+<blockquote>
+<p><code>kubectl get svc -n ingress-nginx ingress-nginx-controller</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get svc -n ingress-nginx ingress-nginx-controller</span><br><span class="line">NAME                       TYPE           CLUSTER-IP    EXTERNAL-IP     PORT(S)                      AGE</span><br><span class="line">ingress-nginx-controller   LoadBalancer   10.43.81.43   172.31.46.242   80:32664/TCP,443:30949/TCP   42h</span><br></pre></td></tr></table></figure>
+<p>此时，可以使用直接使用 <code>http</code> 协议进行访问：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ curl --resolve whoami.svc.local:80:172.31.46.242 http://whoami.svc.local</span><br><span class="line">Hostname: whoami-7f89db7768-gxxtj</span><br><span class="line">IP: 127.0.0.1</span><br><span class="line">IP: 10.42.0.103</span><br><span class="line">RemoteAddr: 10.42.0.89:43916</span><br><span class="line">GET / HTTP/1.1</span><br><span class="line">Host: whoami.svc.local</span><br><span class="line">User-Agent: curl/7.81.0</span><br><span class="line">Accept: */*</span><br><span class="line">X-Forwarded-For: 10.42.0.1</span><br><span class="line">X-Forwarded-Host: whoami.svc.local</span><br><span class="line">X-Forwarded-Port: 80</span><br><span class="line">X-Forwarded-Proto: http</span><br><span class="line">X-Forwarded-Scheme: http</span><br><span class="line">X-Real-Ip: 10.42.0.1</span><br><span class="line">X-Request-Id: 67e2b1c6c3c0024c1fe40862d79f70b3</span><br><span class="line">X-Scheme: http</span><br></pre></td></tr></table></figure>
+<h4 id="mkcert-2"><a class="markdownIt-Anchor" href="#mkcert-2"></a> mkcert</h4>
+<p>使用 <code>mkcert</code> 创建证书：</p>
+<blockquote>
+<p><code> mkcert --cert-file whoami.svc.local.crt -key-file whoami.svc.local.key whoami.svc.local 172.31.46.242</code></p>
+</blockquote>
+<p>然后创建 <code>tls</code> 类型的 <code>secret</code>，包含新创建的证书内容：</p>
+<blockquote>
+<p><code>kubectl create -n ingress-tls secret tls mkcert-tls-secret --cert=whoami.svc.local.crt --key=whoami.svc.local.key</code></p>
+</blockquote>
+<p>紧接着更新创建的 <code>Ingress</code>，增加 <code>tls</code> 配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.k8s.io/v1</span><br><span class="line">kind: Ingress</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-ingress</span><br><span class="line">  namespace: ingress-tls</span><br><span class="line">spec:</span><br><span class="line">  ingressClassName: nginx</span><br><span class="line">  rules:</span><br><span class="line">    - host: &quot;whoami.svc.local&quot;</span><br><span class="line">      http:</span><br><span class="line">        paths:</span><br><span class="line">          - pathType: Prefix</span><br><span class="line">            path: &quot;/&quot;</span><br><span class="line">            backend:</span><br><span class="line">              service:</span><br><span class="line">                name: whoami</span><br><span class="line">                port:</span><br><span class="line">                  number: 8080</span><br><span class="line">  tls:</span><br><span class="line">    - hosts:</span><br><span class="line">        - &quot;whoami.svc.local&quot;</span><br><span class="line">      secretName: mkcert-tls-secret</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>此时，如果还使用<code>http</code>协议访问，已经会被永久重定向：</p>
+<blockquote>
+<p><code>curl -i --resolve whoami.svc.local:80:172.31.46.242 http://whoami.svc.local</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i --resolve whoami.svc.local:80:172.31.46.242 http://whoami.svc.local</span><br><span class="line">HTTP/1.1 308 Permanent Redirect</span><br><span class="line">Date: Thu, 29 Feb 2024 07:47:51 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 164</span><br><span class="line">Connection: keep-alive</span><br><span class="line">Location: https://whoami.svc.local</span><br><span class="line"></span><br><span class="line">&lt;html&gt;</span><br><span class="line">&lt;head&gt;&lt;title&gt;308 Permanent Redirect&lt;/title&gt;&lt;/head&gt;</span><br><span class="line">&lt;body&gt;</span><br><span class="line">&lt;center&gt;&lt;h1&gt;308 Permanent Redirect&lt;/h1&gt;&lt;/center&gt;</span><br><span class="line">&lt;hr&gt;&lt;center&gt;nginx&lt;/center&gt;</span><br><span class="line">&lt;/body&gt;</span><br><span class="line">&lt;/html&gt;</span><br></pre></td></tr></table></figure>
+<p>使用 <code>https</code> 协议进行访问，返回结果符合预期：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i --resolve whoami.svc.local:443:172.31.46.242 https://whoami.svc.local</span><br><span class="line">HTTP/2 200</span><br><span class="line">date: Thu, 29 Feb 2024 07:53:34 GMT</span><br><span class="line">content-type: text/plain; charset=utf-8</span><br><span class="line">content-length: 400</span><br><span class="line">strict-transport-security: max-age=15724800; includeSubDomains</span><br><span class="line"></span><br><span class="line">Hostname: whoami-7f89db7768-d7w4h</span><br><span class="line">IP: 127.0.0.1</span><br><span class="line">IP: 10.42.0.104</span><br><span class="line">RemoteAddr: 10.42.0.89:46044</span><br><span class="line">GET / HTTP/1.1</span><br><span class="line">Host: whoami.svc.local</span><br><span class="line">User-Agent: curl/7.81.0</span><br><span class="line">Accept: */*</span><br><span class="line">X-Forwarded-For: 10.42.0.1</span><br><span class="line">X-Forwarded-Host: whoami.svc.local</span><br><span class="line">X-Forwarded-Port: 443</span><br><span class="line">X-Forwarded-Proto: https</span><br><span class="line">X-Forwarded-Scheme: https</span><br><span class="line">X-Real-Ip: 10.42.0.1</span><br><span class="line">X-Request-Id: f88938a75b95d1189b31204488da205a</span><br><span class="line">X-Scheme: https</span><br></pre></td></tr></table></figure>
+<h4 id="cert-manager"><a class="markdownIt-Anchor" href="#cert-manager"></a> cert-manager</h4>
+<p>使用 <a target="_blank" rel="noopener" href="https://cert-manager.io/docs/">cert-manager</a> 可以自动的生成证书并且应用到 <code>Ingress</code> 或者 <code>Gateway</code> 中，使用 <code>cert-manager</code> 的第一步是安装，支持多种安装方式，这里使用如下方式：</p>
+<blockquote>
+<p><code>kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.3/cert-manager.yaml</code></p>
+</blockquote>
+<p>等待所有 <code>Pod</code> 就绪:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get pods --namespace cert-manager</span><br><span class="line"></span><br><span class="line">NAME                                       READY   STATUS    RESTARTS   AGE</span><br><span class="line">cert-manager-5c6866597-zw7kh               1/1     Running   0          2m</span><br><span class="line">cert-manager-cainjector-577f6d9fd7-tr77l   1/1     Running   0          2m</span><br><span class="line">cert-manager-webhook-787858fcdb-nlzsq      1/1     Running   0          2m</span><br></pre></td></tr></table></figure>
+<h5 id="自签名证书"><a class="markdownIt-Anchor" href="#自签名证书"></a> 自签名证书</h5>
+<p>使用 <code>cert-manaer</code> 前提是先要配置<code>Issuer</code>或者<code>ClusterIssuer</code>，前者属于命名空间资源，后者属于集群资源，为了简单测试，这里先试用自签名证书进行演示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: cert-manager.io/v1</span><br><span class="line">kind: Issuer</span><br><span class="line">metadata:</span><br><span class="line">  name: selfsigned-issuer</span><br><span class="line">  namespace: ingress-tls</span><br><span class="line">spec:</span><br><span class="line">  selfSigned: &#123;&#125;</span><br><span class="line">EOF</span><br><span class="line">issuer.cert-manager.io/selfsigned-issuer created</span><br></pre></td></tr></table></figure>
+<p>更新<code>Ingress</code>，使用自签名的<code>Issuer</code>自动生成证书并且配置，<code>metadata.annotations.cert-manager.io/issuer: selfsigned-issuer</code> 表示引用的 <code>Issuer</code>，<code>tls</code>中的<code>secret</code>表示生成的证书保存在哪个<code>secret</code>中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.k8s.io/v1</span><br><span class="line">kind: Ingress</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-ingress</span><br><span class="line">  namespace: ingress-tls</span><br><span class="line">  annotations:</span><br><span class="line">    cert-manager.io/issuer: selfsigned-issuer</span><br><span class="line">spec:</span><br><span class="line">  ingressClassName: nginx</span><br><span class="line">  rules:</span><br><span class="line">    - host: &quot;whoami.svc.local&quot;</span><br><span class="line">      http:</span><br><span class="line">        paths:</span><br><span class="line">          - pathType: Prefix</span><br><span class="line">            path: &quot;/&quot;</span><br><span class="line">            backend:</span><br><span class="line">              service:</span><br><span class="line">                name: whoami</span><br><span class="line">                port:</span><br><span class="line">                  number: 8080</span><br><span class="line">  tls:</span><br><span class="line">    - hosts:</span><br><span class="line">        - &quot;whoami.svc.local&quot;</span><br><span class="line">      secretName: selfsigned-issuer-secret</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>命令执行成功之后，可以看到自动生成的证书中还包含了<code>ca.crt</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl describe secret -n ingress-tls selfsigned-issuer-secret</span><br><span class="line">Name:         selfsigned-issuer-secret</span><br><span class="line">Namespace:    ingress-tls</span><br><span class="line">Labels:       controller.cert-manager.io/fao=true</span><br><span class="line">Annotations:  cert-manager.io/alt-names: whoami.svc.local</span><br><span class="line">              cert-manager.io/certificate-name: selfsigned-issuer-secret</span><br><span class="line">              cert-manager.io/common-name:</span><br><span class="line">              cert-manager.io/ip-sans:</span><br><span class="line">              cert-manager.io/issuer-group: cert-manager.io</span><br><span class="line">              cert-manager.io/issuer-kind: Issuer</span><br><span class="line">              cert-manager.io/issuer-name: selfsigned-issuer</span><br><span class="line">              cert-manager.io/uri-sans:</span><br><span class="line"></span><br><span class="line">Type:  kubernetes.io/tls</span><br><span class="line"></span><br><span class="line">Data</span><br><span class="line">====</span><br><span class="line">ca.crt:   1029 bytes</span><br><span class="line">tls.crt:  1029 bytes</span><br><span class="line">tls.key:  1675 bytes</span><br></pre></td></tr></table></figure>
+<p>如果不把这里的 <code>ca.crt</code> 存放到系统的证书链中，访问 <code>whoami.svc.local</code>，就会出现自签名证书不能被信任，连接建立失败的提示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i --resolve whoami.svc.local:443:172.31.46.242 https://whoami.svc.local</span><br><span class="line">curl: (60) SSL certificate problem: self-signed certificate</span><br><span class="line">More details here: https://curl.se/docs/sslcerts.html</span><br><span class="line"></span><br><span class="line">curl failed to verify the legitimacy of the server and therefore could not</span><br><span class="line">establish a secure connection to it. To learn more about this situation and</span><br><span class="line">how to fix it, please visit the web page mentioned above.</span><br></pre></td></tr></table></figure>
+<p>有两种解决方案，一种是在访问的时候添加<code>-k</code>参数，表示忽略证书验证，一种是将<code>selfsigned-issuer-secret</code>中的<code>ca.crt</code>保存到系统的证书链中。可以使用下面的命令到处 <code>ca.crt</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get -n ingress-tls secret selfsigned-issuer-secret -ogo-template=&#x27;&#123;&#123;index .data &quot;ca.crt&quot;&#125;&#125;&#x27; | base64 -d</span><br><span class="line">-----BEGIN CERTIFICATE-----</span><br><span class="line">MIICyjCCAbKgAwIBAgIQC79gWN0bpVcxv/KP4po1hzANBgkqhkiG9w0BAQsFADAA</span><br><span class="line">MB4XDTI0MDIyOTA4MTUxNVoXDTI0MDUyOTA4MTUxNVowADCCASIwDQYJKoZIhvcN</span><br><span class="line">AQEBBQADggEPADCCAQoCggEBAKPb+/si9W8FslMfopaqNi8vyNi/cQNJiXw5cTEC</span><br><span class="line">0wsC0jZsOnGH3FHYSgEGyQYbpwi0TVzghsHfBvjUIPDS047YtJF0T1KscI1XE+sk</span><br><span class="line">NizDqXHFW+Hw4mvLo2RUhS0N5SBTPJ29Fcwm0BzwQvokYF7tDcI3ibGrHrTVMLXi</span><br><span class="line">wI1P3h43zElQD+Mz45eh+4oJqwGauJ1KnZoeuXVILcTG53izh12YkGahNtKg69Xp</span><br><span class="line">id+/YhEnFAKahT4eovhHROgXbz0A34uFm5o/m7vg9VNzT+tvf8NCyHXw2+gbMhKN</span><br><span class="line">rE++Lgr4fl+e/CDEiaHFPF4NGIYRyYeKmVKXREImLXbYcIUCAwEAAaNAMD4wDgYD</span><br><span class="line">VR0PAQH/BAQDAgWgMAwGA1UdEwEB/wQCMAAwHgYDVR0RAQH/BBQwEoIQd2hvYW1p</span><br><span class="line">LnN2Yy5sb2NhbDANBgkqhkiG9w0BAQsFAAOCAQEAH4ZVh58vRKSVpXwjbzVxy8d0</span><br><span class="line">qr3oyqVeVwhkefaRhcbposVzHFRxa8UPvFePSWXAR1ciYs4EPTeE9Y8l0//fS+MJ</span><br><span class="line">bHUduup6qpKyv7Q/H3J9B9wr3KKncufZe5tY1an2rlc3RIK85GrORs160Gfrw90d</span><br><span class="line">HvbdyXlQQmwpgGo6D77EMb/F8Zip5t2sE09uMsHnMx9rlfitq7wbbcFSXRtDieXF</span><br><span class="line">XOT6HDNA+VJywfKsC1WNq+BEVLdVBEpcdW31bNR7TjxdSh063icRDy1Z2F9IgmC1</span><br><span class="line">Buf3gcTzcpEQeHqkF+eLTvZdcRn67dExhn9NPZhj1JkJzKw4fztTiIaqdasQgA==</span><br><span class="line">-----END CERTIFICATE-----</span><br></pre></td></tr></table></figure>
+<h5 id="ca-issuer"><a class="markdownIt-Anchor" href="#ca-issuer"></a> CA Issuer</h5>
+<p>可以将外部创建的已经受信任的<code>CA</code>根证书上传到<code>k8s</code>中，然后使用该<code>CA</code>证书签名生成新的证书。例如，在上面的实验中，已经将 <code>mkcert</code> 的根证书安装到了系统中，现在将它也上传到<code>cert-manager</code>中，用于签发新的证书，也可以使用 <code>openssl</code> 创建的根证书。首先使用下面的命令查看根证书和私钥的位置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ mkcert -CAROOT</span><br><span class="line">/root/.local/share/mkcert</span><br><span class="line">$ ll /root/.local/share/mkcert</span><br><span class="line">-r-------- 1 root root 2484 Jan 17 17:29 rootCA-key.pem</span><br><span class="line">-rw-r--r-- 1 root root 1639 Jan 17 17:29 rootCA.pem</span><br></pre></td></tr></table></figure>
+<p>将 <code>mkcert</code> 的根证书以 <code>Secret</code> 的形式保存到集群中：</p>
+<blockquote>
+<p><code>kubectl create -n ingress-tls secret tls mkcert-ca-secret --cert=/root/.local/share/mkcert/rootCA.pem --key=/root/.local/share/mkcert/rootCA-key.pem</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl describe secret -n ingress-tls mkcert-ca-secret</span><br><span class="line">Name:         mkcert-ca-secret</span><br><span class="line">Namespace:    ingress-tls</span><br><span class="line">Labels:       &lt;none&gt;</span><br><span class="line">Annotations:  &lt;none&gt;</span><br><span class="line"></span><br><span class="line">Type:  kubernetes.io/tls</span><br><span class="line"></span><br><span class="line">Data</span><br><span class="line">====</span><br><span class="line">tls.key:  2484 bytes</span><br><span class="line">tls.crt:  1639 bytes</span><br></pre></td></tr></table></figure>
+<p>然后创建的新的<code>Issuer</code>，指定使用 <code>mkcert-ca-secret</code> 这个根证书：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: cert-manager.io/v1</span><br><span class="line">kind: Issuer</span><br><span class="line">metadata:</span><br><span class="line">  name: mkcert-ca-issuer</span><br><span class="line">  namespace: ingress-tls</span><br><span class="line">spec:</span><br><span class="line">  ca:</span><br><span class="line">    secretName: mkcert-ca-secret</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>更新 <code>whoami-ingress</code>，使用新建的 <code>mkcert-ca-issuer</code> 进行证书签发：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.k8s.io/v1</span><br><span class="line">kind: Ingress</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-ingress</span><br><span class="line">  namespace: ingress-tls</span><br><span class="line">  annotations:</span><br><span class="line">    cert-manager.io/issuer: mkcert-ca-issuer</span><br><span class="line">spec:</span><br><span class="line">  ingressClassName: nginx</span><br><span class="line">  rules:</span><br><span class="line">    - host: &quot;whoami.svc.local&quot;</span><br><span class="line">      http:</span><br><span class="line">        paths:</span><br><span class="line">          - pathType: Prefix</span><br><span class="line">            path: &quot;/&quot;</span><br><span class="line">            backend:</span><br><span class="line">              service:</span><br><span class="line">                name: whoami</span><br><span class="line">                port:</span><br><span class="line">                  number: 8080</span><br><span class="line">  tls:</span><br><span class="line">    - hosts:</span><br><span class="line">        - &quot;whoami.svc.local&quot;</span><br><span class="line">      secretName: mkcert-ca-issuer-secret</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>现在访问 <code>https://whoami.svc.local</code>，不会再有证书验证失败的问题了，因为签发使用的根证书已在系统中安装：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">$ curl --resolve whoami.svc.local:443:172.31.46.242 https://whoami.svc.local</span><br><span class="line">Hostname: whoami-7f89db7768-8h82h</span><br><span class="line">IP: 127.0.0.1</span><br><span class="line">IP: 10.42.0.105</span><br><span class="line">RemoteAddr: 10.42.0.89:50332</span><br><span class="line">GET / HTTP/1.1</span><br><span class="line">Host: whoami.svc.local</span><br><span class="line">User-Agent: curl/7.81.0</span><br><span class="line">Accept: */*</span><br><span class="line">X-Forwarded-For: 10.42.0.1</span><br><span class="line">X-Forwarded-Host: whoami.svc.local</span><br><span class="line">X-Forwarded-Port: 443</span><br><span class="line">X-Forwarded-Proto: https</span><br><span class="line">X-Forwarded-Scheme: https</span><br><span class="line">X-Real-Ip: 10.42.0.1</span><br><span class="line">X-Request-Id: a742955026ebfb51842b59f13c5c310b</span><br><span class="line">X-Scheme: https</span><br></pre></td></tr></table></figure>
+<h4 id="gateway"><a class="markdownIt-Anchor" href="#gateway"></a> Gateway</h4>
+<p>前面的测试都是为 <code>Ingress</code> 增加 <code>tls</code> 证书，接下来示例为 <code>Gateway</code> 增加 <code>tls</code> 证书。首先创建一个 <code>ClusterIssuer</code>，使用 <code>mkcert</code> 的 <code>CA</code> 证书：</p>
+<blockquote>
+<p><code>kubectl create -n cert-manager secret tls mkcert-ca-secret --cert=/root/.local/share/mkcert/rootCA.pem --key=/root/.local/share/mkcert/rootCA-key.pem</code></p>
+</blockquote>
+<p>然后创建 <code>ClusterIssuer</code>，<code>ClusterIssuer</code> 资源的默认命名空间其实就是 <code>cert-manager</code>，这也是为何上面的根证书要放在 <code>cert-manager</code> 之内：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: cert-manager.io/v1</span><br><span class="line">kind: ClusterIssuer</span><br><span class="line">metadata:</span><br><span class="line">  name: mkcert-ca-cluster-issuer</span><br><span class="line">spec:</span><br><span class="line">  ca:</span><br><span class="line">    secretName: mkcert-ca-secret</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>除此之外，<code>cert-manager</code> 对 <code>Gateway</code> 的支持还处于实验性阶段，需要安装 <code>Gateway CRDs</code>，以及更新 <code>cert-manager</code> 的启动参数：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -f &quot;https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml&quot;</span><br><span class="line">$ kubectl edit deploy -n cert-manager cert-manager</span><br><span class="line">args:</span><br><span class="line">  - --feature-gates=ExperimentalGatewayAPISupport=true</span><br><span class="line">$ kubectl rollout restart deployment cert-manager -n cert-manager</span><br></pre></td></tr></table></figure>
+<p>接下来创建应用、路由、网关以及命名空间这些资源：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: gateway-auto-tls</span><br><span class="line">---</span><br><span class="line">apiVersion: gateway.networking.k8s.io/v1</span><br><span class="line">kind: Gateway</span><br><span class="line">metadata:</span><br><span class="line">  name: gateway</span><br><span class="line">  namespace: gateway-auto-tls</span><br><span class="line">  annotations:</span><br><span class="line">    cert-manager.io/cluster-issuer: mkcert-ca-cluster-issuer</span><br><span class="line">spec:</span><br><span class="line">  gatewayClassName: istio</span><br><span class="line">  listeners:</span><br><span class="line">    - protocol: HTTPS</span><br><span class="line">      port: 9443</span><br><span class="line">      name: web-gw</span><br><span class="line">      hostname: gateway-auto-tls.local.dev</span><br><span class="line">      allowedRoutes:</span><br><span class="line">        kinds:</span><br><span class="line">          - kind: HTTPRoute</span><br><span class="line">        namespaces:</span><br><span class="line">          from: Same</span><br><span class="line">      tls:</span><br><span class="line">        mode: Terminate </span><br><span class="line">        certificateRefs:</span><br><span class="line">          - name: gateway-auto-tls.local.dev-crt </span><br><span class="line">            kind: Secret  </span><br><span class="line">            group: &quot;&quot;</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami</span><br><span class="line">  namespace: gateway-auto-tls</span><br><span class="line">  labels:</span><br><span class="line">    app: whoami</span><br><span class="line">spec:</span><br><span class="line">  containers:</span><br><span class="line">  - name: whoami</span><br><span class="line">    image: traefik/whoami</span><br><span class="line">    imagePullPolicy: IfNotPresent</span><br><span class="line">    ports:</span><br><span class="line">    - containerPort: 80</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-svc</span><br><span class="line">  namespace: gateway-auto-tls</span><br><span class="line">spec:</span><br><span class="line">  ports:</span><br><span class="line">    - port: 8080</span><br><span class="line">      name: http</span><br><span class="line">      targetPort: 80</span><br><span class="line">  selector:</span><br><span class="line">    app: whoami</span><br><span class="line">---</span><br><span class="line">apiVersion: gateway.networking.k8s.io/v1</span><br><span class="line">kind: HTTPRoute</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami-http-route</span><br><span class="line">  namespace: gateway-auto-tls</span><br><span class="line">spec:</span><br><span class="line">  parentRefs:</span><br><span class="line">    - name: gateway</span><br><span class="line">      namespace: gateway-auto-tls</span><br><span class="line">  hostnames:</span><br><span class="line">    - &quot;gateway-auto-tls.local.dev&quot;</span><br><span class="line">  rules:</span><br><span class="line">    - matches:</span><br><span class="line">      - path:</span><br><span class="line">          type: PathPrefix</span><br><span class="line">          value: /whoami</span><br><span class="line">      backendRefs:</span><br><span class="line">        - name: whoami-svc</span><br><span class="line">          port: 8080</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>有几个比较重要的地方需要额外说明：</p>
+<ol>
+<li><code>gateway</code> 中指定使用 <code>cert-manager.io/cluster-issuer: mkcert-ca-cluster-issuer</code> 这个 <code>ClusterIssuer</code> 为生成的证书进行签名；</li>
+<li><code>gateway</code> 中的 <code>listener</code> 指定了 <code>gateway-auto-tls.local.dev</code> 这个域名，并且采用 <code>HTTPS</code> 协议，在 <code>tls</code> 块中制定了使用的证书的 <code>Secret</code> 名称：<code>gateway-auto-tls.local.dev-crt</code>，它会被自动创建出来的；</li>
+<li><code>whoami-http-route</code> 这个路由中，通过域名 <code>gateway-auto-tls.local.dev</code> 要使用哪个 <code>listener</code>；</li>
+</ol>
+<p>执行成功之后会看到如下的资源信息，包括 <code>Service</code>、<code>Pod</code>、<code>Certificate</code>、<code>Secret</code>、<code>HTTPRoute</code>、<code>Gateway</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get svc,pod,httproute,certificate,secret,gateway -n gateway-auto-tls -owide</span><br><span class="line">NAME                    TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)                          AGE   SELECTOR</span><br><span class="line">service/whoami-svc      ClusterIP      10.43.28.118    &lt;none&gt;           8080/TCP                         39m   app=whoami</span><br><span class="line">service/gateway-istio   LoadBalancer   10.43.242.255   172.19.106.245   15021:32704/TCP,9443:32301/TCP   39m   istio.io/gateway-name=gateway</span><br><span class="line"></span><br><span class="line">NAME                                READY   STATUS    RESTARTS   AGE   IP            NODE           NOMINATED NODE   READINESS GATES</span><br><span class="line">pod/gateway-istio-9b68d7c77-rnqjx   1/1     Running   0          39m   10.42.0.122   f00596107-px   &lt;none&gt;           &lt;none&gt;</span><br><span class="line">pod/whoami                          1/1     Running   0          39m   10.42.0.121   f00596107-px   &lt;none&gt;           &lt;none&gt;</span><br><span class="line"></span><br><span class="line">NAME                                                    HOSTNAMES                        AGE</span><br><span class="line">httproute.gateway.networking.k8s.io/whoami-http-route   [&quot;gateway-auto-tls.local.dev&quot;]   39m</span><br><span class="line"></span><br><span class="line">NAME                                                         READY   SECRET                           ISSUER                     STATUS                                          AGE</span><br><span class="line">certificate.cert-manager.io/gateway-auto-tls.local.dev-crt   True    gateway-auto-tls.local.dev-crt   mkcert-ca-cluster-issuer   Certificate is up to date and has not expired   39m</span><br><span class="line"></span><br><span class="line">NAME                                    TYPE                DATA   AGE</span><br><span class="line">secret/gateway-auto-tls.local.dev-crt   kubernetes.io/tls   3      39m</span><br><span class="line"></span><br><span class="line">NAME                                        CLASS   ADDRESS          PROGRAMMED   AGE</span><br><span class="line">gateway.gateway.networking.k8s.io/gateway   istio   172.19.106.245   True         39m</span><br></pre></td></tr></table></figure>
+<p>使用 <code>curl</code> 命令进行测试：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i --resolve gateway-auto-tls.local.dev:9443:172.19.106.245 https://gateway-auto-tls.local.dev:9443/whoami</span><br><span class="line">HTTP/2 200</span><br><span class="line">date: Mon, 04 Mar 2024 02:21:52 GMT</span><br><span class="line">content-length: 1370</span><br><span class="line">content-type: text/plain; charset=utf-8</span><br><span class="line">x-envoy-upstream-service-time: 0</span><br><span class="line">server: istio-envoy</span><br><span class="line"></span><br><span class="line">Hostname: whoami</span><br><span class="line">IP: 127.0.0.1</span><br><span class="line">IP: 10.42.0.121</span><br><span class="line">RemoteAddr: 10.42.0.122:47628</span><br><span class="line">GET /whoami HTTP/1.1</span><br><span class="line">Host: gateway-auto-tls.local.dev:9443</span><br><span class="line">User-Agent: curl/7.81.0</span><br><span class="line">Accept: */*</span><br><span class="line">X-B3-Sampled: 1</span><br><span class="line">X-B3-Spanid: 944db0a38d86f82d</span><br><span class="line">X-B3-Traceid: 8ca64ce6ed4051d4944db0a38d86f82d</span><br><span class="line">X-Envoy-Attempt-Count: 1</span><br><span class="line">X-Envoy-Decorator-Operation: whoami-svc.gateway-auto-tls.svc.cluster.local:8080/*</span><br><span class="line">X-Envoy-Internal: true</span><br><span class="line">X-Envoy-Peer-Metadata: ChQKDkFQUF9DT05UQUlORVJTEgIaAAoaCgpDTFVTVEVSX0lEEgwaCkt1YmVybmV0ZXMKHQoMSU5TVEFOQ0VfSVBTEg0aCzEwLjQyLjAuMTIyChkKDUlTVElPX1ZFUlNJT04SCBoGMS4yMC4zCrsBCgZMQUJFTFMSsAEqrQEKIgoVaXN0aW8uaW8vZ2F0ZXdheS1uYW1lEgkaB2dhdGV3YXkKMgofc2VydmljZS5pc3Rpby5pby9jYW5vbmljYWwtbmFtZRIPGg1nYXRld2F5LWlzdGlvCi8KI3NlcnZpY2UuaXN0aW8uaW8vY2Fub25pY2FsLXJldmlzaW9uEggaBmxhdGVzdAoiChdzaWRlY2FyLmlzdGlvLmlvL2luamVjdBIHGgVmYWxzZQoaCgdNRVNIX0lEEg8aDWNsdXN0ZXIubG9jYWwKJwoETkFNRRIfGh1nYXRld2F5LWlzdGlvLTliNjhkN2M3Ny1ybnFqeAofCglOQU1FU1BBQ0USEhoQZ2F0ZXdheS1hdXRvLXRscwpaCgVPV05FUhJRGk9rdWJlcm5ldGVzOi8vYXBpcy9hcHBzL3YxL25hbWVzcGFjZXMvZ2F0ZXdheS1hdXRvLXRscy9kZXBsb3ltZW50cy9nYXRld2F5LWlzdGlvCiAKDVdPUktMT0FEX05BTUUSDxoNZ2F0ZXdheS1pc3Rpbw==</span><br><span class="line">X-Envoy-Peer-Metadata-Id: router~10.42.0.122~gateway-istio-9b68d7c77-rnqjx.gateway-auto-tls~gateway-auto-tls.svc.cluster.local</span><br><span class="line">X-Forwarded-For: 10.42.0.1</span><br><span class="line">X-Forwarded-Proto: https</span><br><span class="line">X-Request-Id: 7d4a7ace-3036-9182-908c-1392e5e98eae</span><br></pre></td></tr></table></figure>
+<h4 id="certificate"><a class="markdownIt-Anchor" href="#certificate"></a> Certificate</h4>
+<p>如果想直接生成一个证书，而不是随 <code>Ingress</code> 或者 <code>Gateway</code> 自动生成，可以通过创建 <code>Certificate</code> 这么一个资源，<code>Certificate</code> 以人类可读的方式描述了一个证书，然后被 <code>cert-manager</code> 处理签发。为了演示生成更多证书格式的功能，这里需要对 <code>cert-manager</code> 和 <code>cert-manager-webhook</code> 进行更新：</p>
+<blockquote>
+<p><code>kubectl edit deploy -n cert-manager cert-manager</code><br />
+<code>kubectl edit deploy -n cert-manager cert-manager-webhook</code></p>
+</blockquote>
+<p>添加如下的参数：</p>
+<blockquote>
+<p><code>--feature-gates=AdditionalCertificateOutputFormats=true</code></p>
+</blockquote>
+<p>然后创建下面的资源：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Namespace</span><br><span class="line">metadata:</span><br><span class="line">  name: example-crt</span><br><span class="line">---</span><br><span class="line">apiVersion: cert-manager.io/v1</span><br><span class="line">kind: Certificate</span><br><span class="line">metadata:</span><br><span class="line">  name: example-crt</span><br><span class="line">  namespace: example-crt</span><br><span class="line">spec:</span><br><span class="line">  secretName: example-crt</span><br><span class="line">  additionalOutputFormats:</span><br><span class="line">    - type: CombinedPEM</span><br><span class="line">    - type: DER</span><br><span class="line">  duration: 2160h # 90d</span><br><span class="line">  renewBefore: 360h # 15d</span><br><span class="line">  subject:</span><br><span class="line">    organizations:</span><br><span class="line">      - jetstack</span><br><span class="line">  commonName: example.dev.local</span><br><span class="line">  isCA: false</span><br><span class="line">  privateKey:</span><br><span class="line">    algorithm: RSA</span><br><span class="line">    encoding: PKCS1</span><br><span class="line">    size: 2048</span><br><span class="line">  usages:</span><br><span class="line">    - server auth</span><br><span class="line">    - client auth</span><br><span class="line">  dnsNames:</span><br><span class="line">    - example.dev.local</span><br><span class="line">    - www.example.dev.local</span><br><span class="line">  ipAddresses:</span><br><span class="line">    - 192.168.0.5</span><br><span class="line">  issuerRef:</span><br><span class="line">    name: mkcert-ca-cluster-issuer</span><br><span class="line">    kind: ClusterIssuer</span><br><span class="line">    group: cert-manager.io</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>这里会使用上一节创建的 <code>mkcert-ca-cluster-issuer</code> 签发证书，执行成功之后会创建如下的资源：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get certificate,certificaterequest,secret -n example-crt -o wide</span><br><span class="line">NAME                                      READY   SECRET        ISSUER                     STATUS                                          AGE</span><br><span class="line">certificate.cert-manager.io/example-crt   True    example-crt   mkcert-ca-cluster-issuer   Certificate is up to date and has not expired   10m</span><br><span class="line"></span><br><span class="line">NAME                                               APPROVED   DENIED   READY   ISSUER                     REQUESTOR                                         STATUS                                         AGE</span><br><span class="line">certificaterequest.cert-manager.io/example-crt-1   True                True    mkcert-ca-cluster-issuer   system:serviceaccount:cert-manager:cert-manager   Certificate fetched from issuer successfully   10m</span><br><span class="line"></span><br><span class="line">NAME                 TYPE                DATA   AGE</span><br><span class="line">secret/example-crt   kubernetes.io/tls   5      10m</span><br><span class="line">$ kubectl describe secret example-crt -n example-crt</span><br><span class="line">Name:         example-crt</span><br><span class="line">Namespace:    example-crt</span><br><span class="line">Labels:       controller.cert-manager.io/fao=true</span><br><span class="line">Annotations:  cert-manager.io/alt-names: example.dev.local,www.example.dev.local</span><br><span class="line">              cert-manager.io/certificate-name: example-crt</span><br><span class="line">              cert-manager.io/common-name: example.dev.local</span><br><span class="line">              cert-manager.io/ip-sans: 192.168.0.5</span><br><span class="line">              cert-manager.io/issuer-group: cert-manager.io</span><br><span class="line">              cert-manager.io/issuer-kind: ClusterIssuer</span><br><span class="line">              cert-manager.io/issuer-name: mkcert-ca-cluster-issuer</span><br><span class="line">              cert-manager.io/subject-organizations: jetstack</span><br><span class="line">              cert-manager.io/uri-sans:</span><br><span class="line"></span><br><span class="line">Type:  kubernetes.io/tls</span><br><span class="line"></span><br><span class="line">Data</span><br><span class="line">====</span><br><span class="line">ca.crt:            1639 bytes</span><br><span class="line">key.der:           1192 bytes</span><br><span class="line">tls-combined.pem:  3177 bytes</span><br><span class="line">tls.crt:           1497 bytes</span><br><span class="line">tls.key:           1679 bytes</span><br></pre></td></tr></table></figure>
+<p>将 <code>tls.crt</code> 导出进行查看：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get -n example-crt secret example-crt -ogo-template=&#x27;&#123;&#123;index .data &quot;tls.crt&quot;&#125;&#125;&#x27; | base64 -d &gt; example-crt-tls.crt</span><br><span class="line">$ openssl x509 -in example-crt-tls.crt -noout -text</span><br><span class="line">Certificate:</span><br><span class="line">    Data:</span><br><span class="line">        Version: 3 (0x2)</span><br><span class="line">        Serial Number:</span><br><span class="line">            7e:20:cf:4f:9b:7e:cc:46:25:74:af:1a:2c:1d:76:0d</span><br><span class="line">        Signature Algorithm: sha256WithRSAEncryption</span><br><span class="line">        Issuer: O = mkcert development CA, OU = root@F00596107-PX, CN = mkcert root@F00596107-PX</span><br><span class="line">        Validity</span><br><span class="line">            Not Before: Mar  4 03:25:59 2024 GMT</span><br><span class="line">            Not After : Jun  2 03:25:59 2024 GMT</span><br><span class="line">        Subject: O = jetstack, CN = example.dev.local</span><br><span class="line">        Subject Public Key Info:</span><br><span class="line">            Public Key Algorithm: rsaEncryption</span><br><span class="line">                Public-Key: (2048 bit)</span><br><span class="line">                Modulus:</span><br><span class="line">                    ...</span><br><span class="line">                Exponent: 65537 (0x10001)</span><br><span class="line">        X509v3 extensions:</span><br><span class="line">            X509v3 Extended Key Usage:</span><br><span class="line">                TLS Web Server Authentication, TLS Web Client Authentication</span><br><span class="line">            X509v3 Basic Constraints: critical</span><br><span class="line">                CA:FALSE</span><br><span class="line">            X509v3 Authority Key Identifier:</span><br><span class="line">                68:7C:66:79:31:AC:0C:88:BA:5D:58:86:BD:94:A3:89:95:D3:B2:2F</span><br><span class="line">            X509v3 Subject Alternative Name:</span><br><span class="line">                DNS:example.dev.local, DNS:www.example.dev.local, IP Address:192.168.0.5</span><br><span class="line">    Signature Algorithm: sha256WithRSAEncryption</span><br><span class="line">    Signature Value:</span><br><span class="line">        ...</span><br></pre></td></tr></table></figure>
+<h3 id="参考链接"><a class="markdownIt-Anchor" href="#参考链接"></a> 参考链接</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://www.bastionxp.com/blog/how-to-create-self-signed-ssl-tls-x.509-certificates-using-openssl/">https://www.bastionxp.com/blog/how-to-create-self-signed-ssl-tls-x.509-certificates-using-openssl/</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/linianhui/p/security-x509.html">https://www.cnblogs.com/linianhui/p/security-x509.html</a></li>
+<li><a target="_blank" rel="noopener" href="https://ubuntu.com/server/docs/security-trust-store">https://ubuntu.com/server/docs/security-trust-store</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.jokerbai.com/archives/kubernetes-shi-yong-cert-manager-qian-fa-zheng-shu">https://www.jokerbai.com/archives/kubernetes-shi-yong-cert-manager-qian-fa-zheng-shu</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2024/02/29/K8S/cert-manage-service/" title="K8S 证书管理">https://blog.fudenglong.site/2024/02/29/K8S/cert-manage-service/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E8%AF%81%E4%B9%A6/" rel="tag"># 证书</a>
+              <a href="/tags/cert-manager/" rel="tag"># cert-manager</a>
+              <a href="/tags/mkcert/" rel="tag"># mkcert</a>
+              <a href="/tags/openssl/" rel="tag"># openssl</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/02/04/Network/linux-tun-device/" rel="prev" title="Linux tun 设备介绍">
+                  <i class="fa fa-angle-left"></i> Linux tun 设备介绍
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/03/01/K8S/gateway/" rel="next" title="K8S Gateway">
+                  K8S Gateway <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2024/02/29/K8S/cert-manage-service/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

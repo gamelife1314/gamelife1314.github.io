@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Rust 提供了一种非常好的并发使用方法，它不强制所有程序采用单一风格，而是通过安全地支持多种风格，并由编译器强制执行。我们将介绍三种使用 Rust 线程的方法：  Fork-join 并行； 通道（Chanel）； 共享可变状态；  在此过程中，将使用到目前为止所学的有关 Rust 语言的所有内容，Rust 对引用、可变性和生命周期的关注在单线程程序中足够有价值，但在并发编程中，这些规则的真正意">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】并发">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Rust 提供了一种非常好的并发使用方法，它不强制所有程序采用单一风格，而是通过安全地支持多种风格，并由编译器强制执行。我们将介绍三种使用 Rust 线程的方法：  Fork-join 并行； 通道（Chanel）； 共享可变状态；  在此过程中，将使用到目前为止所学的有关 Rust 语言的所有内容，Rust 对引用、可变性和生命周期的关注在单线程程序中足够有价值，但在并发编程中，这些规则的真正意">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/threads-case-multiple-threads.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/rayon-theory.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/channel-exmaple.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/unix-channel.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/send-pipeline.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/mpsc-channel.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/send-sync-types.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/rc-string-not-sync-send.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/mc-channel.png">
+<meta property="article:published_time" content="2022-05-03T03:56:51.000Z">
+<meta property="article:modified_time" content="2022-05-03T03:56:51.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta property="article:tag" content="并发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/threads-case-multiple-threads.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/","path":"2022/05/03/Rust/【Rust】并发/","title":"【Rust】并发"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】并发 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#fork-join-parallelism"><span class="nav-number">1.</span> <span class="nav-text"> Fork-Join Parallelism</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BA%BF%E7%A8%8B%E5%88%9B%E5%BB%BA%E5%92%8C%E7%AD%89%E5%BE%85"><span class="nav-number">1.1.</span> <span class="nav-text"> 线程创建和等待</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%B7%A8%E7%BA%BF%E7%A8%8B%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text"> 跨线程错误处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%B7%A8%E7%BA%BF%E7%A8%8B%E5%85%B1%E4%BA%AB%E4%B8%8D%E5%8F%AF%E5%8F%98%E6%95%B0%E6%8D%AE"><span class="nav-number">1.3.</span> <span class="nav-text"> 跨线程共享不可变数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#rayon"><span class="nav-number">1.4.</span> <span class="nav-text"> Rayon</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#channel"><span class="nav-number">2.</span> <span class="nav-text"> Channel</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#send"><span class="nav-number">2.1.</span> <span class="nav-text"> Send</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#receiving"><span class="nav-number">2.2.</span> <span class="nav-text"> Receiving</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pipeline"><span class="nav-number">2.3.</span> <span class="nav-text"> Pipeline</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E5%92%8C%E6%80%A7%E8%83%BD"><span class="nav-number">2.4.</span> <span class="nav-text"> 功能和性能</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#send-sync"><span class="nav-number">2.5.</span> <span class="nav-text"> Send、Sync</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BF%AD%E4%BB%A3-pipeline"><span class="nav-number">2.6.</span> <span class="nav-text"> 迭代 Pipeline</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#beyond-pipelines"><span class="nav-number">2.7.</span> <span class="nav-text"> Beyond Pipelines</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E5%8F%AF%E5%8F%98%E7%8A%B6%E6%80%81"><span class="nav-number">3.</span> <span class="nav-text"> 共享可变状态</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF-mutex"><span class="nav-number">3.1.</span> <span class="nav-text"> 什么是 Mutex？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#mutext"><span class="nav-number">3.2.</span> <span class="nav-text"> Mutex&lt;T&gt;</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#mut-%E5%92%8C-mutex"><span class="nav-number">3.3.</span> <span class="nav-text"> mut 和 Mutex</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#mutex-%E6%97%A0%E6%B3%95%E8%A7%A3%E5%86%B3%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">3.4.</span> <span class="nav-text"> Mutex 无法解决的问题</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#deadlock"><span class="nav-number">3.4.1.</span> <span class="nav-text"> Deadlock</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#poisoned-mutexes"><span class="nav-number">3.4.2.</span> <span class="nav-text"> Poisoned Mutexes</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%9A%E6%B6%88%E8%B4%B9%E8%80%85%E9%80%9A%E9%81%93"><span class="nav-number">3.5.</span> <span class="nav-text"> 多消费者通道</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%BB%E5%86%99%E9%94%81"><span class="nav-number">3.6.</span> <span class="nav-text"> 读写锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9D%A1%E4%BB%B6%E5%8F%98%E9%87%8F"><span class="nav-number">3.7.</span> <span class="nav-text"> 条件变量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E5%AD%90%E9%94%81"><span class="nav-number">3.8.</span> <span class="nav-text"> 原子锁</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%A8%E5%B1%80%E5%8F%98%E9%87%8F"><span class="nav-number">3.9.</span> <span class="nav-text"> 全局变量</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】并发 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】并发
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-05-03 11:56:51" itemprop="dateCreated datePublished" datetime="2022-05-03T11:56:51+08:00">2022-05-03</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>12k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>44 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>Rust 提供了一种非常好的并发使用方法，它不强制所有程序采用单一风格，而是通过安全地支持多种风格，并由编译器强制执行。我们将介绍三种使用 <code>Rust</code> 线程的方法：</p>
+<ul>
+<li><code>Fork-join</code> 并行；</li>
+<li>通道（<code>Chanel</code>）；</li>
+<li>共享可变状态；</li>
+</ul>
+<p>在此过程中，将使用到目前为止所学的有关 <code>Rust</code> 语言的所有内容，<code>Rust</code> 对引用、可变性和生命周期的关注在单线程程序中足够有价值，但在并发编程中，这些规则的真正意义变得显而易见。</p>
+<h3 id="fork-join-parallelism"><a class="markdownIt-Anchor" href="#fork-join-parallelism"></a> <code>Fork-Join Parallelism</code></h3>
+<p>最简单的用于多线程的案例是处理互不相干的任务，例如，我们要处理大量的文档，可能会这样写：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">process_files</span>(filenames: <span class="type">Vec</span>&lt;<span class="type">String</span>&gt;) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">document</span> <span class="keyword">in</span> filenames &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">text</span> = <span class="title function_ invoke__">load</span>(&amp;document)?; <span class="comment">// read source file</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">results</span> = <span class="title function_ invoke__">process</span>(text); <span class="comment">// compute statistics</span></span><br><span class="line">        <span class="title function_ invoke__">save</span>(&amp;document, results)?; <span class="comment">// write output file</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<p>因为每个文档是被单独处理的，所以很容易分成线程来加速处理，如下图所示：</p>
+<p><img data-src="threads-case-multiple-threads.png" alt="" /></p>
+<p>这种模式称为 <code>fork-join</code>，<code>fork</code> 就是启动一个新线程，<code>join</code> 一个线程就是等待它完成，这种模式之所以具有吸引力，有以下原因：</p>
+<ul>
+<li>
+<p>没有瓶颈，<code>fork-join</code> 中没有共享资源的锁定，唯一一次任何线程必须等待另一个线程是在最后。同时，每个线程都可以自由运行，这有助于保持较低的任务切换开销；</p>
+</li>
+<li>
+<p>性能提升明显，在最好的情况下，通过启动<code>4</code>个线程，我们可以在<code>4</code>分之一的时间内完成我们的工作，然而我们不应该期望达到这种理想加速。但是对于任何具有独立工作单元的 <code>CPU</code> 密集型程序都可以期待显着的提升；</p>
+</li>
+<li>
+<p>很容易保证序的正确性，只要线程真正隔离，<code>fork-join</code> 程序就是确定性的，无论线程速度如何变化，程序总是产生相同的结果，这是一个没有竞争条件的并发模型。</p>
+</li>
+</ul>
+<h4 id="线程创建和等待"><a class="markdownIt-Anchor" href="#线程创建和等待"></a> 线程创建和等待</h4>
+<p>可以使用 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/thread/fn.spawn.html"><code>std::thread::spawn</code></a> 启动一个新线程：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::thread;</span><br><span class="line">thread::<span class="title function_ invoke__">spawn</span>(|| &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;hello from a child thread&quot;</span>);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>它接受一个参数，一个 <code>FnOnce</code> 闭包或函数，<code>Rust</code> 启动一个新线程来运行该闭包或函数的代码。新线程是一个真正的操作系统线程，具有自己的堆栈，就像 <code>C++</code>、<code>C#</code> 和 <code>Java</code> 中的线程一样。</p>
+<p>下面是一个实现本节开始并行处理文档的例子：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::&#123;io, thread&#125;;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">process_files_in_parallel</span>(filenames: <span class="type">Vec</span>&lt;<span class="type">String</span>&gt;) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">    <span class="comment">// Divide the work into several chunks.</span></span><br><span class="line">    <span class="keyword">const</span> NTHREADS: <span class="type">usize</span> = <span class="number">8</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">worklists</span> = <span class="title function_ invoke__">split_vec_into_chunks</span>(filenames, NTHREADS);</span><br><span class="line">    <span class="comment">// Fork: Spawn a thread to handle each chunk.</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">thread_handles</span> = <span class="built_in">vec!</span>[];</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">worklist</span> <span class="keyword">in</span> worklists &#123;</span><br><span class="line">        thread_handles.<span class="title function_ invoke__">push</span>(thread::<span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> || <span class="title function_ invoke__">process_files</span>(worklist)));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Join: Wait for all threads to finish.</span></span><br><span class="line">    <span class="keyword">for</span> <span class="variable">handle</span> <span class="keyword">in</span> thread_handles &#123;</span><br><span class="line">        handle.<span class="title function_ invoke__">join</span>().<span class="title function_ invoke__">unwrap</span>()?;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用 <code>.spawn()</code> 启动一个新线程处理 <code>worklist</code>，它返回 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/thread/struct.JoinHandle.html"><code>std::thread::JoinHandle</code></a>，我们使用 <code>move</code> 将 <code>worklist</code> 放进我们新建的闭包函数，这个代价是很低的，不涉及到内存的申请和释放，只是所有权的转移而已。</p>
+<p>然后我们通过调用 <code>JoinHandle</code> 的 <code>.join()</code> 方法等待每个线程完成。等待线程完成通常是正确性所必需的，因为 <code>Rust</code> 程序在 <code>main</code> 返回时立即退出，即使其他线程仍在运行，这样未结束的线程就被杀死了。如果这不是想要的，确保在从 <code>main</code> 返回之前等待子线程完成。</p>
+<h4 id="跨线程错误处理"><a class="markdownIt-Anchor" href="#跨线程错误处理"></a> 跨线程错误处理</h4>
+<p>我们再来看看 <code>.join()</code> 的方法的使用，它实际上为我们做了两件事：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">handle.<span class="title function_ invoke__">join</span>().<span class="title function_ invoke__">unwrap</span>()?;</span><br></pre></td></tr></table></figure>
+<p>首先，<code>handle.join()</code> 返回一个 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/thread/type.Result.html"><code>std::thread::Result</code></a> 即使子线程发生 <code>panic</code>，这使得 <code>Rust</code> 中的线程比 <code>C++</code> 中的线程更加健壮。在 <code>C++</code> 中，越界数组访问是未定义的行为，并且无法保护系统的其余部分免受影响。在 <code>Rust</code> 中，<code>panic</code> 是安全的并且每个线程都是安全的，线程之间的边界充当<code>panic</code>的防火墙，<code>panic</code>不会自动从一个线程传播到依赖它的线程。而是一个线程中的 <code>panic</code> 会在其他线程中报告为错误结果，整个程序可以轻松恢复。</p>
+<p>但是，在我们的程序中，我们没有处理任何错误。而是，我们立即在这个 <code>Result</code> 上使用 <code>.unwrap()</code>，断言它是 <code>Ok</code> 结果而不是 <code>Err</code> 结果。如果子线程确实 <code>panic</code>，那么这个断言就会失败，所以父线程也会 <code>panic</code>，我们明确地将<code>panic</code>从子线程传播到父线程。</p>
+<p>其次，<code>handle.join()</code> 将子线程的返回值传递回父线程。我们传递给 <code>spawn</code> 的闭包的返回类型是 <code>io::Result&lt;()&gt;</code>，因为这是 <code>process_files</code> 返回的，这个返回值不会被丢弃。当子线程完成时，它的返回值被保存，并且 <code>JoinHandle::join()</code> 将该值传回给父线程。</p>
+<p>在这个程序中，<code>handle.join()</code> 返回的完整类型是 <code>std::thread::Result&lt;std::io::Result&lt;()&gt;&gt;</code>。<code>thread::Result</code> 是 <code>spawn/join API</code> 的一部分，<code>io::Result</code> 是我们应用程序的一部分。</p>
+<p>在我们的例子中，在展开 <code>thread::Result</code> 之后，我们在 <code>io::Result</code> 上使用 <code>?</code> 运算符，将 <code>I/O</code> 错误从子线程显式传播到父线程。</p>
+<p>所有这些似乎都相当复杂，但是 <code>Rust</code> 中只有一行代码。<code>Java</code> 和 <code>C#</code> 中的默认行为是将子线程中的异常转储到终端然后丢掉。在 <code>C++</code> 中，默认设置是中止进程。在 <code>Rust</code> 中，错误是 <code>Result</code>（数据）而不是异常（控制流），它们像任何其他值一样跨线程传递。当使用低级线程 <code>API</code> 时，都需要编写对错误的处理，但 <code>Rust</code> 中只要处理 <code>Result</code> 即可。</p>
+<h4 id="跨线程共享不可变数据"><a class="markdownIt-Anchor" href="#跨线程共享不可变数据"></a> 跨线程共享不可变数据</h4>
+<p>假设我们正在进行的分析需要一个包含大量英语单词和短语的数据库，需要对我们之前的方法进行修改：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// before</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">process_files</span>(filenames: <span class="type">Vec</span>&lt;<span class="type">String</span>&gt;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// after</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">process_files</span>(filenames: <span class="type">Vec</span>&lt;<span class="type">String</span>&gt;, glossary: &amp;GigabyteMap)</span><br></pre></td></tr></table></figure>
+<p>由于 <code>glossary</code> 比较大，所以我们通过引用传递，但是我们如何在多线程之间使用它，如果仅仅是下面这样处理，肯定会报错：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">process_files_in_parallel</span>(filenames: <span class="type">Vec</span>&lt;<span class="type">String</span>&gt;, glossary: &amp;GigabyteMap) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt;</span><br><span class="line">&#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">for</span> <span class="variable">worklist</span> <span class="keyword">in</span> worklists &#123;</span><br><span class="line">    thread_handles.<span class="title function_ invoke__">push</span>(</span><br><span class="line">      <span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> || <span class="title function_ invoke__">process_files</span>(worklist, glossary)) <span class="comment">// error</span></span><br><span class="line">    );</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>编译错误：</p>
+<pre><code>error[E0621]: explicit lifetime required in the type of `glossary` --&gt; src/lib.rs:75:17
+|
+61 | glossary: &amp;GigabyteMap)
+| ------------ help: add explicit lifetime `'static` to the
+type of `glossary`: `&amp;'static BTreeMap&lt;String,
+String&gt;`
+...
+75 | spawn(move || process_files(worklist, glossary))
+| ^^^^^ lifetime `'static` required
+</code></pre>
+<p>因为，<code>spawn</code> 启动独立线程，<code>Rust</code> 无法知道子线程将运行多长时间，因此它假设最坏的情况：它假设即使在父线程完成并且父线程中的所有值都消失后，子线程仍可能继续运行。显然，如果子线程要持续那么长时间，它运行的闭包也需要持续那么长时间，但是这个闭包有一个有限的生命周期：它依赖于<code>glossary</code>的引用。</p>
+<p><code>Rust</code> 拒绝此代码是正确的！我们编写此函数的方式是，一个线程可能会遇到 <code>I/O</code> 错误，导致 <code>process_files_in_parallel</code> 在其他线程完成之前退出，子线程最终可能会在主线程释放 <code>glossary</code> 后尝试使用它。</p>
+</div>
+<p>似乎 <code>spawn</code> 过于开放，无法支持跨线程共享引用。我们之前的解决方案是使用<code>move</code>闭包将数据的所有权转移到新线程。这在这里行不通，因为我们有很多线程都需要使用相同的数据。一种安全的替代方法是为每个线程克隆整个词汇表，但由于它很大，我们希望避免这种情况。幸运的是，标准库提供了 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/sync/struct.Arc.html"><code>std::sync::Arc</code></a>。</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::sync::Arc;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">process_files_in_parallel</span>(filenames: <span class="type">Vec</span>&lt;<span class="type">String</span>&gt;, glossary: Arc&lt;GigabyteMap&gt;) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt;</span><br><span class="line">&#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">for</span> <span class="variable">worklist</span> <span class="keyword">in</span> worklists &#123;</span><br><span class="line">      <span class="comment">// This call to .clone() only clones the Arc and bumps the</span></span><br><span class="line">      <span class="comment">// reference count. It does not clone the GigabyteMap.</span></span><br><span class="line">      <span class="keyword">let</span> <span class="variable">glossary_for_child</span> = glossary.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">      thread_handles.<span class="title function_ invoke__">push</span>(</span><br><span class="line">          <span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> || <span class="title function_ invoke__">process_files</span>(worklist, &amp;glossary_for_child))</span><br><span class="line">      );</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们更改了<code>glossary</code>的类型：要并行运行分析，调用者必须传入一个 <code>Arc&lt;GigabyteMap&gt;</code>，这是一个指向已移动到堆中的 <code>GigabyteMap</code> 的智能指针，通过使用 <code>Arc::new(giga_map)</code> 创建。</p>
+<p>当我们调用<code>glossary.clone()</code> 时，我们正在创建 <code>Arc</code> 智能指针的副本，而不是整个 <code>GigabyteMap</code>，这相当于增加引用计数。</p>
+<p>通过此更改，程序可以编译并运行，因为它不再依赖于引用生命周期。只要任何线程拥有 <code>Arc&lt;GigabyteMap&gt;</code>，它就会使地图保持活动状态，即使父线程提前退出。也不存在任何数据竞争，因为 <code>Arc</code> 中的数据是不可变的。</p>
+</div>
+<h4 id="rayon"><a class="markdownIt-Anchor" href="#rayon"></a> <a target="_blank" rel="noopener" href="https://crates.io/crates/rayon"><code>Rayon</code></a></h4>
+<p><a target="_blank" rel="noopener" href="https://crates.io/crates/rayon"><code>Rayon</code></a> 提供了两种并发机制：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> rayon::prelude::*;</span><br><span class="line"></span><br><span class="line"><span class="comment">// &quot;do 2 things in parallel&quot;</span></span><br><span class="line"><span class="keyword">let</span> (v1, v2) = rayon::<span class="title function_ invoke__">join</span>(fn1, fn2);</span><br><span class="line"></span><br><span class="line"><span class="comment">// &quot;do N things in parallel&quot;</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">sum_of_squares</span>(giant_vector: &amp;[<span class="type">i32</span>]) <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">    giant_vector.<span class="title function_ invoke__">par_iter</span>() <span class="comment">// &lt;-- just change that!</span></span><br><span class="line">         .<span class="title function_ invoke__">map</span>(|&amp;i| i * i)</span><br><span class="line">         .<span class="title function_ invoke__">sum</span>()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>rayon::join(fn1, fn2)</code> 调用这两个函数并返回两个结果。<code>.par_iter()</code> 方法创建一个 <code>ParallelIterator</code>，一个带有 <code>map</code>、<code>filter</code> 和其他方法的值，很像 <code>Rust</code> 迭代器。在这两种情况下，<code>Rayon</code> 都会尽可能使用自己的工作线程池来分散工作。只需告诉 <code>Rayon</code> 可以并行完成哪些任务，<code>Rayon</code> 管理线程并尽其所能分配工作。</p>
+<p>下图说明了对调用 <code>giant_vector.par_iter().for_each(...)</code> 的两种方式。 <code>(a)</code> <code>Rayon</code> 就像它为向量中的每个元素生成一个线程一样。 <code>(b)</code> 在幕后，<code>Rayon</code> 每个 <code>CPU</code> 核心有一个工作线程，效率更高，这个工作线程池由程序的所有线程共享。当数以千计的任务同时进入时，<code>Rayon</code> 会分工。</p>
+<p><img data-src="rayon-theory.png" alt="" /></p>
+<p>使用 <code>Rayon</code> 编写的 <code>process_files_in_parallel</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> rayon::prelude::*;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">process_files_in_parallel</span>(filenames: <span class="type">Vec</span>&lt;<span class="type">String</span>&gt;, glossary: &amp;GigabyteMap) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt;</span><br><span class="line">&#123;</span><br><span class="line">  filenames.<span class="title function_ invoke__">par_iter</span>()</span><br><span class="line">    .<span class="title function_ invoke__">map</span>(|filename| <span class="title function_ invoke__">process_file</span>(filename, glossary))</span><br><span class="line">    .<span class="title function_ invoke__">reduce_with</span>(|r1, r2| &#123;</span><br><span class="line">      <span class="keyword">if</span> r1.<span class="title function_ invoke__">is_err</span>() &#123; r1 &#125; <span class="keyword">else</span> &#123; r2 &#125;</span><br><span class="line">    &#125;)</span><br><span class="line">    .<span class="title function_ invoke__">unwrap_or</span>(<span class="title function_ invoke__">Ok</span>(()))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在背后，<code>Rayon</code> 使用<code>work-stealing</code>技术动态平衡线程间的工作负载。<code>Rayon</code> 支持跨线程共享引用，任何发生在幕后的并行处理都保证在 <code>reduce_with</code> 返回时完成。</p>
+<h3 id="channel"><a class="markdownIt-Anchor" href="#channel"></a> <code>Channel</code></h3>
+<p>通道是用于将值从一个线程发送到另一个线程的单向管道，换句话说，它是一个线程安全的队列。</p>
+<p>下图说明了如何使用通道，它们有点像 <code>Unix</code> 管道：一端用于发送数据，另一端用于接收，两端通常由两个不同的线程拥有。但是 <code>Unix</code> 管道用于发送字节，而通道用于发送 <code>Rust</code> 值。<code>sender.send(item)</code> 将单个值放入通道，<code>receiver.recv()</code> 删除一个，所有权从发送线程转移到接收线程，如果通道为空，<code>receiver.recv()</code> 会阻塞，直到发送一个值。</p>
+<p><img data-src="channel-exmaple.png" alt="" /></p>
+<p>使用通道，线程可以通过相互传递值来进行通信。这是线程协同工作的一种非常简单的方式，无需使用锁定或共享内存。</p>
+<p>这不是一项新技术，<code>Erlang</code> 已经有 <code>30</code> 年的隔离进程和消息传递了。<code>Unix</code> 管道已经存在了将近 <code>50</code> 年。我们倾向于认为管道提供了灵活性和可组合性，而不是并发性，但实际上，它们完成了上述所有工作。下图是 <code>Unix</code> 管道的示例，所有三个程序都可以同时运行。</p>
+<p><img data-src="unix-channel.png" alt="" /></p>
+<p><code>Rust</code> 通道比 <code>Unix</code> 管道快。发送一个值会移动它而不是复制它，即使你正在移动包含许多兆字节数据的数据结构也是很快的。</p>
+<h4 id="send"><a class="markdownIt-Anchor" href="#send"></a> <code>Send</code></h4>
+<p>接下来我们将使用通道来构建一个创建倒排索引的并发程序，倒排索引是搜索引擎的关键要素之一，每个搜索引擎都处理特定的文档集合，倒排索引是告诉哪些单词出现在哪里的数据库。</p>
+<p>我们的程序结构为管道，如下图所示。管道只是使用通道的众多方式之一。</p>
+<p><img data-src="send-pipeline.png" alt="" /></p>
+<p>我们将使用总共五个线程，每个线程执行不同的任务。每个线程在程序的生命周期内不断产生输出。例如，第一个线程只是将源文档从磁盘一个一个地读取到内存中。（我们需要一个线程来执行此操作，因为我们将在这里编写最简单的代码，使用 <code>fs::read_to_string</code>，这是一个阻塞 <code>API</code>，我们不希望 <code>CPU</code> 在磁盘工作时处于空闲状态。）这个阶段的输出是每个文档一个长字符串，所以这个线程通过一个字符串通道连接到下一个线程。</p>
+<p>首先我们创建新线程处理文档，假设这里的 <code>documents</code> 是 <code>Vec&lt;PathBuf&gt;</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::&#123;fs, thread&#125;;</span><br><span class="line"><span class="keyword">use</span> std::sync::mpsc;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> (sender, receiver) = mpsc::<span class="title function_ invoke__">channel</span>();</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">handle</span> = thread::<span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> || &#123;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">filename</span> <span class="keyword">in</span> documents &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">text</span> = fs::<span class="title function_ invoke__">read_to_string</span>(filename)?;</span><br><span class="line">        <span class="keyword">if</span> sender.<span class="title function_ invoke__">send</span>(text).<span class="title function_ invoke__">is_err</span>() &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p><code>Channel</code> 是 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/sync/mpsc/index.html"><code>std::sync::mpsc</code></a> 模块的一部分，首先来看创建通道的代码：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> (sender, receiver) = mpsc::<span class="title function_ invoke__">channel</span>();</span><br></pre></td></tr></table></figure>
+<p><code>.channel()</code> 返回了一对值，发送通道和接收通道，我们将使用这个通道来发送每个文件的文本，所以我们有一个 <code>Sender&lt;String&gt;</code> 类型的发送者和一个 <code>Receiver&lt;String&gt;</code> 类型的接收者。我们可以通过编写 <code>mpsc::channel::&lt;String&gt;()</code> 明确地请求字符串通道。但是，我们让 <code>Rust</code> 的类型推断来解决这个问题。</p>
+<p>我们使用 <code>thread::spawn</code> 创建了新线程，并且使用 <code>move</code> 将 <code>sender</code>的所有权转移给我们新建的线程：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">handle</span> = thread::<span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> ||</span><br></pre></td></tr></table></figure>
+<p>在成功读取到数据之后，我们使用将内容发送到通道中：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> sender.<span class="title function_ invoke__">send</span>(text).<span class="title function_ invoke__">is_err</span>() &#123;</span><br></pre></td></tr></table></figure>
+<p><code>sender.send(text)</code> 将值文本移动到通道中。最终，它将再次转移到接收价值的人手中。无论文本包含 <code>10</code> 行文本还是 <code>10MB</code> 字节，此操作都会复制<code>3</code>个机器字（<code>String</code> 结构体的大小），相应的接收器 <code>.recv()</code> 调用也会复制<code>3</code>个机器字。</p>
+<p><code>send</code> 和 <code>recv</code> 方法都返回结果，但这些方法只有在通道的另一端被丢弃时才会失败。如果 <code>Receiver</code> 已被丢弃，则发送调用失败，否则该值将永远位于通道中但没有 <code>Receiver</code>，任何线程都无法接收它。同样，如果通道中没有等待的值并且 <code>Sender</code> 已被丢弃，则 <code>recv</code> 调用将失败，否则 <code>recv</code> 将永远等待但没有 <code>Sender</code>，任何线程都无法发送下一个值。</p>
+<p>在我们的代码中，<code>sender.send(text)</code> 只有当接收者的线程提前退出时才会失败，这对于使用通道的代码很典型，无论这是故意发生的还是由于错误，我们的接收者线程都可以安静地自行关闭。</p>
+<p>程序运行结束时返回 <code>Ok(())</code>，闭包返回的是 <code>Result</code>，如果线程遇到错误会立即返回，错误被存储在线程的 <code>JoinHandle</code> 中。</p>
+<p>为方便起见，我们的程序将所有这些代码包装在一个函数中，该函数返回接收器（我们尚未使用）和新线程的 <code>JoinHandle</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">start_file_reader_thread</span>(documents: <span class="type">Vec</span>&lt;PathBuf&gt;) <span class="punctuation">-&gt;</span> (mpsc::Receiver&lt;<span class="type">String</span>&gt;, thread::JoinHandle&lt;io::<span class="type">Result</span>&lt;()&gt;&gt;)</span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">let</span> (sender, receiver) = mpsc::<span class="title function_ invoke__">channel</span>();</span><br><span class="line">  <span class="keyword">let</span> <span class="variable">handle</span> = thread::<span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> || &#123;</span><br><span class="line">      ...</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line">  (receiver, handle)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个函数启动新线程并且立即返回。</p>
+<h4 id="receiving"><a class="markdownIt-Anchor" href="#receiving"></a> <code>Receiving</code></h4>
+<p>我们来创建第二个线程使用一个循环并且调用 <code>.loop()</code> 接收值：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> <span class="keyword">let</span> <span class="variable">Ok</span>(text) = receiver.<span class="title function_ invoke__">recv</span>() &#123;</span><br><span class="line">    <span class="title function_ invoke__">do_something_with</span>(text);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>或者由于 <code>Receiver</code> 是可迭代类型，可以这样写：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> <span class="variable">text</span> <span class="keyword">in</span> receiver &#123;</span><br><span class="line">    <span class="title function_ invoke__">do_something_with</span>(text);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这两个循环是等价的，无论哪种方式，如果在控制到达循环顶部时通道恰好是空的，则接收线程将阻塞，直到其他线程发送一个值。当通道为空且 <code>Sender</code> 已被丢弃时，循环将正常退出。在我们的程序中，这会在读取线程退出时自然发生。该线程正在运行一个拥有变量 <code>sender</code> 的闭包，当闭包退出时，发送者被丢弃。现在我们可以为管道的第二阶段编写代码：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">start_file_indexing_thread</span>(</span><br><span class="line">    texts: mpsc::Receiver&lt;<span class="type">String</span>&gt;,</span><br><span class="line">) <span class="punctuation">-&gt;</span> (mpsc::Receiver&lt;InMemoryIndex&gt;, thread::JoinHandle&lt;()&gt;) &#123;</span><br><span class="line">    <span class="keyword">let</span> (sender, receiver) = mpsc::<span class="title function_ invoke__">channel</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">handle</span> = thread::<span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> || &#123;</span><br><span class="line">        <span class="keyword">for</span> (doc_id, text) <span class="keyword">in</span> texts.<span class="title function_ invoke__">into_iter</span>().<span class="title function_ invoke__">enumerate</span>() &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">index</span> = InMemoryIndex::<span class="title function_ invoke__">from_single_document</span>(doc_id, text);</span><br><span class="line">            <span class="keyword">if</span> sender.<span class="title function_ invoke__">send</span>(index).<span class="title function_ invoke__">is_err</span>() &#123;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    (receiver, handle)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>此函数生成一个线程，该线程从一个通道（文本）接收字符串值并将 <code>InMemoryIndex</code> 值发送到另一个通道（发送方/接收方）。该线程的工作是获取在第一阶段加载的每个文件，并将每个文档变成一个小的单文件内存倒排索引。</p>
+<p>这个线程的主循环很简单，索引文档的所有工作都由函数 <code>InMemoryIndex::from_single_document</code> 完成。我们不会在这里展示它的源代码，但它会在单词边界处拆分输入字符串，然后生成从单词到位置列表的映射。此阶段不执行 <code>I/O</code>，因此不必处理 <code>io::Error</code>。它返回 <code>()</code>，而不是 <code>io::Result&lt;()&gt;</code>。</p>
+<h4 id="pipeline"><a class="markdownIt-Anchor" href="#pipeline"></a> <code>Pipeline</code></h4>
+<p>其余<code>3</code>个阶段的设计相似，每个人都使用前一阶段创建的接收器。我们对管道其余部分的目标是将所有小索引合并到磁盘上的单个大索引文件中。我们发现最快的方法是分<code>3</code>个阶段，我们不会在这里展示代码，只展示这<code>3</code>个函数的类型签名。</p>
+<p>首先，我们在内存中合并索引（第 3 阶段）：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">start_in_memory_merge_thread</span>(file_indexes: mpsc::Receiver&lt;InMemoryIndex&gt;)</span><br><span class="line"> <span class="punctuation">-&gt;</span> (mpsc::Receiver&lt;InMemoryIndex&gt;, thread::JoinHandle&lt;()&gt;)</span><br></pre></td></tr></table></figure>
+<p>将这些大索引写入磁盘（第 <code>4</code> 阶段）：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">start_index_writer_thread</span>(big_indexes: mpsc::Receiver&lt;InMemoryIndex&gt;, output_dir: &amp;Path)</span><br><span class="line"> <span class="punctuation">-&gt;</span> (mpsc::Receiver&lt;PathBuf&gt;, thread::JoinHandle&lt;io::<span class="type">Result</span>&lt;()&gt;&gt;)</span><br></pre></td></tr></table></figure>
+<p>最后，如果我们有多个大文件，我们使用基于文件的合并算法将它们合并（第 <code>5</code> 阶段）：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">merge_index_files</span>(files: mpsc::Receiver&lt;PathBuf&gt;, output_dir: &amp;Path) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt;</span><br></pre></td></tr></table></figure>
+<p>现在，我们将所有的代码整合在一起：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">run_pipeline</span>(documents: <span class="type">Vec</span>&lt;PathBuf&gt;, output_dir: PathBuf) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">    <span class="comment">// Launch all five stages of the pipeline.</span></span><br><span class="line">    <span class="keyword">let</span> (texts, h1) = <span class="title function_ invoke__">start_file_reader_thread</span>(documents);</span><br><span class="line">    <span class="keyword">let</span> (pints, h2) = <span class="title function_ invoke__">start_file_indexing_thread</span>(texts);</span><br><span class="line">    <span class="keyword">let</span> (gallons, h3) = <span class="title function_ invoke__">start_in_memory_merge_thread</span>(pints);</span><br><span class="line">    <span class="keyword">let</span> (files, h4) = <span class="title function_ invoke__">start_index_writer_thread</span>(gallons, &amp;output_dir);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">result</span> = <span class="title function_ invoke__">merge_index_files</span>(files, &amp;output_dir);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Wait for threads to finish, holding on to any errors that they encounter.</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">r1</span> = h1.<span class="title function_ invoke__">join</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    h2.<span class="title function_ invoke__">join</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    h3.<span class="title function_ invoke__">join</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">r4</span> = h4.<span class="title function_ invoke__">join</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Return the first error encountered, if any.</span></span><br><span class="line">    <span class="comment">// (As it happens, h2 and h3 can&#x27;t fail: those threads</span></span><br><span class="line">    <span class="comment">// are pure in-memory data processing.)</span></span><br><span class="line">    r1?;</span><br><span class="line">    r4?;</span><br><span class="line">    result</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>和以前一样，我们使用 <code>.join().unwrap()</code> 将 <code>panic</code> 从子线程显式传播到主线程。这里唯一的另一个不寻常的事情是，没有立即使用 <code>?</code> 马上，我们将 <code>io::Result</code> 值放在一边，直到我们加入所有四个线程。</p>
+<p>该管道比单线程等效管道快 <code>40%</code>，有提升但是我们显然还没有使系统的 <code>I/O</code> 或所有 <code>CPU</code> 饱和。</p>
+<p>因为管道就像制造工厂中的装配线：性能受到最慢阶段的吞吐量的限制。一条全新的、未经调整的装配线可能与单位生产一样慢，但装配线奖励有针对性的调整。在我们的案例中，测量表明第二阶段是瓶颈。我们的索引线程使用 <code>.to_lowercase()</code> 和 <code>.is_alphanumeric()</code>，因此它会花费大量时间在 <code>Unicode</code> 表中查找。索引下游的其他阶段大部分时间都在 <code>Receiver::recv</code> 中休眠，等待输入。</p>
+<p>这意味着我们应该能够走得更快，随着我们解决瓶颈问题，并行度将会提高。既然知道如何使用通道并且我们的程序是由独立的代码片段组成的，那么很容易找到解决第一个瓶颈的方法。我们可以手动优化第二阶段的代码，就像任何其他代码一样，将工作分成两个或多个阶段，或一次运行多个文件索引线程。</p>
+<h4 id="功能和性能"><a class="markdownIt-Anchor" href="#功能和性能"></a> 功能和性能</h4>
+<p><code>std::sync::mpsc</code> 的 <code>mpsc</code> 部分代表多生产者单消费者，这是对 <code>Rust</code> 通道提供的通信类型的简洁描述。</p>
+<p>我们示例程序中的通道将值从单个发送者传送到单个接收者，这是一个相当普遍的情况。但是 <code>Rust</code> 通道也支持多个发送者，以防你需要一个线程来处理来自多个客户端线程的请求，如下图所示：</p>
+<p><img data-src="mpsc-channel.png" alt="" /></p>
+<p><code>Sender&lt;T&gt;</code> 实现了 <code>Clone</code>。要获得具有多个 <code>Sender</code> 的 <code>Channel</code>，只需创建一个常规 <code>Channel</code> 并根据需要多次克隆 <code>Sender</code>，可以将每个 <code>Sender</code> 移动到不同的线程。<code>Receiver&lt;T&gt;</code> 不能被克隆，所以如果你需要多个线程从同一个通道接收值，你需要一个 <code>Mutex</code>。</p>
+<p><code>Rust</code> 通道经过精心优化，首次创建通道时，<code>Rust</code> 使用特殊的“一次性”队列实现。如果只通过通道发送一个对象，则开销是最小的，如果发送第二个值，<code>Rust</code> 会切换到不同的队列实现。实际上，它正在为长期稳定做好准备，让通道准备好传输许多值，同时最大限度地减少分配开销。如果克隆 <code>Sender</code>，<code>Rust</code> 必须依靠另一种实现，当多个线程尝试同时发送值时，这种实现是安全的。但即使是这三种实现中最慢的也是无锁队列，所以发送或接收一个值至多是几个原子操作和一个堆分配，再加上移动本身。仅当队列为空并且接收线程因此需要使自己进入睡眠状态时才需要系统调用。当然，在这种情况下，通过<code>Chaneel</code>的流量无论如何都不会达到最大值。</p>
+<p>尽管进行了所有优化工作，但应用程序很容易在通道性能方面犯一个错误：发送值的速度超过了接收和处理的速度。这会导致越来越多的积压值在渠道中累积。例如，在我们的程序中，我们发现文件读取线程（阶段 1）可以比文件索引线程（阶段 2）更快地加载文件。结果是数百兆字节的原始数据将从磁盘读取并立即填充到队列中。</p>
+<p>这种不当行为会消耗内存并伤害局部性。更糟糕的是，发送线程继续运行，占用 <code>CPU</code> 和其他系统资源来发送更多的值，而这些资源正好在接收端最需要这些资源。</p>
+<p>这里 <code>Rust</code> 再次从 <code>Unix</code> 管道中获取一个技巧，<code>Unix</code> 使用了一个优雅的技巧来提供一些背压，以便快速发送者被迫放慢速度：<code>Unix</code> 系统上的每个管道都有固定的大小，如果一个进程试图写入一个暂时已满的管道，系统会简单地阻止该进程 直到管道中有空间，<code>Rust</code> 也有类似的，称为同步通道：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::sync::mpsc;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> (sender, receiver) = mpsc::<span class="title function_ invoke__">sync_channel</span>(<span class="number">1000</span>);</span><br></pre></td></tr></table></figure>
+<p>同步通道与常规通道完全相同，只是在创建它时，指定它可以保存多少个值。对于同步通道，<code>sender.send(value)</code> 可能是一个阻塞操作。毕竟，这个想法是阻塞并不总是坏事。在我们的示例程序中，将 <code>start_file_reader_thread</code> 中的通道更改为可容纳 <code>32</code> 个值的 <code>sync_channel</code> 将我们的基准数据集的内存使用量减少了三分之二，而不会降低吞吐量。</p>
+<h4 id="send-sync"><a class="markdownIt-Anchor" href="#send-sync"></a> <code>Send</code>、<code>Sync</code></h4>
+<p>到目前为止，我们一直认为所有值都可以在线程之间自由移动和共享。这基本上是正确的，但 <code>Rust</code> 的完整线程安全取决于两个内置 <code>Trait</code>，<code>std::marker::Send</code> 和 <code>std::marker::Sync</code>。</p>
+<ul>
+<li>
+<p>实现 <code>Send</code> 的类型可以安全地按值传递给另一个线程，它们可以跨线程移动；</p>
+</li>
+<li>
+<p>实现 <code>Sync</code> 的类型可以安全地通过非 <code>mut</code> 引用传递给另一个线程，它们可以跨线程共享；</p>
+</li>
+</ul>
+<p>这里的安全指的是：没有数据竞争和其他未定义的行为，前面我们使用闭包将 <code>Vec&lt;String&gt;</code> 从父线程传递给每个子线程。我们当时没有指出，但这意味着 <code>vector</code> 及其字符串在父线程中分配，但在子线程中释放。<code>Vec&lt;String&gt;</code> 实现 <code>Send </code>的事实是：<code>Vec</code> 和 <code>String</code> 内部使用的内存分配器是线程安全的。（如果要使用快速但非线程安全的分配器编写自己的 <code>Vec</code> 和 <code>String</code> 类型，则必须使用 <code>非 Send</code> 类型来实现它们，例如不安全的指针。<code>Rust</code> 会推断 <code>NonThreadSafeVec</code> 和 <code>NonThreadSafeString</code> 类型不是 <code>Send</code> 并将它们限制为单线程使用，但这比较少见。）</p>
+<p>如下图所示，大多数类型都是 <code>Send</code> 和 <code>Sync</code>， 甚至不必使用 <code>#[derive]</code>，<code>Rust</code> 会自动处理。如果结构或枚举的字段为 <code>Send</code>，则结构或枚举为<code>Send</code>，如果其字段为<code>Sync</code>，则为<code>Sync</code>。</p>
+<p><img data-src="send-sync-types.png" alt="" /></p>
+<p>有些类型是<code>Send</code>，但不是 <code>Sync</code>。这通常是有目的的，例如 <code>mpsc::Receiver</code>，它保证 <code>mpsc</code> 通道的接收端一次只被一个线程使用。</p>
+<p>少数既不是 <code>Send</code> 也不是 <code>Sync</code> 的类型主要是那些以非线程安全的方式使用可变性的类型。例如，考虑 <code>std::rc::Rc&lt;T&gt;</code>，引用计数智能指针的类型。</p>
+<p>如果 <code>Rc&lt;String&gt;</code> 是 <code>Sync</code>，允许线程通过共享引用共享单个 <code>Rc</code>，会发生什么？如果两个线程碰巧同时尝试克隆 <code>Rc</code>，如下图所示，我们就会发生数据竞争，因为两个线程都会增加共享引用计数。引用计数可能变得不准确，从而导致 <code>use-afterfree</code> 或 <code>double free</code> 行为。</p>
+<p><img data-src="rc-string-not-sync-send.png" alt="" /></p>
+<p>而且 <code>Rust</code> 是不会让这样的代码编译通过的：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::rc::Rc;</span><br><span class="line"><span class="keyword">use</span> std::thread;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">rc1</span> = Rc::<span class="title function_ invoke__">new</span>(<span class="string">&quot;ouch&quot;</span>.<span class="title function_ invoke__">to_string</span>());</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">rc2</span> = rc1.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    thread::<span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> || &#123;</span><br><span class="line">        <span class="comment">// error</span></span><br><span class="line">        rc2.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    &#125;);</span><br><span class="line">    rc1.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>编译出错：</p>
+<pre><code>error[E0277]: `Rc&lt;String&gt;` cannot be sent between threads safely
+  --&gt; src/main.rs:9:5
+    |
+9   |       thread::spawn(move || {
+    |  _____^^^^^^^^^^^^^_-
+    | |     |
+    | |     `Rc&lt;String&gt;` cannot be sent between threads safely
+10  | |         // error
+11  | |         rc2.clone();
+12  | |     });
+    | |_____- within this `[closure@src/main.rs:9:19: 12:6]`
+    |
+    = help: within `[closure@src/main.rs:9:19: 12:6]`, the trait `Send` is not implemented for `Rc&lt;String&gt;`
+    = note: required because it appears within the type `[closure@src/main.rs:9:19: 12:6]`
+note: required by a bound in `spawn`
+  --&gt; /Users/fudenglong/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/thread/mod.rs:646:8
+    |
+646 |     F: Send + 'static,
+    |        ^^^^ required by this bound in `spawn`
+</code></pre>
+</div>
+<p>可以看到 <code>Send</code> 和 <code>Sync</code> 帮助 <code>Rust</code> 加强线程安全，它们在跨线程边界传输数据的函数的类型签名中显示为边界。当生成一个线程时，传递的闭包必须是 <code>Send</code>，这意味着它包含的所有值都必须是 <code>Send</code>。类似地，如果想通过一个通道向另一个线程发送值，这些值必须是 <code>Send</code>。</p>
+<h4 id="迭代-pipeline"><a class="markdownIt-Anchor" href="#迭代-pipeline"></a> 迭代 <code>Pipeline</code></h4>
+<p>如果我们能使用迭代器的方法处理我们之前的倒排索引，就会显得很清晰，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">documents.<span class="title function_ invoke__">into_iter</span>()</span><br><span class="line">  .<span class="title function_ invoke__">map</span>(read_whole_file)</span><br><span class="line">  .<span class="title function_ invoke__">errors_to</span>(error_sender) <span class="comment">// filter out error results</span></span><br><span class="line">  .<span class="title function_ invoke__">off_thread</span>() <span class="comment">// spawn a thread for the above work</span></span><br><span class="line">  .<span class="title function_ invoke__">map</span>(make_single_file_index)</span><br><span class="line">  .<span class="title function_ invoke__">off_thread</span>() <span class="comment">// spawn another thread for stage 2</span></span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
+<p>因为 <code>Trait</code> 允许我们为标准库类型添加功能，所以我们可以这样做：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::sync::mpsc;</span><br><span class="line"><span class="keyword">use</span> std::thread;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">trait</span> <span class="title class_">OffThreadExt</span>: <span class="built_in">Iterator</span> &#123;</span><br><span class="line">    <span class="comment">/// Transform this iterator into an off-thread iterator: the</span></span><br><span class="line">    <span class="comment">/// `next()` calls happen on a separate worker thread, so the</span></span><br><span class="line">    <span class="comment">/// iterator and the body of your loop run concurrently.</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">off_thread</span>(<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> mpsc::IntoIter&lt;<span class="keyword">Self</span>::Item&gt;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;T&gt; OffThreadExt <span class="keyword">for</span> <span class="title class_">T</span></span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    T: <span class="built_in">Iterator</span> + <span class="built_in">Send</span> + <span class="symbol">&#x27;static</span>,</span><br><span class="line">    T::Item: <span class="built_in">Send</span> + <span class="symbol">&#x27;static</span>,</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">off_thread</span>(<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> mpsc::IntoIter&lt;<span class="keyword">Self</span>::Item&gt; &#123;</span><br><span class="line">        <span class="comment">// Create a channel to transfer items from the worker thread.</span></span><br><span class="line">        <span class="keyword">let</span> (sender, receiver) = mpsc::<span class="title function_ invoke__">sync_channel</span>(<span class="number">1024</span>);</span><br><span class="line">        <span class="comment">// Move this iterator to a new worker thread and run it there.</span></span><br><span class="line">        thread::<span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> || &#123;</span><br><span class="line">            <span class="keyword">for</span> <span class="variable">item</span> <span class="keyword">in</span> <span class="keyword">self</span> &#123;</span><br><span class="line">                <span class="keyword">if</span> sender.<span class="title function_ invoke__">send</span>(item).<span class="title function_ invoke__">is_err</span>() &#123;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="comment">// Return an iterator that pulls values from the channel.</span></span><br><span class="line">        receiver.<span class="title function_ invoke__">into_iter</span>()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>简而言之，这就是 <code>Rust</code> 的特点：我们可以自由地为该语言中的几乎每个迭代器添加一个新方法。</p>
+<h4 id="beyond-pipelines"><a class="markdownIt-Anchor" href="#beyond-pipelines"></a> <code>Beyond Pipelines</code></h4>
+<p>前面我们使用管道作为示例，因为管道是使用通道的一种很好的、​​明显的方式，每个人都理解他们。它们是具体的、实用的和确定性的。不过，通道不仅仅对管道有用。它们也是向同一进程中的其他线程提供任何异步服务的一种快速、简单的方法。</p>
+<p>例如，假设想在自己的线程上进行日志记录，其他线程可以通过通道向日志线程发送日志消息；由于可以克隆通道的<code>Sender</code>，因此许多客户端线程可以拥有<code>Sender</code>，而接收者处理只有一个。日志记录线程可以在需要时轮换日志文件，它不必与其他线程进行任何协调。</p>
+<p>到目前为止，已经介绍的工具——用于高度并行计算的 <code>fork-join</code>、用于松散连接组件的通道——对于广泛的应用程序来说已经足够了，但还不够。</p>
+<h3 id="共享可变状态"><a class="markdownIt-Anchor" href="#共享可变状态"></a> 共享可变状态</h3>
+<p>如何在多个线程之间共享可变数据？</p>
+<ul>
+<li>
+<p>可以通过创建一个新线程来解决此问题，该线程的全部工作是管理此可变数据，其他线程将通过通道与其通信。当然，这会花费一个线程，这会产生一些操作系统开销。</p>
+</li>
+<li>
+<p>另一种选择是使用 <code>Rust</code> 提供的工具来安全地共享可变数据，互斥锁、读/写锁、条件变量和原子整数。</p>
+</li>
+</ul>
+<h4 id="什么是-mutex"><a class="markdownIt-Anchor" href="#什么是-mutex"></a> 什么是 <code>Mutex</code>？</h4>
+<p>互斥体（或锁）用于强制多个线程在访问某些数据时轮流进行，我们将在下一节介绍 <code>Rust</code> 的互斥锁。首先，回忆一下其他语言中的互斥锁是什么是有意义的。 <code>C++</code> 中互斥锁的简单使用可能如下所示：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">FernEmpireApp::JoinWaitingList</span><span class="params">(PlayerId player)</span> </span>&#123;</span><br><span class="line">    mutex.<span class="built_in">Acquire</span>();</span><br><span class="line">    waitingList.<span class="built_in">push_back</span>(player);</span><br><span class="line">    <span class="comment">// Start a game if we have enough players waiting.</span></span><br><span class="line">    <span class="keyword">if</span> (waitingList.<span class="built_in">size</span>() &gt;= GAME_SIZE) &#123;</span><br><span class="line">        vector&lt;PlayerId&gt; players;</span><br><span class="line">        waitingList.<span class="built_in">swap</span>(players);</span><br><span class="line">        <span class="built_in">StartGame</span>(players);</span><br><span class="line">    &#125;</span><br><span class="line">    mutex.<span class="built_in">Release</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>调用 <code>mutex.Acquire()</code> 和 <code>mutex.Release()</code> 标记此代码中关键部分的开始和结束。对于程序中的每个互斥体，一次只能在临界区内运行一个线程。 如果一个线程处于临界区，则调用 <code>mutex.Acquire()</code> 的所有其他线程将阻塞，直到第一个线程到达 <code>mutex.Release()</code>。</p>
+<p>我们说互斥体保护数据：在这种情况下，互斥体保护 <code>waitingList</code>。但是，程序员有责任确保每个线程在访问数据之前总是获取互斥锁，然后再释放它。</p>
+<p>它们防止数据竞争，即竞争线程同时读取和写入相同内存的情况。即使不存在数据竞争，即使所有读取和写入都按程序顺序一一发生，如果没有互斥锁，不同线程的操作也可能以任意方式交错。</p>
+<p>当然，所有这些实际上都是同一个原因：不受控制的竞争条件使编程变得棘手，而互斥锁就是为了解决这种混乱。然而，在大多数语言中，互斥锁很容易搞砸。 在 <code>C++</code> 中，与大多数语言一样，数据和锁是独立的对象。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">FernEmpireApp</span> &#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">private</span>:</span><br><span class="line">  <span class="comment">// List of players waiting to join a game. Protected by `mutex`.</span></span><br><span class="line">  vector&lt;PlayerId&gt; waitingList;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Lock to acquire before reading or writing `waitingList`.</span></span><br><span class="line">  Mutex mutex;</span><br><span class="line">  ...</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>但是即使有注释，编译器也不能在这里强制安全访问。当一段代码忽略获取互斥锁时，我们会得到未定义的行为。实际上，这意味着极难重现和修复的错误。即使在 <code>Java</code> 中，对象和互斥体之间存在一些概念上的关联，这种关系也不是很深。编译器不会尝试强制执行它，实际上，受锁保护的数据很少完全是关联对象的字段，它通常包含多个对象中的数据。</p>
+<h4 id="mutext"><a class="markdownIt-Anchor" href="#mutext"></a> <code>Mutex&lt;T&gt;</code></h4>
+<p>其他语言的锁看起来不那么好有两点：一个是锁和数据独立，一个是编译器不能进行强制检查可能存在竞争的数据是否受锁保护。继续前面的例子，我们来看 <code>Rust</code> 的解决方案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::sync::Arc;</span><br><span class="line"><span class="keyword">use</span> std::sync::Mutex;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> <span class="title class_">PlayerId</span> = <span class="type">u32</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> GAME_SIZE: <span class="type">usize</span> = <span class="number">8</span>;</span><br><span class="line"><span class="comment">/// A waiting list never grows to more than GAME_SIZE players.</span></span><br><span class="line"><span class="keyword">type</span> <span class="title class_">WaitingList</span> = <span class="type">Vec</span>&lt;PlayerId&gt;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">FernEmpireApp</span> &#123;</span><br><span class="line">    waiting_list: Mutex&lt;WaitingList&gt;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">app</span> = Arc::<span class="title function_ invoke__">new</span>(FernEmpireApp &#123;</span><br><span class="line">        waiting_list: Mutex::<span class="title function_ invoke__">new</span>(<span class="built_in">vec!</span>[]),</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>不像 <code>c++</code>，数据是锁的一部分。创建一个新的 <code>Mutex</code> 看起来像创建一个新的 <code>Box</code> 或 <code>Arc</code>，但 <code>Box</code> 和 <code>Arc</code> 表示堆分配，<code>Mutex</code> 只是关于锁定。如果希望在堆中分配 <code>Mutex</code>，则必须像我们在这里通过对整个应用程序使用 <code>Arc::new</code> 和仅对受保护数据使用 <code>Mutex::new</code> 所做的那样。这些类型通常一起使用：<code>Arc</code> 可方便地跨线程共享事物，而 <code>Mutex</code> 可方便地用于跨线程共享的可变数据。</p>
+<p>我们可以看下如何使用锁，唯一获取数据的方式是使用 <code>self.waiting_list.lock()</code>，它可以一直阻塞到数据可以获取。<code>guard</code> 的类型是 <code>MutexGuard&lt;WaitingList&gt;</code>，由于实现了 <code>Deref</code>，所以我们可以直接调用 <code>guard.push(player)</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span> <span class="title class_">FernEmpireApp</span> &#123;</span><br><span class="line">    <span class="comment">/// Add a player to the waiting list for the next game.</span></span><br><span class="line">    <span class="comment">/// Start a new game immediately if enough players are waiting.</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">join_waiting_list</span>(&amp;<span class="keyword">self</span>, player: PlayerId) &#123;</span><br><span class="line">        <span class="comment">// Lock the mutex and gain access to the data inside.</span></span><br><span class="line">        <span class="comment">// The scope of `guard` is a critical section.</span></span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">guard</span> = <span class="keyword">self</span>.waiting_list.<span class="title function_ invoke__">lock</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="comment">// Now do the game logic.</span></span><br><span class="line">        guard.<span class="title function_ invoke__">push</span>(player);</span><br><span class="line">        <span class="keyword">if</span> guard.<span class="title function_ invoke__">len</span>() == GAME_SIZE &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">players</span> = guard.<span class="title function_ invoke__">split_off</span>(<span class="number">0</span>);</span><br><span class="line">            <span class="keyword">self</span>.<span class="title function_ invoke__">start_game</span>(players);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>guard</code> 甚至允许我们借用对基础数据的直接引用。<code>Rust</code> 的生命周期系统确保这些引用不会超过 <code>guard</code> 本身。如果不持有锁，就无法访问 <code>Mutex</code> 中的数据。当 <code>guard</code> 离开作用域时，锁被释放，通常这发生在块的末尾，但也可以手动删除它：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> guard.<span class="title function_ invoke__">len</span>() == GAME_SIZE &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">players</span> = guard.<span class="title function_ invoke__">split_off</span>(<span class="number">0</span>);</span><br><span class="line">    <span class="title function_ invoke__">drop</span>(guard); <span class="comment">// don&#x27;t keep the list locked while starting a game</span></span><br><span class="line">    <span class="keyword">self</span>.<span class="title function_ invoke__">start_game</span>(players);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="mut-和-mutex"><a class="markdownIt-Anchor" href="#mut-和-mutex"></a> <code>mut</code> 和 <code>Mutex</code></h4>
+<p>上面的例子中，我们的 <code>join_waiting_list</code> 方法的第一个参数竟然是 <code>&amp;self</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">join_waiting_list</span>(&amp;<span class="keyword">self</span>, player: PlayerId)</span><br></pre></td></tr></table></figure>
+<p>但是我们调用的 <code>push</code> 方法需要可变引用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">push</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>, item: T)</span><br></pre></td></tr></table></figure>
+<p>互斥锁提供对内部数据的独占（<code>mut</code>）访问，即使许多线程可能对互斥锁本身具有共享（<code>非mut</code>）访问。<code>Rust</code> 的类型系统告诉我们 <code>Mutex</code> 做了什么。它动态地强制执行独占访问，这通常由 <code>Rust</code> 编译器在编译时静态完成，这其实类似于 <a href="/2022/04/24/%E3%80%90Rust%E3%80%91%E7%BB%93%E6%9E%84%E4%BD%93/?highlight=cel#%E5%86%85%E9%83%A8%E5%8F%AF%E5%8F%98%E6%80%A7"><code>内部可变性</code></a>。</p>
+<h4 id="mutex-无法解决的问题"><a class="markdownIt-Anchor" href="#mutex-无法解决的问题"></a> <code>Mutex</code> 无法解决的问题</h4>
+<p>几乎可以肯定，<code>Rust</code> 互斥锁的设计会让你比以往任何时候都更系统、更明智地使用互斥锁。但是值得停下来思考一下 <code>Rust</code> 的安全保证可以和不能帮助什么。安全的 <code>Rust</code> 代码不能触发数据竞争，这是一种特定类型的错误，其中多个线程同时读取和写入相同的内存，从而产生毫无意义的结果。这很棒：数据竞争总是错误的，在真正的多线程程序中并不罕见。但是，使用互斥锁的线程会遇到 <code>Rust</code> 无法解决其他一些问题：</p>
+<ul>
+<li>
+<p>有效的 <code>Rust</code> 程序不能有数据竞争，但它们仍然可以有其他竞争条件——程序的行为取决于线程之间的时间，因此可能因运行而异。一些竞争条件是良性的。有些表现为一般的脆弱性和难以修复的错误，以非结构化方式使用互斥锁会引发竞争条件；</p>
+</li>
+<li>
+<p>共享可变状态也会影响程序设计。通道在代码中充当抽象边界，便于分离隔离的组件以进行测试，互斥锁鼓励“仅添加方法”的工作方式，这可能导致相互关联的代码的整体块；</p>
+</li>
+<li>
+<p>最后，互斥锁并不像一开始看起来那么简单，正如接下来的两节将展示的那样；</p>
+</li>
+</ul>
+<h5 id="deadlock"><a class="markdownIt-Anchor" href="#deadlock"></a> <code>Deadlock</code></h5>
+<p>线程可以通过尝试获取它已经持有的锁来使自己死锁：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">guard1</span> = <span class="keyword">self</span>.waiting_list.<span class="title function_ invoke__">lock</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">guard2</span> = <span class="keyword">self</span>.waiting_list.<span class="title function_ invoke__">lock</span>().<span class="title function_ invoke__">unwrap</span>(); <span class="comment">// deadlock</span></span><br></pre></td></tr></table></figure>
+<p>假设第一次调用 <code>self.waiting_list.lock()</code> 成功，获得了锁。第二个调用看到锁被持有，所以它阻塞，等待它被释放。它将永远等待。等待线程是持有锁的线程。</p>
+<p>换句话说，互斥锁中的锁不是递归锁。</p>
+<p>这里的错误很明显。在实际程序中，两个 <code>lock()</code> 调用可能在两个不同的方法中，其中一个调用另一个。每个方法的代码，分开来看，看起来不错。还有其他方法可以导致死锁，涉及多个线程，每个线程一次获取多个互斥锁。 <strong>Rust 的借用系统无法做到避免死锁。最好的保护措施是将关键部分保持在较小的范围内：进入，完成工作，然后退出。</strong></p>
+<p>也有可能与渠道陷入僵局。例如，两个线程可能会阻塞，每个线程都在等待从另一个接收消息。然而，再一次，好的程序设计可以让你高度相信这在实践中不会发生。在管道中，就像我们的倒排索引构建器一样，数据流是非循环的。在这样的程序中，死锁的可能性与在 <code>Unix shell</code> 管道中一样。</p>
+<h5 id="poisoned-mutexes"><a class="markdownIt-Anchor" href="#poisoned-mutexes"></a> <code>Poisoned Mutexes</code></h5>
+<p><code>Mutex::lock()</code> 返回 <code>Result</code> 的原因与 <code>JoinHandle::join()</code> 所做的相同：如果另一个线程发生<code>panic</code>，则优雅地失败。当我们编写 <code>handle.join().unwrap()</code> 时，我们是在告诉 <code>Rust</code> 将 <code>panic</code> 从一个线程传播到另一个线程，<code>mutex.lock().unwrap()</code> 类似。</p>
+<p>如果线程在持有 <code>Mutex</code> 时发生 <code>panic</code>，<code>Rust</code> 会将 <code>Mutex</code> 标记为 <code>Poisoned</code>。任何后续尝试锁定 <code>Poisoned Mutex</code> 都会得到错误结果。如果发生这种情况，我们的 <code>.unwrap()</code> 调用会告诉 <code>Rust</code> <code>panic</code>，将 <code>panic</code> 从另一个线程传播到这个线程。</p>
+<p>有一个<code>Poisoned</code>互斥锁有多糟糕？毒药听起来很致命，但这种情况并不一定是致命的。<code>panic</code>是安全的，一个 <code>panic</code> 线程使程序的其余部分处于安全状态。</p>
+<p>因此，互斥锁因 <code>panic</code> 而 <code>Poisoned</code> 原因并不是因为害怕未定义的行为。相反，担心的是一直在使用不变量进行编程。由于程序在没有完成它正在做的事情的情况下 <code>panic</code> 并退出了关键部分，可能已经更新了受保护数据的某些字段但没有更新其他字段，因此不变量现在可能已损坏。 <code>Rust</code> 会毒化互斥体，以防止其他线程无意中误入这种损坏的情况并使其变得更糟。但仍然可以锁定中毒的互斥体并访问其中的数据，完全强制互斥，请看 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/sync/struct.PoisonError.html">PoisonError::into_inne()</a> 的文档。</p>
+<h4 id="多消费者通道"><a class="markdownIt-Anchor" href="#多消费者通道"></a> 多消费者通道</h4>
+<p>我们前面提到，Rust 的通道是多生产者，单消费者。或者更具体地说，一个通道只有一个 <code>Receiver</code>。我们不能有一个线程池，其中许多线程使用单个 <code>mpsc</code> 通道作为共享工作列表。</p>
+<p>然而，事实证明有一个非常简单的解决方法，只使用标准库片段。我们可以在 <code>Receiver</code> 周围添加一个 <code>Mutex</code> 并无论如何共享它。这是一个这样做的模块：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">mod</span> shared_channel &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">use</span> std::sync::mpsc::&#123;channel, Receiver, Sender&#125;;</span><br><span class="line">    <span class="keyword">use</span> std::sync::&#123;Arc, Mutex&#125;;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">/// A thread-safe wrapper around a `Receiver`.</span></span><br><span class="line">    <span class="meta">#[derive(Clone)]</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">SharedReceiver</span>&lt;T&gt;(Arc&lt;Mutex&lt;Receiver&lt;T&gt;&gt;&gt;);</span><br><span class="line">   </span><br><span class="line">   <span class="keyword">impl</span>&lt;T&gt; <span class="built_in">Iterator</span> <span class="keyword">for</span> <span class="title class_">SharedReceiver</span>&lt;T&gt; &#123;</span><br><span class="line">        <span class="keyword">type</span> <span class="title class_">Item</span> = T;</span><br><span class="line">        <span class="comment">/// Get the next item from the wrapped receiver.</span></span><br><span class="line">        <span class="keyword">fn</span> <span class="title function_">next</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;T&gt; &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">guard</span> = <span class="keyword">self</span>.<span class="number">0</span>.<span class="title function_ invoke__">lock</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">            guard.<span class="title function_ invoke__">recv</span>().<span class="title function_ invoke__">ok</span>()</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">   </span><br><span class="line">   <span class="comment">/// This returns a sender and a receiver, just like the stdlib&#x27;s</span></span><br><span class="line">    <span class="comment">/// `channel()`, and sometimes works as a drop-in replacement.</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">shared_channel</span>&lt;T&gt;() <span class="punctuation">-&gt;</span> (Sender&lt;T&gt;, SharedReceiver&lt;T&gt;) &#123;</span><br><span class="line">        <span class="keyword">let</span> (sender, receiver) = <span class="title function_ invoke__">channel</span>();</span><br><span class="line">        (sender, <span class="title function_ invoke__">SharedReceiver</span>(Arc::<span class="title function_ invoke__">new</span>(Mutex::<span class="title function_ invoke__">new</span>(receiver))))</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><img data-src="mc-channel.png" alt="" /></p>
+<h4 id="读写锁"><a class="markdownIt-Anchor" href="#读写锁"></a> 读写锁</h4>
+<p>互斥锁只有一个 <code>.lock()</code>，而<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/sync/struct.RwLock.html"><code>std::sync::RwLock</code></a> 有两种锁方法，<code>.read()</code> 和 <code>.write()</code>，<code>RwLock::write</code> 方法类似于 <code>Mutex::lock</code>。它等待对受保护数据的独占 <code>mut</code> 访问。<code>RwLock::read</code> 方法提供 <code>non mut</code> 访问，其优点是不必等待，因为许多线程可以安全地一次读取。使用互斥锁，在任何给定时刻，受保护的数据只有一个读取器或写入器（或没有）。使用<code>std::sync::RwLock</code>，它可以有一个 <code>Writer</code> 或多个 <code>Reader</code>，就像通常的 <code>Rust</code> 引用一样。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">FernEmpireApp</span> &#123;</span><br><span class="line">    waiting_list: RwLock&lt;WaitingList&gt;,</span><br><span class="line">    config: RwLock&lt;AppConfig&gt;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">FernEmpireApp</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">mushrooms_enabled</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">bool</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">config_guard</span> = <span class="keyword">self</span>.config.<span class="title function_ invoke__">read</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        config_guard.mushrooms_enabled</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">reload_config</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> io::<span class="type">Result</span>&lt;()&gt; &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">new_config</span> = AppConfig::<span class="title function_ invoke__">load</span>()?;</span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">config_guard</span> = <span class="keyword">self</span>.config.<span class="title function_ invoke__">write</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        *config_guard = new_config;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(())</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>多读单写是 <code>Rust</code> 借用系统的核心。</p>
+<h4 id="条件变量"><a class="markdownIt-Anchor" href="#条件变量"></a> 条件变量</h4>
+<p>通常一个线程需要等到某个条件变为真：</p>
+<ul>
+<li>
+<p>在服务器关闭期间，主线程可能需要等待，直到所有其他线程完成退出；</p>
+</li>
+<li>
+<p>当一个工作线程无事可做时，它需要等待，直到有一些数据要处理；</p>
+</li>
+<li>
+<p>实现分布式共识协议的线程可能需要等到一定数量的对等方做出响应；</p>
+</li>
+</ul>
+<p>在 <code>Rust</code> 中，<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/sync/struct.Condvar.html"><code>std::sync::Condvar</code></a> 类型实现了条件变量，它有方法 <code>.wait()</code> 和 <code>.notify_all()</code>，<code>.wait()</code> 会阻塞到直到有其他线程调用 <code>.notify_all()</code> 或者 <code>notify_one()</code>。</p>
+<p>当等待的条件到来时，可以使用 <code>.notify_all()</code> 或者 <code>notify_one()</code> 通知其他线程：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">self</span>.has_data_condvar.<span class="title function_ invoke__">notify_all</span>();</span><br></pre></td></tr></table></figure>
+<p>为了进入休眠等待条件变为 <code>true</code>，可使用 <code>Condvar::wait()</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> !guard.<span class="title function_ invoke__">has_data</span>() &#123;</span><br><span class="line">    guard = <span class="keyword">self</span>.has_data_condvar.<span class="title function_ invoke__">wait</span>(guard).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个 <code>while</code> 循环是条件变量的标准习惯用法。 但是，<code>Condvar::wait</code> 的签名是不寻常的。它按值获取 <code>MutexGuard</code> 对象，使用它，并在成功时返回一个新的 <code>MutexGuard</code>。</p>
+<h4 id="原子锁"><a class="markdownIt-Anchor" href="#原子锁"></a> 原子锁</h4>
+<p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/sync/atomic/index.html"><code>std::sync::atomic</code></a> 模块包含用于无锁并发编程的原子类型。这些类型与标准 <code>C++</code> 原子基本相同，但有一些额外的：</p>
+<ul>
+<li>
+<p><code>AtomicIsize</code> 和 <code>AtomicUsize</code> 是对应于单线程 <code>isize</code> 和 <code>usize</code> 类型的共享整数类型；</p>
+</li>
+<li>
+<p><code>AtomicI8</code>、<code>AtomicI16</code>、<code>AtomicI32</code>、<code>AtomicI64</code> 及其无符号变体（如 <code>AtomicU8</code>）是共享整数类型，对应于单线程类型 <code>i8</code>、<code>i16</code> 等。</p>
+</li>
+<li>
+<p><code>AtomicBool</code> 是一个共享的布尔值；</p>
+</li>
+<li>
+<p><code>AtomicPtr&lt;T&gt;</code> 是不安全指针类型 <code>*mut T</code> 的共享值；</p>
+</li>
+</ul>
+<p>说多个线程可以一次读取和写入一个原子值而不会导致数据竞争。与通常的算术和逻辑运算符不同，原子类型公开了执行原子操作的方法、单独的加载、存储、交换和算术操作，这些操作作为一个单元安全发生，即使其他线程也在执行触及同一内存的原子操作。递增一个名为 <code>atom</code> 的 <code>AtomicIsize</code> 如下所示：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::sync::atomic::&#123;AtomicIsize, Ordering&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">atom</span> = AtomicIsize::<span class="title function_ invoke__">new</span>(<span class="number">0</span>);</span><br><span class="line">atom.<span class="title function_ invoke__">fetch_add</span>(<span class="number">1</span>, Ordering::SeqCst);</span><br></pre></td></tr></table></figure>
+<p>这些方法可以编译成专门的机器语言指令。在 <code>x86-64</code> 架构上，此 <code>.fetch_add()</code> 调用编译为 <code>lock incq</code> 指令，其中普通的 <code>n += 1</code> 可能编译为普通的 <code>incq</code> 指令。<code>Rust</code> 编译器还必须放弃围绕原子操作的一些优化，因为与正常的加载或存储不同，它可以合法地立即影响其他线程或被其他线程影响。</p>
+<p>参数 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html"><code>Ordering::SeqCst</code></a> 是内存排序，内存排序类似于数据库中的事务隔离级别，内存顺序对于程序的正确性至关重要，而且它们很难理解和推理。令人高兴的是，选择顺序一致性（最严格的内存排序）的性能损失通常非常低——与将 <code>SQL</code> 数据库置于 <code>SERIALIZABLE</code> 模式的性能损失不同。因此，如有疑问，请使用 <code>Ordering::SeqCst</code>。 <code>Rust</code> 从标准 <code>C++</code> 原子继承了其他几个内存排序，对存在的本质和因果关系有各种较弱的保证。</p>
+<p>原子的一种简单用途是取消。 假设我们有一个线程正在执行一些长时间运行的计算，例如渲染视频，并且我们希望能够异步取消它。 问题是与我们希望它关闭的线程进行通信。 我们可以通过共享的 <code>AtomicBool</code> 做到这一点：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::sync::Arc;</span><br><span class="line"><span class="keyword">use</span> std::sync::atomic::AtomicBool;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">cancel_flag</span> = Arc::<span class="title function_ invoke__">new</span>(AtomicBool::<span class="title function_ invoke__">new</span>(<span class="literal">false</span>));</span><br><span class="line"><span class="keyword">let</span> <span class="variable">worker_cancel_flag</span> = cancel_flag.<span class="title function_ invoke__">clone</span>();</span><br></pre></td></tr></table></figure>
+<p>这段代码创建了两个 <code>Arc&lt;AtomicBool&gt;</code> 智能指针，它们指向同一个堆分配的 <code>AtomicBool</code>，其初始值为 <code>false</code>。 第一个名为 <code>cancel_flag</code>，将留在主线程中。 第二个，<code>worker_cancel_flag</code>，将被移动到工作线程。</p>
+<p>下面是工作线程中的示例：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::sync::atomic::Ordering;</span><br><span class="line"><span class="keyword">use</span> std::thread;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">worker_handle</span> = thread::<span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> || &#123;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">pixel</span> <span class="keyword">in</span> animation.<span class="title function_ invoke__">pixels_mut</span>() &#123;</span><br><span class="line">        <span class="title function_ invoke__">render</span>(pixel); <span class="comment">// ray-tracing - this takes a few microseconds</span></span><br><span class="line">        <span class="keyword">if</span> worker_cancel_flag.<span class="title function_ invoke__">load</span>(Ordering::SeqCst) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">None</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_ invoke__">Some</span>(animation)</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>我们使用 <code>load(Ordering::SeqCst)</code> 来检查循环要不要继续，我们可以在主线程中取消工作线程继续执行任务：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Cancel rendering.</span></span><br><span class="line">cancel_flag.<span class="title function_ invoke__">store</span>(<span class="literal">true</span>, Ordering::SeqCst);</span><br><span class="line"><span class="comment">// Discard the result, which is probably `None`.</span></span><br><span class="line">worker_handle.<span class="title function_ invoke__">join</span>().<span class="title function_ invoke__">unwrap</span>();</span><br></pre></td></tr></table></figure>
+<p>当然，还有其他方法可以实现这一点，这里的 <code>AtomicBool</code> 可以替换为 <code>Mutex&lt;bool&gt;</code> 或通道，主要区别在于原子具有最小的开销，原子操作从不使用系统调用，加载或存储通常编译为单个 <code>CPU</code> 指令。</p>
+<p>原子是内部可变性的一种形式，例如 <code>Mutex</code> 或 <code>RwLock</code>，因此它们的方法通过共享（非 <code>mut</code>）引用来获取自身，这使得它们可用作简单的全局变量。</p>
+<h4 id="全局变量"><a class="markdownIt-Anchor" href="#全局变量"></a> 全局变量</h4>
+<p><code>Rust</code> 尽其所能阻止全局可变状态，用 <code>const</code> 声明的常量当然是不可变的。默认情况下，静态变量也是不可变的，因此没有办法获得一个 <code>mut</code> 引用。静态可以声明为 <code>mut</code>，但随后访问它是不安全的，<code>Rust</code> 对线程安全的坚持是所有这些规则的主要原因。</p>
+<p>全局可变状态往往使程序的各个部分更紧密耦合，更难测试，也更难在以后更改。尽管如此，在某些情况下还是没有合理的替代方案，所以我们最好找到一种安全的方法来声明可变静态变量。</p>
+<p>我们可以使用原子整数保证线程安全，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::sync::atomic::AtomicUsize;</span><br><span class="line"><span class="keyword">static</span> PACKETS_SERVED: AtomicUsize = AtomicUsize::<span class="title function_ invoke__">new</span>(<span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+<p>可以使用以下方式增加它：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::sync::atomic::Ordering;</span><br><span class="line">PACKETS_SERVED.<span class="title function_ invoke__">fetch_add</span>(<span class="number">1</span>, Ordering::SeqCst);</span><br></pre></td></tr></table></figure>
+<p>原子全局变量仅限于简单的整数和布尔值。尽管如此，创建任何其他类型的全局变量都相当于解决两个问题。</p>
+<p>首先，变量必须以某种方式成为线程安全的，否则它就不能是全局的：为了安全起见，静态变量必须是 <code>Sync</code> 和 <code>non-mut</code>。但是 <code>Rust</code> 有用于安全共享变化值的类型：<code>Mutex</code>、<code>RwLock</code> 和原子类型，即使声明为<code>非 mut</code>，这些类型也可以修改。</p>
+<p>其次，静态初始化器只能调用特别标记为 <code>const</code> 的函数，编译器可以在编译期间对其进行评估。换句话说，它们的输出是确定性的；它仅取决于它们的参数，而不取决于任何其他状态或 <code>I/O</code>。这样，编译器可以将该计算的结果作为编译时常量嵌入，这类似于 <code>C++ constexpr</code>。</p>
+<p><code>Atomic</code> 类型（<code>AtomicUsize</code>、<code>AtomicBool</code> 等）的构造函数都是 <code>const</code> 函数，这使我们能够更早地创建静态<code> AtomicUsize</code>。其他一些类型，如 <code>String</code>、<code>Ipv4Addr</code> 和 <code>Ipv6Addr</code>，也有简单的构造函数，它们也是 <code>const</code>。</p>
+<p>也可以通过简单地在函数的签名前加上 <code>const</code> 来定义自己的 <code>const</code> 函数。<code>Rust</code> 将 <code>const</code> 函数的功能限制为一小组操作，这些操作足够有用，但仍然不允许任何不确定的结果。<code>const</code> 函数不能将类型作为泛型参数，只能作为生命周期，并且不能分配内存或对原始指针进行操作，即使在不安全的块中也是如此。但是，我们可以使用算术运算、逻辑运算以及其他 <code>const</code> 函数。例如，我们可以创建方便的函数来简化静态和常量的定义并减少代码重复：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> <span class="keyword">fn</span> <span class="title function_">mono_to_rgba</span>(level: <span class="type">u8</span>) <span class="punctuation">-&gt;</span> Color &#123;</span><br><span class="line">    Color &#123;</span><br><span class="line">        red: level,</span><br><span class="line">        green: level,</span><br><span class="line">        blue: level,</span><br><span class="line">        alpha: <span class="number">0xFF</span>,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">const</span> WHITE: Color = <span class="title function_ invoke__">mono_to_rgba</span>(<span class="number">255</span>);</span><br><span class="line"><span class="keyword">const</span> BLACK: Color = <span class="title function_ invoke__">mono_to_rgba</span>(<span class="number">000</span>);</span><br></pre></td></tr></table></figure>
+<p>但是我们不能写下面这样的函数：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> HOSTNAME: Mutex&lt;<span class="type">String</span>&gt; = Mutex::<span class="title function_ invoke__">new</span>(<span class="type">String</span>::<span class="title function_ invoke__">new</span>()); <span class="comment">// error: calls in statics are limited to</span></span><br></pre></td></tr></table></figure></div>
+<p>因为 <code>Mutex::new</code> 不是 <code>const fn</code>，而 <code>AtomicUsize::new()</code> 和 <code>String::new()</code> 是的。为了绕过这些限制，我们可以使用 <code>lazy_static</code>：</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> lazy_static::lazy_static;</span><br><span class="line"><span class="keyword">use</span> std::sync::Mutex;</span><br><span class="line"></span><br><span class="line">lazy_static! &#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">ref</span> HOSTNAME: Mutex&lt;<span class="type">String</span>&gt; = Mutex::<span class="title function_ invoke__">new</span>(<span class="type">String</span>::<span class="title function_ invoke__">new</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>或者使用 <code>lazy_static</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> lazy_static::lazy_static;</span><br><span class="line"><span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line"><span class="keyword">use</span> std::sync::&#123;Arc, Mutex&#125;;</span><br><span class="line"></span><br><span class="line">lazy_static! &#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">ref</span> HASHMAP: Arc&lt;Mutex&lt;HashMap&lt;<span class="type">u32</span>, &amp;<span class="symbol">&#x27;static</span> <span class="type">str</span>&gt;&gt;&gt; = &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">m</span> = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line">        m.<span class="title function_ invoke__">insert</span>(<span class="number">0</span>, <span class="string">&quot;foo&quot;</span>);</span><br><span class="line">        m.<span class="title function_ invoke__">insert</span>(<span class="number">1</span>, <span class="string">&quot;bar&quot;</span>);</span><br><span class="line">        m.<span class="title function_ invoke__">insert</span>(<span class="number">2</span>, <span class="string">&quot;baz&quot;</span>);</span><br><span class="line">        Arc::<span class="title function_ invoke__">new</span>(Mutex::<span class="title function_ invoke__">new</span>(m))</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">map</span> = HASHMAP.<span class="title function_ invoke__">lock</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    map.<span class="title function_ invoke__">insert</span>(<span class="number">3</span>, <span class="string">&quot;waz&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;map: &#123;:?&#125;&quot;</span>, map);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</div>
+<p>同样的技术适用于其他复杂的数据结构，如 <code>HashMaps</code> 和 <code>Deques</code>。 使用 <code>lazy_static！</code> 对静态数据的每次访问都会产生很小的性能成本。 该实现使用 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/sync/struct.Once.html"><code>std::sync::Once</code></a>，这是一种为一次性初始化而设计的低级同步原语。在幕后，每次访问惰性静态时，程序都会执行原子加载指令来检查初始化是否已经发生。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/" title="【Rust】并发">https://blog.fudenglong.site/2022/05/03/Rust/【Rust】并发/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+              <a href="/tags/%E5%B9%B6%E5%8F%91/" rel="tag"># 并发</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/" rel="prev" title="【Rust】输入输出">
+                  <i class="fa fa-angle-left"></i> 【Rust】输入输出
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" rel="next" title="【Rust】异步编程">
+                  【Rust】异步编程 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

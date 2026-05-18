@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Programming Rust 这本书是 O&#39;Reilly 出版社的，对本书进行了学习和记录，内容大体上没有遗漏，只是对一些描述做了精简，出版社书籍链接。文档源码 gamelife1314&#x2F;gamelife1314.github.io。  表述有误的地方请评论或者提 pr 指正。  《第3章-Fundamental Types》 《第4章-Ownership and Moves》 《第5章-R">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Programming Rust">
+<meta property="og:url" content="https://blog.fudenglong.site/Programming-Rust/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Programming Rust 这本书是 O&#39;Reilly 出版社的，对本书进行了学习和记录，内容大体上没有遗漏，只是对一些描述做了精简，出版社书籍链接。文档源码 gamelife1314&#x2F;gamelife1314.github.io。  表述有误的地方请评论或者提 pr 指正。  《第3章-Fundamental Types》 《第4章-Ownership and Moves》 《第5章-R">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/Programming-Rust/assets/programing-rust-cover.png">
+<meta property="article:published_time" content="2022-05-05T01:54:08.000Z">
+<meta property="article:modified_time" content="2022-05-05T01:54:08.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/Programming-Rust/assets/programing-rust-cover.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/Programming-Rust/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":false,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/Programming-Rust/index.html","path":"Programming-Rust/index.html","title":"Programming Rust"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Programming Rust | MichaelFu
+</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#programming-rust"><span class="nav-number">1.</span> <span class="nav-text"> Programming Rust</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B6%E4%BB%96%E6%96%87%E7%AB%A0"><span class="nav-number">1.1.</span> <span class="nav-text"> 其他文章</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#web"><span class="nav-number">2.</span> <span class="nav-text"> WEB</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ffi"><span class="nav-number">3.</span> <span class="nav-text"> FFI</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E8%AF%91"><span class="nav-number">4.</span> <span class="nav-text"> 编译</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%8F%E8%AE%AE"><span class="nav-number">5.</span> <span class="nav-text"> 协议</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95"><span class="nav-number">6.</span> <span class="nav-text"> 测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gui"><span class="nav-number">7.</span> <span class="nav-text"> GUI</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%91%BD%E4%BB%A4%E8%A1%8C"><span class="nav-number">8.</span> <span class="nav-text"> 命令行</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%91%E5%8E%9F%E7%94%9F"><span class="nav-number">9.</span> <span class="nav-text"> 云原生</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B5%8C%E5%85%A5%E5%BC%8F"><span class="nav-number">10.</span> <span class="nav-text"> 嵌入式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8C%BA%E5%9D%97%E9%93%BE"><span class="nav-number">11.</span> <span class="nav-text"> 区块链</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="nav-number">12.</span> <span class="nav-text"> 数据库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B"><span class="nav-number">13.</span> <span class="nav-text"> 数据类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E7%BD%91%E7%AB%99"><span class="nav-number">14.</span> <span class="nav-text"> 静态网站</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#wasmtime"><span class="nav-number">15.</span> <span class="nav-text"> wasmtime</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0"><span class="nav-number">16.</span> <span class="nav-text"> 机器学习</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%A5%E5%BF%97%E7%9B%91%E6%8E%A7"><span class="nav-number">17.</span> <span class="nav-text"> 日志监控</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B9%B6%E5%8F%91%E5%BC%82%E6%AD%A5"><span class="nav-number">18.</span> <span class="nav-text"> 并发异步</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B6%E4%BB%96-crate"><span class="nav-number">19.</span> <span class="nav-text"> 其他 crate</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E8%B5%84%E6%96%99"><span class="nav-number">20.</span> <span class="nav-text"> 学习资料</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9C%A8%E7%BA%BF%E5%B7%A5%E5%85%B7"><span class="nav-number">21.</span> <span class="nav-text"> 在线工具</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner page posts-expand">
+
+
+    
+    
+    
+    <div class="post-block" lang="zh-CN"><header class="post-header">
+
+<h1 class="post-title" itemprop="name headline">Programming Rust
+</h1>
+
+<div class="post-meta-container">
+</div>
+
+</header>
+
+      
+      
+      
+      <div class="post-body">
+          <h3 id="programming-rust"><a class="markdownIt-Anchor" href="#programming-rust"></a> <code>Programming Rust</code></h3>
+<p>这本书是 <code>O'Reilly</code> 出版社的，对本书进行了学习和记录，内容大体上没有遗漏，只是对一些描述做了精简，<a target="_blank" rel="noopener" href="https://www.oreilly.com/library/view/programming-rust-2nd/9781492052586/">出版社书籍链接</a>。文档源码 <a target="_blank" rel="noopener" href="https://github.com/gamelife1314/gamelife1314.github.io">gamelife1314/gamelife1314.github.io</a>。</p>
+<p><img data-src="assets/programing-rust-cover.png" alt="" /></p>
+<p>表述有误的地方请评论或者提 <code>pr</code> 指正。</p>
+<ol>
+<li><a href="/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/">《第3章-Fundamental Types》</a></li>
+<li><a href="/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/">《第4章-Ownership and Moves》</a></li>
+<li><a href="/2022/04/17/Rust/%E3%80%90Rust%E3%80%91%E5%BC%95%E7%94%A8/">《第5章-References》</a></li>
+<li><a href="/2022/04/20/Rust/%E3%80%90Rust%E3%80%91%E8%A1%A8%E8%BE%BE%E5%BC%8F/">《第6章-Expressions》</a></li>
+<li><a href="/2022/04/21/Rust/%E3%80%90Rust%E3%80%91%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">《第7章-Error Handling》</a></li>
+<li><a href="/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/">《第8章-Crates and Modules》</a></li>
+<li><a href="/2022/04/24/Rust/%E3%80%90Rust%E3%80%91%E7%BB%93%E6%9E%84%E4%BD%93/">《第9章-Structs》</a></li>
+<li><a href="/2022/04/25/Rust/%E3%80%90Rust%E3%80%91%E6%9E%9A%E4%B8%BE%E5%92%8C%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/">《第10章-Enums and Patterns》</a></li>
+<li><a href="/2022/04/26/Rust/%E3%80%90Rust%E3%80%91Trait%E5%92%8C%E6%B3%9B%E5%9E%8B/">《第11章-Traits and Generics》</a></li>
+<li><a href="/2022/04/28/Rust/Rust-operator-overloading/">《第12章-Operator Overloading》</a></li>
+<li><a href="/2022/04/29/Rust/%E3%80%90Rust%E3%80%91%E5%B8%B8%E7%94%A8-Trait/">《第13章-Utility Traits》</a></li>
+<li><a href="/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E9%97%AD%E5%8C%85/">《第14章-Closures》</a></li>
+<li><a href="/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E8%BF%AD%E4%BB%A3%E5%99%A8/">《第15章-Iterators》</a></li>
+<li><a href="/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/">《第16章-Collections》</a></li>
+<li><a href="/2022/05/01/Rust/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/">《第17章-Strings and Text》</a></li>
+<li><a href="/2022/05/02/Rust/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/">《第18章-Input and Output》</a></li>
+<li><a href="/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%B9%B6%E5%8F%91/">《第19章-Concurrency》</a></li>
+<li><a href="/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/">《第20章-Asynchronous Programming》</a></li>
+<li><a href="/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/">《第21章-Macros》</a></li>
+<li><a href="/2022/05/05/Rust/%E3%80%90Rust%E3%80%91Unsafe-%E4%BB%A3%E7%A0%81/">《第22章-Unsafe Code》</a></li>
+<li><a href="/2022/05/06/Rust/Rust-ffi/">《第23章-Foreign Functions》</a></li>
+</ol>
+<h4 id="其他文章"><a class="markdownIt-Anchor" href="#其他文章"></a> 其他文章</h4>
+<ul>
+<li><a href="/2021/09/14/Rust/%E3%80%90Rust%E3%80%91%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">Rust 生命周期</a></li>
+<li><a href="/2021/09/05/Rust/%E3%80%90Rust%E3%80%91%E5%AE%9E%E6%88%98%E7%AA%81%E7%A0%B4/">Rust 学习笔记</a></li>
+<li><a href="/2022/04/07/Rust/%E3%80%90Rust%E3%80%91Rustup%20%E4%BB%8B%E7%BB%8D/">Rustup 介绍</a></li>
+<li><a href="/2022/04/08/Rust/%E3%80%90Rust%E3%80%91%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/">Rust 交叉编译</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/johnthagen/min-sized-rust">Rust 二进制文件体积减小</a></li>
+<li><a href="/2023/12/05/Rust/decrease-binary-size/">【Rust】二进制体积减小</a></li>
+<li><a href="/2022/05/01/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/#%E6%A0%BC%E5%BC%8F%E5%8C%96">Rust 格式化</a></li>
+<li><a href="/2022/05/01/%E3%80%90Rust%E3%80%91%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E6%96%87%E6%9C%AC/#%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F">Rust 正则表达式</a></li>
+<li><a href="/2022/05/02/%E3%80%90Rust%E3%80%91%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA/#%E6%96%87%E4%BB%B6%E5%92%8C%E7%9B%AE%E5%BD%95">文件和目录</a></li>
+<li><a href="/2022/05/11/Rust/anyhow-and-thiserror/">anyhow &amp; thiserror</a></li>
+<li><a target="_blank" rel="noopener" href="https://dtolnay.github.io/rust-quiz/18">Rust 在线题目测试</a></li>
+<li><a target="_blank" rel="noopener" href="https://darkdust.net/files/GDB%20Cheat%20Sheet.pdf">gdb 速查手册</a></li>
+<li><a target="_blank" rel="noopener" href="https://lldb.llvm.org/use/map.html">lldb 使用帮助</a></li>
+<li><a target="_blank" rel="noopener" href="https://course.rs/test/ci.html">用 GitHub Actions 进行持续集成</a></li>
+<li><a target="_blank" rel="noopener" href="https://ectobit.com/blog/speed-up-github-actions-rust-pipelines/">GitHub Action 构建 Rust 程序加速</a></li>
+<li><a target="_blank" rel="noopener" href="https://tutorialedge.net/rust/rust-docker-tutorial/">Rust Docker Tutorial</a></li>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/SIgvfBKOIzTtG8x2metdKA">【Rust日报】关于 pprof-rs 内部工作原理的一些笔记</a></li>
+</ul>
+<h3 id="web"><a class="markdownIt-Anchor" href="#web"></a> <code>WEB</code></h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/reqwest">reqwest</a>：高级 <code>HTTP</code> 客户端；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/actix-web">actix-web</a>：<code>Web</code> 框架；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/surf">surf</a>：跨平台 <code>HTTP</code> 客户端，简单易用；</li>
+<li><a target="_blank" rel="noopener" href="https://rocket.rs/">rocket</a>：<code>web</code> 框架；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/tokio-rs/axum">axum</a>：使用 <code>Tokio</code>、<code>Tower</code> 和 <code>Hyper</code> 构建的符合人体工程学的模块化 <code>Web</code> 框架；</li>
+<li><a target="_blank" rel="noopener" href="https://diesel.rs/">diesel</a>：<code>Rust</code> 的 <code>ORM</code> 框架；</li>
+<li><a target="_blank" rel="noopener" href="https://www.sea-ql.org/SeaORM/">SeaORM</a>：<code>Rust</code> 的 <code>ORM</code> 框架；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/launchbadge/sqlx">sqlx</a>：异步的纯 <code>Rust</code> 实现的 <code>Sql</code> 工具箱；</li>
+<li><a target="_blank" rel="noopener" href="https://yew.rs/zh-CN/">yew</a>：<code>Yew</code> 是一个设计先进的 <code>Rust</code> 框架，目的是使用 <code>WebAssembly</code> 来创建多线程的前端 <code>web</code> 应用。</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/seed-rs/seed">seed</a>：创建 <code>Web</code> 前端应用的 <code>Rust</code> 框架；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/MoonZoon/MoonZoon">MoonZoon</a>：<code>Rust</code> 全栈框架；</li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/comrak/latest/comrak/">comrak</a>：<code>markdown</code> 解析；</li>
+</ul>
+<h3 id="ffi"><a class="markdownIt-Anchor" href="#ffi"></a> <code>FFI</code></h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/PyO3/pyo3">pyo3</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/neon-bindings/neon">neon</a></li>
+</ul>
+<h3 id="编译"><a class="markdownIt-Anchor" href="#编译"></a> 编译</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/johnthagen/min-sized-rust">min-sized-rust</a>：减小 <code>Rust</code> 二进制文件体积；</li>
+</ul>
+<h3 id="协议"><a class="markdownIt-Anchor" href="#协议"></a> 协议</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/hyperium/hyper">hyper</a>：快速的 <code>HTTP</code> 实现；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/hyperium/tonic">tonic</a>：原生的 <code>grpc</code> 客户段和服务端，支持 <code>async/await</code>；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/tokio-rs/prost">prost</a>：<code>Rust</code> 的 <code>protocol buffer</code> 实现；</li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/tungstenite/latest/tungstenite/">tungstenite</a>：<code>websocket</code> 协议实现；</li>
+</ul>
+<h3 id="测试"><a class="markdownIt-Anchor" href="#测试"></a> 测试</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/headless_chrome/latest/headless_chrome/">headless_chrome</a>：一个高级的控制无头浏览器或者 <code>Chromium</code> 的框架；</li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/thirtyfour/latest/thirtyfour/">thirtyfour</a>：类似 <code>Selenium</code> 的自动化测试框架；</li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/fantoccini/latest/fantoccini/">fantoccini</a>：通过 <code>WebDriver</code> 以编程方式与网页交互的高级 API；</li>
+</ul>
+<h3 id="gui"><a class="markdownIt-Anchor" href="#gui"></a> <code>GUI</code></h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/iced-rs/iced">iced</a></li>
+<li><a target="_blank" rel="noopener" href="https://linebender.org/druid/">druid</a></li>
+<li><a target="_blank" rel="noopener" href="https://tauri.studio/">tauri</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/sixtyfpsui/sixtyfps">sixtyfps</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/rust-skia/rust-skia">rust-skia</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/RazrFalcon/tiny-skia">tiny-skia</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.areweguiyet.com/#ecosystem">areweguiyet</a></li>
+</ul>
+<h3 id="命令行"><a class="markdownIt-Anchor" href="#命令行"></a> 命令行</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/dialoguer/latest/dialoguer/">dialoguer</a>：可以用于构建交互式命令行；</li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/indicatif/latest/indicatif/">indicatif</a>：用于提供友好的进度条；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/clap-rs/clap">clap</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/fdehau/tui-rs">tui</a>：<code>Rust</code> 终端 <code>UI</code>；</li>
+</ul>
+<h3 id="云原生"><a class="markdownIt-Anchor" href="#云原生"></a> 云原生</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/kube-rs/kube-rs">kube-rs</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/krator-rs/krator">krator</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/krustlet/krustlet">krustlet</a></li>
+</ul>
+<h3 id="嵌入式"><a class="markdownIt-Anchor" href="#嵌入式"></a> 嵌入式</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/rust-embedded/wg/">wg</a>：嵌入式设备工作组的协调存储库；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/project-akri/akri">akri</a>：一个管理嵌入式设备的云原生项目；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/rust-embedded/awesome-embedded-rust">awesome-embedded-rust</a></li>
+</ul>
+<h3 id="区块链"><a class="markdownIt-Anchor" href="#区块链"></a> 区块链</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/solana-labs/solana">solana</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/RustCrypto/password-hashes">password-hashes</a></li>
+</ul>
+<h3 id="数据库"><a class="markdownIt-Anchor" href="#数据库"></a> 数据库</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://bonsaidb.io/">bonsaidb</a>：<code>Rust</code> 写的本地数据库；</li>
+</ul>
+<h3 id="数据类型"><a class="markdownIt-Anchor" href="#数据类型"></a> 数据类型</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/fnv">fnv</a>：基于 <code>Fowler–Noll–Vo</code> 算法实现的 <code>HashMap</code>；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/dashmap">dashmap</a>：<code>Rust</code> 中超快的并发 <code>map</code>；</li>
+</ul>
+<h3 id="静态网站"><a class="markdownIt-Anchor" href="#静态网站"></a> 静态网站</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/rust-lang/mdBook">mdBook</a>：类似 <code>gitbook</code> 的 <code>Rust</code> 实现；</li>
+<li><a target="_blank" rel="noopener" href="https://www.getzola.org/">getzola</a>：静态网站生成器；</li>
+</ul>
+<h3 id="wasmtime"><a class="markdownIt-Anchor" href="#wasmtime"></a> wasmtime</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/fermyon/spin">spin</a>：<code>Spin</code> 用于使用 <code>WebAssembly</code> 构建和运行快速、安全和可组合的云微服务；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/thedodd/trunk">trunk</a>：构建、打包以及发布 <code>wasm</code> 应用；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/wasmerio/wasmer">wasmer</a>：<code>Wasmer</code> 提供基于 <code>WebAssembly</code> 的超轻量级容器，其可以在任何地方运行：从桌面到云、以及 <code>IoT</code> 设备，并且也能嵌入到 任何编程语言中；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/bytecodealliance/wasmtime">wasmtime</a>：单独的 <code>wasm</code> 运行时；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/WasmEdge/WasmEdge">WasmEdge</a>：WasmEdge 是一个轻量级、高性能和可扩展的 WebAssembly 运行时，适用于云原生、边缘和去中心化应用程序。它为无服务器应用程序、嵌入式功能、微服务、智能合约和物联网设备提供支持；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/rustwasm">rustwasm</a>：<code>rustwasm</code> 生态系统；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/rustwasm/wasm-pack">wasm-pack</a>：<code>wasm</code> 工作流工具；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/rustwasm/wasm-bindgen">wasm-bindgen</a>：提供<code>Wasm</code> 模块和 <code>JavaScript</code> 之间级交互的高级 <code>API</code>。</li>
+<li><a target="_blank" rel="noopener" href="https://bytecodealliance.org/">bytecodealliance</a></li>
+</ul>
+<h3 id="机器学习"><a class="markdownIt-Anchor" href="#机器学习"></a> 机器学习</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/tensorflow/rust">tensorflow</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/LaurentMazare/tch-rs">PyTorch</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/rust-ml/linfa">scikit-learn</a></li>
+</ul>
+<h3 id="日志监控"><a class="markdownIt-Anchor" href="#日志监控"></a> 日志监控</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/tracing">tracing</a>：日志处理；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/tikv/rust-prometheus">rust-prometheus</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/open-telemetry/opentelemetry-rust">opentelemetry-rust</a></li>
+</ul>
+<h3 id="并发异步"><a class="markdownIt-Anchor" href="#并发异步"></a> 并发异步</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/smol-rs/smol">smol</a>：一个小而快的异步运行时；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/rayon">rayon</a>：计算密集型任务的任务分解；</li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/tokio/latest/tokio/">tokio</a>：<code>Tokio</code> 是一个事件驱动的非阻塞 <code>I/O</code> 平台，用于使用 <code>Rust</code> 编程语言编写异步应用程序。</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/actix/actix">actix</a>：<code>Rust</code> 的 <code>actor</code> 框架；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/bastion-rs/bastion">bastion</a>：高可用分布式容错运行时；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/waker-fn">waker_fn</a>：转换闭包为 <code>waker</code>；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/crossbeam">crossbeam</a>：提供很多用于并发编程的工具，例如线程阻塞；</li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/async-trait/latest/async_trait/">async_trait</a>：提供了一个宏，可以在 <code>trait</code> 中包含异步的方法；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/futures-lite">futures-lite</a>：完全兼容 <a target="_blank" rel="noopener" href="https://docs.rs/futures">futures</a>，提供了 <code>pin!</code>；</li>
+</ul>
+<h3 id="其他-crate"><a class="markdownIt-Anchor" href="#其他-crate"></a> 其他 crate</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/thiserror">thiserror</a>：自动派生标准库中的 <code>std::error::Error</code>；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/anyhow">anyhow</a>：提供了 <code>anyhow::Result&lt;T&gt;</code> 用于任何可能失败返回错误的函数；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/lazy_static">lazy_static</a>：可以用于初始化全局可变静态变量；</li>
+<li>[once_cell`](<a target="_blank" rel="noopener" href="https://crates.io/crates/once_cell">https://crates.io/crates/once_cell</a>)：`once_cell`提供了`unsync::OnceCell`和`sync::OnceCell`这两种`Cell`，用来存储堆上的信息，并且具有最多只能赋值一次的特性；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/unicode-width">unicode-width</a>：获取 <code>Unicode</code> 字符宽度；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/enum_primitive">enum_primitive</a>：提供宏能自动从数字转换成枚举；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/serde_json">serde_json</a>：<code>json</code> 序列化；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/argonautica">argonautica</a>：使用 <a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Argon2"><code>Argon2 hashing algorithm</code></a> 进行密码 <code>hash</code>；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/parking_lot">parking_lot</a>：提供了比标准库更快的 <code>Mutex</code> 等；</li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/itertools/0.10.1/itertools/index.html">itertools</a>：扩展了内置的 <code>Iterator</code>，提供了更多的迭代适配器方法；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/tokio-rs/bytes">bytes</a>：处理二进制内容的库；</li>
+<li><a target="_blank" rel="noopener" href="https://crates.io/crates/colored">colored</a>：在终端中添加颜色的最简单方法；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/zhiburt/tabled">tabled</a>：以表格的形式输出结构体和枚举；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/chronotope/chrono">chrono</a>：<code>Rust</code> 的日期和时间处理库；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/Geal/nom#example">nom</a>：解析器组合库；</li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/rusoto_core/latest/rusoto_core/">rusoto_core</a>：<code>Rust</code> 实现的 <code>AWS</code> <code>SDK</code>；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/pola-rs/polars">polars</a>：用于 <code>Rust</code> 和 <code>Python</code> 快速的 <code>DataFrame</code> 库；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/tikv/pprof-rs">pprof-rs</a>：借助 <code>backtrace-rs</code> 实现的 <code>Rust</code> <code>CPU</code> 分析器；</li>
+</ul>
+<h3 id="学习资料"><a class="markdownIt-Anchor" href="#学习资料"></a> 学习资料</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://kaisery.github.io/trpl-zh-cn/">Rust 程序设计语言</a></li>
+<li><a target="_blank" rel="noopener" href="https://course.rs/about-book.html">Rust 语言圣经</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/nomicon/index.html">Rust 秘典</a></li>
+<li><a target="_blank" rel="noopener" href="https://nomicon.purewhite.io/">Rust 秘典（中文）</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/edition-guide/index.html">Rust 版本指南</a></li>
+<li><a target="_blank" rel="noopener" href="https://rustwiki.org/zh-CN/rust-by-example/">通过例子学 Rust</a></li>
+<li><a target="_blank" rel="noopener" href="https://danielkeep.github.io/tlborm/book/">《Rust Macros小书》</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/cargo/index.html">Cargo 手册</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/rustdoc/index.html">Rustdoc 手册</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/rustc/index.html">Rustc 手册</a></li>
+<li><a target="_blank" rel="noopener" href="https://rust-cli.github.io/book/index.html">命令行手册</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/embedded-book">嵌入式手册</a></li>
+<li><a target="_blank" rel="noopener" href="https://rustwasm.github.io/docs/book/">WEBASSEMBLY 手册</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/reference/index.html">Rust 参数手册</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/rust-lang/rustlings">rustlings</a>：<code>Rust</code> 知识检测；</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/dtolnay/rust-quiz">rust-quiz</a>：<code>Rust</code> 知识检测；</li>
+<li><a target="_blank" rel="noopener" href="https://spec.ferrocene.dev/">spec.ferrocene.dev</a></li>
+</ul>
+<h3 id="在线工具"><a class="markdownIt-Anchor" href="#在线工具"></a> 在线工具</h3>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://releases.rs/">releases.rs</a></li>
+<li><a target="_blank" rel="noopener" href="https://replit.com/languages/rust">Replit</a>：在线支持 <code>crate</code> 和 <code>cargo</code>；</li>
+<li><a target="_blank" rel="noopener" href="https://godbolt.org/">Godbolt</a>：支持在线查看 <code>Rust</code> 汇编生成；</li>
+</ul>
+
+      </div>
+      
+      
+      
+    </div>
+
+    
+    
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/Programming-Rust/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

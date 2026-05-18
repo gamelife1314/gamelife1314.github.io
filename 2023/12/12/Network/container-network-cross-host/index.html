@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="单机场景下，相同主机上的容器会通过 Docker 默认创建的 docker0 网桥以及在启动容器时创建的 veth pair 设备实现互通。而对于跨主机容器通信，社区提供了很多种不同的方案，例如 weave、flannel，本篇文章将以 flannel 为例，实现跨主机容器通信，flannel 有多种后端实现，本文以 VXLAN 为例，动手实践，最终达到的效果如下图所示：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="容器网络-跨主机容器通信">
+<meta property="og:url" content="https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="单机场景下，相同主机上的容器会通过 Docker 默认创建的 docker0 网桥以及在启动容器时创建的 veth pair 设备实现互通。而对于跨主机容器通信，社区提供了很多种不同的方案，例如 weave、flannel，本篇文章将以 flannel 为例，实现跨主机容器通信，flannel 有多种后端实现，本文以 VXLAN 为例，动手实践，最终达到的效果如下图所示：">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/%E8%B7%A8%E4%B8%BB%E6%9C%BA%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/%E5%86%85%E9%83%A8%E6%95%B0%E6%8D%AE%E5%B8%A7.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/%E4%B8%89%E5%B1%82%E7%BD%91%E7%BB%9C%E6%95%B0%E6%8D%AE%E5%B8%A7.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/tcpdump.png">
+<meta property="article:published_time" content="2023-12-12T03:05:38.000Z">
+<meta property="article:modified_time" content="2023-12-12T03:05:38.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="容器网络">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/%E8%B7%A8%E4%B8%BB%E6%9C%BA%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/","path":"2023/12/12/Network/container-network-cross-host/","title":"容器网络-跨主机容器通信"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>容器网络-跨主机容器通信 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-node"><span class="nav-number">1.</span> <span class="nav-text"> 创建 node</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-etcd"><span class="nav-number">2.</span> <span class="nav-text"> 安装 etcd</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-flannel"><span class="nav-number">3.</span> <span class="nav-text"> 安装 flannel</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE-docker"><span class="nav-number">4.</span> <span class="nav-text"> 配置 docker</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-container"><span class="nav-number">5.</span> <span class="nav-text"> 创建 container</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%87%E7%A8%8B%E8%AF%A6%E8%A7%A3"><span class="nav-number">6.</span> <span class="nav-text"> 过程详解</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="nav-number">7.</span> <span class="nav-text"> 参考链接</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="容器网络-跨主机容器通信 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          容器网络-跨主机容器通信
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-12-12 11:05:38" itemprop="dateCreated datePublished" datetime="2023-12-12T11:05:38+08:00">2023-12-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Linux/Network/" itemprop="url" rel="index"><span itemprop="name">Network</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.1k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>19 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>单机场景下，相同主机上的容器会通过 <code>Docker</code> 默认创建的 <code>docker0</code> 网桥以及在启动容器时创建的 <code>veth pair</code> 设备实现互通。而对于跨主机容器通信，社区提供了很多种不同的方案，例如 <a target="_blank" rel="noopener" href="https://github.com/weaveworks/weave"><code>weave</code></a>、<a target="_blank" rel="noopener" href="https://github.com/flannel-io/flannel"><code>flannel</code></a>，本篇文章将以 <code>flannel</code> 为例，实现跨主机容器通信，<code>flannel</code> 有多种后端实现，本文以 <code>VXLAN</code> 为例，动手实践，最终达到的效果如下图所示：</p>
+<img data-src="/2023/12/12/Network/container-network-cross-host/%E8%B7%A8%E4%B8%BB%E6%9C%BA%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C.png" class="">
+<span id="more"></span>
+<h3 id="创建-node"><a class="markdownIt-Anchor" href="#创建-node"></a> 创建 node</h3>
+<p>首先在本地准备两台单独的虚拟机，并且安装 <code>docker</code>，这里我使用 <a target="_blank" rel="noopener" href="https://multipass.run/"><code>multipass</code></a> 直接创建两台虚拟机 <code>docker1</code> 和 <code>docker2</code>，命令如下：</p>
+<blockquote>
+<p>multipass launch --name docker1 -d 40G docker<br />
+multipass launch --name docker2 -d 40G docker</p>
+</blockquote>
+<p>最后面的 <code>docker</code> 是镜像名称，因此这不仅创建虚拟机，镜像中已经包含 <code>docker</code>，无需再手动安装。创建成功如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ multipass list</span><br><span class="line">Name                    State             IPv4             Image</span><br><span class="line">docker1                 Running           192.168.65.3     Ubuntu 22.04 LTS</span><br><span class="line">                                          152.156.0.1</span><br><span class="line">docker2                 Running           192.168.65.4     Ubuntu 22.04 LTS</span><br><span class="line">                                          188.172.0.1</span><br></pre></td></tr></table></figure>
+<h3 id="安装-etcd"><a class="markdownIt-Anchor" href="#安装-etcd"></a> 安装 etcd</h3>
+<p><code>flannel</code> 通过 <code>etcd</code> 保存配置信息以及实现相互发现，为了方便测试，通过 <code>docker</code> 在 <code>docker1</code> 节点上启动一个 <code>etcd</code> 容器:</p>
+<blockquote>
+<p>docker run -it --env ALLOW_NONE_AUTHENTICATION=yes -d  --net=host  --name etcd bitnami/etcd</p>
+</blockquote>
+<p>这里的 <code>--net=host</code> 让这个容器直接使用 <code>docker1</code> 的网络空间，这样 <code>etcd</code> 服务在启动之后，直接监听在 <code>docker1</code> 上，让 <code>docker2</code> 节点也可以访问：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# netstat -tualnp | grep etcd | grep LISTEN</span><br><span class="line">    tcp        0      0 127.0.0.1:2380          0.0.0.0:*               LISTEN      10147/etcd</span><br><span class="line">    tcp6       0      0 :::2379                 :::*                    LISTEN      10147/etcd</span><br></pre></td></tr></table></figure>
+<p>随候使用 <code>etcdctl</code> 写入基础配置信息，这里我们以 <code>vxlan</code> 作为 <code>flannel</code> 的后端实现为例（<code>flannel</code> 没有在 <code>Linux ARM</code> 上实现 <code>UDP</code>），<code>VXLAN（Virtual eXtensible Local Area Network）</code> 全称是虚拟可扩展局域网，利用它可以通过三层的网络来搭建虚拟的二层网络，是一种 <code>overlay</code> 技术：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# docker exec -itu root etcd bash</span><br><span class="line">root@docker1:/opt/bitnami/etcd#</span><br><span class="line">root@docker1:/opt/bitnami/etcd#</span><br><span class="line">root@docker1:/opt/bitnami/etcd# ETCDCTL_API=3 etcdctl put /coreos.com/network/config &#x27;&#123; &quot;Network&quot;: &quot;188.172.0.0/16&quot;, &quot;Backend&quot;: &#123;&quot;Type&quot;: &quot;vxlan&quot;, &quot;VNI&quot;: 88, &quot;Port&quot;: 4789&#125;&#125;&#x27;</span><br><span class="line">OK</span><br><span class="line">root@docker1:/opt/bitnami/etcd#</span><br><span class="line">root@docker1:/opt/bitnami/etcd# ETCDCTL_API=3 etcdctl get /coreos.com/network/config</span><br><span class="line">/coreos.com/network/config</span><br><span class="line">&#123; &quot;Network&quot;: &quot;188.172.0.0/16&quot;, &quot;Backend&quot;: &#123;&quot;Type&quot;: &quot;vxlan&quot;, &quot;VNI&quot;: 88, &quot;Port&quot;: 4789&#125;&#125;</span><br><span class="line">root@docker1:/opt/bitnami/etcd#</span><br></pre></td></tr></table></figure>
+<h3 id="安装-flannel"><a class="markdownIt-Anchor" href="#安装-flannel"></a> 安装 <code>flannel</code></h3>
+<p>从 <a target="_blank" rel="noopener" href="https://github.com/flannel-io/flannel/releases"><code>flannel release</code></a> 页面下载对应平台的预编译版本之后，启动运行。首先在 <code>docker1</code> 节点启动：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# ifconfig enp0s1</span><br><span class="line">enp0s1: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500</span><br><span class="line">        inet 192.168.65.3  netmask 255.255.255.0  broadcast 192.168.65.255</span><br><span class="line">        inet6 fd5e:5a21:c847:d0a:5054:ff:feec:53f  prefixlen 64  scopeid 0x0&lt;global&gt;</span><br><span class="line">        inet6 fe80::5054:ff:feec:53f  prefixlen 64  scopeid 0x20&lt;link&gt;</span><br><span class="line">        ether 52:54:00:ec:05:3f  txqueuelen 1000  (Ethernet)</span><br><span class="line">        RX packets 362118  bytes 482538415 (482.5 MB)</span><br><span class="line">        RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">        TX packets 135807  bytes 49525485 (49.5 MB)</span><br><span class="line">        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br><span class="line"></span><br><span class="line">root@docker1:/home/ubuntu#</span><br><span class="line">root@docker1:/home/ubuntu# ./flanneld --public-ip=192.168.65.3 --etcd-endpoints=http://192.168.65.3:2379 --etcd-prefix=/coreos.com/network --iface=enp0s1 -v=1</span><br><span class="line">....</span><br><span class="line">1213 21:10:00.526262   11516 main.go:541] Found network config - Backend type: vxlan</span><br><span class="line">I1213 21:10:00.526492   11516 match.go:259] Using interface with name enp0s1 and address 192.168.65.3</span><br><span class="line">I1213 21:10:00.526513   11516 match.go:277] Using 192.168.65.3 as external address</span><br><span class="line">I1213 21:10:00.526567   11516 vxlan.go:141] VXLAN config: VNI=88 Port=4789 GBP=false Learning=false DirectRouting=false</span><br><span class="line">I1213 21:10:00.526669   11516 device.go:84] VXLAN device already exists</span><br><span class="line">I1213 21:10:00.526758   11516 device.go:92] Returning existing device</span><br><span class="line">I1213 21:10:00.527879   11516 local_manager.go:150] Found lease (ip: 188.172.50.0/24 ipv6: ::/0) for current IP (192.168.65.3), reusing</span><br><span class="line">I1213 21:10:00.531052   11516 main.go:406] Changing default FORWARD chain policy to ACCEPT</span><br><span class="line">I1213 21:10:00.535741   11516 iptables.go:290] generated 3 rules</span><br><span class="line">I1213 21:10:00.535842   11516 main.go:434] Wrote subnet file to /run/flannel/subnet.env</span><br><span class="line">I1213 21:10:00.535961   11516 main.go:438] Running backend.</span><br><span class="line">I1213 21:10:00.536578   11516 vxlan_network.go:65] watching for new subnet leases</span><br><span class="line">I1213 21:10:00.537747   11516 registry.go:291] registry: watching subnets starting from rev 9</span><br><span class="line">I1213 21:10:00.538296   11516 local_manager.go:314] manager.WatchLease: sending reset results...</span><br><span class="line">I1213 21:10:00.538695   11516 local_manager.go:391] Waiting for 22h59m58.999602208s to renew lease</span><br><span class="line">I1213 21:10:00.551763   11516 iptables.go:283] bootstrap done</span><br></pre></td></tr></table></figure>
+<p><code>flanneld</code> 进程启动参数中，<code>--public-ip</code> 和 <code>--iface</code> 用于表示跨主机通信的是网络报文出口，相当于公网IP，他们二选一即可，为了示例，两者都展示。<code>--etcd-prefix</code> 指定我们存储在 <code>etcd</code> 中的配置前缀，<code>--etcd-endpoints</code> 指定 <code>etcd</code> 地址。<code>flanneld</code> 启动之后，从输出的日志中可以看到  从 <code>etcd</code> 读取配置，写入配置文件到 <code>/run/flannel/subnet.env</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# cat /run/flannel/subnet.env</span><br><span class="line">FLANNEL_NETWORK=188.172.0.0/16</span><br><span class="line">FLANNEL_SUBNET=188.172.50.1/24</span><br><span class="line">FLANNEL_MTU=1450</span><br><span class="line">FLANNEL_IPMASQ=false</span><br></pre></td></tr></table></figure>
+<p>并且创建 <code>vetp</code> 设备以及监听 <code>4789</code> 端口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# netstat -tualnp | grep 4789</span><br><span class="line">udp        0      0 0.0.0.0:4789            0.0.0.0:*                           -</span><br><span class="line">root@docker1:/home/ubuntu# ifconfig flannel.88</span><br><span class="line">flannel.88: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1450</span><br><span class="line">        inet 188.172.50.0  netmask 255.255.255.255  broadcast 0.0.0.0</span><br><span class="line">        inet6 fe80::b8a9:8cff:fe00:1a69  prefixlen 64  scopeid 0x20&lt;link&gt;</span><br><span class="line">        ether ba:a9:8c:00:1a:69  txqueuelen 0  (Ethernet)</span><br><span class="line">        RX packets 0  bytes 0 (0.0 B)</span><br><span class="line">        RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">        TX packets 0  bytes 0 (0.0 B)</span><br><span class="line">        TX errors 0  dropped 5 overruns 0  carrier 0  collisions 0</span><br></pre></td></tr></table></figure>
+<p>然后在 <code>docker2</code> 节点上同样启动 <code>flanneld</code> 进程。启动命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">root@docker2:/home/ubuntu# ifconfig enp0s1</span><br><span class="line">enp0s1: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500</span><br><span class="line">        inet 192.168.65.4  netmask 255.255.255.0  broadcast 192.168.65.255</span><br><span class="line">        inet6 fe80::5054:ff:fe8b:811b  prefixlen 64  scopeid 0x20&lt;link&gt;</span><br><span class="line">        inet6 fd5e:5a21:c847:d0a:5054:ff:fe8b:811b  prefixlen 64  scopeid 0x0&lt;global&gt;</span><br><span class="line">        ether 52:54:00:8b:81:1b  txqueuelen 1000  (Ethernet)</span><br><span class="line">        RX packets 253941  bytes 359657656 (359.6 MB)</span><br><span class="line">        RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">        TX packets 62818  bytes 5787379 (5.7 MB)</span><br><span class="line">        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br><span class="line"></span><br><span class="line">root@docker2:/home/ubuntu# ./flanneld --public-ip=192.168.65.4 --etcd-endpoints=http://192.168.65.3:2379 --etcd-prefix=/coreos.com/network --iface=enp0s1 -v=1</span><br><span class="line">....</span><br><span class="line">W1213 21:32:07.346075   10352 main.go:594] no subnet found for key: FLANNEL_SUBNET in file: /run/flannel/subnet.env</span><br><span class="line">W1213 21:32:07.346080   10352 main.go:629] no subnet found for key: FLANNEL_IPV6_SUBNET in file: /run/flannel/subnet.env</span><br><span class="line">W1213 21:32:07.346178   10352 registry.go:84] no certificate provided: connecting to etcd with http. This is insecure</span><br><span class="line">I1213 21:32:07.346963   10352 main.go:230] Created subnet manager: Etcd Local Manager with Previous Subnet: None</span><br><span class="line">I1213 21:32:07.346976   10352 main.go:233] Installing signal handlers</span><br><span class="line">I1213 21:32:07.351652   10352 main.go:541] Found network config - Backend type: vxlan</span><br><span class="line">I1213 21:32:07.352061   10352 match.go:259] Using interface with name enp0s1 and address 192.168.65.4</span><br><span class="line">I1213 21:32:07.352124   10352 match.go:277] Using 192.168.65.4 as external address</span><br><span class="line">I1213 21:32:07.352214   10352 vxlan.go:141] VXLAN config: VNI=88 Port=4789 GBP=false Learning=false DirectRouting=false</span><br><span class="line">I1213 21:32:07.375024   10352 local_manager.go:218] Picking subnet in range 188.172.1.0 ... 188.172.255.0</span><br><span class="line">I1213 21:32:07.378721   10352 local_manager.go:201] Allocated lease (ip: 188.172.87.0/24 ipv6: ::/0) to current node (192.168.65.4)</span><br><span class="line">I1213 21:32:07.379027   10352 main.go:406] Changing default FORWARD chain policy to ACCEPT</span><br><span class="line">I1213 21:32:07.382355   10352 main.go:434] Wrote subnet file to /run/flannel/subnet.env</span><br><span class="line">I1213 21:32:07.382366   10352 main.go:438] Running backend.</span><br><span class="line">I1213 21:32:07.382583   10352 iptables.go:290] generated 3 rules</span><br><span class="line">I1213 21:32:07.382947   10352 vxlan_network.go:65] watching for new subnet leases</span><br><span class="line">I1213 21:32:07.384875   10352 local_manager.go:314] manager.WatchLease: sending reset results...</span><br><span class="line">I1213 21:32:07.385212   10352 local_manager.go:391] Waiting for 22h59m58.999662798s to renew lease</span><br><span class="line">I1213 21:32:07.386248   10352 registry.go:291] registry: watching subnets starting from rev 10</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>这同样在 <code>docker2</code> 节点上生成 <code>flannel.88</code> 配置文件以及 <code>/run/flannel/subnet.env</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">root@docker2:/home/ubuntu# netstat -tualnp | grep 4789</span><br><span class="line">udp        0      0 0.0.0.0:4789            0.0.0.0:*                           -</span><br><span class="line">root@docker2:/home/ubuntu# ifconfig flannel.88</span><br><span class="line">flannel.88: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1450</span><br><span class="line">        inet 188.172.87.0  netmask 255.255.255.255  broadcast 0.0.0.0</span><br><span class="line">        inet6 fe80::82e:d0ff:fe15:74e  prefixlen 64  scopeid 0x20&lt;link&gt;</span><br><span class="line">        ether 0a:2e:d0:15:07:4e  txqueuelen 0  (Ethernet)</span><br><span class="line">        RX packets 0  bytes 0 (0.0 B)</span><br><span class="line">        RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">        TX packets 0  bytes 0 (0.0 B)</span><br><span class="line">        TX errors 0  dropped 5 overruns 0  carrier 0  collisions 0</span><br><span class="line"></span><br><span class="line">root@docker2:/home/ubuntu# cat /run/flannel/subnet.env</span><br><span class="line">FLANNEL_NETWORK=188.172.0.0/16</span><br><span class="line">FLANNEL_SUBNET=188.172.87.1/24</span><br><span class="line">FLANNEL_MTU=1450</span><br><span class="line">FLANNEL_IPMASQ=false</span><br><span class="line">root@docker2:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<p>从自动生成的配置文件可以看出，<code>flanneld</code> 为每个节点配置了不同的子网，<code>docker1</code> 节点：<code>188.172.50.1/24</code>，<code>docker2</code> 节点的 <code>188.172.87.1/24</code>。</p>
+<p>然而在 <code>docker2</code> 上的 <code>flanneld</code> 进程启动之后，两个节点还会互相发现，互相添加对方的路由信息：</p>
+<div class="tabs" id="互相添加对端路由信息"><ul class="nav-tabs"><li class="tab active"><a href="#互相添加对端路由信息-1">docker1</a></li><li class="tab"><a href="#互相添加对端路由信息-2">docker2</a></li></ul><div class="tab-content"><div class="tab-pane active" id="互相添加对端路由信息-1"><p>在 <code>docker1</code> 节点上会添加如下的路由信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">0.0.0.0         192.168.65.1    0.0.0.0         UG    100    0        0 enp0s1</span><br><span class="line">188.172.50.0    0.0.0.0         255.255.255.0   U     0      0        0 docker0</span><br><span class="line">188.172.87.0    188.172.87.0    255.255.255.0   UG    0      0        0 flannel.88</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>有了这条路由信息，操作系统就可以知道凡是发往 <code>188.172.87.0/24</code> 网络的 <code>IP</code> 包，都通过 <code>flannel.88</code> 发出，最后的网关地址是：<code>188.172.87.0</code>，除了添加这条路有信息，还会将 <code>docker2</code> 节点上的 <code>flannel.88</code> 设备对应的 <code>MAC</code> 地址添加在 <code>docker1</code> 节点上：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# ip neigh show dev flannel.88</span><br><span class="line">188.172.87.0 lladdr 0a:2e:d0:15:07:4e PERMANENT</span><br></pre></td></tr></table></figure>
+<p>有了这个信息，Linux 内核就可以进行二层网络的封包工作了，不用通过 <code>ARP</code> 进行学习。<code>vxlan</code> 是构建于三层网络之上的二层 <code>overlay</code> 网络，最终的数据还是要通过底层的网络发出去，上面两条信息还不足以在三层网络进行转发。为了在三层网络进行转发数据包，我们还需要知道对对端 <code>veth</code> 设备所在主机的 <code>IP</code> 地址，这也是为什么我们在启动 <code>flanneld</code> 进程通过 <code>--public-ip</code> 或者 <code>--iface</code> 设置该节点的“公网” ip 了。所以在 <code>docker1</code> 节点上的 <code>FDB</code> 数据库中查看到如下信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# bridge fdb show flannel.88 | grep 0a:2e:d0:15:07:4e</span><br><span class="line">0a:2e:d0:15:07:4e dev flannel.88 dst 192.168.65.4 self permanent</span><br><span class="line">root@docker1:/home/ubuntu#</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="互相添加对端路由信息-2"><p>同样在 <code>docker2</code> 节点上会有发往 <code>docker1</code> 节点的路由信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">root@docker2:/home/ubuntu# route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">0.0.0.0         192.168.65.1    0.0.0.0         UG    100    0        0 enp0s1</span><br><span class="line">188.172.50.0    188.172.50.0    255.255.255.0   UG    0      0        0 flannel.88</span><br><span class="line">188.172.87.0    0.0.0.0         255.255.255.0   U     0      0        0 docker0</span><br><span class="line">....</span><br></pre></td></tr></table></figure>
+<p>对端 <code>docker1</code> 节点上的 <code>VETH</code> 设备的 <code>MAC</code> 信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">root@docker2:/home/ubuntu# ip neigh show dev flannel.88</span><br><span class="line">188.172.50.0 lladdr ba:a9:8c:00:1a:69 PERMANENT</span><br><span class="line">root@docker2:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<p>将数据发往对端时的“公网” <code>IP</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">root@docker2:/home/ubuntu# bridge fdb show flannel.88 | grep ba:a9:8c:00:1a:69</span><br><span class="line">ba:a9:8c:00:1a:69 dev flannel.88 dst 192.168.65.3 self permanent</span><br></pre></td></tr></table></figure></div></div></div>
+<p>到这里两台独立主机的 <code>vxlan</code> 网络就创建好了，我们还可以通过 <code>etcdctl</code> 命令查看它们各自在启动之后写入 <code>etcd</code> 的配置信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# docker exec -itu root etcd bash</span><br><span class="line">root@docker1:/opt/bitnami/etcd#</span><br><span class="line">root@docker1:/opt/bitnami/etcd#</span><br><span class="line">root@docker1:/opt/bitnami/etcd# etcdctl get &quot;/coreos.com/network&quot; --prefix=true</span><br><span class="line">/coreos.com/network/config</span><br><span class="line">&#123; &quot;Network&quot;: &quot;188.172.0.0/16&quot;, &quot;Backend&quot;: &#123;&quot;Type&quot;: &quot;vxlan&quot;, &quot;VNI&quot;: 88, &quot;Port&quot;: 4789&#125;&#125;</span><br><span class="line">/coreos.com/network/subnets/188.172.50.0-24</span><br><span class="line">&#123;&quot;PublicIP&quot;:&quot;192.168.65.3&quot;,&quot;PublicIPv6&quot;:null,&quot;BackendType&quot;:&quot;vxlan&quot;,&quot;BackendData&quot;:&#123;&quot;VNI&quot;:88,&quot;VtepMAC&quot;:&quot;ba:a9:8c:00:1a:69&quot;&#125;&#125;</span><br><span class="line">/coreos.com/network/subnets/188.172.87.0-24</span><br><span class="line">&#123;&quot;PublicIP&quot;:&quot;192.168.65.4&quot;,&quot;PublicIPv6&quot;:null,&quot;BackendType&quot;:&quot;vxlan&quot;,&quot;BackendData&quot;:&#123;&quot;VNI&quot;:88,&quot;VtepMAC&quot;:&quot;0a:2e:d0:15:07:4e&quot;&#125;&#125;</span><br><span class="line">root@docker1:/opt/bitnami/etcd#</span><br></pre></td></tr></table></figure>
+<p>将各自的公网IP以及 <code>VETH</code> 设备的 <code>MAC</code> 地址写入 <code>etcd</code>，这样就能互相配置了。</p>
+<h3 id="配置-docker"><a class="markdownIt-Anchor" href="#配置-docker"></a> 配置 docker</h3>
+<p>为了让两台独立主机上的容器能够互相访问，我们还得让我们的 <code>docker</code> 网络加入这个 <code>vxlan</code> 网络，搭上这个便车，配置也很简单，就是配置 <code>Dcoekr Daemon</code>，设置 <code>Docker</code> 的网络和 <code>flannel</code> 为节点生成的子网保持一致，例如：</p>
+<div class="tabs" id="配置docker"><ul class="nav-tabs"><li class="tab active"><a href="#配置docker-1">docker1</a></li><li class="tab"><a href="#配置docker-2">docker2</a></li></ul><div class="tab-content"><div class="tab-pane active" id="配置docker-1"><p>例如，<code>docker1</code> 节点上的子网信息如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# cat /run/flannel/subnet.env</span><br><span class="line">FLANNEL_NETWORK=188.172.0.0/16</span><br><span class="line">FLANNEL_SUBNET=188.172.50.1/24</span><br><span class="line">FLANNEL_MTU=1450</span><br><span class="line">FLANNEL_IPMASQ=false</span><br></pre></td></tr></table></figure>
+<p>所以我们配置 <code>Docker</code> 的网络如下，配置成功之后，重启 <code>Docker</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# cat /etc/docker/daemon.json</span><br><span class="line">&#123;</span><br><span class="line">    &quot;bip&quot;: &quot;188.172.50.1/24&quot;</span><br><span class="line">&#125;</span><br><span class="line">root@docker1:/home/ubuntu#</span><br><span class="line">root@docker1:/home/ubuntu# systemctl restart docker</span><br></pre></td></tr></table></figure>
+<p>配置成功之后，<code>docker0</code> 网桥的地址也会随之自动配置为该子网的第一个地址：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# ifconfig docker0</span><br><span class="line">docker0: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500</span><br><span class="line">        inet 188.172.50.1  netmask 255.255.255.0  broadcast 188.172.50.255</span><br><span class="line">        inet6 fe80::42:e0ff:fe68:759c  prefixlen 64  scopeid 0x20&lt;link&gt;</span><br><span class="line">        ether 02:42:e0:68:75:9c  txqueuelen 0  (Ethernet)</span><br><span class="line">        RX packets 10154  bytes 728003 (728.0 KB)</span><br><span class="line">        RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">        TX packets 16180  bytes 29419238 (29.4 MB)</span><br><span class="line">        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br><span class="line"></span><br><span class="line">root@docker1:/home/ubuntu#</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="配置docker-2"><p>同样对于 <code>docker2</code> 节点，作如下配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">root@docker2:/home/ubuntu# cat /run/flannel/subnet.env</span><br><span class="line">FLANNEL_NETWORK=188.172.0.0/16</span><br><span class="line">FLANNEL_SUBNET=188.172.87.1/24</span><br><span class="line">FLANNEL_MTU=1450</span><br><span class="line">FLANNEL_IPMASQ=false</span><br><span class="line">root@docker2:/home/ubuntu#</span><br><span class="line">root@docker2:/home/ubuntu# vim /etc/docker/daemon.json</span><br><span class="line">root@docker2:/home/ubuntu# vim /etc/docker/daemon.json</span><br><span class="line">root@docker2:/home/ubuntu#</span><br><span class="line">root@docker2:/home/ubuntu# systemctl restart docker</span><br><span class="line">root@docker2:/home/ubuntu#</span><br><span class="line">root@docker2:/home/ubuntu# ifconfig docker0</span><br><span class="line">docker0: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500</span><br><span class="line">        inet 188.172.87.1  netmask 255.255.255.0  broadcast 188.172.87.255</span><br><span class="line">        inet6 fe80::42:d1ff:feed:b876  prefixlen 64  scopeid 0x20&lt;link&gt;</span><br><span class="line">        ether 02:42:d1:ed:b8:76  txqueuelen 0  (Ethernet)</span><br><span class="line">        RX packets 5017  bytes 310416 (310.4 KB)</span><br><span class="line">        RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">        TX packets 8049  bytes 28882500 (28.8 MB)</span><br><span class="line">        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br><span class="line"></span><br><span class="line">root@docker2:/home/ubuntu#</span><br></pre></td></tr></table></figure></div></div></div>
+<h3 id="创建-container"><a class="markdownIt-Anchor" href="#创建-container"></a> 创建 container</h3>
+<p>接下来我们在两个节点上各创建一个容器，测试网络是否能够互通，所需要的一些网络工具包可以用下面的命令进行安装：</p>
+<blockquote>
+<p>apt install -y iproute2 net-tools iputils-ping</p>
+</blockquote>
+<div class="tabs" id="创建container"><ul class="nav-tabs"><li class="tab active"><a href="#创建container-1">docker1</a></li><li class="tab"><a href="#创建container-2">docker2</a></li></ul><div class="tab-content"><div class="tab-pane active" id="创建container-1"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# docker run -it -d --name ubuntu1 ubuntu /bin/bash</span><br><span class="line">35014b140eefba55ff91cd04b8da5d0f10acda7e782ce93694daf1d00c1a2cca</span><br><span class="line">root@docker1:/home/ubuntu#</span><br><span class="line">root@docker1:/home/ubuntu# docker exec -itu root ubuntu1 bash</span><br><span class="line">root@35014b140eef:/#</span><br><span class="line">root@35014b140eef:/# ifconfig</span><br><span class="line">eth0: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500</span><br><span class="line">        inet 188.172.50.3  netmask 255.255.255.0  broadcast 188.172.50.255</span><br><span class="line">        ether 02:42:bc:ac:32:03  txqueuelen 0  (Ethernet)</span><br><span class="line">        RX packets 9925  bytes 29107479 (29.1 MB)</span><br><span class="line">        RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">        TX packets 5945  bytes 499073 (499.0 KB)</span><br><span class="line">        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br><span class="line">root@35014b140eef:/# ping -c 3 188.172.87.3</span><br><span class="line">PING 188.172.87.3 (188.172.87.3) 56(84) bytes of data.</span><br><span class="line">64 bytes from 188.172.87.3: icmp_seq=1 ttl=62 time=9.01 ms</span><br><span class="line">64 bytes from 188.172.87.3: icmp_seq=2 ttl=62 time=3.80 ms</span><br><span class="line">64 bytes from 188.172.87.3: icmp_seq=3 ttl=62 time=4.50 ms</span><br><span class="line"></span><br><span class="line">--- 188.172.87.3 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2029ms</span><br><span class="line">rtt min/avg/max/mdev = 3.796/5.767/9.009/2.310 ms</span><br><span class="line">root@35014b140eef:/#</span><br><span class="line">root@35014b140eef:/# route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">0.0.0.0         188.172.50.1    0.0.0.0         UG    0      0        0 eth0</span><br><span class="line">188.172.50.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0</span><br></pre></td></tr></table></figure></div><div class="tab-pane" id="创建container-2"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">root@docker2:/home/ubuntu# docker run -it -d --name ubuntu2 ubuntu /bin/bash</span><br><span class="line">60bfc895f7d3dfab96cbee3a800d2834a7a30cb30f01388e438d3c1e4ac70301</span><br><span class="line">root@docker2:/home/ubuntu#</span><br><span class="line">root@docker2:/home/ubuntu# docker exec -itu root ubuntu2 bash</span><br><span class="line">root@60bfc895f7d3:/#</span><br><span class="line">root@60bfc895f7d3:/# ifconfig</span><br><span class="line">eth0: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500</span><br><span class="line">        inet 188.172.87.3  netmask 255.255.255.0  broadcast 188.172.87.255</span><br><span class="line">        ether 02:42:bc:ac:57:03  txqueuelen 0  (Ethernet)</span><br><span class="line">        RX packets 10961  bytes 29169987 (29.1 MB)</span><br><span class="line">        RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">        TX packets 7267  bytes 570725 (570.7 KB)</span><br><span class="line">        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br><span class="line">root@60bfc895f7d3:/# ping -c 3 188.172.50.3</span><br><span class="line">PING 188.172.50.3 (188.172.50.3) 56(84) bytes of data.</span><br><span class="line">64 bytes from 188.172.50.3: icmp_seq=1 ttl=62 time=3.34 ms</span><br><span class="line">64 bytes from 188.172.50.3: icmp_seq=2 ttl=62 time=4.53 ms</span><br><span class="line">64 bytes from 188.172.50.3: icmp_seq=3 ttl=62 time=3.19 ms</span><br><span class="line"></span><br><span class="line">--- 188.172.50.3 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 received, 0% packet loss, time 2078ms</span><br><span class="line">rtt min/avg/max/mdev = 3.185/3.683/4.527/0.599 ms</span><br><span class="line">root@60bfc895f7d3:/#</span><br><span class="line">root@60bfc895f7d3:/# route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">0.0.0.0         188.172.87.1    0.0.0.0         UG    0      0        0 eth0</span><br><span class="line">188.172.87.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0</span><br></pre></td></tr></table></figure></div></div></div>
+<p>结果和预期一样，两个相互独立的子网下的容器 <code>ubuntu1</code> 和 <code>ubuntu2</code> 能够实现互通。</p>
+<h3 id="过程详解"><a class="markdownIt-Anchor" href="#过程详解"></a> 过程详解</h3>
+<p>相比 <code>flannel</code> 的 <code>UDP</code> 后端实现，<code>VXLAN</code> 所有相关的解包和封装包的过程都是在内核处理，避免了频繁的用户态和内核态的相互切换。<code>VXLAN</code> 的覆盖网络的设计思想是：在现有的三层网络之上，“覆盖”一层虚拟的、由内核<code>VXLAN</code>模块负责维护的二层网络，使得连接在这个<code>VXLAN</code>二层网络上的“主机”（虚拟机或者容器都可以）之间，可以像在同一个局域网（<code>LAN</code>）里那样自由通信。当然，实际上，这些“主机”可能分布在不同的宿主机上，甚至是分布在不同的物理机房里。而为了能够在二层网络上打通“隧道”，<code>VXLAN</code>会在宿主机上设置一个特殊的网络设备作为“隧道”的两端。这个设备就叫作<code>VTEP</code>，即：<code>VXLAN Tunnel End Point</code>（虚拟隧道端点），就是上图中的 <code>flannel.88</code> 这个设备。</p>
+<p><code>VTEP</code>设备的封装和解封装的对象，是二层数据帧（<code>Ethernet frame</code>），而且这个工作的执行流程，全部是在内核里完成的（因为<code>VXLAN</code>本身就是<code>Linux</code>内核中的一个模块），整个通信的过程如文章开头的原理图所示。</p>
+<p>当 <code>ubunut-1</code> 发出 <code>ping</code> 之后，这个目的地址是 <code>188.172.87.3</code> 的 <code>IP</code> 包，会先出现在 <code>docker0</code> 网桥，发现不在自己的网段内，它只能处理 <code>188.172.50.1/24</code> 网段内的包，因此内核会把这个请求进一步路由到本机 <code>flannel.88</code> 设备进行处理，这是因为 <code>docker2</code> 节点在启动的时候向 <code>docker1</code> 节点添加的那条路由信息，然后进一步发往 <code>188.172.87.0</code> 这个网关：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">0.0.0.0         192.168.65.1    0.0.0.0         UG    100    0        0 enp0s1</span><br><span class="line">188.172.50.0    0.0.0.0         255.255.255.0   U     0      0        0 docker0</span><br><span class="line">188.172.87.0    188.172.87.0    255.255.255.0   UG    0      0        0 flannel.88</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p><code>188.172.87.0</code> 是 <code>docker2</code> 节点上的 <code>VTEP</code> 设备的<code>IP</code>地址，我们将 <code>docker1</code> 节点上的 <code>VTEP</code> 设备和 <code>docker2</code> 节点上的 <code>VTEP</code> 设备分别称之为源VTEP设备和目的VTEP设备。既然 <code>vxlan</code> 工作在二层网络，它先要在这个报文转发到 <code>188.172.87.0</code> 这个网关，就需要知道这个网关的 <code>MAC</code> 地址，这个 <code>MAC</code> 地址在节点启动之后，相互发现加入对方 <code>VETP</code> 设备的 <code>MAC</code>，例如，对于 <code>docker1</code> 节点：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# ip neigh show dev flannel.88</span><br><span class="line">188.172.87.0 lladdr 0a:2e:d0:15:07:4e PERMANENT</span><br></pre></td></tr></table></figure>
+<p>这个目的 <code>veth</code> 设备的 <code>IP</code> 地址以及 <code>MAC</code> 地址都有了，现在就可以进行二层封包工作了。这个二层的数据帧格式如下：</p>
+<p><img data-src="%E5%86%85%E9%83%A8%E6%95%B0%E6%8D%AE%E5%B8%A7.png" alt="内部数据帧" /></p>
+<p>可以看到，Linux内核会把目的VTEP设备的<code>MAC</code>地址，填写在图中的<code>Inner Ethernet Header</code>字段，得到一个二层数据帧。需要注意的是，上述封包过程只是加一个二层头，不会改变原始<code>IP</code>包的内容。所以图中的<code>Inner IP Header</code>字段，依然是<code>ubuntu2</code>的<code>IP</code>地址，即<code>188.172.87.3</code>。</p>
+<p>上面封装的这个二层数据帧并不能直接在二层网络里传输，<code>VXLAN</code> 是构建与底层网络之上的二层网络，它这个包要发出去，还是要借助底层的网络。所以，内核 的 <code>vxlan</code> 模块只会把它加上 <code>vxlan</code> 的投，而封装成为内部数据帧，让宿主机在外部网络之间传输的数据帧带上这个内部数据帧发出去。而这个<code>VXLAN</code>头里有一个重要的标志叫作<code>VNI</code>，它是<code>VTEP</code>设备识别某个数据帧是不是应该归自己处理的重要标识。而在<code>flannel</code>中，VNI的默认值是<code>1</code>，本次测试中，为了和默认值区分，设置成了 <code>88</code>，这也是为何，<code>docker1</code> 和 <code>docker2</code> 上的<code>VTEP</code>设备都叫作<code>flannel.88</code>的原因，这里的<code>88</code>，其实就是<code>VNI</code>的值。然后，Linux内核会把这个数据帧封装进一个 <code>UDP</code> 包里发出去。</p>
+<p>既然是封装成 <code>UDP</code> 报文通过底层网络将我们的数据帧最后发出去，那得知道对端 <code>docker2</code> 节点的公网地址和监听的端口，公网地址和监听端口我们在启动 <code>flannel</code> 的时候已经提交到配置中心了，在 <code>docker1</code> 节点上的 Linux <code>FDB（Fowarding Database）</code> 数据库中通过目的 <code>VETP</code> 设备的 <code>MAC</code> 地址可以反查出 <code>docker2</code> 节点的公网地址。如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# bridge fdb show flannel.88 | grep 0a:2e:d0:15:07:4e</span><br><span class="line">0a:2e:d0:15:07:4e dev flannel.88 dst 192.168.65.4 self permanent</span><br><span class="line">root@docker1:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<p>有了这条信息，在二层网络进行<code>UDP</code>包的转发的所有信息就具备了。发往我们前面提到的目的<code>VTEP</code>设备（<code>MAC</code>地址是<code>0a:2e:d0:15:07:4e</code>）的二层数据帧，应该通过<code>flannel.88</code>设备，发往<code>IP</code>地址为<code>192.168.65.4</code>的主机，这个地址正是我们 <code>docker2</code> 节点上的 <code>IP</code>。</p>
+<p><code>UDP</code>包是一个四层数据包，所以<code>Linux</code>内核会在它前面加上一个<code>IP</code>头，即下图中的<code>Outer IP Header</code>，组成一个<code>IP</code>包。并且，在这个<code>IP</code>头里，会填上前面通过<code>FDB</code>查询出来的目的主机的<code>IP</code>地址，即<code>docker2</code>的<code>IP</code>地址<code>192.168.65.4</code>。然后，<code>Linux</code>内核再在这个<code>IP</code>包前面加上二层数据帧头，即下图中的<code>Outer Ethernet Header</code>，并把<code>docker2</code>节点<code>公网IP</code>的<code>MAC</code>地址填进去。这个<code>MAC</code>地址本身，是<code>docker1</code>的<code>ARP</code>自学习的内容，无需<code>flnnael</code>维护，如下是 <code>docker1</code> 节点上的 <code>arp</code> 记录信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# arp -n</span><br><span class="line">Address                  HWtype  HWaddress           Flags Mask            Iface</span><br><span class="line">192.168.65.4             ether   52:54:00:8b:81:1b   C                     enp0s1</span><br><span class="line">....</span><br></pre></td></tr></table></figure>
+<p>至此，封装出来的通过底层网络传递的数据帧如下所示：</p>
+<p><img data-src="%E4%B8%89%E5%B1%82%E7%BD%91%E7%BB%9C%E6%95%B0%E6%8D%AE%E5%B8%A7.png" alt="三层网络数据帧" /></p>
+<p>到现在为止，<code>docker1</code> 节点上的 <code>flannel.88</code> 设备就可以通过节点上的 <code>enp0s1</code> 网口将这个数据包发出去。显然，这个帧会经过宿主机网络来到<code>docker2</code>的<code>enp0s1</code>网卡。这时候，<code>docker2</code>的内核网络栈会发现这个数据帧里有<code>VXLAN Header</code>，并且<code>VNI=88</code>。所以<code>Linux</code>内核会对它进行拆包，拿到里面的内部数据帧，然后根据<code>VNI</code>的值，把它交给<code>docker2</code>上的<code>flannel.88</code>设备，而<code>flannel.88</code> 设备则会进一步拆包，取出目的容器的 <code>IP</code> 地址，根据这个目的容器的IP的地址，路由给 <code>docker2</code> 节点上的 <code>docker0</code> 网桥，这就到了节点上的容器网络了。</p>
+<p>在 <code>ubuntu1</code> 容器中发起 <code>ping</code> 时，我们可以在 <code>docker2</code> 节点上使用如下的命令进行抓包：</p>
+<blockquote>
+<p>tcpdump -i enp0s1 -w enp0s1.pcap src host 192.168.65.3</p>
+</blockquote>
+<p>然后使用 <code>Wireshark</code> 打开该文件，如下图所示：</p>
+<p><img data-src="tcpdump.png" alt="tcpdump" /></p>
+<p>每次 <code>ping</code> 请求封装的包可以分为上下两部分，一部分是底层网络的 <code>UDP</code> 报文，一部分构建于二层网络之上的 <code>vxlan</code> 报文。 在 <code>UDP</code> 报文中，我们可以看到该请求从 <code>192.168.65.3(52:54:00:ec:05:3f)</code> 发往 <code>192.168.65.4(52:54:00:8b:81:1b)</code>，<code>UDP</code> 监听的端口是 <code>4789</code>。在 <code>vxlan</code> 报文中，可以看到内部数据帧是从 <code>docker1</code> 上的 <code>flannel.88(ba:a9:8c:00:1a:69)</code> 发往 <code>docker2</code> 上的 <code>flannel.88(0a:2e:d0:15:07:4e)</code>，<code>VNI</code> 设备标识是 <code>88</code>，内部数据帧的源IP是 <code>ubuntu1</code> 的 <code>188.172.50.3</code>，目的地址是 <code>ubuntu2</code> 的 <code>188.172.87.3</code>。</p>
+<h3 id="参考链接"><a class="markdownIt-Anchor" href="#参考链接"></a> 参考链接</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1027318">weave net</a></li>
+<li><a target="_blank" rel="noopener" href="https://icloudnative.io/posts/vxlan-linux/">VXLAN 基础教程</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/" title="容器网络-跨主机容器通信">https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C/" rel="tag"># 容器网络</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/12/09/Network/container-network-single-host/" rel="prev" title="容器网络-单机容器通信">
+                  <i class="fa fa-angle-left"></i> 容器网络-单机容器通信
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2023/12/17/K8S/kubeadm-deploy/" rel="next" title="使用kubeadm创建多节点集群">
+                  使用kubeadm创建多节点集群 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2023/12/12/Network/container-network-cross-host/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

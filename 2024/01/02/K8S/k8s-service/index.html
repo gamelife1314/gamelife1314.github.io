@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Service是Kubernetes中的资源类型，用来将一组Pod的应用作为网络服务公开。虽然每个Pod都有自己的IP，但是这个IP的生命周期与Pod生命周期一致，也就是说Pod销毁后这个IP也就无效了，而Service的IP（ClusterIP） 则是在创建之后便不会改变，Service 与 Pod 之前通过iptables和ipvs代理等手段关联。k8s一共提供了四种不同目的类型的Servic">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kubernetes Service &amp; Ingress">
+<meta property="og:url" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Service是Kubernetes中的资源类型，用来将一组Pod的应用作为网络服务公开。虽然每个Pod都有自己的IP，但是这个IP的生命周期与Pod生命周期一致，也就是说Pod销毁后这个IP也就无效了，而Service的IP（ClusterIP） 则是在创建之后便不会改变，Service 与 Pod 之前通过iptables和ipvs代理等手段关联。k8s一共提供了四种不同目的类型的Servic">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/k8s-four-services.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/nginx-deployment-create.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/nginx-service-create.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/mytools-create.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/pod-dns-config.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/nslookup-nginx-svc.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/mytools-curl-clusterip-svc.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/ctrlnode-nodeport-svc.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/browser-visit-nodeport-svc.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/lb-service-pending.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/lb-service-ip-allocate.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/lb-service-mac-same.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/lb-service-ctrlnode-mac.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/lb-service-kubeservice-chain.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/lb-service-ext-chain.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/defualt-ingress.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/curl-ingress-svc.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/ingress-nginx-svc.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/nginx-ingress-controller-conf.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/nginx-ingress-arch.png">
+<meta property="article:published_time" content="2024-01-02T08:34:43.000Z">
+<meta property="article:modified_time" content="2024-01-02T08:34:43.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="Service">
+<meta property="article:tag" content="NodePort">
+<meta property="article:tag" content="Loadblance">
+<meta property="article:tag" content="ExternalName">
+<meta property="article:tag" content="Ingress">
+<meta property="article:tag" content="MetaLB">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/k8s-four-services.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/","path":"2024/01/02/K8S/k8s-service/","title":"Kubernetes Service & Ingress"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Kubernetes Service & Ingress | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="nav-number">1.</span> <span class="nav-text"> 准备工作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dns"><span class="nav-number">2.</span> <span class="nav-text"> DNS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#clusterip"><span class="nav-number">3.</span> <span class="nav-text"> ClusterIP</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#nodeport"><span class="nav-number">4.</span> <span class="nav-text"> NodePort</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#loadbalancer"><span class="nav-number">5.</span> <span class="nav-text"> LoadBalancer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%97%A0%E5%A4%B4%E6%9C%8D%E5%8A%A1"><span class="nav-number">6.</span> <span class="nav-text"> 无头服务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B8%A6%E6%9C%89%E9%80%89%E6%8B%A9%E7%AC%A6"><span class="nav-number">6.1.</span> <span class="nav-text"> 带有选择符</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B2%A1%E6%9C%89%E9%80%89%E6%8B%A9%E7%AC%A6"><span class="nav-number">6.2.</span> <span class="nav-text"> 没有选择符</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#externalname"><span class="nav-number">7.</span> <span class="nav-text"> ExternalName</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ingress"><span class="nav-number">8.</span> <span class="nav-text"> Ingress</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="nav-number">9.</span> <span class="nav-text"> 参考链接</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Kubernetes Service & Ingress | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Kubernetes Service & Ingress
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-01-02 16:34:43" itemprop="dateCreated datePublished" datetime="2024-01-02T16:34:43+08:00">2024-01-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.1k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>19 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>Service</code>是<code>Kubernetes</code>中的资源类型，用来将一组<code>Pod</code>的应用作为网络服务公开。虽然每个<code>Pod</code>都有自己的<code>IP</code>，但是这个<code>IP</code>的生命周期与<code>Pod</code>生命周期一致，也就是说<code>Pod</code>销毁后这个<code>IP</code>也就无效了，而<code>Service</code>的<code>IP（ClusterIP）</code> 则是在创建之后便不会改变，<code>Service</code> 与 <code>Pod</code> 之前通过<code>iptables</code>和<code>ipvs</code>代理等手段关联。<code>k8s</code>一共提供了四种不同目的类型的<code>Service</code>，分别是<code>ClusterIP</code>、<code>NodePort</code>、<code>LoadBalancer</code>以及<code>ExternalName</code>，本来我们就来探索这四种服务的使用场景以及背后的使用原理。</p>
+<p><code>k8s</code> 集群中的每个节点都是运行一个<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/reference/networking/virtual-ips/">kube-proxy</a>，它用于实现流量从<code>Service</code>到<code>Pod</code>之间的转发。默认在 <code>Linux</code> 平台下，它使用 <code>iptables</code> 作为后端实现，通过监听<code>Kubernetes</code>控制平面，获知对 <code>Service</code>和<code>EndpointSlice</code>对象的添加和删除操作，对于每个<code>Service</code>，<code>kube-proxy</code> 会添加 <code>iptables</code> 规则，在这些这些规则的加持下，流向<code>Service</code>的流量会被重新路由到<code>Service</code>后端集合中的其中之一。</p>
+<p>四种模式的基本工作原理如下图所示：</p>
+<img data-src="/2024/01/02/K8S/k8s-service/k8s-four-services.png" class="">
+<span id="more"></span>
+<h3 id="准备工作"><a class="markdownIt-Anchor" href="#准备工作"></a> 准备工作</h3>
+<p>为了验证这里面是如何工作的，我们先创建<code>Pod</code>，<code>Service</code>，然后一步步分析<code>k8s</code>和操作系统互相配合，是如何将数据包转发到对应<code>Pod</code>里面的服务中去。第一步，我这里有三个可用节点，所以创建一个具有<code>3</code>个<code>Pod</code>的<code>nginx-deployment</code>：</p>
+<blockquote>
+<p><code>kubectl apply -f https://k8s.io/examples/application/deployment-update.yaml</code><br />
+<code>kubectl scale --current-replicas=2 --replicas=3 deployment/nginx-deployment</code></p>
+</blockquote>
+<p><img data-src="nginx-deployment-create.png" alt="" /></p>
+<p>然后我们使用下面的命令创建两个不同类型的<code>Service</code>：<code>ClusterIP</code>和<code>NodePort</code>，<code>NodePort</code>和<code>ClusterIP</code>不同的是，我们可以从集群外访问我们的服务：</p>
+<blockquote>
+<p><code>kubectl expose deploy nginx-deployment --port=8080 --target-port=80 --type=ClusterIP --name=nginx-deploy-clusterip-svc</code><br />
+<code>kubectl expose deploy nginx-deployment --port=8081 --target-port=80 --type=NodePort --name=nginx-deploy-nodeport-svc</code></p>
+</blockquote>
+<p><img data-src="nginx-service-create.png" alt="" /></p>
+<p>在创建<code>Service</code>的时候，如果带了选择符，还会创建一个<code>EndpointSlice</code>集合，这个集合指向的是选择符选中的<code>Pod</code>集合，例如：：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubectl get ep</span><br><span class="line">NAME                         ENDPOINTS                                   AGE</span><br><span class="line">kubernetes                   192.168.67.8:6443                           25m</span><br><span class="line">nginx-deploy-clusterip-svc   10.244.0.4:80,10.244.1.2:80,10.244.2.2:80   103s</span><br><span class="line">nginx-deploy-nodeport-svc    10.244.0.4:80,10.244.1.2:80,10.244.2.2:80   7m24s</span><br><span class="line">root@ctrlnode:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<p>然后使用如下的命令创建一个<code>Pod</code>并且进入容器内进行验证：</p>
+<blockquote>
+<p><code>kubectl run mytools -it --rm --image=praqma/network-multitool --image-pull-policy=IfNotPresent --command -- /bin/bash</code></p>
+</blockquote>
+<p><img data-src="mytools-create.png" alt="" /></p>
+<p>在这个<code>Pod</code>中，可以使用<code>curl</code> 命令访问我们的服务，分别是 <code>10.105.145.136:8080</code> 和 <code>10.102.231.147:8081</code>。</p>
+<h3 id="dns"><a class="markdownIt-Anchor" href="#dns"></a> DNS</h3>
+<p><code>k8s</code>集群创建的时候会创建一个<code>kube-dns</code>服务，用于对<code>Service</code>进行域名解析，每个<code>Service</code>都会被被自动分配一个 <code>&lt;svc&gt;.&lt;namespace&gt;.svc.&lt;cluster-domain&gt;</code> 格式的域名，在每个<code>Pod</code>中，也会存在关于域名解析的配置：</p>
+<p><img data-src="pod-dns-config.png" alt="" /></p>
+<p>这个文件中配置了多个<code>search</code>域，所以当我们写<code>nginx-deploy-clusterip-svc</code>、或者<code>nginx-deploy-clusterip-svc.default</code>，或者<code>nginx-deploy-clusterip-svc.default.svc</code>都是可以解析的：</p>
+<p><img data-src="nslookup-nginx-svc.png" alt="" /></p>
+<p><code>ndots:5</code> 指的是如果域名中的<code>.</code>大于等于<code>5</code>个，则不走<code>search</code>域，目的是减少常规域名的解析次数。</p>
+<h3 id="clusterip"><a class="markdownIt-Anchor" href="#clusterip"></a> ClusterIP</h3>
+<p><code>ClusterIP</code>是<code>K8S</code>中最基础的服务，只能用于集群内访问。我们来看当我们从<code>mytools</code>这个<code>Pod</code>访问我们的<code>nginx-deploy-clusterip-svc</code>时，它是怎么样一个过程：</p>
+<p><img data-src="mytools-curl-clusterip-svc.png" alt="" /></p>
+<p><code>mytools</code>被调度了<code>node2</code>上：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubectl get pods -owide</span><br><span class="line">NAME                                READY   STATUS    RESTARTS   AGE     IP           NODE       NOMINATED NODE   READINESS GATES</span><br><span class="line">mytools                             1/1     Running   0          4m15s   10.244.2.3   node2      &lt;none&gt;           &lt;none&gt;</span><br><span class="line">nginx-deployment-848dd6cfb5-c9cm6   1/1     Running   0          17m     10.244.1.2   node1      &lt;none&gt;           &lt;none&gt;</span><br><span class="line">nginx-deployment-848dd6cfb5-h48dk   1/1     Running   0          17m     10.244.2.2   node2      &lt;none&gt;           &lt;none&gt;</span><br><span class="line">nginx-deployment-848dd6cfb5-zbvj5   1/1     Running   0          17m     10.244.0.4   ctrlnode   &lt;none&gt;           &lt;none&gt;</span><br><span class="line">root@ctrlnode:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<p>从容器中发出去的报文出现在主机上时，一看系统的路由，也不知道如何处理，没有处理 <code>10.109.146.68</code> 的路由信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">root@node2:/home/ubuntu# route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">0.0.0.0         192.168.67.1    0.0.0.0         UG    100    0        0 enp0s1</span><br><span class="line">10.244.0.0      10.244.0.0      255.255.255.0   UG    0      0        0 flannel.1</span><br><span class="line">10.244.1.0      10.244.1.0      255.255.255.0   UG    0      0        0 flannel.1</span><br><span class="line">10.244.2.0      0.0.0.0         255.255.255.0   U     0      0        0 cni0</span><br><span class="line">172.17.0.0      0.0.0.0         255.255.0.0     U     0      0        0 docker0</span><br><span class="line">192.168.67.0    0.0.0.0         255.255.255.0   U     100    0        0 enp0s1</span><br><span class="line">192.168.67.1    0.0.0.0         255.255.255.255 UH    100    0        0 enp0s1</span><br></pre></td></tr></table></figure>
+<p>所以就会流入默认网口<code>enp0s1</code>进行处理，按照我们对<code>iptables</code>的处理流程，这个包在处理之前会先触发<code>NF_INET_PRE_ROUTING</code>中的一系列钩子函数，对应于 <code>iptables</code> 中的 <code>PREROUTING</code> 链，而对于路由相关的信息都是在<code>nat</code>表中处理的，所以我们先来看下<code>nat</code>表中<code>PREROUTING</code>链的规则：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root@node2:/home/ubuntu# iptables -t nat -L PREROUTING | column -t</span><br><span class="line">Chain          PREROUTING  (policy  ACCEPT)</span><br><span class="line">target         prot        opt      source    destination</span><br><span class="line">KUBE-SERVICES  all         --       anywhere  anywhere     /*        kubernetes  service   portals  */</span><br><span class="line">DOCKER         all         --       anywhere  anywhere     ADDRTYPE  match       dst-type  LOCAL</span><br><span class="line">root@node2:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<p>在<code>PREROUTING</code>找了<code>K8S</code>自定义的链<code>KUBE-SERVICES</code>，这个链中存储的是关于<code>Service</code>的一些规则：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">root@node2:/home/ubuntu# iptables -t nat -L KUBE-SERVICES | column -t</span><br><span class="line">Chain                      KUBE-SERVICES  (2   references)</span><br><span class="line">target                     prot           opt  source       destination</span><br><span class="line">KUBE-SVC-NPX46M4PTMTKRN6Y  tcp            --   anywhere     10.96.0.1       /*  default/kubernetes:https            cluster  IP          */     tcp   dpt:https</span><br><span class="line">KUBE-SVC-TCOU7JCQXEZGVUNU  udp            --   anywhere     10.96.0.10      /*  kube-system/kube-dns:dns            cluster  IP          */     udp   dpt:domain</span><br><span class="line">KUBE-SVC-ERIFXISQEP7F7OF4  tcp            --   anywhere     10.96.0.10      /*  kube-system/kube-dns:dns-tcp        cluster  IP          */     tcp   dpt:domain</span><br><span class="line">KUBE-SVC-JD5MR3NA4I4DYORP  tcp            --   anywhere     10.96.0.10      /*  kube-system/kube-dns:metrics        cluster  IP          */     tcp   dpt:9153</span><br><span class="line">KUBE-SVC-5KZKXYM2F4JEGSLN  tcp            --   anywhere     10.102.231.147  /*  default/nginx-deploy-nodeport-svc   cluster  IP          */     tcp   dpt:tproxy</span><br><span class="line">KUBE-SVC-ATSXPZA6MCLBTOSW  tcp            --   anywhere     10.105.145.136  /*  default/nginx-deploy-clusterip-svc  cluster  IP          */     tcp   dpt:http-alt</span><br><span class="line">KUBE-NODEPORTS             all            --   anywhere     anywhere        /*  kubernetes                          service  nodeports;  NOTE:  this  must          be  the  last  rule  in  this  chain  */  ADDRTYPE  match  dst-type  LOCAL</span><br><span class="line">root@node2:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<p>然后对于目标地址为<code>10.105.145.136</code>的报文进入<code>KUBE-SVC-ATSXPZA6MCLBTOSW</code>处理，由于<code>nginx-deploy-clusterip-svc</code>有三个<code>pod</code>，所以做负载均衡，三个<code>POD</code>被访问的几率都是<code>1/3</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">root@node2:/home/ubuntu# iptables -t nat -L KUBE-SVC-ATSXPZA6MCLBTOSW | column -t</span><br><span class="line">Chain                      KUBE-SVC-ATSXPZA6MCLBTOSW  (1   references)</span><br><span class="line">target                     prot                       opt  source          destination</span><br><span class="line">KUBE-MARK-MASQ             tcp                        --   !10.244.0.0/16  10.105.145.136  /*  default/nginx-deploy-clusterip-svc  cluster  IP             */  tcp        dpt:http-alt</span><br><span class="line">KUBE-SEP-E4NSA7Z3P6FEYR22  all                        --   anywhere        anywhere        /*  default/nginx-deploy-clusterip-svc  -&gt;       10.244.0.4:80  */  statistic  mode          random  probability  0.33333333349</span><br><span class="line">KUBE-SEP-ENS4OGYPXWST7P2F  all                        --   anywhere        anywhere        /*  default/nginx-deploy-clusterip-svc  -&gt;       10.244.1.2:80  */  statistic  mode          random  probability  0.50000000000</span><br><span class="line">KUBE-SEP-T5LUV6MAWERK7MSM  all                        --   anywhere        anywhere        /*  default/nginx-deploy-clusterip-svc  -&gt;       10.244.2.2:80  */</span><br></pre></td></tr></table></figure>
+<p>当匹配到某个<code>POD</code>时，进入到对应的 <code>KUBE-SEP-*</code>，然后通过<code>DNAT</code>转换，就把访问<code>Service</code>的请求转换到了具体的<code>Pod</code>中，而<code>Pod</code>在不同节点之间本来就是互通的，是有路由信息的：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">root@node2:/home/ubuntu# iptables -t nat -L KUBE-SEP-E4NSA7Z3P6FEYR22 | column -t</span><br><span class="line">Chain           KUBE-SEP-E4NSA7Z3P6FEYR22  (1   references)</span><br><span class="line">target          prot                       opt  source       destination</span><br><span class="line">KUBE-MARK-MASQ  all                        --   10.244.0.4   anywhere     /*  default/nginx-deploy-clusterip-svc  */</span><br><span class="line">DNAT            tcp                        --   anywhere     anywhere     /*  default/nginx-deploy-clusterip-svc  */  tcp  to:10.244.0.4:80</span><br><span class="line">root@node2:/home/ubuntu# iptables -t nat -L KUBE-SEP-ENS4OGYPXWST7P2F | column -t</span><br><span class="line">Chain           KUBE-SEP-ENS4OGYPXWST7P2F  (1   references)</span><br><span class="line">target          prot                       opt  source       destination</span><br><span class="line">KUBE-MARK-MASQ  all                        --   10.244.1.2   anywhere     /*  default/nginx-deploy-clusterip-svc  */</span><br><span class="line">DNAT            tcp                        --   anywhere     anywhere     /*  default/nginx-deploy-clusterip-svc  */  tcp  to:10.244.1.2:80</span><br><span class="line">root@node2:/home/ubuntu# iptables -t nat -L KUBE-SEP-T5LUV6MAWERK7MSM | column -t</span><br><span class="line">Chain           KUBE-SEP-T5LUV6MAWERK7MSM  (1   references)</span><br><span class="line">target          prot                       opt  source       destination</span><br><span class="line">KUBE-MARK-MASQ  all                        --   10.244.2.2   anywhere     /*  default/nginx-deploy-clusterip-svc  */</span><br><span class="line">DNAT            tcp                        --   anywhere     anywhere     /*  default/nginx-deploy-clusterip-svc  */  tcp  to:10.244.2.2:80</span><br><span class="line">root@node2:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<p>根据<code>node2</code>节点上的路由信息，会把发往<code>10.244.0.4/16</code>、<code>10.244.1.2/16</code> 网络的报文通过 <code>flannel.1</code> 发出去，而发往 <code>10.244.2.2/16</code> 的报文由于在本机上，所以通过 <code>cni0</code> 网口就可以处理。这部分不懂的可以看<a href="/2023/12/12/Network/container-network-cross-host/">容器网络 - 跨主机容器通信</a>以及<a href="/2023/12/29/K8S/k8s-cni-network/">Kubernetes CNI 网络</a>。</p>
+<p>在<code>node2</code>上的<code>iptables</code>规则中还能找到很多<code>KUBE-MARK-MASQ</code>相关的规则，这个链中的规则是用于做<code>SNAT</code>转换的，它的流程是这样的，在<code>PREROUTING</code>阶段使用<code>Mark</code>这个<code>Target</code>给要<code>SNAT</code>的包打上标记，在<code>POSTROUTING</code>阶段使用<code>MASQUERADE</code>做<code>SNAT</code>转换，<code>MASQUERADE</code>和<code>SNAT</code>这两个<code>iptables</code>的<code>Target</code>区别是，<code>SNAT</code>需要指定的具体的原地址，而<code>MASQUERADE</code>会动态获取报文发出去的网卡上的<code>IP</code>作为原地址。例如，当我们访问<code>10.105.145.136</code>的报文最终被路由到了<code>node1</code>，那么在从<code>node2</code>上的<code>enp0s1</code>网卡发送出去时，通过<code>MASQUERADE</code>将报文的原地址设置成<code>node2</code>上<code>enp0s1</code>网卡的地址。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">root@node2:/home/ubuntu# iptables -t nat -L KUBE-MARK-MASQ | column -t</span><br><span class="line">Chain   KUBE-MARK-MASQ  (20  references)</span><br><span class="line">target  prot            opt  source       destination</span><br><span class="line">MARK    all             --   anywhere     anywhere     MARK  or  0x4000</span><br><span class="line">root@node2:/home/ubuntu#</span><br><span class="line">root@node2:/home/ubuntu# iptables -t nat -L KUBE-POSTROUTING | column -t</span><br><span class="line">Chain       KUBE-POSTROUTING  (1   references)</span><br><span class="line">target      prot              opt  source       destination</span><br><span class="line">RETURN      all               --   anywhere     anywhere     mark  match       !        0x4000/0x4000</span><br><span class="line">MARK        all               --   anywhere     anywhere     MARK  xor         0x4000</span><br><span class="line">MASQUERADE  all               --   anywhere     anywhere     /*    kubernetes  service  traffic        requiring  SNAT  */  random-fully</span><br><span class="line">root@node2:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<p>关于<code>MASQUERADE</code>的介绍可以看<a target="_blank" rel="noopener" href="https://manpages.ubuntu.com/manpages/xenial/man8/iptables-extensions.8.html#target%20extensions">这里</a>。</p>
+<h3 id="nodeport"><a class="markdownIt-Anchor" href="#nodeport"></a> NodePort</h3>
+<p><code>ClusterIP</code>类型的服务只能在集群内访问，如果要在集群外访问我们的服务，最简单是创建一个对于<code>NodePort</code>类型的<code>Service</code>，这样我们就可以通过每个节点的“公网”<code>IP</code>进行访问，例如控制节点的<code>IP</code>是<code>192.168.67.8</code>，那么我们可以通过<code>192.168.67.8:30673</code>访问我们的服务：</p>
+<p><img data-src="ctrlnode-nodeport-svc.png" alt="" /></p>
+<p>通过浏览器进行访问：</p>
+<p><img data-src="browser-visit-nodeport-svc.png" alt="" /></p>
+<p>同理，我们先到处 <code>nat</code> 表中的 <code>PREROUTING</code> 链中的所有规则：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# iptables -t nat -L PREROUTING | column -t</span><br><span class="line">Chain          PREROUTING  (policy  ACCEPT)</span><br><span class="line">target         prot        opt      source    destination</span><br><span class="line">KUBE-SERVICES  all         --       anywhere  anywhere     /*        kubernetes  service   portals  */</span><br><span class="line">DOCKER         all         --       anywhere  anywhere     ADDRTYPE  match       dst-type  LOCAL</span><br><span class="line">root@ctrlnode:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<p>然后会在<code>KUBE-SERVICES</code>链中最后一条是和<code>NodePort</code>相关的规则，访问本地服务的链进入到<code>KUBE-NODEPORTS</code>链中的规则进行处理：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# iptables -t nat -L KUBE-SERVICES | column -t</span><br><span class="line">Chain                      KUBE-SERVICES  (2   references)</span><br><span class="line">target                     prot           opt  source       destination</span><br><span class="line">...</span><br><span class="line">KUBE-NODEPORTS             all            --   anywhere     anywhere        /*  kubernetes                          service  nodeports;  NOTE:  this  must          be  the  last  rule  in  this  chain  */  ADDRTYPE  match  dst-type  LOCAL</span><br></pre></td></tr></table></figure>
+<p><code>NodePort</code>链中的规则如下，只是简单跳转到了对应的<code>NodePort</code>服务的链中，对于<mark class="label primary">30673</mark>端口的访问进入到了<code>KUBE-EXT-5KZKXYM2F4JEGSLN</code>链中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# iptables -t nat -L KUBE-NODEPORTS | column -t</span><br><span class="line">Chain                      KUBE-NODEPORTS  (1   references)</span><br><span class="line">target                     prot            opt  source       destination</span><br><span class="line">KUBE-EXT-5KZKXYM2F4JEGSLN  tcp             --   anywhere     anywhere     /*  default/nginx-deploy-nodeport-svc  */  tcp  dpt:30673</span><br></pre></td></tr></table></figure>
+<p>然后就是跳转到了对应的<code>Service</code>链中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# iptables -t nat -L KUBE-EXT-5KZKXYM2F4JEGSLN | column -t</span><br><span class="line">Chain                      KUBE-EXT-5KZKXYM2F4JEGSLN  (1   references)</span><br><span class="line">target                     prot                       opt  source       destination</span><br><span class="line">KUBE-MARK-MASQ             all                        --   anywhere     anywhere     /*  masquerade  traffic  for  default/nginx-deploy-nodeport-svc  external  destinations  */</span><br><span class="line">KUBE-SVC-5KZKXYM2F4JEGSLN  all                        --   anywhere     anywhere</span><br></pre></td></tr></table></figure>
+<p>到此就和<code>ClusterIP</code>类型的服务一样了：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# iptables -t nat -L KUBE-SVC-5KZKXYM2F4JEGSLN | column -t</span><br><span class="line">Chain                      KUBE-SVC-5KZKXYM2F4JEGSLN  (2   references)</span><br><span class="line">target                     prot                       opt  source          destination</span><br><span class="line">KUBE-MARK-MASQ             tcp                        --   !10.244.0.0/16  10.102.231.147  /*  default/nginx-deploy-nodeport-svc  cluster  IP             */  tcp        dpt:tproxy</span><br><span class="line">KUBE-SEP-MVLCWZHJ2N4KWRDM  all                        --   anywhere        anywhere        /*  default/nginx-deploy-nodeport-svc  -&gt;       10.244.0.4:80  */  statistic  mode        random  probability  0.33333333349</span><br><span class="line">KUBE-SEP-67BWTVMW4OYVG527  all                        --   anywhere        anywhere        /*  default/nginx-deploy-nodeport-svc  -&gt;       10.244.1.2:80  */  statistic  mode        random  probability  0.50000000000</span><br><span class="line">KUBE-SEP-NVYXSNHSAWUISCCT  all                        --   anywhere        anywhere        /*  default/nginx-deploy-nodeport-svc  -&gt;       10.244.2.2:80  */</span><br><span class="line">root@ctrlnode:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<h3 id="loadbalancer"><a class="markdownIt-Anchor" href="#loadbalancer"></a> LoadBalancer</h3>
+<p><code>ClusterIP</code>类型的<code>Service</code>在<code>Pod</code>间实现了负载均衡，<code>NodePort</code>提供了通过每个节点的公网IP访问集群服务的可能性，但是又带来了一个新的问题，这些服务没法在节点之间进行负载均衡，所以就出现了叫做<code>LoadBalancer</code>类型的服务，对<code>NodePort</code>类型的服务进行负载均衡，我们可以使用如下的命令创建一个该类型的服务：</p>
+<blockquote>
+<p><code>kubectl expose deploy nginx-deployment --port=8082 --target-port=80 --type=LoadBalancer --name=nginx-deploy-lb-svc</code></p>
+</blockquote>
+<p>但是这个时候查看新建的服务<code>nginx-deploy-lb-svc</code>，它的<code>EXTERNAL-IP</code>显示<code>&lt;pengding&gt;</code>，是因为集群中还没有一个<code>LoadBalancer</code>提供服务：</p>
+<p><img data-src="lb-service-pending.png" alt="" /></p>
+<p>安装<a target="_blank" rel="noopener" href="https://metallb.universe.tf/">METALLB</a>作为<code>LoadBalancer</code>：</p>
+<blockquote>
+<p><code>kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.3/config/manifests/metallb-native.yaml</code></p>
+</blockquote>
+<p>然后使用如下命令为<code>METALLB</code>生成配置，下面的配置让它工作在二层协议，为其分配的地址和我们三个节点处在相同的网段，关于它更多的原理可以看<a target="_blank" rel="noopener" href="https://atbug.com/load-balancer-service-with-metallb/">这里</a>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: metallb.io/v1beta1</span><br><span class="line">kind: IPAddressPool</span><br><span class="line">metadata:</span><br><span class="line">  name: mylocal-net-pool</span><br><span class="line">  namespace: metallb-system</span><br><span class="line">spec:</span><br><span class="line">  addresses:</span><br><span class="line">  - 192.168.67.240-192.168.67.250</span><br><span class="line">---</span><br><span class="line">apiVersion: metallb.io/v1beta1</span><br><span class="line">kind: L2Advertisement</span><br><span class="line">metadata:</span><br><span class="line">  name: example</span><br><span class="line">  namespace: metallb-system</span><br><span class="line">spec:</span><br><span class="line">  ipAddressPools:</span><br><span class="line">  - mylocal-net-pool</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p><code>192.168.67.240-192.168.67.250</code> 要和节点的公网<code>IP</code>处于同一个地址段，查看<code>Service</code>，它的<code>EXTERNAL-IP</code>已经被分配成了<code>192.168.67.240</code>：</p>
+<p><img data-src="lb-service-ip-allocate.png" alt="" /></p>
+<p>此时如果访问<code>http://192.168.67.240:8082/</code>是可以访问通的，因为<code>LoadBlancer</code>服务将这个<code>IP</code>地址的<code>MAC</code>信息通过<code>ARP</code>协议添加到了我们的<code>Host</code>上，而且这个地址对应的<code>MAC</code>信息和我们<code>ctrlnode</code>的公网<code>IP</code>的<code>MAC</code>地址完全一样，所以当从<code>Host</code>或者集群中的其他节点上进行访问的时候其实直接到了我们的<code>ctrlnode</code>进行处理：</p>
+<div class="group-picture"><div class="group-picture-row"><div class="group-picture-column"><img data-src="lb-service-mac-same.png" alt="" /></div><div class="group-picture-column"><img data-src="lb-service-ctrlnode-mac.png" alt="" /></div></div></div>
+<p>依然来看当这个请求到达了<code>ctrlnode</code>上的时候，它是如何被处理的。毫无疑问，它肯定会从<code>nat</code>表中的<code>KUBE-SERVICES</code>进入然后被处理：</p>
+<p><img data-src="lb-service-kubeservice-chain.png" alt="" /></p>
+<p>可以看到的是，<code>LoadBlancer</code>类型的服务既可以从集群内部通过<code>ClusterIP</code>访问，也可以从外部通过<code>ExternalIP</code>进行访问，当通过<code>192.168.67.240</code>这个<code>IP</code>进行访问的时候，这个请求下一步会进入到<code>KUBE-EXT-BKP5P6G6IWL6KD3D</code>这个链中进行处理：</p>
+<p><img data-src="lb-service-ext-chain.png" alt="" /></p>
+<p>然后就开始在我们三个节点之间进行路由，和<code>ClusterIP</code>的处理方式一样了。</p>
+<h3 id="无头服务"><a class="markdownIt-Anchor" href="#无头服务"></a> 无头服务</h3>
+<p>按照<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#headless-services">官方文档</a>描述的，<code>Headless Service</code> 好像没什么用，无头服务本质上<code>ClusterIP</code>类型的，只是他的<code>ClusterIP</code>是<code>None</code>，所以它没有集群<code>IP</code>，因此<code>kube-proxy</code>是不会处理这里服务的。从类型上分，无头服务分为有选择符的和没有选择符的。</p>
+<h4 id="带有选择符"><a class="markdownIt-Anchor" href="#带有选择符"></a> 带有选择符</h4>
+<p>对于有选择符的无头服务，<code>K8S</code>还是会创建对应的<code>EndpointSlice</code>对象，并且修改<code>DNS</code>记录，在查询对应的服务名称时，直接返回后端的<code>EndpointSlice</code>中的<code>IP</code>地址，而不是<code>Service</code>的<code>ClusterIP</code>。举个例子，我们有如下所示的<code>Pod</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubectl get pods -l app=nginx -owide</span><br><span class="line">NAME                                READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES</span><br><span class="line">nginx-deployment-848dd6cfb5-c9cm6   1/1     Running   0          47h   10.244.1.2   node1      &lt;none&gt;           &lt;none&gt;</span><br><span class="line">nginx-deployment-848dd6cfb5-h48dk   1/1     Running   0          47h   10.244.2.2   node2      &lt;none&gt;           &lt;none&gt;</span><br><span class="line">nginx-deployment-848dd6cfb5-zbvj5   1/1     Running   0          47h   10.244.0.4   ctrlnode   &lt;none&gt;           &lt;none&gt;</span><br></pre></td></tr></table></figure>
+<p>我们使用如下的方式创建一个带选择符的无头服务：</p>
+<blockquote>
+<p><code>kubectl expose deploy nginx-deployment --target-port=80 --type=ClusterIP  --cluster-ip=None --name=nginx-deploy-headless-svc</code></p>
+</blockquote>
+<p>查看该服务详情，它的<code>EndpointSlice</code>集合中存在对应的<code>Pod</code>地址：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubectl describe svc/nginx-deploy-headless-svc</span><br><span class="line">Name:              nginx-deploy-headless-svc</span><br><span class="line">Namespace:         default</span><br><span class="line">Labels:            &lt;none&gt;</span><br><span class="line">Annotations:       &lt;none&gt;</span><br><span class="line">Selector:          app=nginx</span><br><span class="line">Type:              ClusterIP</span><br><span class="line">IP Family Policy:  SingleStack</span><br><span class="line">IP Families:       IPv4</span><br><span class="line">IP:                None</span><br><span class="line">IPs:               None</span><br><span class="line">Port:              &lt;unset&gt;  80/TCP</span><br><span class="line">TargetPort:        80/TCP</span><br><span class="line">Endpoints:         10.244.0.4:80,10.244.1.2:80,10.244.2.2:80</span><br><span class="line">Session Affinity:  None</span><br><span class="line">Events:            &lt;none&gt;</span><br></pre></td></tr></table></figure>
+<p>如果此时使用<code>DNS</code>解析<code>nginx-deploy-headless-svc</code>，它返回的也是三个<code>Pod</code>的地址，使用<code>nginx-deploy-headless-svc</code>访问服务，就如同使用<code>Pod</code>的<code>IP</code>地址直接访问一样，不会通过<code>iptables</code>进行负载均衡：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">bash-5.1# nslookup nginx-deploy-headless-svc</span><br><span class="line">Server:		10.96.0.10</span><br><span class="line">Address:	10.96.0.10#53</span><br><span class="line"></span><br><span class="line">Name:	nginx-deploy-headless-svc.default.svc.cluster.local</span><br><span class="line">Address: 10.244.0.4</span><br><span class="line">Name:	nginx-deploy-headless-svc.default.svc.cluster.local</span><br><span class="line">Address: 10.244.1.2</span><br><span class="line">Name:	nginx-deploy-headless-svc.default.svc.cluster.local</span><br><span class="line">Address: 10.244.2.2</span><br></pre></td></tr></table></figure>
+<h4 id="没有选择符"><a class="markdownIt-Anchor" href="#没有选择符"></a> 没有选择符</h4>
+<p>对于没有选择服务的无头服务，常用于去访问外部服务，因为它没有选择符，所以不会自动创建<code>EndpointSlice</code>集合，需要手动创建，否则它没有实际的意义。假如我们现在像访问集群外部的服务，又不想在代码中硬编码该服务的地址，就可以创建一个没有选择符的无头服务，然后手动创建该服务指向的<code>IP</code>地址，在代码中使用服务名称进行访问。</p>
+<p>例如，我们在主机上通过<code>docker</code>启动一个<code>whoami</code>服务：</p>
+<blockquote>
+<p><code>docker run -d -P --name whoami traefik/whoami</code></p>
+</blockquote>
+<p>启动之后可以通过下面的命令得到它在主机上发布的端口:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ docker inspect --format &#x27;&#123;&#123;json .NetworkSettings.Ports &#125;&#125;&#x27;  whoami</span><br><span class="line">&#123;&quot;80/tcp&quot;:[&#123;&quot;HostIp&quot;:&quot;0.0.0.0&quot;,&quot;HostPort&quot;:&quot;32768&quot;&#125;]&#125;</span><br></pre></td></tr></table></figure>
+<p>现在我们使用下面的命令在<code>k8s</code>集群中创建一个名叫<code>whoami</code>的无头服务，以及一个同名的<code>EndpointSlice</code>集合，这里要注意的是，对于没有选择符的无头服务，它的<code>port</code>和<code>targetPort</code>必须相同，<code>172.31.205.142</code> 是我这个服务所在的公网地址：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Endpoints</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami</span><br><span class="line">subsets:</span><br><span class="line">  - addresses:</span><br><span class="line">      - ip: 172.31.205.142</span><br><span class="line">    ports:</span><br><span class="line">      - port: 32768</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: whoami</span><br><span class="line">spec:</span><br><span class="line">  clusterIP: None</span><br><span class="line">  type: ClusterIP</span><br><span class="line">  ports:</span><br><span class="line">  - port: 32768</span><br><span class="line">    targetPort: 32768</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>创建成功之后，我们就可以在<code>k8s</code>集群中实现通过名称放我们的<code>whoami</code>服务了：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">bash-5.1# curl whoami:32768</span><br><span class="line">Hostname: 4c3d750bd70c</span><br><span class="line">IP: 127.0.0.1</span><br><span class="line">IP: 172.17.0.2</span><br><span class="line">RemoteAddr: 172.17.0.1:22447</span><br><span class="line">GET / HTTP/1.1</span><br><span class="line">Host: whoami:32768</span><br><span class="line">User-Agent: curl/7.79.1</span><br><span class="line">Accept: */*</span><br><span class="line"></span><br><span class="line">bash-5.1# nslookup whoami</span><br><span class="line">Server:         10.43.0.10</span><br><span class="line">Address:        10.43.0.10#53</span><br><span class="line"></span><br><span class="line">Name:   whoami.default.svc.cluster.local</span><br><span class="line">Address: 172.31.205.142</span><br></pre></td></tr></table></figure>
+<h3 id="externalname"><a class="markdownIt-Anchor" href="#externalname"></a> ExternalName</h3>
+<p>如果外部服务是通过<code>IP</code>访问的，我们可以使用不带选择符的无头服务在集群内配置名称进行访问。如果外部服务是以域名进行访问的，我们就可以创建<code>ExternalName</code>类型的<code>Service</code>仅进行访问外部服务。<code>ExternalName</code>本质上是在<code>k8s</code>集群内部的<code>DNS</code>中添加一条<code>CNAME</code>解析记录，<code>CNAME</code>可以把它看作是域名到域名的映射。</p>
+<p>例如，对于我的博客，它的域名是<code>blog.fudenglong.site</code>，它本质上也是一个<code>CNAME</code>解析，它的值是<code>gamelife1314.github.io</code>，使用<code>dig</code>命令查询能得到下面的解析记录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">bash-5.1# dig blog.fudenglong.site</span><br><span class="line">...</span><br><span class="line">;; ANSWER SECTION:</span><br><span class="line">blog.fudenglong.site.   5       IN      CNAME   gamelife1314.github.io.</span><br><span class="line">gamelife1314.github.io. 5       IN      A       185.199.111.153</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>现在我们在集群内部创建一个<code>myblog</code>服务，指向<code>blog.fudenglong.site</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: myblog</span><br><span class="line">spec:</span><br><span class="line">  type: ExternalName</span><br><span class="line">  externalName: blog.fudenglong.site</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>然后使用 <code>dig</code> 命令在集群内部查询，可以看到<code>myblog</code>解析到了<code>blog.fudenglong.site</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">bash-5.1# dig +showsearch myblog</span><br><span class="line">....</span><br><span class="line">;; ANSWER SECTION:</span><br><span class="line">myblog.default.svc.cluster.local. 5 IN  CNAME   blog.fudenglong.site.</span><br><span class="line">blog.fudenglong.site.   5       IN      CNAME   gamelife1314.github.io.</span><br><span class="line">gamelife1314.github.io. 5       IN      A       185.199.111.153</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<h3 id="ingress"><a class="markdownIt-Anchor" href="#ingress"></a> Ingress</h3>
+<p><code>Loadbalancer</code>类型的服务为每个<code>Service</code>都创建了一个负载均衡服务，这种做法成本高，实现麻烦，作为普通用户，应该更应该希望k8s能提供像nginx这样的反向代理功能，基于不同的<code>Host</code>，或者<code>url</code>规则，把请求转发到不同的后端服务中去，<a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/reference/kubernetes-api/service-resources/ingress-v1/#Ingress">Ingress</a> 就是用来提供这样的服务，可以把它看做是<code>Service</code>的<code>Service</code>，因为一个<code>Ingress</code>的后端对象是<code>Service</code>，不像<code>Service</code>，它的后端是<code>Pod</code>。</p>
+<p>为了演示，除了本篇开始创建的<code>nginx-deploy-clusterip-svc</code>，再创建一个<code>Service</code>，使用如下的命令：</p>
+<blockquote>
+<p>kubectl create deployment whoami --image=traefik/whoami -r 3 --port=80<br />
+kubectl expose deployment whoami --port=8080 --target-port=80 --type=ClusterIP --name=whoami</p>
+</blockquote>
+<p>创建成功之后，使用如下的命令查看已创建的<code>whoami</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubectl describe svc whoami</span><br><span class="line">Name:              whoami</span><br><span class="line">Namespace:         default</span><br><span class="line">Labels:            app=whoami</span><br><span class="line">Annotations:       &lt;none&gt;</span><br><span class="line">Selector:          app=whoami</span><br><span class="line">Type:              ClusterIP</span><br><span class="line">IP Family Policy:  SingleStack</span><br><span class="line">IP Families:       IPv4</span><br><span class="line">IP:                10.108.154.253</span><br><span class="line">IPs:               10.108.154.253</span><br><span class="line">Port:              &lt;unset&gt;  8080/TCP</span><br><span class="line">TargetPort:        80/TCP</span><br><span class="line">Endpoints:         10.244.0.5:80,10.244.1.5:80,10.244.2.4:80</span><br><span class="line">Session Affinity:  None</span><br><span class="line">Events:            &lt;none&gt;</span><br></pre></td></tr></table></figure>
+<p>接下来，创建一个<code>Ingress</code>，需要注意的<code>Ingress</code>和<code>Service</code>必须在相同的命名空间内，默认是<code>default</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.k8s.io/v1</span><br><span class="line">kind: Ingress</span><br><span class="line">metadata:</span><br><span class="line">  name: default-ingress</span><br><span class="line">spec:</span><br><span class="line">  ingressClassName: nginx</span><br><span class="line">  rules:</span><br><span class="line">  - host: &quot;nginx.svc.local&quot;</span><br><span class="line">    http:</span><br><span class="line">      paths:</span><br><span class="line">      - pathType: Prefix</span><br><span class="line">        path: &quot;/&quot;</span><br><span class="line">        backend:</span><br><span class="line">          service:</span><br><span class="line">            name: nginx-deploy-clusterip-svc</span><br><span class="line">            port:</span><br><span class="line">              number: 8080</span><br><span class="line">  - host: &quot;whoami.svc.local&quot;</span><br><span class="line">    http:</span><br><span class="line">      paths:</span><br><span class="line">      - pathType: Prefix</span><br><span class="line">        path: &quot;/&quot;</span><br><span class="line">        backend:</span><br><span class="line">          service:</span><br><span class="line">            name: whoami</span><br><span class="line">            port:</span><br><span class="line">              number: 8080</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>上面的<code>ingressClassName</code>指得是这个<code>Ingress</code>使用哪个<code>IngressController</code>，因为<code>Ingress</code>对象只是一份描述文件，它并没有实际的意义，需要<code>IngressController</code>对它解释并提供服务，而<code>IngressController</code>需要额外安装的，这里使用<a target="_blank" rel="noopener" href="https://kubernetes.github.io/ingress-nginx/deploy/#quick-start">NginxIngress</a>，安装如下所示：</p>
+<blockquote>
+<p><code>kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/cloud/deploy.yaml</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/cloud/deploy.yaml</span><br><span class="line">namespace/ingress-nginx created</span><br><span class="line">serviceaccount/ingress-nginx created</span><br><span class="line">serviceaccount/ingress-nginx-admission created</span><br><span class="line">role.rbac.authorization.k8s.io/ingress-nginx created</span><br><span class="line">role.rbac.authorization.k8s.io/ingress-nginx-admission created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/ingress-nginx created</span><br><span class="line">clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/ingress-nginx created</span><br><span class="line">rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created</span><br><span class="line">clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created</span><br><span class="line">configmap/ingress-nginx-controller created</span><br><span class="line">service/ingress-nginx-controller created</span><br><span class="line">service/ingress-nginx-controller-admission created</span><br><span class="line">deployment.apps/ingress-nginx-controller created</span><br><span class="line">job.batch/ingress-nginx-admission-create created</span><br><span class="line">job.batch/ingress-nginx-admission-patch created</span><br><span class="line">ingressclass.networking.k8s.io/nginx created</span><br><span class="line">validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created</span><br><span class="line">root@ctrlnode:/home/ubuntu#</span><br></pre></td></tr></table></figure>
+<p>等一切就绪的时候，去查看创建的<code>default-ingress</code>，它已经被分配了从集群外访问的外部地址<code>192.168.67.241</code>：</p>
+<p><img data-src="defualt-ingress.png" alt="" /></p>
+<p>现在，就可以使用我们自定义的域名访问服务了，只是要把自定义的域名解析到<code>192.168.67.241</code>，例如：</p>
+<blockquote>
+<p>curl --resolve nginx.svc.local:80:192.168.67.241 <a target="_blank" rel="noopener" href="http://nginx.svc.local/">http://nginx.svc.local/</a><br />
+curl --resolve whoami.svc.local:80:192.168.67.241 <a target="_blank" rel="noopener" href="http://whoami.svc.local/">http://whoami.svc.local/</a></p>
+</blockquote>
+<p><img data-src="curl-ingress-svc.png" alt="" /></p>
+<p>那这个<code>192.168.67.241</code>到底是谁分配的呢？在安装<code>NginxIngress</code>的时候，它其实还创建了一个<code>LoadBalancer</code>类型的<code>service/ingress-nginx-controller</code>，所以这个IP地址是我们集群内安装的负载均衡服务分配的，它就成了集群中<code>NginxIngress</code>的入口：</p>
+<p><img data-src="ingress-nginx-svc.png" alt="" /></p>
+<p>到这里这个流程现在变得清楚了，通过<code>192.168.67.241</code>这个外部<code>IP</code>到达我们集群中之后，流程首先到<code>ingress-nginx-controller</code>这个<code>Pod</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# kubectl get pods -n ingress-nginx -owide</span><br><span class="line">NAME                                        READY   STATUS      RESTARTS   AGE    IP           NODE    NOMINATED NODE   READINESS GATES</span><br><span class="line">ingress-nginx-admission-create-dxbwq        0/1     Completed   0          119m   10.244.1.6   node1   &lt;none&gt;           &lt;none&gt;</span><br><span class="line">ingress-nginx-admission-patch-7hsfx         0/1     Completed   2          119m   10.244.2.5   node2   &lt;none&gt;           &lt;none&gt;</span><br><span class="line">ingress-nginx-controller-8558859656-bwkj7   1/1     Running     0          119m   10.244.2.6   node2   &lt;none&gt;           &lt;none&gt;</span><br></pre></td></tr></table></figure>
+<p>这个<code>Pod</code>会将对<code>Ingress</code>对象的描述翻译成它能理解的<code>/etc/nginx/nginx.conf</code>：</p>
+<p><img data-src="nginx-ingress-controller-conf.png" alt="" /></p>
+<p>然后内部再将流量路由到<code>nginx-deploy-clusterip-svc</code>和<code>whoami</code>，整个过程如下图所示：</p>
+<p><img data-src="nginx-ingress-arch.png" alt="" /></p>
+<h3 id="参考链接"><a class="markdownIt-Anchor" href="#参考链接"></a> 参考链接</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://learncloudnative.com/blog/2023-05-31-kubeproxy-iptables">Understanding networking in Kubernetes</a></li>
+<li><a target="_blank" rel="noopener" href="https://msazure.club/kubernetes-services-and-iptables/">Kubernetes Services and Iptables</a></li>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/reference/networking/virtual-ips/">kubernetes - 虚拟IP和服务代理</a></li>
+<li><a target="_blank" rel="noopener" href="https://lotabout.me/2022/Kubernetes-Service-Model-Verification/">Kubernetes Service iptables 网络通信验证</a></li>
+<li><a target="_blank" rel="noopener" href="https://jimmysong.io/kubernetes-handbook/practice/service-discovery-and-loadbalancing.html">服务发现与负载均衡</a></li>
+<li><a target="_blank" rel="noopener" href="https://atbug.com/k8s-service-and-load-balancer/">Kubernetes LoadBalancer Service 与负载均衡器</a></li>
+<li><a target="_blank" rel="noopener" href="https://atbug.com/load-balancer-service-with-metallb-bgp-mode/">在 Kubernetes 集群中使用 MetalLB 作为 LoadBalancer（下）- BGP</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.flftuu.com/2023/06/08/MetalLB%E6%9C%8D%E5%8A%A1%E5%92%8CBGP%E8%B7%AF%E7%94%B1%E5%99%A8%E6%B5%8B%E8%AF%95/">MetalLB服务和BGP路由器测试</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/" title="Kubernetes Service &amp; Ingress">https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Service/" rel="tag"># Service</a>
+              <a href="/tags/NodePort/" rel="tag"># NodePort</a>
+              <a href="/tags/Loadblance/" rel="tag"># Loadblance</a>
+              <a href="/tags/ExternalName/" rel="tag"># ExternalName</a>
+              <a href="/tags/Ingress/" rel="tag"># Ingress</a>
+              <a href="/tags/MetaLB/" rel="tag"># MetaLB</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/12/29/K8S/k8s-cni-network/" rel="prev" title="Kubernetes CNI 网络">
+                  <i class="fa fa-angle-left"></i> Kubernetes CNI 网络
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/01/10/K8S/k8s-job-manage/" rel="next" title="K8S 容器编排">
+                  K8S 容器编排 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2024/01/02/K8S/k8s-service/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>
