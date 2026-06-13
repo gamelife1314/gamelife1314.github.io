@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Rust 中也有结构体，类似 C&#x2F;C++ 中的结构体，python 中的 class 以及 javascript 中的对象。Rust 中除了常规的结构体之外，还有 tuple 结构体，单元结构体。  结构体 Rust 中约定包括结构体在内的所有类型都采用驼峰法命名，并且首字母大写，而方法和字段采用蛇形命名，即 _ 连接小写单词。例如： 12345&#x2F;&#x2F;&#x2F; A rectangle of eight-b">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】结构体">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/04/24/Rust/%E3%80%90Rust%E3%80%91%E7%BB%93%E6%9E%84%E4%BD%93/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Rust 中也有结构体，类似 C&#x2F;C++ 中的结构体，python 中的 class 以及 javascript 中的对象。Rust 中除了常规的结构体之外，还有 tuple 结构体，单元结构体。  结构体 Rust 中约定包括结构体在内的所有类型都采用驼峰法命名，并且首字母大写，而方法和字段采用蛇形命名，即 _ 连接小写单词。例如： 12345&#x2F;&#x2F;&#x2F; A rectangle of eight-b">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/24/Rust/%E3%80%90Rust%E3%80%91%E7%BB%93%E6%9E%84%E4%BD%93/struct-layout.png">
+<meta property="article:published_time" content="2022-04-24T08:51:43.000Z">
+<meta property="article:modified_time" content="2022-04-24T08:51:43.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="结构体">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/04/24/Rust/%E3%80%90Rust%E3%80%91%E7%BB%93%E6%9E%84%E4%BD%93/struct-layout.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/04/24/Rust/%E3%80%90Rust%E3%80%91%E7%BB%93%E6%9E%84%E4%BD%93/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/04/24/Rust/%E3%80%90Rust%E3%80%91%E7%BB%93%E6%9E%84%E4%BD%93/","path":"2022/04/24/Rust/【Rust】结构体/","title":"【Rust】结构体"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】结构体 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-number">1.</span> <span class="nav-text"> 结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tuple-%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-number">2.</span> <span class="nav-text"> tuple 结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#unit-%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-number">3.</span> <span class="nav-text"> Unit 结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80"><span class="nav-number">4.</span> <span class="nav-text"> 内存布局</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E4%BE%8B%E6%96%B9%E6%B3%95"><span class="nav-number">5.</span> <span class="nav-text"> 实例方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%99%BA%E8%83%BD%E6%8C%87%E9%92%88"><span class="nav-number">6.</span> <span class="nav-text"> 智能指针</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B1%BB%E5%9E%8B%E6%96%B9%E6%B3%95"><span class="nav-number">7.</span> <span class="nav-text"> 类型方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E8%81%94%E5%B8%B8%E9%87%8F"><span class="nav-number">8.</span> <span class="nav-text"> 关联常量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-number">9.</span> <span class="nav-text"> 泛型结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E4%BD%93%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E5%8F%82%E6%95%B0"><span class="nav-number">10.</span> <span class="nav-text"> 结构体生命周期参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8-trait-%E6%B4%BE%E7%94%9F"><span class="nav-number">11.</span> <span class="nav-text"> 常用 Trait 派生</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E9%83%A8%E5%8F%AF%E5%8F%98%E6%80%A7"><span class="nav-number">12.</span> <span class="nav-text"> 内部可变性</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#cellt"><span class="nav-number">12.1.</span> <span class="nav-text"> Cell&lt;T&gt;</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#refcellt"><span class="nav-number">12.2.</span> <span class="nav-text"> RefCell&lt;T&gt;</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9B%9E%E5%BD%92%E6%AD%A3%E9%80%94"><span class="nav-number">12.3.</span> <span class="nav-text"> 回归正途</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="nav-number">13.</span> <span class="nav-text"> 参考文章</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/04/24/Rust/%E3%80%90Rust%E3%80%91%E7%BB%93%E6%9E%84%E4%BD%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】结构体 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】结构体
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-04-24 16:51:43" itemprop="dateCreated datePublished" datetime="2022-04-24T16:51:43+08:00">2022-04-24</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>15 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>Rust</code> 中也有结构体，类似 <code>C/C++</code> 中的结构体，<code>python</code> 中的 <code>class</code> 以及 <code>javascript</code> 中的对象。<code>Rust</code> 中除了常规的结构体之外，还有 <code>tuple</code> 结构体，单元结构体。</p>
+<h3 id="结构体"><a class="markdownIt-Anchor" href="#结构体"></a> 结构体</h3>
+<p><code>Rust</code> 中约定包括结构体在内的所有类型都采用驼峰法命名，并且首字母大写，而方法和字段采用蛇形命名，即 <code>_</code> 连接小写单词。例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// A rectangle of eight-bit grayscale pixels.</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">GrayscaleMap</span> &#123;</span><br><span class="line">    pixels: <span class="type">Vec</span>&lt;<span class="type">u8</span>&gt;,</span><br><span class="line">    size: (<span class="type">usize</span>, <span class="type">usize</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>结构体初始化：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">width</span> = <span class="number">1024</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">height</span> = <span class="number">576</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">image</span> = GrayscaleMap &#123;</span><br><span class="line">    pixels: <span class="built_in">vec!</span>[<span class="number">0</span>; width * height],</span><br><span class="line">    size: (width, height)</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>如果局部变量或者函数参数和字段名称同名，还可以省略字段名称，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">new_map</span>(size: (<span class="type">usize</span>, <span class="type">usize</span>), pixels: <span class="type">Vec</span>&lt;<span class="type">u8</span>&gt;) <span class="punctuation">-&gt;</span> GrayscaleMap &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(pixels.<span class="title function_ invoke__">len</span>(), size.<span class="number">0</span> * size.<span class="number">1</span>);</span><br><span class="line">    GrayscaleMap &#123; pixels, size &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>字段访问采用 <code>.</code> 运算符：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(image.size, (<span class="number">1024</span>, <span class="number">576</span>));</span><br><span class="line"><span class="built_in">assert_eq!</span>(image.pixels.<span class="title function_ invoke__">len</span>(), <span class="number">1024</span> * <span class="number">576</span>);</span><br></pre></td></tr></table></figure>
+<p>结构体默认只能在当前模块和子模块中使用，如果想要导出结构体需要使用 <code>pub</code> 标识，字段也是同样的道理，如果字段都是私有的，那么只能使用类似 <code>Vec::new</code> 的构造方法来初始化字段：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// A rectangle of eight-bit grayscale pixels.</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">GrayscaleMap</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> pixels: <span class="type">Vec</span>&lt;<span class="type">u8</span>&gt;,</span><br><span class="line">    <span class="keyword">pub</span> size: (<span class="type">usize</span>, <span class="type">usize</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们还可以使用相同类型的结构变量去初始化另外一个，使用 <code>..</code> 运算符，自动填充未显示赋值的字段：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Person</span> &#123;</span><br><span class="line">    name: <span class="type">String</span>,</span><br><span class="line">    age: <span class="type">i32</span>,</span><br><span class="line">    sex: <span class="type">char</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">p1</span> = Person &#123;</span><br><span class="line">        name: <span class="string">&quot;michael&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        age: <span class="number">28</span>,</span><br><span class="line">        sex: <span class="string">&#x27;男&#x27;</span>,</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">p2</span> = Person &#123;</span><br><span class="line">        name: <span class="string">&quot;skye&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        ..p1</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;p1: &#123;:?&#125;, pw: &#123;:?&#125;&quot;</span>, p1, p2);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>p2</code> 除了 <code>name</code> 字段是显示赋值的，其他两个字段都是来源于 <code>p1</code>，这段代码运行之后将输出：</p>
+<pre><code>p1: Person &#123; name: &quot;michael&quot;, age: 28, sex: '男' &#125;, pw: Person &#123; name: &quot;skye&quot;, age: 28, sex: '男' &#125;
+</code></pre>
+<span id="more"></span>
+<h3 id="tuple-结构体"><a class="markdownIt-Anchor" href="#tuple-结构体"></a> <code>tuple</code> 结构体</h3>
+<p>之所以叫<code>tuple</code>结构体是因为它长得像，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Bounds</span>(<span class="type">usize</span>, <span class="type">usize</span>);</span><br></pre></td></tr></table></figure>
+<p>构造<code>tuple</code>结构体就像构造 <code>tuple</code>，只是需要写一个类型：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">image_bounds</span> = <span class="title function_ invoke__">Bounds</span>(<span class="number">1024</span>, <span class="number">768</span>);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>就连字段访问方式也是一样的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(image_bounds.<span class="number">0</span> * image_bounds.<span class="number">1</span>, <span class="number">786432</span>);</span><br></pre></td></tr></table></figure>
+<p>内部字段也可以设置访问权限，即是否导出：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Bounds</span>(<span class="keyword">pub</span> <span class="type">usize</span>, <span class="keyword">pub</span> <span class="type">usize</span>);</span><br></pre></td></tr></table></figure>
+<p>表达式 <code>Bounds(1024, 768)</code> 看起来像一个函数调用，实际上它就是，定义类型的同时也隐式定义了一个函数：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">Bounds</span>(elem0: <span class="type">usize</span>, elem1: <span class="type">usize</span>) <span class="punctuation">-&gt;</span> Bounds &#123; ... &#125;</span><br></pre></td></tr></table></figure>
+<p><code>tuple</code> 结构体和常规的结构体基本上是类似的，使用哪个取决于易读性和简洁性。</p>
+<h3 id="unit-结构体"><a class="markdownIt-Anchor" href="#unit-结构体"></a> <code>Unit</code> 结构体</h3>
+<p><code>Unit 结构体</code> 没有字段：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Onesuch</span>;</span><br></pre></td></tr></table></figure>
+<p>这种类型的值不占用内存，很像单元类型<code>()</code>，只是它有自己的类型名称，但它的值只能有一个：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">o</span> = Onesuch;</span><br></pre></td></tr></table></figure>
+<h3 id="内存布局"><a class="markdownIt-Anchor" href="#内存布局"></a> 内存布局</h3>
+<p>常规结构体和 <code>tuple</code> 结构体在内存中的是一样的，它们都包含一系列的值，可能同类型也可能混合类型，例如我们上面定义的结构体：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">GrayscaleMap</span> &#123;</span><br><span class="line"> pixels: <span class="type">Vec</span>&lt;<span class="type">u8</span>&gt;,</span><br><span class="line"> size: (<span class="type">usize</span>, <span class="type">usize</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>与 <code>C</code> 和 <code>C++</code> 不同，<code>Rust</code> 没有就如何在内存中对结构的字段或元素进行排序做出具体承诺，<code>Rust</code> 可能为了内存对齐进行调整字段顺序，所以下图仅显示了一种可能的布局：</p>
+<p><img data-src="struct-layout.png" alt="" /></p>
+<p>但是，<code>Rust</code> 确实承诺将字段的值直接存储在结构的内存块中。 <code>JavaScript</code>、<code>Python</code> 和 <code>Java</code> 会将 <code>pixels</code> 和 <code>size</code> 值分别放在它们自己的堆分配块中，并让 <code>GrayscaleMap</code> 的字段指向它们，而 <code>Rust</code> 将 <code>pixels</code> 和 <code>size</code> 直接嵌入到 <code>GrayscaleMap</code> 值中， 只有 <code>pixels</code> 向量拥有的堆分配缓冲区保留在其自己的块中。</p>
+<p>您可以使用 <a href="(https://doc.rust-lang.org/stable/reference/type-layout.html#representations)"><code>#[repr(C)]</code></a> 属性要求 <code>Rust</code> 以与 <code>C</code> 和 <code>C++</code> 兼容的方式布局结构体。</p>
+<h3 id="实例方法"><a class="markdownIt-Anchor" href="#实例方法"></a> 实例方法</h3>
+<p><code>Rust</code> 方法不像在 <code>C</code>，<code>Go</code> 或者 <code>Java</code> 中那样出现在结构体定义中，而是出现在单独的 <code>impl</code> 块中。一个 <code>impl</code> 块只是 <code>fn</code> 定义的集合，每个定义都成为块顶部命名的结构类型上的一个方法。在这里，例如，我们定义一个 <code>public struct Queue</code>，然后给它两个 <code>public</code> 方法，<code>push</code> 和 <code>pop</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">/// A first-in, first-out queue of characters.</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Queue</span> &#123;</span><br><span class="line">    older: <span class="type">Vec</span>&lt;<span class="type">char</span>&gt;, <span class="comment">// older elements, eldest last.</span></span><br><span class="line">    younger: <span class="type">Vec</span>&lt;<span class="type">char</span>&gt; <span class="comment">// younger elements, youngest last.</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Queue</span> &#123;</span><br><span class="line"></span><br><span class="line"> <span class="comment">/// Push a character onto the back of a queue.</span></span><br><span class="line"> <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">push</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>, c: <span class="type">char</span>) &#123; </span><br><span class="line">    <span class="keyword">self</span>.younger.<span class="title function_ invoke__">push</span>(c);</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> <span class="comment">/// Pop a character off the front of a queue. Return `Some(c)` if there</span></span><br><span class="line"> <span class="comment">/// was a character to pop, or `None` if the queue was empty.</span></span><br><span class="line"> <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">pop</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;<span class="type">char</span>&gt; &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">self</span>.older.<span class="title function_ invoke__">is_empty</span>() &#123;</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">self</span>.younger.<span class="title function_ invoke__">is_empty</span>() &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">None</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// Bring the elements in younger over to older, and put them in</span></span><br><span class="line">        <span class="comment">// the promised order.</span></span><br><span class="line">        <span class="keyword">use</span> std::mem::swap;</span><br><span class="line">        <span class="title function_ invoke__">swap</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>.older, &amp;<span class="keyword">mut</span> <span class="keyword">self</span>.younger);</span><br><span class="line">        <span class="keyword">self</span>.older.<span class="title function_ invoke__">reverse</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Now older is guaranteed to have something. Vec&#x27;s pop method</span></span><br><span class="line">    <span class="comment">// already returns an Option, so we&#x27;re set.</span></span><br><span class="line">    <span class="keyword">self</span>.older.<span class="title function_ invoke__">pop</span>()</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>定义在 <code>impl</code> 块中的称之为关联函数，因为和特定的类型有关，相反，没有定义在 <code>impl</code> 中称之为自由函数。</p>
+<p><code>Rust</code> 将调用它的值作为第一个参数传递给方法，该参数必须具有特殊名称 <code>self</code>，<code>self</code> 的类型可以省略，所以 <code>self</code>，<code>&amp;self</code> 或者 <code>&amp;mut self</code> 实际上是 <code>self: Queue</code>， <code>self: &amp;Queue</code>， 或者 <code>self: &amp;mut Queue</code> 的简写。</p>
+<p>在我们的示例中，<code>push</code> 和 <code>pop</code> 在内部使用 <code>self</code> 访问内部成员，这与 <code>C++</code> 和 <code>Java</code> 不同，<code>this</code> 对象的成员在方法中直接可见，而 <code>Rust</code> 必须要使用 <code>self</code> 来访问。</p>
+<p>这里由于 <code>push</code> 和 <code>pop</code> 都需要修改 <code>Queue</code>，所以它们的取值都是 <code>&amp;mut self</code>，但是我们调用时没必要显示借用可变引用，<code>Rust</code> 会为我们隐式进行转换，例如，<code>q.push</code> 等价于 <code>(&amp;mut q).push()</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">q</span> = Queue &#123; older: <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>(), younger: <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>() &#125;;</span><br><span class="line">q.<span class="title function_ invoke__">push</span>(<span class="string">&#x27;0&#x27;</span>);</span><br><span class="line">q.<span class="title function_ invoke__">push</span>(<span class="string">&#x27;1&#x27;</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(q.<span class="title function_ invoke__">pop</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;0&#x27;</span>));</span><br><span class="line"></span><br><span class="line">q.<span class="title function_ invoke__">push</span>(<span class="string">&#x27;∞&#x27;</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(q.<span class="title function_ invoke__">pop</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;1&#x27;</span>));</span><br><span class="line"><span class="built_in">assert_eq!</span>(q.<span class="title function_ invoke__">pop</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;∞&#x27;</span>));</span><br><span class="line"><span class="built_in">assert_eq!</span>(q.<span class="title function_ invoke__">pop</span>(), <span class="literal">None</span>);</span><br></pre></td></tr></table></figure>
+<p>如果不需要改变 <code>self</code>，那我们可以只获取一个共享引用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span> <span class="title class_">Queue</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">is_empty</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">bool</span> &#123;</span><br><span class="line">        <span class="keyword">self</span>.older.<span class="title function_ invoke__">is_empty</span>() &amp;&amp; <span class="keyword">self</span>.younger.<span class="title function_ invoke__">is_empty</span>()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果想获取所有权，那么使用 <code>self</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span> <span class="title class_">Queue</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">split</span>(<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> (<span class="type">Vec</span>&lt;<span class="type">char</span>&gt;, <span class="type">Vec</span>&lt;<span class="type">char</span>&gt;) &#123;</span><br><span class="line">        (<span class="keyword">self</span>.older, <span class="keyword">self</span>.younger)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="智能指针"><a class="markdownIt-Anchor" href="#智能指针"></a> 智能指针</h3>
+<p>智能指针诸如 <code>Box&lt;T&gt;</code>，<code>Rc&lt;T&gt;</code> 以及 <code>Arc&lt;T&gt;</code> 都可以调用 <code>self</code> 类型的方法，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">bq</span> = <span class="type">Box</span>::<span class="title function_ invoke__">new</span>(Queue::<span class="title function_ invoke__">new</span>());</span><br><span class="line"></span><br><span class="line"><span class="comment">// `Queue::push` expects a `&amp;mut Queue`, but `bq` is a `Box&lt;Queue&gt;`.</span></span><br><span class="line"><span class="comment">// This is fine: Rust borrows a `&amp;mut Queue` from the `Box` for the</span></span><br><span class="line"><span class="comment">// duration of the call.</span></span><br><span class="line">bq.<span class="title function_ invoke__">push</span>(<span class="string">&#x27;■&#x27;</span>);</span><br></pre></td></tr></table></figure>
+<p>我们也可以将方法的第一个参数类型改成 <code>Rc&lt;Self&gt;</code>，下面的例子中，我们将一个节点添加到父节点中，但是保留 <code>shared_node</code> 的所有权，以在 <code>main</code> 函数中仍然可用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#![allow(dead_code)]</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> std::rc::Rc;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Node</span> &#123;</span><br><span class="line">    tag: <span class="type">String</span>,</span><br><span class="line">    children: <span class="type">Vec</span>&lt;Rc&lt;Node&gt;&gt;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Node</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">new</span>(tag: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> Node &#123;</span><br><span class="line">        Node &#123;</span><br><span class="line">            tag: tag.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">            children: <span class="built_in">vec!</span>[],</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">append_to</span>(<span class="keyword">self</span>: Rc&lt;<span class="keyword">Self</span>&gt;, parent: &amp;<span class="keyword">mut</span> Node) &#123;</span><br><span class="line">        parent.children.<span class="title function_ invoke__">push</span>(<span class="keyword">self</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">parent</span> = Node::<span class="title function_ invoke__">new</span>(<span class="string">&quot;tag&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">shared_node</span> = Rc::<span class="title function_ invoke__">new</span>(Node::<span class="title function_ invoke__">new</span>(<span class="string">&quot;first&quot;</span>));</span><br><span class="line">    shared_node.<span class="title function_ invoke__">clone</span>().<span class="title function_ invoke__">append_to</span>(&amp;<span class="keyword">mut</span> parent);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, parent);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>将 <code>Rc&lt;Self&gt;</code> 作为方法的参数，这意味着：</p>
+<ul>
+<li>
+<p>我们可以转移 <code>Rc&lt;Self&gt;</code> 的所有权，例如，上面的例子我们可以直接调用：<code>shared_node.append_to(&amp;mut parent);</code>，只是这样，父函数中 <code>shared_node</code> 就不可用了；</p>
+</li>
+<li>
+<p>如果它需要保留 <code>Rc</code> 的所有权，可以像上面这样通过增加引用计数的方式实现；</p>
+</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/25462935/what-types-are-valid-for-the-self-parameter-of-a-method">这里有更多的例子</a>。</p>
+<h3 id="类型方法"><a class="markdownIt-Anchor" href="#类型方法"></a> 类型方法</h3>
+<p><code>impl</code> 中定义的函数也可以不将 <code>self</code> 作为它们的参数，这个时候称之为类型方法，就像 <code>Vec::new</code>，经常被用于去实现构造函数，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span> <span class="title class_">Queue</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">new</span>() <span class="punctuation">-&gt;</span> Queue &#123;</span><br><span class="line">        Queue &#123; older: <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>(), younger: <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>() &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在 <code>Rust</code> 中，将构造函数命名为 <code>new</code> 是惯例，我们已经看到了 <code>Vec::new</code>、<code>Box::new</code>、<code>HashMap::new</code> 等，但是<code>new</code>这个名字并没有什么特别之处，它不是关键字，并且类型通常具有其他关联的函数作为构造函数，例如 <code>Vec::with_capacity</code>。</p>
+<p><strong>尽管可以为单个类型拥有许多单独的 <code>impl</code> 块，但它们必须都位于定义该类型的同一个 <code>crate</code> 中。</strong></p>
+<h3 id="关联常量"><a class="markdownIt-Anchor" href="#关联常量"></a> 关联常量</h3>
+<p>顾名思义，关联的 <code>const</code> 是常量值，它们通常用于指定类型的常用值。例如，可以定义一个用于线性代数的二维向量以及相关的单位向量：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Vector2</span> &#123;</span><br><span class="line">    x: <span class="type">f32</span>,</span><br><span class="line">    y: <span class="type">f32</span>,</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Vector2</span> &#123;</span><br><span class="line">    <span class="keyword">const</span> ZERO: Vector2 = Vector2 &#123; x: <span class="number">0.0</span>, y: <span class="number">0.0</span> &#125;;</span><br><span class="line">    <span class="keyword">const</span> UNIT: Vector2 = Vector2 &#123; x: <span class="number">1.0</span>, y: <span class="number">0.0</span> &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>与关联函数非常相似，它们通过命名它们关联的类型来访问：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">scaled</span> = Vector2::UNIT.<span class="title function_ invoke__">scaled_by</span>(<span class="number">2.0</span>);</span><br></pre></td></tr></table></figure>
+<p>关联的 <code>const</code> 也不必与它关联的类型具有相同的类型; 我们可以使用此功能为类型添加 <code>ID</code> 或名称：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span> <span class="title class_">Vector2</span> &#123;</span><br><span class="line">    <span class="keyword">const</span> NAME: &amp;<span class="symbol">&#x27;static</span> <span class="type">str</span> = <span class="string">&quot;Vector2&quot;</span>;</span><br><span class="line">    <span class="keyword">const</span> ID: <span class="type">u32</span> = <span class="number">18</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="泛型结构体"><a class="markdownIt-Anchor" href="#泛型结构体"></a> 泛型结构体</h3>
+<p><code>Rust</code> 支持泛型，泛型可以用于处理逻辑相同，但类型不同的场景，例如，我们可以对之前的 <code>Queue</code> 结构体修改：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Queue</span>&lt;T&gt; &#123;</span><br><span class="line">    older: <span class="type">Vec</span>&lt;T&gt;,</span><br><span class="line">    younger: <span class="type">Vec</span>&lt;T&gt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以将 <code>Queue&lt;T&gt;</code> 中的 <code>&lt;T&gt;</code> 解读为 <code>对于任何元素类型 T...</code>，所以这个定义解读为：<code>对于任何类型 T，一个 Queue&lt;T&gt; 是两个 Vec&lt;T&gt; 类型的字段</code>。例如，在 <code>Queue&lt;String&gt;</code> 中，<code>T</code> 是 <code>String</code>，因此 <code>older</code> 和 <code>younger</code> 的类型为 <code>Vec&lt;String&gt;</code>。在 <code>Queue&lt;char&gt;</code> 中，<code>T</code> 是 <code>char</code>，事实上，<code>Vec</code> 本身就是一个泛型结构体。</p>
+<p>在泛型结构定义中，<code>&lt;&gt;</code> 中使用的类型名称称为<code>类型参数</code>。泛型结构的 <code>impl</code> 块如下所示：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span>&lt;T&gt; Queue&lt;T&gt; &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">new</span>() <span class="punctuation">-&gt;</span> Queue&lt;T&gt; &#123;</span><br><span class="line">        Queue &#123; older: <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>(), younger: <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>() &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">push</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>, t: T) &#123;</span><br><span class="line">        <span class="keyword">self</span>.younger.<span class="title function_ invoke__">push</span>(t);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">is_empty</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">bool</span> &#123;</span><br><span class="line">        <span class="keyword">self</span>.older.<span class="title function_ invoke__">is_empty</span>() &amp;&amp; <span class="keyword">self</span>.younger.<span class="title function_ invoke__">is_empty</span>()</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以将 <code>impl&lt;T&gt; Queue&lt;T&gt;</code> 解读为 <code>对于任何类型的 T，以下是 Queue&lt;T&gt; 上可用的一些关联函数</code>。然后，可以使用类型参数 <code>T</code> 作为关联函数定义中的类型。</p>
+<p>语法可能看起来有点多余，但 <code>impl&lt;T&gt;</code> 清楚地表明 <code>impl</code> 块涵盖任何类型 <code>T</code>，这将它与为一种特定类型的 <code>Queue</code> 编写的 <code>impl</code> 块区分开来，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span> <span class="title class_">Queue</span>&lt;<span class="type">f64</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">sum</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">f64</span> &#123;</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里的意思是，这有一些专门为 <code>Queue&lt;f64&gt;</code> 实现的关联函数，其他类型不可用。</p>
+<p>我们在前面的代码中使用了 <code>Rust</code> 的 <code>self</code> 参数简写，因为到处写出 <code>Queue&lt;T&gt;</code> 也很啰嗦，所以有了另一种简写，每个 <code>impl</code> 块，无论是否通用，都将特殊类型参数 <code>Self</code> 定义为我们要添加方法的任何类型。在前面的代码中，<code>Self</code> 是 <code>Queue&lt;T&gt;</code>，所以我们可以进一步简化 <code>Queue::new</code> 的定义：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">new</span>() <span class="punctuation">-&gt;</span> <span class="keyword">Self</span> &#123;</span><br><span class="line">    Queue &#123; older: <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>(), younger: <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>() &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在 <code>new</code> 函数中，我们的构造表达式没有任何类型，只写了 <code>Queue&#123; ... &#125;</code>，是因为 <code>Rust</code> 可以函数的签名推断，因为这里只有一种类型 <code>Self，即 Queue&lt;T&gt;</code> 用于函数的返回值。我们也可以使用 <code>Self &#123; ... &#125;</code> 代替上面的 <code>Queue&#123; ... &#125;</code>。</p>
+<p>对于关联函数的调用，我们需要使用 <code>tuborfish</code> 运算符：<code>::&lt;&gt;</code>，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">q</span> = Queue::&lt;<span class="type">char</span>&gt;::<span class="title function_ invoke__">new</span>();</span><br></pre></td></tr></table></figure>
+<p>但是实际应用中，经常交由 <code>Rust</code> 进行推断：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">q</span> = Queue::<span class="title function_ invoke__">new</span>();</span><br><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">r</span> = Queue::<span class="title function_ invoke__">new</span>();</span><br><span class="line"></span><br><span class="line">q.<span class="title function_ invoke__">push</span>(<span class="string">&quot;CAD&quot;</span>); <span class="comment">// apparently a Queue&lt;&amp;&#x27;static str&gt;</span></span><br><span class="line">r.<span class="title function_ invoke__">push</span>(<span class="number">0.74</span>); <span class="comment">// apparently a Queue&lt;f64&gt;</span></span><br></pre></td></tr></table></figure>
+<h3 id="结构体生命周期参数"><a class="markdownIt-Anchor" href="#结构体生命周期参数"></a> 结构体生命周期参数</h3>
+<p>如果结构体类型包含引用，则必须声明这些引用的生命周期。例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Extrema</span>&lt;<span class="symbol">&#x27;elt</span>&gt; &#123;</span><br><span class="line">    greatest: &amp;<span class="symbol">&#x27;elt</span> <span class="type">i32</span>,</span><br><span class="line">    least: &amp;<span class="symbol">&#x27;elt</span> <span class="type">i32</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>struct Extrema&lt;'elt&gt;</code> 意味着，给定任何特定的生命周期 <code>'elt</code>，你可以创建一个 <code>Extrema&lt;'elt&gt;</code> 来保存具有该生命周期的引用。这是一个扫描切片并返回最大最小值的函数：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">find_extrema</span>&lt;<span class="symbol">&#x27;s</span>&gt;(slice: &amp;<span class="symbol">&#x27;s</span> [<span class="type">i32</span>]) <span class="punctuation">-&gt;</span> Extrema&lt;<span class="symbol">&#x27;s</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">greatest</span> = &amp;slice[<span class="number">0</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">least</span> = &amp;slice[<span class="number">0</span>];</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">i</span> <span class="keyword">in</span> <span class="number">1</span>..slice.<span class="title function_ invoke__">len</span>() &#123;</span><br><span class="line">        <span class="keyword">if</span> slice[i] &lt; *least &#123; least = &amp;slice[i]; &#125;</span><br><span class="line">        <span class="keyword">if</span> slice[i] &gt; *greatest &#123; greatest = &amp;slice[i]; &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    Extrema &#123; greatest, least &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在这里，由于 <code>find_extrema</code> 借用了 <code>slice</code> 的元素，它具有生命周期 <code>'s</code>，所以我们返回的 <code>Extrema</code> 结构体也使用 <code>'s</code> 作为其引用的生命周期。<code>Rust</code> 总是会推断函数调用的生命周期参数，因此对 <code>find_extrema</code> 的调用不需要提及它们：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">a</span> = [<span class="number">0</span>, -<span class="number">3</span>, <span class="number">0</span>, <span class="number">15</span>, <span class="number">48</span>];</span><br><span class="line"><span class="keyword">let</span> <span class="variable">e</span> = <span class="title function_ invoke__">find_extrema</span>(&amp;a);</span><br><span class="line"><span class="built_in">assert_eq!</span>(*e.least, -<span class="number">3</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(*e.greatest, <span class="number">48</span>);</span><br></pre></td></tr></table></figure>
+<p>因为返回类型与参数使用相同的生命周期是很常见的，所以当有一个明显的候选者时，<code>Rust</code> 允许我们省略生命周期。我们也可以这样写 <code>find_extrema</code> 的签名，但含义不变：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">find_extrema</span>(slice: &amp;[<span class="type">i32</span>]) <span class="punctuation">-&gt;</span> Extrema &#123;</span><br><span class="line"> ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="常用-trait-派生"><a class="markdownIt-Anchor" href="#常用-trait-派生"></a> 常用 <code>Trait</code> 派生</h3>
+<p>通常我们自己的定义的结构体是不支持 <code>&#123;:?&#125;</code> 打印，比较，深拷贝的，如果我们像这样做，就得实现 <code>Copy</code>，<code>Debug</code>，以及 <code>PartialEq</code>，但如果每一次都手动实现，就显得有点痛苦了，好在 <code>Rust</code> 提供了 <code>#[derive]</code> 属性来自动帮我们实现：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Copy, Clone, Debug, PartialEq)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Point</span> &#123;</span><br><span class="line">    x: <span class="type">f64</span>,</span><br><span class="line">    y: <span class="type">f64</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果结构体的每个字段都实现了该 <code>trait</code>，则这些 <code>trait</code> 中的每一个都可以为结构体自动实现。我们可以要求 <code>Rust</code> 为 <code>Point</code> 派生 <code>PartialEq</code>，因为它的两个字段都是 <code>f64</code> 类型，它已经实现了 <code>PartialEq</code>。</p>
+<h3 id="内部可变性"><a class="markdownIt-Anchor" href="#内部可变性"></a> 内部可变性</h3>
+<p>内部可变性，简单说就是我们想改变一个不可变的数据，常规做法肯定是行不通的，但是在我们引入两个：<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/cell/struct.Cell.html"><code>Cell&lt;T&gt;</code></a> 和 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/cell/struct.RefCell.html"><code>RefCell&lt;T&gt;</code></a> 之后就能解决了。</p>
+<p>我们来看一个例子，假设我们要做一个数据采集系统，采集不同类型的站点，但是它们都有一个共同的配置以及某些文件操作句柄用于处理日志等，我们在程序启动的时候，可能就初始化它了：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">SpiderRobot</span> &#123;</span><br><span class="line">    species: <span class="type">String</span>,</span><br><span class="line">    web_enabled: <span class="type">bool</span>,</span><br><span class="line">    leg_devices: [fd::FileDesc; <span class="number">8</span>],</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后，假设我们在采集某个类型的系统时，拥有下面这样的结构体，包含了公共的配置：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::rc::Rc;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">SpiderSenses</span> &#123;</span><br><span class="line">    robot: Rc&lt;SpiderRobot&gt;, <span class="comment">// &lt;-- pointer to settings and I/O</span></span><br><span class="line">    eyes: [Camera; <span class="number">32</span>],</span><br><span class="line">    motion: Accelerometer,</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们知道 <code>Rc</code> 是一个通过计数实现的只读智能指针，但是我们想在 <code>SpiderRobot</code> 中保留一个文件句柄，它是标准的 <code>File</code> 类型，用来写日志，不过有个问题是，<code>File</code> 必须是 <code>Muteable</code>，因为它所有的方法都要求一个可变引用。</p>
+<p>这种情况非常常见，这叫做内部可变性，<code>Rust</code> 为此专门提供了几种类型来解决问题，我们这里先介绍 <code>Cell&lt;T&gt;</code> 和 <code>RefCell&lt;T&gt;</code>。</p>
+<h4 id="cellt"><a class="markdownIt-Anchor" href="#cellt"></a> <code>Cell&lt;T&gt;</code></h4>
+<p><code>Cell&lt;T&gt;</code> 是一个结构体，它包含一个类型为 <code>T</code> 的私有字段。<code>Cell</code> 的唯一特殊之处在于，即使 <code>Cell</code> 本身没有 <code>mut</code> 访问权限，您也可以获取和设置字段：</p>
+<ul>
+<li>
+<p><code>Cell::new(value)</code>：创建新的 <code>Cell</code>，并且将给定的 <code>value</code> 移动到里面去；</p>
+</li>
+<li>
+<p><code>cell.get()</code>： 返回 <code>Cell</code> 中 <code>value</code> 的副本；</p>
+</li>
+<li>
+<p><code>cell.set(value)</code>：将给定的 <code>value</code> 存储到 <code>cell</code> 中，丢掉原先的值，这个方法不许 <code>cell</code> 可变，它的实现如下：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">set</span>(&amp;<span class="keyword">self</span>, val: T) &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">old</span> = <span class="keyword">self</span>.<span class="title function_ invoke__">replace</span>(val);</span><br><span class="line">    <span class="title function_ invoke__">drop</span>(old);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当然，这对于名为 <code>set</code> 的方法来说是不寻常的。因为从之前的学习来说，如果我们想要对数据进行更改，我们需要 <code>mut</code> 访问。但出于同样的原因，这一不寻常的细节是 <code>Cell</code> 的全部意义所在，具体背景可参考 <code>Cell</code> 的源代码实现。</p>
+</li>
+</ul>
+<p>通过，<code>Cell</code> 我们可以在 <code>SpiderRobot</code> 中统计错误数量：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::cell::Cell;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">SpiderRobot</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    hardware_error_count: Cell&lt;<span class="type">u32</span>&gt;,</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后，即使 <code>SpiderRobot</code> 的非 <code>mut</code> 方法也可以使用 <code>.get()</code> 和 <code>.set()</code> 方法访问该 <code>u32</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span> <span class="title class_">SpiderRobot</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/// Increase the error count by 1.</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">add_hardware_error</span>(&amp;<span class="keyword">self</span>) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">n</span> = <span class="keyword">self</span>.hardware_error_count.<span class="title function_ invoke__">get</span>();</span><br><span class="line">        <span class="keyword">self</span>.hardware_error_count.<span class="title function_ invoke__">set</span>(n + <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/// True if any hardware errors have been reported.</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">has_hardware_errors</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">bool</span> &#123;</span><br><span class="line">        <span class="keyword">self</span>.hardware_error_count.<span class="title function_ invoke__">get</span>() &gt; <span class="number">0</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>但是 <code>Cell</code> 不能让我们调用值的 <code>mut</code> 方法，因为 <code>get</code> 返回的是一个副本，所以它仅仅只能用于实现了 <code>Copy</code> 的类型。</p>
+<h4 id="refcellt"><a class="markdownIt-Anchor" href="#refcellt"></a> <code>RefCell&lt;T&gt;</code></h4>
+<p><code>RefCell&lt;T&gt;</code> 和 <code>Cell&lt;T&gt;</code> 不同的是，他可以返回内部值得引用：</p>
+<ul>
+<li>
+<p><code>RefCell::new(value)</code>：创建新的 <code>RefCell</code>；</p>
+</li>
+<li>
+<p><code>ref_cell.borrow()</code>：返回一个 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/cell/struct.Ref.html"><code>Ref&lt;T&gt;</code></a>，这本质上只是对存储在 ref_cell 中的值的共享引用；</p>
+</li>
+<li>
+<p><code>ref_cell.borrow_mut()</code>：返回 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/cell/struct.RefMut.html"><code>RefMut&lt;T&gt;</code></a>，本质上是对 <code>ref_cell</code> 中值的可变引用。 如果该值已被借用，则此方法会<code>panic</code>；</p>
+</li>
+<li>
+<p><code>ref_cell.try_borrow(), ref_cell.try_borrow_mut()</code>：很像 <code>borrow</code> 和 <code>borrow_mut</code>，但是返回 <code>Result</code>。所以当值已经被借用之后，不会 <code>panic</code>，而是返回 <code>Err</code>。</p>
+</li>
+</ul>
+<p>只有当你试图打破 <code>mut</code> 引用是独占引用的 <code>Rust</code> 规则时，这两个借用方法才会 <code>panic</code>。例如，这会 <code>panic</code>：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::cell::RefCell;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">ref_cell</span>: RefCell&lt;<span class="type">String</span>&gt; = RefCell::<span class="title function_ invoke__">new</span>(<span class="string">&quot;hello&quot;</span>.<span class="title function_ invoke__">to_string</span>());</span><br><span class="line"><span class="keyword">let</span> <span class="variable">r</span> = ref_cell.<span class="title function_ invoke__">borrow</span>(); <span class="comment">// ok, returns a Ref&lt;String&gt;</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">count</span> = r.<span class="title function_ invoke__">len</span>(); <span class="comment">// ok, returns &quot;hello&quot;.len()</span></span><br><span class="line"><span class="built_in">assert_eq!</span>(count, <span class="number">5</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">w</span> = ref_cell.<span class="title function_ invoke__">borrow_mut</span>(); <span class="comment">// panic: already borrowed</span></span><br><span class="line">w.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; world&quot;</span>);</span><br></pre></td></tr></table></figure></div>
+<h4 id="回归正途"><a class="markdownIt-Anchor" href="#回归正途"></a> 回归正途</h4>
+<p>现在，我们使用 <code>RefCell&lt;T&gt;</code> 来完成我们打印日志的功能：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">SpiderRobot</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    log_file: RefCell&lt;File&gt;,</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">SpiderRobot</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/// Write a line to the log file.</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">log</span>(&amp;<span class="keyword">self</span>, message: &amp;<span class="type">str</span>) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">file</span> = <span class="keyword">self</span>.log_file.<span class="title function_ invoke__">borrow_mut</span>();</span><br><span class="line">        <span class="comment">// `writeln!` is like `println!`, but sends</span></span><br><span class="line">        <span class="comment">// output to the given file.</span></span><br><span class="line">        <span class="built_in">writeln!</span>(file, <span class="string">&quot;&#123;&#125;&quot;</span>, message).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>变量 <code>file</code> 的类型为 <code>RefMut&lt;File&gt;</code>，它可以像对 <code>File</code> 的可变引用一样使用。</p>
+<p><code>Cell</code> 易于使用， 必须调用 <code>.get()</code> 和 <code>.set()</code> 或 <code>.borrow()</code> 和 <code>.borrow_mut()</code> 有点尴尬，但这只是我们为违反规则而付出的代价。 另一个缺点不太明显但更严重：<code>Cell</code> 以及包含它们的任何类型都不是线程安全的，因此，<code>Rust</code> 不允许多个线程同时访问它们。这种情况应该使用 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/sync/struct.Mutex.html"><code>Mutex</code></a>。</p>
+<h3 id="参考文章"><a class="markdownIt-Anchor" href="#参考文章"></a> 参考文章</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://thume.ca/2019/07/14/a-tour-of-metaprogramming-models-for-generics/">Models of Generics and Metaprogramming: Go, Rust, Swift, D and More</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/04/24/Rust/%E3%80%90Rust%E3%80%91%E7%BB%93%E6%9E%84%E4%BD%93/" title="【Rust】结构体">https://blog.fudenglong.site/2022/04/24/Rust/【Rust】结构体/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E7%BB%93%E6%9E%84%E4%BD%93/" rel="tag"># 结构体</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/04/22/Rust/%E3%80%90Rust%E3%80%91Crate-%E5%92%8C-Module/" rel="prev" title="【Rust】Crate 和 Module">
+                  <i class="fa fa-angle-left"></i> 【Rust】Crate 和 Module
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/04/25/Rust/%E3%80%90Rust%E3%80%91%E6%9E%9A%E4%B8%BE%E5%92%8C%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/" rel="next" title="【Rust】枚举和模式匹配">
+                  【Rust】枚举和模式匹配 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/04/24/Rust/%E3%80%90Rust%E3%80%91%E7%BB%93%E6%9E%84%E4%BD%93/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

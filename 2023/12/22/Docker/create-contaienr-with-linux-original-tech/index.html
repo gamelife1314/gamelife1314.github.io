@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="容器其实是一种沙盒技术。顾名思义，沙盒就是能够像一个集装箱一样，把你的应用装起来的技术。这样，应用与应用之间，就因为有了边界而不至于相互干扰。对于应用来说，它的静态表现就是程序，平常都安安静静地待在磁盘上；而一旦运行起来，它就变成了计算机里的数据和状态的总和，这就是它的动态表现。容器技术的核心功能，就是通过约束和修改进程的动态表现，从而为其创造出一个边界。对于Docker等大多数Linux容器来说">
+<meta property="og:type" content="article">
+<meta property="og:title" content="容器技术探索及实践">
+<meta property="og:url" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="容器其实是一种沙盒技术。顾名思义，沙盒就是能够像一个集装箱一样，把你的应用装起来的技术。这样，应用与应用之间，就因为有了边界而不至于相互干扰。对于应用来说，它的静态表现就是程序，平常都安安静静地待在磁盘上；而一旦运行起来，它就变成了计算机里的数据和状态的总和，这就是它的动态表现。容器技术的核心功能，就是通过约束和修改进程的动态表现，从而为其创造出一个边界。对于Docker等大多数Linux容器来说">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/container-rootfs.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/rust-mout-ns.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/rust-pid-ns.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/rust-pid-ns-with-proc.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/rust-net-host.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/rust-net-no-net.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/host-add-container-link-dev.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/container-add-container-link-dev.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/host-docker-container.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/container-add-link.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/rust-user-ns.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/unshare-ns.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/nsenter-example.png">
+<meta property="article:published_time" content="2023-12-22T06:48:48.000Z">
+<meta property="article:modified_time" content="2023-12-22T06:48:48.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="Container">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/container-rootfs.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/","path":"2023/12/22/Docker/create-contaienr-with-linux-original-tech/","title":"容器技术探索及实践"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>容器技术探索及实践 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E9%95%9C%E5%83%8F"><span class="nav-number">1.</span> <span class="nav-text"> 容器镜像</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#unionfs"><span class="nav-number">1.1.</span> <span class="nav-text"> UnionFS</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#docker%E9%95%9C%E5%83%8F"><span class="nav-number">1.2.</span> <span class="nav-text"> Docker镜像</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8rootfs"><span class="nav-number">1.3.</span> <span class="nav-text"> 容器RootFS</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cgroup"><span class="nav-number">2.</span> <span class="nav-text"> Cgroup</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#namespace"><span class="nav-number">3.</span> <span class="nav-text"> Namespace</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#rust"><span class="nav-number">3.1.</span> <span class="nav-text"> Rust</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#mount"><span class="nav-number">3.1.1.</span> <span class="nav-text"> Mount</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#pid"><span class="nav-number">3.1.2.</span> <span class="nav-text"> PID</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#net"><span class="nav-number">3.1.3.</span> <span class="nav-text"> NET</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#uts"><span class="nav-number">3.1.4.</span> <span class="nav-text"> UTS</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#user"><span class="nav-number">3.1.5.</span> <span class="nav-text"> User</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#unshare"><span class="nav-number">3.2.</span> <span class="nav-text"> unshare</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#nsenter"><span class="nav-number">3.3.</span> <span class="nav-text"> nsenter</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="nav-number">4.</span> <span class="nav-text"> 参考链接</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="容器技术探索及实践 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          容器技术探索及实践
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-12-22 14:48:48" itemprop="dateCreated datePublished" datetime="2023-12-22T14:48:48+08:00">2023-12-22</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Docker/" itemprop="url" rel="index"><span itemprop="name">Docker</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Docker/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>7.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>27 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>容器其实是一种沙盒技术。顾名思义，沙盒就是能够像一个集装箱一样，把你的应用装起来的技术。这样，应用与应用之间，就因为有了边界而不至于相互干扰。对于应用来说，它的静态表现就是程序，平常都安安静静地待在磁盘上；而一旦运行起来，它就变成了计算机里的数据和状态的总和，这就是它的动态表现。容器技术的核心功能，就是通过约束和修改进程的动态表现，从而为其创造出一个边界。对于<code>Docker</code>等大多数<code>Linux</code>容器来说，<code>Cgroups</code>技术是用来制造约束的主要手段，而<code>Namespace</code>技术则是用来修改进程视图的主要方法。本篇文章的主要目标就是手动利用Linux提供的 <code>Cgroup</code> 和 <code>Namespace</code> 技术创建出一个容器。</p>
+<h3 id="容器镜像"><a class="markdownIt-Anchor" href="#容器镜像"></a> 容器镜像</h3>
+<p>首先我们从容器镜像开始，从我们对容器的认识来说，进入到容器之后，看到了一个独立的文件系统，和宿主机完全隔离，包含了应用程序所需要的数据、文件以及所有依赖，而容器镜像就是用来构建应用程序所需的文件系统，容器镜像有一个更为专业的名字，叫做 <code>rootfs</code> 根文件系统，当我们启动一个进程时，为进程启用Linux Namespace配置，设置Cgroup参数用于资源限制，切换进程的根目录，这样它看起来就像在一个独立的系统中运行。但是需要明确的是，<code>rootfs</code>只是一个操作系统所包含的文件、配置和目录，并不包括操作系统内核。在<code>Linux</code>操作系统中，这两部分是分开存放的，操作系统只有在开机启动时才会加载指定版本的内核镜像。因此同一台机器上的所有容器，都共享宿主机操作系统的内核。</p>
+<p>这就意味着，如果我们的应用程序需要配置内核参数、加载额外的内核模块，以及跟内核进行直接的交互，就需要注意了：这些操作和依赖的对象，都是宿主机操作系统的内核，它对于该机器上的所有容器来说是一个“全局变量”，牵一发而动全身。这也是容器相比于虚拟机的主要缺陷之一：毕竟后者不仅有模拟出来的硬件机器充当沙盒，而且每个沙盒里还运行着一个完整的<code>Guest OS</code>给应用随便折腾。</p>
+<p>所以，容器启动快是因为本质上就是宿主机上的一个进程而已，启动一个进程的速度当然比启动一个虚拟机的速度快。不过，正是由于<code>rootfs</code>的存在，容器才有了一个被反复宣传至今的重要特性：一致性，<code>rootfs</code>里打包的不只是应用，而是整个操作系统的文件和目录，也就意味着，应用以及它运行所需要的所有依赖，都被封装在了一起。无论在本地、云端，还是在一台任何地方的机器上，用户只需要解压打包好的容器镜像，那么这个应用运行所需要的完整的执行环境就被重现出来了。这种深入到操作系统级别的运行环境一致性，打通了应用在本地开发和远端执行环境之间难以逾越的鸿沟。</p>
+<span id="more"></span>
+<h4 id="unionfs"><a class="markdownIt-Anchor" href="#unionfs"></a> UnionFS</h4>
+<p>为了减少镜像占用的磁盘空间大小，也为了简化镜像制作的难度，Docker在镜像的设计中引入了分层的设计，将用户制作镜像的每一步操作，都生成一个层，也就是一个增量rootfs，最后将这些不同的层通过联合挂载生成最终的文件系统。举个例子，就像我们利用Ubuntu的基础镜像运行一个Python应用，首先安装好Python的环境，最后部署我们的应用，我们可以将在安装好的Python的环境打包成一个的新的层，这样不同的人都可以在这个层上构建自己的应用，当在相同主机上跑多个不同应用的时候大家的基础镜像一致，也不会造成额外的空间浪费，带有Python环境的rootfs都是相同的，只是最后联合挂载了不同的应用层而已。</p>
+<p><code>Docekr</code> 目前使用<a target="_blank" rel="noopener" href="https://www.cnblogs.com/FengZeng666/p/14173906.html">overlay2存储驱动</a>作为它的联合文件系统实现，当然可以更换，使用下面的命令可以查看<code>Docker</code>当前使用的文件系统是什么：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# docker info |grep Storage</span><br><span class="line"> Storage Driver: overlay2</span><br></pre></td></tr></table></figure>
+<p><code>overlay2</code> 的目录是镜像和容器分层的基础，而把这些层统一展现到同一的目录下的过程称为联合挂载（<code>union mount</code>）。<code>overlay2</code>把目录的下一层叫作<code>lowerdir</code>，上一层叫作<code>upperdir</code>，联合挂载后的结果叫作<code>merged</code>，我们来使用 <code>overlay</code> 做个联合挂载的示例，在本地准备如下的目录和文件结构，<code>work</code> 目录是 <code>overlay</code> 的内部目录，<code>merged</code> 是我们合并之后的目录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# tree ufs/</span><br><span class="line">ufs</span><br><span class="line">├── lower1</span><br><span class="line">│   ├── a.txt</span><br><span class="line">│   └── n.txt  // lower1</span><br><span class="line">├── lower2</span><br><span class="line">│   ├── b.txt  </span><br><span class="line">│   ├── n.txt  // lower2</span><br><span class="line">│   └── x.txt  // lower</span><br><span class="line">├── upper</span><br><span class="line">│   ├── c.txt</span><br><span class="line">│   └── x.txt  // upper</span><br><span class="line">└── work</span><br><span class="line"></span><br><span class="line">6 directories, 5 files</span><br></pre></td></tr></table></figure>
+<p>使用如下的命令进行联合挂载：</p>
+<blockquote>
+<p>mount -t overlay overlay -o lowerdir=./lower2:./lower1,upperdir=./upper,workdir=./work ./merged</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu/ufs# mount -t overlay overlay -o lowerdir=./lower2:./lower1,upperdir=./upper,workdir=./work ./merged</span><br><span class="line">root@ctrlnode:/home/ubuntu/ufs# ll merged/</span><br><span class="line">total 12</span><br><span class="line">drwxr-xr-x 1 root root 4096 Dec 23 15:40 ./</span><br><span class="line">drwxr-xr-x 7 root root 4096 Dec 23 16:16 ../</span><br><span class="line">-rw-r--r-- 1 root root    0 Dec 23 15:36 a.txt</span><br><span class="line">-rw-r--r-- 1 root root    0 Dec 23 15:11 b.txt</span><br><span class="line">-rw-r--r-- 1 root root    0 Dec 23 15:12 c.txt</span><br><span class="line">-rw-r--r-- 1 root root    7 Dec 23 16:14 n.txt</span><br><span class="line">-rw-r--r-- 1 root root    6 Dec 23 15:12 x.txt</span><br><span class="line">root@ctrlnode:/home/ubuntu/ufs# cat merged/x.txt</span><br><span class="line">upper</span><br><span class="line">root@ctrlnode:/home/ubuntu/ufs# cat merged/n.txt</span><br><span class="line">lower2</span><br></pre></td></tr></table></figure>
+<p>根据结果可以看到，这三层的顺序从高到低一次是：<code>upper</code>，<code>lower2</code>以及<code>lower1</code>，遇到相同的文件，高层的会覆盖底层的。可以使用如下的命令查看当前系统是使用<code>overlay</code>挂在的所有目录：</p>
+<blockquote>
+<p>mount -t overlay</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu/ufs# mount -t overlay</span><br><span class="line">...</span><br><span class="line">overlay on /home/ubuntu/ufsmerged type overlay (rw,relatime,lowerdir=./lower1:./lower2,upperdir=./upper,workdir=./work)</span><br></pre></td></tr></table></figure>
+<p>联合挂载会对三个个目录进行合并，相同的文件会以上层的为准，下层的被覆盖。取消挂载使用下面的命令：</p>
+<blockquote>
+<p>umount ./merged/</p>
+</blockquote>
+<h4 id="docker镜像"><a class="markdownIt-Anchor" href="#docker镜像"></a> Docker镜像</h4>
+<p>我们来看看 <code>ubuntu:16.04</code> 镜像的内部的rootfs是怎么样的，使用如下的命令可以查看镜像内部是如何组织的：</p>
+<blockquote>
+<p>docker image inspect ubuntu:16.04</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/ubuntu# docker image inspect ubuntu:16.04</span><br><span class="line">...</span><br><span class="line">&quot;GraphDriver&quot;: &#123;</span><br><span class="line">    &quot;Data&quot;: &#123;</span><br><span class="line">        &quot;LowerDir&quot;: &quot;/opt/docker/overlay2/e7e4c97b79692b3c93fd986689f7570663ecdc5f77df501c3c0a6646728f71c0/diff:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595/diff:/opt/docker/overlay2/73ec65352916fd1bb00a975f67bb4062e8b916d31502c0169b9c6000095efc8d/diff&quot;,</span><br><span class="line">        &quot;MergedDir&quot;: &quot;/opt/docker/overlay2/5fdbc8665d8f7ae5b4df1b6d37de45f2debefa5dbdd285d5362c799d6879c8d7/merged&quot;,</span><br><span class="line">        &quot;UpperDir&quot;: &quot;/opt/docker/overlay2/5fdbc8665d8f7ae5b4df1b6d37de45f2debefa5dbdd285d5362c799d6879c8d7/diff&quot;,</span><br><span class="line">        &quot;WorkDir&quot;: &quot;/opt/docker/overlay2/5fdbc8665d8f7ae5b4df1b6d37de45f2debefa5dbdd285d5362c799d6879c8d7/work&quot;</span><br><span class="line">    &#125;,</span><br><span class="line">    &quot;Name&quot;: &quot;overlay2&quot;</span><br><span class="line">&#125;,</span><br><span class="line">&quot;RootFS&quot;: &#123;</span><br><span class="line">    &quot;Type&quot;: &quot;layers&quot;,</span><br><span class="line">    &quot;Layers&quot;: [</span><br><span class="line">        &quot;sha256:be96a3f634de79f523f07c7e4e0216c28af45eb5776e7a6238a2392f71e01069&quot;,</span><br><span class="line">        &quot;sha256:df54c846128da3c71cc11b2150a3df39ec86fb170e299765daf6bb016a0705c2&quot;,</span><br><span class="line">        &quot;sha256:47ef83afae74745639f6738a05fe5320fcfca9e6c7765fba4f25e270bc0df9dc&quot;,</span><br><span class="line">        &quot;sha256:1251204ef8fc20da275e09f6e3ab9205421d4ff34732f2d50a1d3e86d2995edd&quot;</span><br><span class="line">    ]</span><br><span class="line">&#125;,</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>从 <code>RootFS.Layers</code> 可以看到这个镜像一共有四层，这里面的顺序是从低层到高层，从 <code>.GraphDriver.Data</code> 中的数据我们可以看到每一层在宿主机上的存储位置，<code>GraphDriver.Data.LowerDir</code> 的顺序是从高层到最底层，也就是说列表中最后一个元素是最底层的。所以对于这个镜像来说的，它的四层层级关系从低到高是这样的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/opt/docker/overlay2/73ec65352916fd1bb00a975f67bb4062e8b916d31502c0169b9c6000095efc8d/</span><br><span class="line">/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595/</span><br><span class="line">/opt/docker/overlay2/e7e4c97b79692b3c93fd986689f7570663ecdc5f77df501c3c0a6646728f71c0/</span><br><span class="line">/opt/docker/overlay2/5fdbc8665d8f7ae5b4df1b6d37de45f2debefa5dbdd285d5362c799d6879c8d7/</span><br></pre></td></tr></table></figure>
+<p>那么每一层是如何知道上一层是什么呢？进入到第二层中，我们会发现存在以下文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595# ll</span><br><span class="line">total 196</span><br><span class="line">drwx------   4 root root   4096 Dec 23 15:32 ./</span><br><span class="line">drwx------ 160 root root 176128 Dec 23 16:24 ../</span><br><span class="line">-rw-------   1 root root      0 Dec 23 15:32 committed</span><br><span class="line">drwxr-xr-x   6 root root   4096 Dec 23 15:32 diff/</span><br><span class="line">-rw-r--r--   1 root root     26 Dec 23 15:32 link</span><br><span class="line">-rw-r--r--   1 root root     28 Dec 23 15:32 lower</span><br><span class="line">drwx------   2 root root   4096 Dec 23 15:32 work/</span><br></pre></td></tr></table></figure>
+<p><code>diff</code> 目录保存的是当前层的内容，<code>link</code> 存储的是这个层对应的短id，因为<code>mount</code>命令挂在的时候对参数长度有限制，所以将<code>/opt/docker/overlay2/l/短id</code> 映射到该层的<code>diff</code>目录，挂在的时候就可以使用这个较短的路径：</p>
+<blockquote>
+<p>cd /opt/docker/overlay2/l/H3AOMG26MY5WYIL3VZDJBCHVLU</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595# cat link</span><br><span class="line">H3AOMG26MY5WYIL3VZDJBCHVLU</span><br><span class="line">root@ctrlnode:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595# cd /opt/docker/overlay2/l/H3AOMG26MY5WYIL3VZDJBCHVLU</span><br><span class="line">root@ctrlnode:/opt/docker/overlay2/l/H3AOMG26MY5WYIL3VZDJBCHVLU# ll</span><br><span class="line">total 24</span><br><span class="line">drwxr-xr-x 6 root root 4096 Dec 23 15:32 ./</span><br><span class="line">drwx------ 4 root root 4096 Dec 23 15:32 ../</span><br><span class="line">drwxr-xr-x 4 root root 4096 Aug 31  2021 etc/</span><br><span class="line">drwxr-xr-x 2 root root 4096 Aug 31  2021 sbin/</span><br><span class="line">drwxr-xr-x 3 root root 4096 Aug  5  2021 usr/</span><br><span class="line">drwxr-xr-x 3 root root 4096 Aug  5  2021 var/</span><br><span class="line">root@ctrlnode:/opt/docker/overlay2/l/H3AOMG26MY5WYIL3VZDJBCHVLU#</span><br></pre></td></tr></table></figure>
+<p><code>lower</code> 文件存储的是上一层<code>diff</code>目录的段路径，省略了<code>/opt/docker/overlay2</code> 这个前缀，可以通过下面的输出进行对比当前层<code>lower</code>文件内容和上次的 <code>link</code> 文件中的id：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595# cat lower</span><br><span class="line">l/AOHW2LHRWAAO6ZAC2ANHACGJUO</span><br><span class="line">root@ctrlnode:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595#</span><br><span class="line">root@ctrlnode:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595# cat /opt/docker/overlay2/73ec65352916fd1bb00a975f67bb4062e8b916d31502c0169b9c6000095efc8d/link</span><br><span class="line">AOHW2LHRWAAO6ZAC2ANHACGJUO</span><br><span class="line">root@ctrlnode:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595#</span><br></pre></td></tr></table></figure>
+<p>对于第三层来说，它的 <code>lower</code> 中存储的是前两层中的<code>diff</code>目录段路径：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595# cat /opt/docker/overlay2/e7e4c97b79692b3c93fd986689f7570663ecdc5f77df501c3c0a6646728f71c0/lower</span><br><span class="line">l/H3AOMG26MY5WYIL3VZDJBCHVLU:l/AOHW2LHRWAAO6ZAC2ANHACGJUO</span><br><span class="line">root@ctrlnode:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595#</span><br></pre></td></tr></table></figure>
+<p>这样对于<code>Docekr</code>来说，基于相同层构建的镜像在相同的主机上它们知会存储一份，大大减少了磁盘占用，这种层概念的引入也方便了镜像的制作和分发。</p>
+<h4 id="容器rootfs"><a class="markdownIt-Anchor" href="#容器rootfs"></a> 容器RootFS</h4>
+<p>上面我们介绍<code>Docker</code>镜像中每个层的内容以及联合挂载，我们现在来看一个运行中的容器它的<code>RootFS</code>是怎么样的。使用下面的命令启动一个容器进行观察：</p>
+<blockquote>
+<p>docker run --rm -it -d --name ubuntu1604 ubuntu:16.04</p>
+</blockquote>
+<p>然后查看容器运行时的联合目录挂载在哪里，我们可以使用<a target="_blank" rel="noopener" href="https://docs.docker.com/engine/reference/commandline/inspect/">docker inspect</a>命令进行查看：</p>
+<blockquote>
+<p><code>docker inspect --format '&#123;&#123;json .GraphDriver.Data &#125;&#125;'  ubuntu1604</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/michael# docker inspect --format &#x27;&#123;&#123;json .GraphDriver.Data &#125;&#125;&#x27;  ubuntu1604 | python3 -m json.tool</span><br><span class="line">&#123;</span><br><span class="line">    &quot;LowerDir&quot;: &quot;/opt/docker/overlay2/13d52c11b99ed6322da1d049e6a65108bf3d7239d5ad873c78f1e6c08b6fe8b5-init/diff:/opt/docker/overlay2/5fdbc8665d8f7ae5b4df1b6d37de45f2debefa5dbdd285d5362c799d6879c8d7/diff:/opt/docker/overlay2/e7e4c97b79692b3c93fd986689f7570663ecdc5f77df501c3c0a6646728f71c0/diff:/opt/docker/overlay2/e112d0f0a503819daf4474e26245cc96eea478b1f5455fcefb87906d6e331595/diff:/opt/docker/overlay2/73ec65352916fd1bb00a975f67bb4062e8b916d31502c0169b9c6000095efc8d/diff&quot;,</span><br><span class="line">    &quot;MergedDir&quot;: &quot;/opt/docker/overlay2/13d52c11b99ed6322da1d049e6a65108bf3d7239d5ad873c78f1e6c08b6fe8b5/merged&quot;,</span><br><span class="line">    &quot;UpperDir&quot;: &quot;/opt/docker/overlay2/13d52c11b99ed6322da1d049e6a65108bf3d7239d5ad873c78f1e6c08b6fe8b5/diff&quot;,</span><br><span class="line">    &quot;WorkDir&quot;: &quot;/opt/docker/overlay2/13d52c11b99ed6322da1d049e6a65108bf3d7239d5ad873c78f1e6c08b6fe8b5/work&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从这里我们可以看到这个容器在启动的时候增加了两层，分别是<code>init</code>层和当前的<code>UpperDir</code>，其他的四层都是我们镜像中的，这些层可以分为3类：</p>
+<ol>
+<li>
+<p>镜像层，镜像层的内容是原始镜像中，我们不可以对这些文件进行修改，即使看起来在修改可读镜像中的文件，只不过是在 <code>UpperDir</code> 中生成了同样的文件而已，而且将镜像层的文件进行覆盖了；</p>
+</li>
+<li>
+<p><code>init</code>层：<code>Init</code>层是<code>Docker</code>项目单独生成的一个内部层，专门用来存放<code>/etc/hosts</code>、<code>/etc/resolv.conf</code>等信息。需要这样一层的原因是，这些文件本来属于只读的<code>Ubuntu</code>镜像的一部分，但是用户往往需要在启动容器时写入一些指定的值比如<code>hostname</code>，所以就需要在可读写层对它们进行修改。可是，这些修改往往只对当前的容器有效，我们并不希望执行<code>docker commit</code>时，把这些信息连同可读写层一起提交掉。所以，<code>Docker</code>做法是，在修改了这些文件之后，以一个单独的层挂载了出来。而用户执行<code>docker commit</code>只会提交可读写层，所以是不包含这些内容的；</p>
+</li>
+<li>
+<p><code>UpperDir</code>，这个目录是 <code>Docekr</code> 在启动容器的时候自动帮我们生成，当我们在容器里面修改或者创建文件的时候，都会体现在这个层，<code>docker commit</code> 会提交这个层的内容。例如，进入容器，创建一个文件：</p>
+ <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/michael# docker exec -itu root ubuntu1604 bash</span><br><span class="line">root@27d5a5b4d352:/# mkdir /home/test</span><br><span class="line">root@27d5a5b4d352:/# touch /home/test/test.txt</span><br></pre></td></tr></table></figure>
+<p>然后查看宿主机上的 <code>MergedDir</code> 和 <code>UpperDir</code>：</p>
+ <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/opt/docker/overlay2/13d52c11b99ed6322da1d049e6a65108bf3d7239d5ad873c78f1e6c08b6fe8b5# ll  merged/home/test/</span><br><span class="line">total 8</span><br><span class="line">drwxr-xr-x 2 root root 4096 Dec 23 17:21 ./</span><br><span class="line">drwxr-xr-x 1 root root 4096 Dec 23 17:21 ../</span><br><span class="line">-rw-r--r-- 1 root root    0 Dec 23 17:21 test.txt</span><br><span class="line">root@ctrlnode:/opt/docker/overlay2/13d52c11b99ed6322da1d049e6a65108bf3d7239d5ad873c78f1e6c08b6fe8b5# ll diff/home/test/</span><br><span class="line">total 8</span><br><span class="line">drwxr-xr-x 2 root root 4096 Dec 23 17:21 ./</span><br><span class="line">drwxr-xr-x 3 root root 4096 Dec 23 17:21 ../</span><br><span class="line">-rw-r--r-- 1 root root    0 Dec 23 17:21 test.txt</span><br><span class="line">root@ctrlnode:/opt/docker/overlay2/13d52c11b99ed6322da1d049e6a65108bf3d7239d5ad873c78f1e6c08b6fe8b5#</span><br></pre></td></tr></table></figure>
+<p>对容器中的文件进行操作，都反映在了联合挂载的目录中，以及<code>Docker</code>自动创建的层。那么如果对于删除文件该如何进行的呢？使用如下的命令在删除容器中的文件，这个文件是基础镜像层提供的：</p>
+ <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/michael# docker exec -itu root ubuntu1604 bash</span><br><span class="line">root@27d5a5b4d352:/#</span><br><span class="line">root@27d5a5b4d352:/# rm -f /bin/true</span><br></pre></td></tr></table></figure>
+<p>这个时候我们去 <code>MergedDir</code> 中查看该文件已经是不存在的了，但是去<code>UpperDir</code>发现生成了一个特殊文件：</p>
+ <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">tailf     tar       tempfile  touch</span><br><span class="line">root@ctrlnode:/opt/docker/overlay2/13d52c11b99ed6322da1d049e6a65108bf3d7239d5ad873c78f1e6c08b6fe8b5# ll diff/bin/</span><br><span class="line">total 8</span><br><span class="line">drwxr-xr-x 2 root root 4096 Dec 23 17:29 ./</span><br><span class="line">drwxr-xr-x 5 root root 4096 Dec 23 16:48 ../</span><br><span class="line">c--------- 2 root root 0, 0 Dec 23 17:29 true</span><br></pre></td></tr></table></figure>
+<p>这里的<code>c</code>代表字符设备，<a target="_blank" rel="noopener" href="https://linux-kernel-labs.github.io/refs/heads/master/labs/device_drivers.html#majors-and-minors">设备编号</a> 是 <code>0/0</code>，这是 <a target="_blank" rel="noopener" href="https://docs.kernel.org/filesystems/overlayfs.html#whiteouts-and-opaque-directories"><code>overlay</code></a> 文件系统的处理方式，当我们删除了一个 <code>lower</code> 中的文件时，会在 <code>Upper</code> 中生成一个特殊的编号 <code>0/0</code> 的字符设备文件，这样在最终的 <code>merged</code> 目录中，发现这个文件和某个 <code>lower</code> 中的文件匹配时就不显示了。</p>
+</li>
+</ol>
+<p>整个容器运行时的 <code>RootFS</code> 可以用如下的图描述：</p>
+<p><img data-src="container-rootfs.png" alt="容器RootFS" /></p>
+<h3 id="cgroup"><a class="markdownIt-Anchor" href="#cgroup"></a> Cgroup</h3>
+<p>Linux Cgroups就是Linux内核中用来为进程设置资源限制的一个重要功能，它的全称是<code>Linux Control Group</code>。它最主要的作用，就是限制一个进程组能够使用的资源上限，包括CPU、内存、磁盘、网络带宽等等。此外，<code>Cgroups</code>还能够对进程进行优先级设置、审计，以及将进程挂起和恢复等操作。</p>
+<p>在Linux中，<code>Cgroups</code>给用户暴露出来的操作接口是文件系统，即它以文件和目录的方式组织在操作系统的<code>/sys/fs/cgroup</code>路径下。我们可以使用如下的命令将他们展示出来:</p>
+<blockquote>
+<p>mount -t cgroup</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/michael# mount -t cgroup</span><br><span class="line">cgroup on /sys/fs/cgroup/cpuset type cgroup (rw,nosuid,nodev,noexec,relatime,cpuset)</span><br><span class="line">cgroup on /sys/fs/cgroup/cpu type cgroup (rw,nosuid,nodev,noexec,relatime,cpu)</span><br><span class="line">cgroup on /sys/fs/cgroup/cpuacct type cgroup (rw,nosuid,nodev,noexec,relatime,cpuacct)</span><br><span class="line">cgroup on /sys/fs/cgroup/blkio type cgroup (rw,nosuid,nodev,noexec,relatime,blkio)</span><br><span class="line">cgroup on /sys/fs/cgroup/memory type cgroup (rw,nosuid,nodev,noexec,relatime,memory)</span><br><span class="line">cgroup on /sys/fs/cgroup/devices type cgroup (rw,nosuid,nodev,noexec,relatime,devices)</span><br><span class="line">cgroup on /sys/fs/cgroup/freezer type cgroup (rw,nosuid,nodev,noexec,relatime,freezer)</span><br><span class="line">cgroup on /sys/fs/cgroup/net_cls type cgroup (rw,nosuid,nodev,noexec,relatime,net_cls)</span><br><span class="line">cgroup on /sys/fs/cgroup/perf_event type cgroup (rw,nosuid,nodev,noexec,relatime,perf_event)</span><br><span class="line">cgroup on /sys/fs/cgroup/net_prio type cgroup (rw,nosuid,nodev,noexec,relatime,net_prio)</span><br><span class="line">cgroup on /sys/fs/cgroup/hugetlb type cgroup (rw,nosuid,nodev,noexec,relatime,hugetlb)</span><br><span class="line">cgroup on /sys/fs/cgroup/pids type cgroup (rw,nosuid,nodev,noexec,relatime,pids)</span><br><span class="line">cgroup on /sys/fs/cgroup/rdma type cgroup (rw,nosuid,nodev,noexec,relatime,rdma)</span><br><span class="line">cgroup on /sys/fs/cgroup/systemd type cgroup (rw,nosuid,nodev,noexec,relatime,xattr,name=systemd)</span><br></pre></td></tr></table></figure>
+<p>它的输出结果，是一系列文件系统目录。如果自己的机器上没有看到这些目录，就需要自己去挂载Cgroups，具体做法可以自行Google。可以看到，在<code>/sys/fs/cgroup</code>下面有很多诸如<code>cpuset</code>、<code>cpu</code>、 <code>memory</code>这样的子目录，也叫子系统。这些都是我这台机器当前可以被<code>Cgroups</code>进行限制的资源种类。而在子系统对应的资源种类下，你就可以看到该类资源具体可以被限制的方法。比如，对CPU子系统来说，我们就可以看到如下几个配置文件，这个指令是：</p>
+<blockquote>
+<p>/sys/fs/cgroup/cpu</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/michael# ls /sys/fs/cgroup/cpu</span><br><span class="line">total 0</span><br><span class="line">dr-xr-xr-x 11 root root   0 Dec  6 08:59 ./</span><br><span class="line">drwxr-xr-x 19 root root 380 Dec 13 11:13 ../</span><br><span class="line">cgroup.clone_children cpu.cfs_period_us cpu.rt_period_us  cpu.shares notify_on_release cgroup.procs      cpu.cfs_quota_us  cpu.rt_runtime_us cpu.stat  tasks</span><br></pre></td></tr></table></figure>
+<p>如果熟悉<code>Linux CPU</code>管理的话，就会在它的输出里注意到<code>cfs_period</code>和<code>cfs_quota</code>这样的关键词。这两个参数需要组合使用，可以用来限制进程在长度为<code>cfs_period</code>的一段时间内，只能被分配到总量为<code>cfs_quota</code>的CPU时间。我们在这个 <code>/sys/fs/cgroup/cpu</code> 创建一个目录，这个目录被称为控制组，而且在新创建的目录下，自动生成该子系统对应的资源限制文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/home/michael# cd /sys/fs/cgroup/cpu/container</span><br><span class="line">root@ctrlnode:/sys/fs/cgroup/cpu/container#</span><br><span class="line">root@ctrlnode:/sys/fs/cgroup/cpu/container# ll</span><br><span class="line">total 0</span><br><span class="line">drwxr-xr-x  2 root root 0 Dec 23 18:43 ./</span><br><span class="line">dr-xr-xr-x 12 root root 0 Dec  6 08:59 ../</span><br><span class="line">-rw-r--r--  1 root root 0 Dec 23 18:43 cgroup.clone_children</span><br><span class="line">-rw-r--r--  1 root root 0 Dec 23 18:43 cgroup.procs</span><br><span class="line">-rw-r--r--  1 root root 0 Dec 23 18:43 cpu.cfs_period_us</span><br><span class="line">-rw-r--r--  1 root root 0 Dec 23 18:43 cpu.cfs_quota_us</span><br><span class="line">-rw-r--r--  1 root root 0 Dec 23 18:43 cpu.rt_period_us</span><br><span class="line">-rw-r--r--  1 root root 0 Dec 23 18:43 cpu.rt_runtime_us</span><br><span class="line">-rw-r--r--  1 root root 0 Dec 23 18:43 cpu.shares</span><br><span class="line">-r--r--r--  1 root root 0 Dec 23 18:43 cpu.stat</span><br><span class="line">-rw-r--r--  1 root root 0 Dec 23 18:43 notify_on_release</span><br><span class="line">-rw-r--r--  1 root root 0 Dec 23 18:43 tasks</span><br></pre></td></tr></table></figure>
+<p>然后我们在后台执行一个死循环，让他把CPU吃到100%：</p>
+<blockquote>
+<p>while : ; do : ; done &amp;</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/sys/fs/cgroup/cpu/container# while : ; do : ; done &amp;</span><br><span class="line">[1] 1904248</span><br></pre></td></tr></table></figure>
+<p>这里得到这个后台进程的<code>PID</code>是<code>1904248</code>，使用 <code>top</code> 命令可以看到它把1个CPU给干到100%了：</p>
+<blockquote>
+<p>top -p 1904248</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND</span><br><span class="line">1904248 root      20   0    7628    836      0 R 100.0   0.0   1:27.29 bash</span><br></pre></td></tr></table></figure>
+<p>此时，我们可以通过查看<code>container</code>目录下的文件，看到<code>container</code>控制组里的<code>CPU quota</code>还没有任何限制（即：<code>-1</code>），<code>CPU period</code>则是默认的<code>100 ms</code>（<code>100000 us</code>）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/sys/fs/cgroup/cpu/container# cat cpu.cfs_quota_us</span><br><span class="line">-1</span><br><span class="line">root@ctrlnode:/sys/fs/cgroup/cpu/container# cat cpu.cfs_period_us</span><br><span class="line">100000</span><br></pre></td></tr></table></figure>
+<p>如果想限制它只能使用<code>20%</code>的<code>CPU</code>，只需要往<code>cpu.cfs_quota_us</code>写入<code>20000</code>，表示在<code>100ms</code>的时间里，只能使用<code>20ms</code>的<code>CPU</code>时间：</p>
+<blockquote>
+<p>echo 20000 &gt; /sys/fs/cgroup/cpu/container/cpu.cfs_quota_us</p>
+</blockquote>
+<p>然后我们被限制的进程id写到控制组里面的<code>tasks</code>文件，上面的配置就会对该进程生效：</p>
+<blockquote>
+<p>echo 1904248 &gt; /sys/fs/cgroup/cpu/container/tasks</p>
+</blockquote>
+<p>再去查看该进程的CPU使用率已经降到20%了：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND</span><br><span class="line">1904248 root      20   0    7628    836      0 R  20.3   0.0   9:10.24 bash</span><br></pre></td></tr></table></figure>
+<p>Linux Cgroups的设计还是比较易用的，简单粗暴地理解呢，它就是一个子系统目录加上一组资源限制文件的组合。而对于Docker等Linux容器项目来说，它们只需要在每个子系统下面，为每个容器创建一个控制组（即创建一个新目录），然后在启动容器进程之后，把这个进程的PID填写到对应控制组的tasks文件中就可以了。而至于在这些控制组下面的资源文件里填上什么值，就靠用户执行<code>docker run</code>时的参数指定了，比如这样一条命令：</p>
+<blockquote>
+<p>docker run -it --cpu-period=100000 --cpu-quota=20000 -d --name ubuntu1604-cgroup ubuntu:16.04</p>
+</blockquote>
+<p>然后该容器在宿主机上的进程ID：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/sys/fs/cgroup/cpu/container# docker inspect --format &quot;&#123;&#123; .State.Pid &#125;&#125;&quot; ubuntu1604-cgroup</span><br><span class="line">1912775</span><br></pre></td></tr></table></figure>
+<p>查看该进程的控制组信息：</p>
+<blockquote>
+<p>cat  /proc/1912775/cgroup</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/sys/fs/cgroup/cpu/container# cat  /proc/1912775/cgroup</span><br><span class="line">14:name=systemd:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">13:rdma:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">12:pids:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">11:hugetlb:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">10:net_prio:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">9:perf_event:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">8:net_cls:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">7:freezer:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">6:devices:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">5:blkio:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">4:cpuacct:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">3:cpu:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">2:cpuset:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">1:memory:/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br><span class="line">0::/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope</span><br></pre></td></tr></table></figure>
+<p>查看CPU的资源限制信息：</p>
+<blockquote>
+<p>cat /sys/fs/cgroup/cpu/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope/cpu.cfs_period_us<br />
+cat /sys/fs/cgroup/cpu/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope/cpu.cfs_quota_us</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@ctrlnode:/sys/fs/cgroup/cpu/container# cat /sys/fs/cgroup/cpu/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope/cpu.cfs_period_us</span><br><span class="line">100000</span><br><span class="line">root@ctrlnode:/sys/fs/cgroup/cpu/container# cat /sys/fs/cgroup/cpu/system.slice/docker-db8fca9e0714adc51c895a250123e66f1c6eae73db85e1ae098f97d0ec1c61ef.scope/cpu.cfs_quota_us</span><br><span class="line">20000</span><br><span class="line">root@ctrlnode:/sys/fs/cgroup/cpu/container#</span><br></pre></td></tr></table></figure>
+<p>这就意味着这个<code>ubuntu1604-cgroup</code>容器，只能使用到<code>20%</code>的<code>CPU</code>。</p>
+<h3 id="namespace"><a class="markdownIt-Anchor" href="#namespace"></a> Namespace</h3>
+<p><code>Cgroups</code> 用来限制进程使用资源的上限，而<code>Namespace</code>技术则是用来修改进程动态视图的主要方法，它对内核资源进行隔离，让一组进程只看到与自己相关的一部分资源。Linux一共为我们提供了8种<code>Namespace</code>，它们分别是：</p>
+<ul>
+<li><code>Mount</code>，系统调用参数：<code>CLONE_NEWNS</code>，用于隔离挂载点；</li>
+<li><code>User</code>，系统调用参数：<code>CLONE_NEWUSER</code>，隔离用户和用户组；</li>
+<li><code>PID</code>，系统调用参数：<code>CLONE_NEWPID</code>，隔离进程ID；</li>
+<li><code>IPC</code>，系统调用参数：<code>CLONE_NEWIPC</code>，用于隔离信号量、消息队列和共享内存；</li>
+<li><code>Network</code>，系统调用参数：<code>CLONE_NEWNET</code>，隔离网络设备，网络栈、端口等；</li>
+<li><code>UTS</code>，系统调用参数：<code>CLONE_NEWUTS</code>，隔离主机名和域名；</li>
+<li><code>Time</code>，系统调用参数：<code>CLONE_NEWTIME</code>，允许进城看到不同的系统时间；</li>
+<li><code>Cgroup</code>，系统调用参数：<code>CLONE_NEWCGROUP</code>，隔离Cgroup根目录；</li>
+</ul>
+<p><code>Namespace</code> 可能未来还会增加，不过当前使用这些构建容器已经足够了，接下来我们使用不同的方式来创建一个隔离的进程。</p>
+<h4 id="rust"><a class="markdownIt-Anchor" href="#rust"></a> Rust</h4>
+<p>我们首先使用代码调用<code>Linux</code>的系统调用创建容器，这是最直接的方式，其他方式也都是构建于这个基础之上，这里我们使用<code>Rust</code>编程语言，调用<code>C</code>接口，<code>Rust</code>安装方式可以使用国内镜像<a target="_blank" rel="noopener" href="https://rsproxy.cn/">rsproxy</a>，完成示例请见<a target="_blank" rel="noopener" href="https://github.com/gamelife1314/container-create">container-create</a>。</p>
+<p>测试环境信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/Users/fudenglong/WORKDIR/rust/container-create# lsb_release -a</span><br><span class="line">No LSB modules are available.</span><br><span class="line">Distributor ID:	Ubuntu</span><br><span class="line">Description:	Ubuntu 22.04.3 LTS</span><br><span class="line">Release:	22.04</span><br><span class="line">Codename:	jammy</span><br></pre></td></tr></table></figure>
+<p>安装必要的构建工具：</p>
+<blockquote>
+<p>apt install build-essential</p>
+</blockquote>
+<p>本地首先调用下面的方式创建工程和添加依赖：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cargo new container-create --vcs none</span><br><span class="line">cd container-create</span><br><span class="line">cargo add libc once_cell</span><br><span class="line">cargo add hostname --features set</span><br></pre></td></tr></table></figure>
+<p>在正式开始之前，我们先准备一个完整的 <code>rootfs</code> 供我们使用，依次执行下面的命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">拉取ubuntu镜像</span></span><br><span class="line">docker pull ubuntu</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">运行容器并且安装必要的一些软件</span></span><br><span class="line">docker run --name ubuntu -it --rm -d ubuntu</span><br><span class="line">docker exec -itu root ubuntu bash</span><br><span class="line">apt update</span><br><span class="line">apt install -y iproute2 net-tools iputils-ping bridge-utils iputils-arping</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">将容器的RootFS导出备用</span></span><br><span class="line">mkdir rootfs</span><br><span class="line">docker export ubuntu | tar -C rootfs -xvf -</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">最终，我们的目录呈现出如下的结构</span></span><br><span class="line">root@docker1:/Users/fudenglong/WORKDIR/rust# tree -L 2 container-create/</span><br><span class="line">container-create/</span><br><span class="line">├── Cargo.lock</span><br><span class="line">├── Cargo.toml</span><br><span class="line">├── rootfs</span><br><span class="line">│   ├── bin -&gt; usr/bin</span><br><span class="line">│   ├── boot</span><br><span class="line">│   ├── dev</span><br><span class="line">│   ├── etc</span><br><span class="line">│   ├── home</span><br><span class="line">│   ├── lib -&gt; usr/lib</span><br><span class="line">│   ├── media</span><br><span class="line">│   ├── mnt</span><br><span class="line">│   ├── opt</span><br><span class="line">│   ├── proc</span><br><span class="line">│   ├── root</span><br><span class="line">│   ├── run</span><br><span class="line">│   ├── sbin -&gt; usr/sbin</span><br><span class="line">│   ├── srv</span><br><span class="line">│   ├── sys</span><br><span class="line">│   ├── tmp</span><br><span class="line">│   ├── usr</span><br><span class="line">│   └── var</span><br><span class="line">└── src</span><br><span class="line">    └── main.rs</span><br></pre></td></tr></table></figure>
+<h5 id="mount"><a class="markdownIt-Anchor" href="#mount"></a> Mount</h5>
+<p>我们先来隔离容器的挂载点，让它有自己的系统目录，看起来是在独立的环境中运行：</p>
+<figure class="highlight rust"><figcaption><span>src/main.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::env;</span><br><span class="line"><span class="keyword">use</span> std::ffi::CString;</span><br><span class="line"><span class="keyword">use</span> std::process;</span><br><span class="line"><span class="meta">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]</span></span><br><span class="line"><span class="keyword">use</span> std::os::unix::fs;</span><br><span class="line"><span class="meta">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]</span></span><br><span class="line"><span class="keyword">use</span> std::ptr;</span><br><span class="line"></span><br><span class="line"><span class="keyword">extern</span> <span class="string">&quot;C&quot;</span> <span class="keyword">fn</span> <span class="title function_">container_main</span>(_args: *<span class="keyword">mut</span> libc::c_void) <span class="punctuation">-&gt;</span> libc::c_int &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Container - inside the container, pid: &#123;&#125;&quot;</span>, process::<span class="title function_ invoke__">id</span>());</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 切换进程的根目录</span></span><br><span class="line">    <span class="meta">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]</span></span><br><span class="line">    fs::<span class="title function_ invoke__">chroot</span>(<span class="string">&quot;./rootfs&quot;</span>).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;chroot failed&quot;</span>);</span><br><span class="line">    env::<span class="title function_ invoke__">set_current_dir</span>(<span class="string">&quot;/&quot;</span>).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;set current work directory failed&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 打印当前目录</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;current dir: &#123;:?&#125;&quot;</span>, env::<span class="title function_ invoke__">current_dir</span>().<span class="title function_ invoke__">unwrap</span>());</span><br><span class="line"></span><br><span class="line">    <span class="meta">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]</span></span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="comment">// 运行进程</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">program</span> = CString::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/bin/bash&quot;</span>).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">args</span> = [program.<span class="title function_ invoke__">as_ptr</span>(), ptr::<span class="title function_ invoke__">null</span>()];</span><br><span class="line">        libc::<span class="title function_ invoke__">execvp</span>(program.<span class="title function_ invoke__">as_ptr</span>(), args.<span class="title function_ invoke__">as_ptr</span>());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Container - Something Wrong&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Parent - start a container, pid: &#123;&#125;&quot;</span>, process::<span class="title function_ invoke__">id</span>());</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">stack</span> = <span class="built_in">vec!</span>[<span class="number">0u8</span>; <span class="number">4096</span> * <span class="number">1024</span>];</span><br><span class="line">    <span class="meta">#[cfg(target_os= <span class="string">&quot;linux&quot;</span>)]</span></span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">stack_top</span> = stack.<span class="title function_ invoke__">as_mut_ptr</span>().<span class="title function_ invoke__">add</span>(stack.<span class="title function_ invoke__">len</span>()) <span class="keyword">as</span> *<span class="keyword">mut</span> libc::c_void;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">pid</span> = libc::<span class="title function_ invoke__">clone</span>(container_main, stack_top, libc::CLONE_NEWNS | libc::SIGCHLD, ptr::<span class="title function_ invoke__">null_mut</span>());</span><br><span class="line">        libc::<span class="title function_ invoke__">waitpid</span>(pid, ptr::null::&lt;libc::c_int&gt;() <span class="keyword">as</span> *<span class="keyword">mut</span> libc::c_int, <span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Parent - container stopped!&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用如下的命令运行：</p>
+<blockquote>
+<p><code>cargo +nightly run</code></p>
+</blockquote>
+<p><img data-src="rust-mout-ns.png" alt="给容器设置新的根目录" /></p>
+<h5 id="pid"><a class="markdownIt-Anchor" href="#pid"></a> PID</h5>
+<p>从上面的打印的日志来看，在容器启动的第一个进程PID不是1，因为我们还没有对PID进程隔离，接下来我们隔离PID，做出如下改动，增加 <code>libc::CLONE_NEWPID</code>：</p>
+<figure class="highlight rust"><figcaption><span>src/main.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">pid</span> = libc::<span class="title function_ invoke__">clone</span>(container_main, stack_top, libc::CLONE_NEWPID | libc::CLONE_NEWNS | libc::SIGCHLD, ptr::<span class="title function_ invoke__">null_mut</span>());</span><br></pre></td></tr></table></figure>
+<p>再次运行，看到容器中的首进程<code>PID</code>已经变成1了：</p>
+<p><img data-src="rust-pid-ns.png" alt="PID隔离" /></p>
+<p>但是运行 <code>ps</code>失败了，提示我们挂载 <code>proc</code>，<code>proc</code> 是Linux运行中内核的一些信息，我们在容器进程中使用下面的代码进行挂载：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="string">&quot;C&quot;</span> <span class="keyword">fn</span> <span class="title function_">container_main</span>(_args: *<span class="keyword">mut</span> libc::c_void) <span class="punctuation">-&gt;</span> libc::c_int &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Container - inside the container, pid: &#123;&#125;&quot;</span>, process::<span class="title function_ invoke__">id</span>());</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 切换进程的根目录</span></span><br><span class="line">    fs::<span class="title function_ invoke__">chroot</span>(<span class="string">&quot;./rootfs&quot;</span>).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;chroot failed&quot;</span>);</span><br><span class="line">    env::<span class="title function_ invoke__">set_current_dir</span>(<span class="string">&quot;/&quot;</span>).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;set current work directory failed&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 打印当前目录</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;current dir: &#123;:?&#125;&quot;</span>, env::<span class="title function_ invoke__">current_dir</span>().<span class="title function_ invoke__">unwrap</span>());</span><br><span class="line"></span><br><span class="line">    <span class="meta">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]</span></span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="comment">// 挂载 proc</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">source</span> = CString::<span class="title function_ invoke__">new</span>(<span class="string">&quot;none&quot;</span>).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">target</span> = CString::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/proc&quot;</span>).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">fstype</span> = CString::<span class="title function_ invoke__">new</span>(<span class="string">&quot;proc&quot;</span>).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">flags</span> = <span class="number">0</span> <span class="keyword">as</span> libc::c_ulong;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">data</span> = CString::<span class="title function_ invoke__">new</span>(<span class="string">&quot;&quot;</span>).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">result</span> = libc::<span class="title function_ invoke__">mount</span>(</span><br><span class="line">            source.<span class="title function_ invoke__">as_ptr</span>(),</span><br><span class="line">            target.<span class="title function_ invoke__">as_ptr</span>(),</span><br><span class="line">            fstype.<span class="title function_ invoke__">as_ptr</span>(),</span><br><span class="line">            flags,</span><br><span class="line">            data.<span class="title function_ invoke__">as_ptr</span>() <span class="keyword">as</span> *<span class="keyword">const</span> libc::c_void);</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;mount result: &#123;&#125;&quot;</span>, result);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 运行进程</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">program</span> = CString::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/bin/bash&quot;</span>).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">args</span> = [program.<span class="title function_ invoke__">as_ptr</span>(), ptr::<span class="title function_ invoke__">null</span>()];</span><br><span class="line">        libc::<span class="title function_ invoke__">execvp</span>(program.<span class="title function_ invoke__">as_ptr</span>(), args.<span class="title function_ invoke__">as_ptr</span>());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Container - Something Wrong&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>再次编译运行，执行<code>ps</code>命令可以看到当前进程中的<code>pid</code>是从<code>1</code>开始的：</p>
+<p><img data-src="rust-pid-ns-with-proc.png" alt="挂载proc目录" /></p>
+<h5 id="net"><a class="markdownIt-Anchor" href="#net"></a> NET</h5>
+<p>但是如果这个时候查看网络设备，发现很多宿主机上的设备：</p>
+<p><img data-src="rust-net-host.png" alt="宿主机网络设备" /></p>
+<p>这是因为没有为容器隔离网络设备，需要作如下的改动，在启动容器进程的时候，增加 <code>libc::CLONE_NEWNET</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">flags</span> = libc::CLONE_NEWNET | libc::CLONE_NEWPID | libc::CLONE_NEWNS | libc::SIGCHLD;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">pid</span> = libc::<span class="title function_ invoke__">clone</span>(container_main, stack_top, flags, ptr::<span class="title function_ invoke__">null_mut</span>());</span><br></pre></td></tr></table></figure>
+<p>再次查看，发现看不到宿主机上的网络设备，只有一个 <code>lo</code>，而且还没启用：</p>
+<p><img data-src="rust-net-no-net.png" alt="容器内没有网络设备" /></p>
+<p>这样的话，我们的容器是没法直接跟外部通信的，我们需要给我们新建的容器添加网卡，设置IP，参考单机容器通信网络，我们给我们的容器赋予和外界通信的能力。首先在宿主机上，查看我们容器的PID，根据父进程 <code>pid：13607</code> 进行查看：</p>
+<blockquote>
+<p>pstree -a -p 13607</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/home/ubuntu# pstree -a -p 13607</span><br><span class="line">container-creat,13607</span><br><span class="line">  └─bash,13609</span><br></pre></td></tr></table></figure>
+<p>在宿主机上执行下面的命令，创建一对 <code>veth</code> 设备：</p>
+<blockquote>
+<p>ip link add veth-host type veth peer name ceth-container</p>
+</blockquote>
+<p>将 <code>ceth-container</code> 添加到我们的容器中：</p>
+<blockquote>
+<p>ip link set ceth-container netns 13609</p>
+</blockquote>
+<p>执行下面的命令，启用 <code>veth-host</code>：</p>
+<blockquote>
+<p>ip link set veth-host up</p>
+</blockquote>
+<p>执行下面的命令给 <code>veth-host</code> 添加IP：</p>
+<blockquote>
+<p>ip addr add 172.17.0.11/16 dev veth-host</p>
+</blockquote>
+<p>将 <code>veth-host</code> 添加到我们的 <code>docker0</code> 网桥上，这样它和我们通过 <code>docker</code> 创建的容器就可以互通了：</p>
+<blockquote>
+<p>ip link set veth-host master docker0</p>
+</blockquote>
+<p>所有上面在主机上的操作如下如所示：</p>
+<p><img data-src="host-add-container-link-dev.png" alt="主机上操作添加网络设备" /></p>
+<p>然后我们在我们的容器中执行下面的命令，启用<code>lo</code>，<code>ceth-container</code>，以及为 <code>ceth-container</code> 设置IP：</p>
+<blockquote>
+<p>ip link set lo up<br />
+ip link set ceth-container up<br />
+ip addr add 172.17.0.12/16 dev ceth-container</p>
+</blockquote>
+<p>所有在容器中的操作如下图所示：</p>
+<p><img data-src="container-add-container-link-dev.png" alt="容器添加网络设备" /></p>
+<p>这个时候，假如我们在宿主机有这样一个通过 <code>docker</code> 启动的容器：</p>
+<p><img data-src="host-docker-container.png" alt="Docker Ubuntu容器" /></p>
+<p>然后在我们手动创建的容器中使用<code>ping</code>命令测试连通性，它肯定是联通的：</p>
+<p><img data-src="container-add-link.png" alt="和docker创建的容器联通" /></p>
+<h5 id="uts"><a class="markdownIt-Anchor" href="#uts"></a> UTS</h5>
+<p><code>UTS</code> 命名空间允许单个系统对不同进程显示不同的主机名和域名，在没有设置容器名称的时候，和宿主机名称是一致的，例如上面的<code>docker1</code>，我们在创建我们的容器的时候启用 <code>libc::CLONE_NEWUTS</code>，然后给容器设置自定义的名称，全量代码如下：</p>
+<details class="note success"><summary><p>完整代码</p>
+</summary>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> once_cell::sync::OnceCell;</span><br><span class="line"><span class="keyword">use</span> std::env;</span><br><span class="line"><span class="keyword">use</span> std::ffi::CString;</span><br><span class="line"><span class="meta">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]</span></span><br><span class="line"><span class="keyword">use</span> std::os::unix::fs;</span><br><span class="line"><span class="keyword">use</span> std::process;</span><br><span class="line"><span class="meta">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]</span></span><br><span class="line"><span class="keyword">use</span> std::ptr;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> HOSTNAME: OnceCell&lt;<span class="type">String</span>&gt; = OnceCell::<span class="title function_ invoke__">new</span>();</span><br><span class="line"></span><br><span class="line"><span class="keyword">extern</span> <span class="string">&quot;C&quot;</span> <span class="keyword">fn</span> <span class="title function_">container_main</span>(_args: *<span class="keyword">mut</span> libc::c_void) <span class="punctuation">-&gt;</span> libc::c_int &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Container - inside the container, pid: &#123;&#125;&quot;</span>, process::<span class="title function_ invoke__">id</span>());</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 切换进程的根目录</span></span><br><span class="line">    <span class="meta">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]</span></span><br><span class="line">    fs::<span class="title function_ invoke__">chroot</span>(<span class="string">&quot;./rootfs&quot;</span>).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;chroot failed&quot;</span>);</span><br><span class="line">    env::<span class="title function_ invoke__">set_current_dir</span>(<span class="string">&quot;/&quot;</span>).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;set current work directory failed&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;current dir: &#123;:?&#125;&quot;</span>, env::<span class="title function_ invoke__">current_dir</span>().<span class="title function_ invoke__">unwrap</span>());</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 设置hostname</span></span><br><span class="line">    hostname::<span class="title function_ invoke__">set</span>(HOSTNAME.<span class="title function_ invoke__">get</span>().<span class="title function_ invoke__">unwrap</span>()).<span class="title function_ invoke__">expect</span>(<span class="string">&quot;set container hostname failed&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;current container hostname: &#123;:?&#125;&quot;</span>, hostname::<span class="title function_ invoke__">get</span>().<span class="title function_ invoke__">unwrap</span>());</span><br><span class="line"></span><br><span class="line">    <span class="meta">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]</span></span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="comment">// 挂载 proc</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">source</span> = CString::<span class="title function_ invoke__">new</span>(<span class="string">&quot;none&quot;</span>).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">target</span> = CString::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/proc&quot;</span>).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">fstype</span> = CString::<span class="title function_ invoke__">new</span>(<span class="string">&quot;proc&quot;</span>).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">flags</span> = <span class="number">0</span> <span class="keyword">as</span> libc::c_ulong;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">data</span> = CString::<span class="title function_ invoke__">new</span>(<span class="string">&quot;&quot;</span>).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">result</span> = libc::<span class="title function_ invoke__">mount</span>(</span><br><span class="line">            source.<span class="title function_ invoke__">as_ptr</span>(),</span><br><span class="line">            target.<span class="title function_ invoke__">as_ptr</span>(),</span><br><span class="line">            fstype.<span class="title function_ invoke__">as_ptr</span>(),</span><br><span class="line">            flags,</span><br><span class="line">            data.<span class="title function_ invoke__">as_ptr</span>() <span class="keyword">as</span> *<span class="keyword">const</span> libc::c_void,</span><br><span class="line">        );</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;mount result: &#123;&#125;&quot;</span>, result);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 运行进程</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">program</span> = CString::<span class="title function_ invoke__">new</span>(<span class="string">&quot;/bin/bash&quot;</span>).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">args</span> = [program.<span class="title function_ invoke__">as_ptr</span>(), ptr::<span class="title function_ invoke__">null</span>()];</span><br><span class="line">        libc::<span class="title function_ invoke__">execvp</span>(program.<span class="title function_ invoke__">as_ptr</span>(), args.<span class="title function_ invoke__">as_ptr</span>());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Container - Something Wrong&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(</span><br><span class="line">        <span class="string">&quot;Parent - start a container, pid: &#123;&#125;, hostname: &#123;:?&#125;&quot;</span>,</span><br><span class="line">        process::<span class="title function_ invoke__">id</span>(),</span><br><span class="line">        hostname::<span class="title function_ invoke__">get</span>().<span class="title function_ invoke__">expect</span>(<span class="string">&quot;get parent hostname failed&quot;</span>)</span><br><span class="line">    );</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">stack</span> = <span class="built_in">vec!</span>[<span class="number">0u8</span>; <span class="number">4096</span> * <span class="number">1024</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">args</span> = env::<span class="title function_ invoke__">args</span>().collect::&lt;<span class="type">Vec</span>&lt;<span class="type">String</span>&gt;&gt;();</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">hostname</span> = <span class="string">&quot;container-default&quot;</span>;</span><br><span class="line">    <span class="keyword">if</span> args.<span class="title function_ invoke__">len</span>() &gt; <span class="number">1</span> &#123;</span><br><span class="line">        hostname = &amp;args[<span class="number">1</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    HOSTNAME</span><br><span class="line">        .<span class="title function_ invoke__">set</span>(hostname.<span class="title function_ invoke__">to_string</span>())</span><br><span class="line">        .<span class="title function_ invoke__">expect</span>(<span class="string">&quot;init global var hostname failed&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="meta">#[cfg(target_os = <span class="string">&quot;linux&quot;</span>)]</span></span><br><span class="line">    <span class="keyword">unsafe</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">stack_top</span> = stack.<span class="title function_ invoke__">as_mut_ptr</span>().<span class="title function_ invoke__">add</span>(stack.<span class="title function_ invoke__">len</span>()) <span class="keyword">as</span> *<span class="keyword">mut</span> libc::c_void;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">flags</span> = libc::CLONE_NEWUTS</span><br><span class="line">            | libc::CLONE_NEWNET</span><br><span class="line">            | libc::CLONE_NEWPID</span><br><span class="line">            | libc::CLONE_NEWNS</span><br><span class="line">            | libc::SIGCHLD;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">pid</span> = libc::<span class="title function_ invoke__">clone</span>(container_main, stack_top, flags, ptr::<span class="title function_ invoke__">null_mut</span>());</span><br><span class="line">        libc::<span class="title function_ invoke__">waitpid</span>(pid, ptr::null::&lt;libc::c_int&gt;() <span class="keyword">as</span> *<span class="keyword">mut</span> libc::c_int, <span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Parent - container stopped!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+</details>
+<p>使用如下的命令运行，可以看到的容器名称已经更新成 <code>mycontainer</code> ：</p>
+<blockquote>
+<p><code>cargo +nightly run -- mycontainer</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">root@docker1:/Users/fudenglong/WORKDIR/rust/container-create# cargo +nightly run -- mycontainer</span><br><span class="line">   Compiling container-create v0.1.0 (/mnt/e/rust/container-create)</span><br><span class="line">    Finished dev [unoptimized + debuginfo] target(s) in 3.53s</span><br><span class="line">     Running `target/debug/container-create mycontainer`</span><br><span class="line">Parent - start a container, pid: 3451321, hostname: &quot;docker1&quot;</span><br><span class="line">Container - inside the container, pid: 1</span><br><span class="line">current dir: &quot;/&quot;</span><br><span class="line">current container hostname: &quot;mycontainer&quot;</span><br><span class="line">mount result: 0</span><br><span class="line">root@mycontainer:/# hostname</span><br><span class="line">mycontainer</span><br><span class="line">root@mycontainer:/#</span><br></pre></td></tr></table></figure>
+<h5 id="user"><a class="markdownIt-Anchor" href="#user"></a> User</h5>
+<p>到目前为止，我们自己创建的容器中的用户名还是 <code>root</code>，还没有和宿主机隔离开，在 <code>clone</code> 容器的时候添加 <code>libc::CLONE_NEWUSER</code>，重新创建容器：</p>
+<blockquote>
+<p><code>cargo +nightly run -- mycontainer</code></p>
+</blockquote>
+<p><img data-src="rust-user-ns.png" alt="User命名空间" /></p>
+<p>在容器内运行<code>id</code>命令以查看当前进程的<code>UID</code>、<code>GID</code>和组时。在新的命名空间中，该进程属于<code>nobody</code>用户，其<code>UID</code>和<code>GID</code>为<code>65534</code>，该用户是系统中的默认用户。当用户<code>ID</code>在命名空间内没有映射时，返回用户<code>ID</code>的系统调用将返回文件<code>/proc/sys/kernel/overflowuid</code>中定义的值。</p>
+<h4 id="unshare"><a class="markdownIt-Anchor" href="#unshare"></a> unshare</h4>
+<p>所有上面通过代码做的这些操作，我们可以使用一句 <code>unshare</code> 命令完成：</p>
+<blockquote>
+<p><code>uunshare --mount --net --pid --user --uts --root ./rootfs/ --wd=/home --fork --mount-proc --map-root-user /bin/bash</code></p>
+</blockquote>
+<p><img data-src="unshare-ns.png" alt="unshare创建命名空间" /></p>
+<h4 id="nsenter"><a class="markdownIt-Anchor" href="#nsenter"></a> nsenter</h4>
+<p>可以通过<code>nsenter</code>进入到容器进程的命名空间中去执行命令，这在容器中没有某些工具，而<code>Host</code>上有的时候比较方便。例如，下面<code>k8s</code>集群中的<code>nginx</code>容器，没有<code>ifconfig</code>命令，我们可以进入到他的网络空间在主机上执行而查看它的网络配置：</p>
+<p><img data-src="nsenter-example.png" alt="" /></p>
+<p><code>crictl</code>是用于<code>CRI</code>容器运行时的工具，更多的可以看<a href="/2023/12/20/K8S/container-runtime/#crictl">这里</a>。</p>
+<h3 id="参考链接"><a class="markdownIt-Anchor" href="#参考链接"></a> 参考链接</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://cesarvr.io/post/2018-05-22-create-containers/">Creating Your Own Containers</a></li>
+<li><a target="_blank" rel="noopener" href="https://theboreddev.com/understanding-linux-namespaces/">Understanding Linux Namespaces</a></li>
+<li><a target="_blank" rel="noopener" href="https://linuxhint.com/use-linux-network-namespace/">How to Use Linux Network Namespace</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.redhat.com/sysadmin/net-namespaces">Building containers by hand using namespaces: The net namespace</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.toptal.com/linux/separation-anxiety-isolating-your-system-with-linux-namespaces">Separation Anxiety: A Tutorial for Isolating Your System with Linux Namespaces</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.redhat.com/sysadmin/mount-namespaces">Building a container by hand using namespaces: The mount namespace</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.rondochen.com/how-containers-work/#pivot-root">容器工作原理简述</a></li>
+<li><a target="_blank" rel="noopener" href="https://itnext.io/container-runtime-in-rust-part-i-7bd9a434c50a">Container Runtime in Rust — Part I</a></li>
+<li><a target="_blank" rel="noopener" href="https://labs.iximiuz.com/tutorials/container-networking-from-scratch">How Container Networking Works - Building a Linux Bridge Network From Scratch</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cyberciti.biz/faq/linux-setup-default-gateway-with-route-command/">Linux setup default gateway with route command</a></li>
+<li><a target="_blank" rel="noopener" href="https://abdelouahabmbarki.com/linux-user-namespaces/">Diving into Linux Namespaces: Understanding User Namespaces in Docker</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/" title="容器技术探索及实践">https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Container/" rel="tag"># Container</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/12/20/K8S/container-runtime/" rel="prev" title="容器运行时">
+                  <i class="fa fa-angle-left"></i> 容器运行时
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2023/12/25/Network/iptables-introduce-and-practice/" rel="next" title="深入理解 iptables">
+                  深入理解 iptables <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2023/12/22/Docker/create-contaienr-with-linux-original-tech/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

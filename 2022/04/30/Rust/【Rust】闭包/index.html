@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="很多语言中都有闭包，有的叫匿名函数，有的叫 lambda 函数，用一个最简单的例子演示闭包，例如 sort_by_key 传入的就是一个闭包函数： 12345678910struct City &#123;    name: String,    population: i64,    country: String,&#125;fn main() &#123;    let mut cities">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】闭包">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E9%97%AD%E5%8C%85/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="很多语言中都有闭包，有的叫匿名函数，有的叫 lambda 函数，用一个最简单的例子演示闭包，例如 sort_by_key 传入的就是一个闭包函数： 12345678910struct City &#123;    name: String,    population: i64,    country: String,&#125;fn main() &#123;    let mut cities">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E9%97%AD%E5%8C%85/closure-in-mem.png">
+<meta property="article:published_time" content="2022-04-30T07:52:57.000Z">
+<meta property="article:modified_time" content="2022-04-30T07:52:57.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta property="article:tag" content="闭包">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E9%97%AD%E5%8C%85/closure-in-mem.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E9%97%AD%E5%8C%85/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E9%97%AD%E5%8C%85/","path":"2022/04/30/Rust/【Rust】闭包/","title":"【Rust】闭包"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】闭包 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%98%E9%87%8F%E6%8D%95%E8%8E%B7"><span class="nav-number">1.</span> <span class="nav-text"> 变量捕获</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%98%E9%87%8F%E5%81%B7%E5%8F%96"><span class="nav-number">2.</span> <span class="nav-text"> 变量偷取</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%97%AD%E5%8C%85%E5%92%8C%E5%87%BD%E6%95%B0%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text"> 闭包和函数类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%97%AD%E5%8C%85%E6%80%A7%E8%83%BD"><span class="nav-number">4.</span> <span class="nav-text"> 闭包性能</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fnonce"><span class="nav-number">5.</span> <span class="nav-text"> FnOnce</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B%E4%B8%80"><span class="nav-number">5.1.</span> <span class="nav-text"> 示例一</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%A4%BA%E4%BE%8B%E4%BA%8C"><span class="nav-number">5.2.</span> <span class="nav-text"> 示例二</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fnmut"><span class="nav-number">6.</span> <span class="nav-text"> FnMut</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fn"><span class="nav-number">7.</span> <span class="nav-text"> Fn</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#copy-clone-%E9%97%AD%E5%8C%85"><span class="nav-number">8.</span> <span class="nav-text"> Copy、Clone 闭包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%97%AD%E5%8C%85%E6%9C%AC%E8%B4%A8"><span class="nav-number">9.</span> <span class="nav-text"> 闭包本质</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E9%97%AD%E5%8C%85/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】闭包 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】闭包
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-04-30 15:52:57" itemprop="dateCreated datePublished" datetime="2022-04-30T15:52:57+08:00">2022-04-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>11 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>很多语言中都有闭包，有的叫匿名函数，有的叫 <code>lambda</code> 函数，用一个最简单的例子演示闭包，例如 <code>sort_by_key</code> 传入的就是一个闭包函数：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">City</span> &#123;</span><br><span class="line">    name: <span class="type">String</span>,</span><br><span class="line">    population: <span class="type">i64</span>,</span><br><span class="line">    country: <span class="type">String</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">cities</span> = <span class="type">Vec</span>::&lt;City&gt;::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    cities.<span class="title function_ invoke__">sort_by_key</span>(|city| -city.population)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<h3 id="变量捕获"><a class="markdownIt-Anchor" href="#变量捕获"></a> 变量捕获</h3>
+<p>闭包可以捕获上下文中的变量，例如，下面的闭包使用了原本属于 <code>sort_by_statistic</code> 函数中的 <code>stat</code>，我们称闭包捕获了 <code>stat</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// Sort by any of several different statistics.</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">sort_by_statistic</span>(cities: &amp;<span class="keyword">mut</span> <span class="type">Vec</span>&lt;City&gt;, stat: Statistic) &#123;</span><br><span class="line">    cities.<span class="title function_ invoke__">sort_by_key</span>(|city| -city.<span class="title function_ invoke__">get_statistic</span>(stat));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>闭包在捕获变量的同时，会自动创建对 <code>stat</code> 的引用，所以该闭包的生命周期不能超过 <code>stat</code>，在函数返回的时候，会自动释放 <code>stat</code>。</p>
+<h3 id="变量偷取"><a class="markdownIt-Anchor" href="#变量偷取"></a> 变量偷取</h3>
+<p>我们来看一个复杂一些的例子，这段代码会编译错误，我们创建了一个新的线程进行排序，我们的闭包函数还引用了 <code>cities</code> 和 <code>stat</code>：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::thread;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">start_sorting_thread</span>(<span class="keyword">mut</span> cities: <span class="type">Vec</span>&lt;City&gt;, stat: Statistic) <span class="punctuation">-&gt;</span> thread::JoinHandle&lt;<span class="type">Vec</span>&lt;City&gt;&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">key_fn</span> = |city: &amp;City| <span class="punctuation">-&gt;</span> <span class="type">i64</span> &#123; -city.<span class="title function_ invoke__">get_statistic</span>(stat) &#125;;</span><br><span class="line">    thread::<span class="title function_ invoke__">spawn</span>(|| &#123;</span><br><span class="line">        cities.<span class="title function_ invoke__">sort_by_key</span>(key_fn);</span><br><span class="line">        cities</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这段代码编译失败是因为存在两个原因：</p>
+<ol>
+<li>由于 <code>start_sorting_thread</code> 中已经包含了对 <code>cities</code> 的可变引用，所以闭包不能在创建新的共享引用；</li>
+<li>新创建的线程和调用者所在线程并行，<code>start_sorting_thread</code> 返回时，新线程可能还没开始，而 <code>stat</code> 由于不在作用域中，需要被释放；</li>
+</ol>
+</div>
+<p>解决方案我们告诉 <code>Rust</code>，需要偷取闭包所使用的的变量而不是借用，使用关键字 <code>move</code> 来进行声明：</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::thread;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">start_sorting_thread</span>(<span class="keyword">mut</span> cities: <span class="type">Vec</span>&lt;City&gt;, stat: Statistic) <span class="punctuation">-&gt;</span> thread::JoinHandle&lt;<span class="type">Vec</span>&lt;City&gt;&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">key_fn</span> = <span class="keyword">move</span> |city: &amp;City| <span class="punctuation">-&gt;</span> <span class="type">i64</span> &#123; -city.<span class="title function_ invoke__">get_statistic</span>(stat) &#125;;</span><br><span class="line">    thread::<span class="title function_ invoke__">spawn</span>(<span class="keyword">move</span> || &#123;</span><br><span class="line">        cities.<span class="title function_ invoke__">sort_by_key</span>(key_fn);</span><br><span class="line">        cities</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>因此，<code>Rust</code> 提供了两种使用上下文中数据的方式：引用和偷取。</p>
+<h3 id="闭包和函数类型"><a class="markdownIt-Anchor" href="#闭包和函数类型"></a> 闭包和函数类型</h3>
+<p>我们可以把函数或者闭包作为函数的参数传递，那么他们肯定是有类型的，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">cities</span> = <span class="type">Vec</span>::&lt;City&gt;::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    cities.<span class="title function_ invoke__">sort_by_key</span>(|city| -city.population);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">is_asc</span> = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">city_population_desc</span>(city: &amp;City) <span class="punctuation">-&gt;</span> <span class="type">i64</span> &#123;</span><br><span class="line">        -city.population</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">city_population_asc</span>(city: &amp;City) <span class="punctuation">-&gt;</span> <span class="type">i64</span> &#123;</span><br><span class="line">        -city.population</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">key_sort_fn</span>: <span class="title function_ invoke__">fn</span>(&amp;City) <span class="punctuation">-&gt;</span> <span class="type">i64</span> = <span class="keyword">if</span> is_asc &#123;</span><br><span class="line">        city_population_asc</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        city_population_desc</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    cities.<span class="title function_ invoke__">sort_by_key</span>(key_sort_fn);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里 <code>key_sort_fn</code> 的类型是：<code>fn(&amp;City) -&gt; i64</code>，我们可以把函数存储在结构体字段中，<code>fn</code> 实际上指向函数机器代码的地址，所占空间就是一个机器字，一个函数可以接受另外一个函数作为参数，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">count_selected_cities</span>(cities: &amp;<span class="type">Vec</span>&lt;City&gt;, test_fn: <span class="title function_ invoke__">fn</span>(&amp;City) <span class="punctuation">-&gt;</span> <span class="type">bool</span>) <span class="punctuation">-&gt;</span> <span class="type">usize</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个函数没法接受闭包作为参数，因为类型不匹配，<code>fn</code> 只能表示函数，闭包虽然可调用，但不是 <code>fn</code> 类型。如果我们需要它能接受函数或者闭包同时参数，需要更改这个函数的签名，使用泛型约束 <code>F</code> 是一个 <code>Fn</code> 类型：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">count_selected_cities</span>&lt;F&gt;(cities: &amp;<span class="type">Vec</span>&lt;City&gt;, test_fn: F) <span class="punctuation">-&gt;</span> <span class="type">usize</span></span><br><span class="line">    <span class="keyword">where</span> F: <span class="title function_ invoke__">Fn</span>(&amp;City) <span class="punctuation">-&gt;</span> <span class="type">bool</span></span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>Fn(&amp;City) -&gt; bool</code> 会自动被相关的函和闭包数实现，相当于限定了函数的签名，因此我们可以传入匹配的函数或者闭包。</p>
+<h3 id="闭包性能"><a class="markdownIt-Anchor" href="#闭包性能"></a> 闭包性能</h3>
+<p>在大多数语言中，闭包在堆中分配、动态分派和自动垃圾收集。因此，创建、调用和收集它们中的每一个都会花费一点点额外的 <code>CPU</code> 时间。更糟糕的是，闭包往往会禁止内联，这是编译器用来消除函数调用开销的关键技术。</p>
+<p><code>Rust</code> 闭包没有这些性能缺陷，与 <code>Rust</code> 中的其他所有内容一样，它们不会在堆上分配，除非将它们放入 <code>Box</code>、<code>Vec</code> 或其他容器中。而且由于每个闭包都有不同的类型，只要 <code>Rust</code> 编译器知道你正在调用的闭包的类型，它就可以内联该特定闭包的代码。<code>Rust</code> 的闭包设计使其运行的很快，即使在性能敏感代码中也可以使用它们。</p>
+<p>下图展示了不同种类的闭包在内存上的布局：</p>
+<p><img data-src="closure-in-mem.png" alt="" /></p>
+<ul>
+<li>
+<p>闭包 (a) 使用这两个变量，在内存中，这个闭包看起来像一个包含对它使用的变量的引用的小结构；</p>
+</li>
+<li>
+<p>闭包 (b) 完全一样，只是它是一个 <code>move</code> 闭包，包含了引用的值；</p>
+</li>
+<li>
+<p>闭包 © 不使用其环境中的任何变量，所以这个闭包根本不占用任何内存。</p>
+</li>
+</ul>
+<h3 id="fnonce"><a class="markdownIt-Anchor" href="#fnonce"></a> <code>FnOnce</code></h3>
+<p>有些闭包只能使用一次，例如，下面的代码中的，闭包将捕获的 <code>String</code> 手动通过 <code>drop</code> 丢掉了，我们在调用的时候，就会出错：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">call_twice</span>&lt;F&gt;(closure: F)</span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    F: <span class="title function_ invoke__">Fn</span>(),</span><br><span class="line">&#123;</span><br><span class="line">    <span class="title function_ invoke__">closure</span>();</span><br><span class="line">    <span class="title function_ invoke__">closure</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">my_str</span> = <span class="string">&quot;hello&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">f</span> = || <span class="title function_ invoke__">drop</span>(my_str);</span><br><span class="line">    <span class="title function_ invoke__">call_twice</span>(f);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>编译器会提示我们 <code>my_str</code> 已经被释放过了，它是 <code>FnOnce</code> 类型的：</p>
+<pre><code>    error[E0525]: expected a closure that implements the `Fn` trait, but this closure only implements `FnOnce`
+    --&gt; src/main.rs:13:13
+    |
+    13 |     let f = || drop(my_str);
+    |             ^^^^^^^^------^
+    |             |       |
+    |             |       closure is `FnOnce` because it moves the variable `my_str` out of its environment
+    |             this closure implements `FnOnce`, not `Fn`
+    14 |     call_twice(f);
+    |     ---------- the requirement to implement `Fn` derives from here
+</code></pre>
+</div>
+<p>根据提示，我们需要限定 <code>F</code> 是 <code>FnOnce</code> 类型的，就像 <code>a + b</code> 是 <code>Add::add(a, b)</code> 的简写一样，闭包调用展开之后其实是 <code>closure.call()</code> 或者 <code>closure.call_once()</code>：</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">call_twice</span>&lt;F&gt;(closure: F)</span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    F: <span class="title function_ invoke__">FnOnce</span>(),</span><br><span class="line">&#123;</span><br><span class="line">    <span class="title function_ invoke__">closure</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">my_str</span> = <span class="string">&quot;hello&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">f</span> = || <span class="title function_ invoke__">drop</span>(my_str);</span><br><span class="line">    <span class="title function_ invoke__">call_twice</span>(f);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<h4 id="示例一"><a class="markdownIt-Anchor" href="#示例一"></a> 示例一</h4>
+<p>如果一个闭包并不转移自己的内部数据，那么它就不是 <code>FnOnce</code>，然而，一旦它被当做 <code>FnOnce</code> 调用，之后就无法再次调用了：</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Tyr&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这个闭包会 clone 内部的数据返回，所以它不是 FnOnce</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">c1</span> = <span class="keyword">move</span> |greeting: <span class="type">String</span>| (greeting, name.<span class="title function_ invoke__">clone</span>());</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 所以 c1 可以被调用多次</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;c1 call once: &#123;:?&#125;&quot;</span>, <span class="title function_ invoke__">c</span>(<span class="string">&quot;qiao&quot;</span>.<span class="title function_ invoke__">into</span>()));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;c1 call twice: &#123;:?&#125;&quot;</span>, <span class="title function_ invoke__">c</span>(<span class="string">&quot;bonjour&quot;</span>.<span class="title function_ invoke__">into</span>()));</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 然而一旦它被当成 FnOnce 被调用，就无法被再次调用</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;result: &#123;:?&#125;&quot;</span>, <span class="title function_ invoke__">call_once</span>(<span class="string">&quot;hi&quot;</span>.<span class="title function_ invoke__">into</span>(), c1));</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 无法再次调用</span></span><br><span class="line">    <span class="comment">// let result = c1(&quot;hi&quot;.to_string());</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Fn 也可以被当成 FnOnce 调用，只要接口一致就可以</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;result: &#123;:?&#125;&quot;</span>, <span class="title function_ invoke__">call_once</span>(<span class="string">&quot;hola&quot;</span>.<span class="title function_ invoke__">into</span>(), not_closure));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">call_once</span>(arg: <span class="type">String</span>, c: <span class="keyword">impl</span> <span class="title class_">FnOnce</span>(<span class="type">String</span>) <span class="punctuation">-&gt;</span> (<span class="type">String</span>, <span class="type">String</span>)) <span class="punctuation">-&gt;</span> (<span class="type">String</span>, <span class="type">String</span>) &#123;</span><br><span class="line">    <span class="title function_ invoke__">c</span>(arg)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">not_closure</span>(arg: <span class="type">String</span>) <span class="punctuation">-&gt;</span> (<span class="type">String</span>, <span class="type">String</span>) &#123;</span><br><span class="line">    (arg, <span class="string">&quot;Rosie&quot;</span>.<span class="title function_ invoke__">into</span>())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<h4 id="示例二"><a class="markdownIt-Anchor" href="#示例二"></a> 示例二</h4>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Tyr&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">vec</span> = <span class="built_in">vec!</span>[<span class="string">&quot;Rust&quot;</span>, <span class="string">&quot;Elixir&quot;</span>, <span class="string">&quot;Javascript&quot;</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">v</span> = &amp;vec[..];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">data</span> = (<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">c</span> = <span class="keyword">move</span> || &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;data: &#123;:?&#125;&quot;</span>, data);</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;v: &#123;:?&#125;, name: &#123;:?&#125;&quot;</span>, v, name.<span class="title function_ invoke__">clone</span>());</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="title function_ invoke__">c</span>();</span><br><span class="line">    <span class="title function_ invoke__">c</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// c 不是 FnOnce，虽然它拥有 data 和 name 的所有权</span></span><br><span class="line">    <span class="comment">// 但是它并没有转移或者消费所有权。但是 name 接下来</span></span><br><span class="line">    <span class="comment">// 是不能被继续使用的，因为它的所有权转移到了闭包中，</span></span><br><span class="line">    <span class="comment">// 会随着闭包的消失而被释放。不过 data 可以被继续使用</span></span><br><span class="line">    <span class="comment">// ，因为 data 支持 Copy，所以对于 move 而言，实际上</span></span><br><span class="line">    <span class="comment">// 闭包中的 data 是一个副本。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, std::mem::<span class="title function_ invoke__">size_of_val</span>(&amp;c));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, data);  <span class="comment">// ok</span></span><br><span class="line">    <span class="comment">// println!(&quot;&#123;:?&#125;&quot;, data); // failed</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="fnmut"><a class="markdownIt-Anchor" href="#fnmut"></a> <code>FnMut</code></h3>
+<p>还有另一种闭包，一种包含可变数据或 <code>mut</code> 引用的闭包。<code>Rust</code> 认为非 <code>mut</code> 值可以安全地跨线程共享，但是共享包含 <code>mut</code> 数据的非 <code>mut</code> 闭包是不安全的，从多个线程调用这样的闭包可能会导致各种竞争条件，因为多个线程试图同时读取和写入相同的数据。因此，<code>Rust</code> 多了一类闭包，<code>FnMut</code>。</p>
+<p>任何需要 <code>mut</code> 访问值但不删除任何值的闭包都是 <code>FnMut</code> 闭包。 例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">i</span> = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">incr</span> = || &#123;</span><br><span class="line">    i += <span class="number">1</span>; <span class="comment">// incr borrows a mut reference to i</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Ding! i is now: &#123;&#125;&quot;</span>, i);</span><br><span class="line">&#125;;</span><br><span class="line"><span class="title function_ invoke__">call_twice</span>(incr);</span><br></pre></td></tr></table></figure>
+<p>总结一下对三类 Rust 闭包的了解：</p>
+<ul>
+<li>
+<p><code>Fn</code> 是一系列闭包和函数，可以不受限制地多次调用它们，还包括所有 <code>fn</code> 函数；</p>
+</li>
+<li>
+<p><code>FnMut</code> 指哪些需要 <code>mut</code> 访问捕获变量，并且可多次访问的闭包；</p>
+</li>
+<li>
+<p><code>FnOnce</code> 指哪些消耗值所有权，并且仅可以被调用一次的闭包；</p>
+</li>
+</ul>
+<p>从实现上来看，<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/ops/trait.Fn.html"><code>Fn</code></a> 是 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/ops/trait.Fn.html"><code>FnMut</code></a> 的子 <code>Trait</code>，而 <code>FnMut</code> 又是 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/stable/std/ops/trait.FnOnce.html"><code>FnOnce</code></a> 的子<code>Trait</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">trait</span> <span class="title class_">Fn</span>&lt;Args&gt;: <span class="built_in">FnMut</span>&lt;Args&gt; &#123;</span><br><span class="line">    <span class="keyword">extern</span> <span class="string">&quot;rust-call&quot;</span> <span class="keyword">fn</span> <span class="title function_">call</span>(&amp;<span class="keyword">self</span>, args: Args) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span>::Output;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">trait</span> <span class="title class_">FnMut</span>&lt;Args&gt;: <span class="built_in">FnOnce</span>&lt;Args&gt; &#123;</span><br><span class="line">    <span class="keyword">extern</span> <span class="string">&quot;rust-call&quot;</span> <span class="keyword">fn</span> <span class="title function_">call_mut</span>(</span><br><span class="line">        &amp;<span class="keyword">mut</span> <span class="keyword">self</span>, </span><br><span class="line">        args: Args</span><br><span class="line">    ) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span>::Output;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">trait</span> <span class="title class_">FnOnce</span>&lt;Args&gt; &#123;</span><br><span class="line">    <span class="keyword">type</span> <span class="title class_">Output</span>;</span><br><span class="line">    <span class="keyword">extern</span> <span class="string">&quot;rust-call&quot;</span> <span class="keyword">fn</span> <span class="title function_">call_once</span>(<span class="keyword">self</span>, args: Args) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span>::Output;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>限制越少，范围越广泛，这使得 <code>Fn</code> 成为最独特和最强大的类别，<code>FnMut</code> 和 <code>FnOnce</code> 是更广泛的类别，包括具有使用限制的闭包。</p>
+<p><code>FnMut</code> 就像结构体如果想改变数据需要用 <code>let mut</code> 声明一样，如果想改变闭包捕获的数据结构，那么就需要 <code>FnMut</code>：</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;hello&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">name1</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;hola&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 捕获 &amp;mut name</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">c</span> = || &#123;</span><br><span class="line">        name.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; Tyr&quot;</span>);</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;c: &#123;&#125;&quot;</span>, name);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 捕获 mut name1，注意 name1 需要声明成 mut</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">c1</span> = <span class="keyword">move</span> || &#123;</span><br><span class="line">        name1.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot;!&quot;</span>);</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;c1: &#123;&#125;&quot;</span>, name1);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">c</span>();</span><br><span class="line">    <span class="title function_ invoke__">c1</span>();</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">call_mut</span>(&amp;<span class="keyword">mut</span> c);</span><br><span class="line">    <span class="title function_ invoke__">call_mut</span>(&amp;<span class="keyword">mut</span> c1);</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">call_once</span>(c);</span><br><span class="line">    <span class="title function_ invoke__">call_once</span>(c1);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 在作为参数时，FnMut 也要显式地使用 mut，或者 &amp;mut</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">call_mut</span>(c: &amp;<span class="keyword">mut</span> <span class="keyword">impl</span> <span class="title class_">FnMut</span>()) &#123;</span><br><span class="line">    <span class="title function_ invoke__">c</span>();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 想想看，为啥 call_once 不需要 mut？</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">call_once</span>(c: <span class="keyword">impl</span> <span class="title class_">FnOnce</span>()) &#123;</span><br><span class="line">    <span class="title function_ invoke__">c</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在声明的闭包 <code>c</code> 和 <code>c1</code> 里，我们修改了捕获的 <code>name</code> 和 <code>name1</code>。不同的是 <code>name</code> 使用了引用，而 <code>name1</code> 移动了所有权，这两种情况和其它代码一样，也需要遵循所有权和借用有关的规则。所以，如果在闭包 <code>c</code> 里借用了 <code>name</code>，你就不能把 <code>name</code> 移动给另一个闭包 <code>c1</code>。</p>
+<p>这里也展示了，<code>c</code> 和 <code>c1</code> 这两个符合 <code>FnMut</code> 的闭包，能作为 <code>FnOnce</code> 来调用。我们在代码中也确认了，<code>FnMut</code> 可以被多次调用，这是因为 <code>call_mut()</code> 使用的是 <code>&amp;mut self</code>，不移动所有权。</p>
+</div>
+<h3 id="fn"><a class="markdownIt-Anchor" href="#fn"></a> <code>Fn</code></h3>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">trait</span> <span class="title class_">Fn</span>&lt;Args&gt;: <span class="built_in">FnMut</span>&lt;Args&gt; &#123;</span><br><span class="line">    <span class="keyword">extern</span> <span class="string">&quot;rust-call&quot;</span> <span class="keyword">fn</span> <span class="title function_">call</span>(&amp;<span class="keyword">self</span>, args: Args) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span>::Output;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看到，它继承了 <code>FnMut</code>，或者说 <code>FnMut</code> 是 <code>Fn</code> 的 <code>super trait</code>。这也就意味着任何需要 <code>FnOnce</code> 或者 <code>FnMut</code> 的场合，都可以传入满足 <code>Fn</code> 的闭包。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">v</span> = <span class="built_in">vec!</span>[<span class="number">0u8</span>; <span class="number">1024</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">v1</span> = <span class="built_in">vec!</span>[<span class="number">0u8</span>; <span class="number">1023</span>];</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Fn，不移动所有权</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">c</span> = |x: <span class="type">u64</span>| v.<span class="title function_ invoke__">len</span>() <span class="keyword">as</span> <span class="type">u64</span> * x;</span><br><span class="line">    <span class="comment">// Fn，移动所有权</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">c1</span> = <span class="keyword">move</span> |x: <span class="type">u64</span>| v1.<span class="title function_ invoke__">len</span>() <span class="keyword">as</span> <span class="type">u64</span> * x;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;direct call: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">c</span>(<span class="number">2</span>));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;direct call: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">c1</span>(<span class="number">2</span>));</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;call: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">call</span>(<span class="number">3</span>, &amp;c));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;call: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">call</span>(<span class="number">3</span>, &amp;c1));</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;call_mut: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">call_mut</span>(<span class="number">4</span>, &amp;<span class="keyword">mut</span> c));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;call_mut: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">call_mut</span>(<span class="number">4</span>, &amp;<span class="keyword">mut</span> c1));</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;call_once: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">call_once</span>(<span class="number">5</span>, c));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;call_once: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">call_once</span>(<span class="number">5</span>, c1));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">call</span>(arg: <span class="type">u64</span>, c: &amp;<span class="keyword">impl</span> <span class="title class_">Fn</span>(<span class="type">u64</span>) <span class="punctuation">-&gt;</span> <span class="type">u64</span>) <span class="punctuation">-&gt;</span> <span class="type">u64</span> &#123;</span><br><span class="line">    <span class="title function_ invoke__">c</span>(arg)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">call_mut</span>(arg: <span class="type">u64</span>, c: &amp;<span class="keyword">mut</span> <span class="keyword">impl</span> <span class="title class_">FnMut</span>(<span class="type">u64</span>) <span class="punctuation">-&gt;</span> <span class="type">u64</span>) <span class="punctuation">-&gt;</span> <span class="type">u64</span> &#123;</span><br><span class="line">    <span class="title function_ invoke__">c</span>(arg)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">call_once</span>(arg: <span class="type">u64</span>, c: <span class="keyword">impl</span> <span class="title class_">FnOnce</span>(<span class="type">u64</span>) <span class="punctuation">-&gt;</span> <span class="type">u64</span>) <span class="punctuation">-&gt;</span> <span class="type">u64</span> &#123;</span><br><span class="line">    <span class="title function_ invoke__">c</span>(arg)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="copy-clone-闭包"><a class="markdownIt-Anchor" href="#copy-clone-闭包"></a> <code>Copy</code>、<code>Clone </code>闭包</h3>
+<p>对于那些 <code>非 move</code> 闭包，并且只包含共享引用的闭包是可以 <code>Clone</code> 和 <code>Copy</code> 的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">y</span> = <span class="number">10</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">add_y</span> = |x| x + y;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">copy_of_add_y</span> = add_y; <span class="comment">// This closure is `Copy`, so...</span></span><br><span class="line"><span class="built_in">assert_eq!</span>(<span class="title function_ invoke__">add_y</span>(<span class="title function_ invoke__">copy_of_add_y</span>(<span class="number">22</span>)), <span class="number">42</span>); <span class="comment">// ... we can call both.</span></span><br></pre></td></tr></table></figure>
+<p>对于 <code>move</code> 类型闭包，如果规则更简单，如果闭包中捕获的值都是可 <code>Copy</code> 的，它就是可 <code>Copy</code> 的，如果捕获的是可 <code>Clone</code> 的，那就是可 <code>Clone</code> 的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">greeting</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Hello, &quot;</span>);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">greet</span> = <span class="keyword">move</span> |name| &#123;</span><br><span class="line">    greeting.<span class="title function_ invoke__">push_str</span>(name);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, greeting);</span><br><span class="line">&#125;;</span><br><span class="line">greet.<span class="title function_ invoke__">clone</span>()(<span class="string">&quot;Alfred&quot;</span>);</span><br><span class="line">greet.<span class="title function_ invoke__">clone</span>()(<span class="string">&quot;Bruce&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>当克隆 <code>greet</code> 的时候，它里面的每个东西都会被克隆，所以这里有两个 <code>greeting</code> 的副本，它们会被单独修改。</p>
+<h3 id="闭包本质"><a class="markdownIt-Anchor" href="#闭包本质"></a> 闭包本质</h3>
+<p>本质上闭包是一种匿名类型，一旦声明，就会产生一个新的类型，但这个类型无法被其它地方使用。这个类型就像一个结构体，会包含所有捕获的变量。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::&#123;collections::HashMap, mem::size_of_val&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// 长度为 0</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">c1</span> = || <span class="built_in">println!</span>(<span class="string">&quot;hello world!&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 和参数无关，长度也为 0</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">c2</span> = |i: <span class="type">i32</span>| <span class="built_in">println!</span>(<span class="string">&quot;hello: &#123;&#125;&quot;</span>, i);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;tyr&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">name1</span> = name.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">table</span> = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    table.<span class="title function_ invoke__">insert</span>(<span class="string">&quot;hello&quot;</span>, <span class="string">&quot;world&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果捕获一个引用，长度为 8</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">c3</span> = || <span class="built_in">println!</span>(<span class="string">&quot;hello: &#123;&#125;&quot;</span>, name);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 捕获移动的数据 name1(长度 24) + table(长度 48)，closure 长度 72</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">c4</span> = <span class="keyword">move</span> || <span class="built_in">println!</span>(<span class="string">&quot;hello: &#123;&#125;, &#123;:?&#125;&quot;</span>, name1, table);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">name2</span> = name.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    <span class="comment">// 和局部变量无关，捕获了一个 String name2，closure 长度 24</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">c5</span> = <span class="keyword">move</span> || &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">x</span> = <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">name3</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;lindsey&quot;</span>);</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;hello: &#123;&#125;, &#123;:?&#125;, &#123;:?&#125;&quot;</span>, x, name2, name3);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(</span><br><span class="line">        <span class="string">&quot;c1: &#123;&#125;, c2: &#123;&#125;, c3: &#123;&#125;, c4: &#123;&#125;, c5: &#123;&#125;, main: &#123;&#125;&quot;</span>,</span><br><span class="line">        <span class="title function_ invoke__">size_of_val</span>(&amp;c1),</span><br><span class="line">        <span class="title function_ invoke__">size_of_val</span>(&amp;c2),</span><br><span class="line">        <span class="title function_ invoke__">size_of_val</span>(&amp;c3),</span><br><span class="line">        <span class="title function_ invoke__">size_of_val</span>(&amp;c4),</span><br><span class="line">        <span class="title function_ invoke__">size_of_val</span>(&amp;c5),</span><br><span class="line">        <span class="title function_ invoke__">size_of_val</span>(&amp;main),</span><br><span class="line">    )</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这将输出：</p>
+<pre><code>c1: 0, c2: 0, c3: 8, c4: 72, c5: 24, main: 0
+</code></pre>
+<p>说明，不带 <code>move</code> 时，闭包捕获的是对应自由变量的引用；带 <code>move</code> 时，对应自由变量的所有权会被移动到闭包结构中。闭包的大小跟参数、局部变量都无关，只跟捕获的变量有关。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E9%97%AD%E5%8C%85/" title="【Rust】闭包">https://blog.fudenglong.site/2022/04/30/Rust/【Rust】闭包/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+              <a href="/tags/%E9%97%AD%E5%8C%85/" rel="tag"># 闭包</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/04/29/Rust/%E3%80%90Rust%E3%80%91%E5%B8%B8%E7%94%A8-Trait/" rel="prev" title="【Rust】常用 Trait">
+                  <i class="fa fa-angle-left"></i> 【Rust】常用 Trait
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E8%BF%AD%E4%BB%A3%E5%99%A8/" rel="next" title="【Rust】迭代器">
+                  【Rust】迭代器 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/04/30/Rust/%E3%80%90Rust%E3%80%91%E9%97%AD%E5%8C%85/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

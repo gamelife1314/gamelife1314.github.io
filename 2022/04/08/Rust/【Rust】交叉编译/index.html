@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="交叉编译就是跨平台编译，例如在 window 下编译程序的linux版本，或者在 x86_64 平台下编译 aarch64 版本。跨平台编译在Go语言中非常方便，得益于Go语言汇编器的设计。  MacOS 交叉编译 Linux 程序 本文展示如何在 Apple M1 的平台下编译 Linux aarch64 的应用程序。   Apple M1：   1234567~&#x2F;WORKDIR&#x2F;gamelif">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】交叉编译">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/04/08/Rust/%E3%80%90Rust%E3%80%91%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="交叉编译就是跨平台编译，例如在 window 下编译程序的linux版本，或者在 x86_64 平台下编译 aarch64 版本。跨平台编译在Go语言中非常方便，得益于Go语言汇编器的设计。  MacOS 交叉编译 Linux 程序 本文展示如何在 Apple M1 的平台下编译 Linux aarch64 的应用程序。   Apple M1：   1234567~&#x2F;WORKDIR&#x2F;gamelif">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/08/Rust/%E3%80%90Rust%E3%80%91%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/brew-install-aarch64-linux-compile-tool.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/08/Rust/%E3%80%90Rust%E3%80%91%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/rust-cross-compile-success.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/08/Rust/%E3%80%90Rust%E3%80%91%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/cargo-env-config.png">
+<meta property="article:published_time" content="2022-04-08T05:11:08.000Z">
+<meta property="article:modified_time" content="2022-04-08T05:11:08.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="交叉编译">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/04/08/Rust/%E3%80%90Rust%E3%80%91%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/brew-install-aarch64-linux-compile-tool.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/04/08/Rust/%E3%80%90Rust%E3%80%91%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/04/08/Rust/%E3%80%90Rust%E3%80%91%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/","path":"2022/04/08/Rust/【Rust】交叉编译/","title":"【Rust】交叉编译"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】交叉编译 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#macos-%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91-linux-%E7%A8%8B%E5%BA%8F"><span class="nav-number">1.</span> <span class="nav-text"> MacOS 交叉编译 Linux 程序</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-rust-%E6%A0%87%E5%87%86%E5%BA%93"><span class="nav-number">1.1.</span> <span class="nav-text"> 安装 rust 标准库</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E7%BC%96%E8%AF%91%E5%99%A8"><span class="nav-number">1.2.</span> <span class="nav-text"> 安装编译器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91"><span class="nav-number">1.3.</span> <span class="nav-text"> 交叉编译</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E9%85%8D%E7%BD%AE-cargo"><span class="nav-number">1.3.1.</span> <span class="nav-text"> 配置文件配置 Cargo</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F%E9%85%8D%E7%BD%AE-cargo"><span class="nav-number">1.3.2.</span> <span class="nav-text"> 环境变量配置 Cargo</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E8%BE%93%E5%87%BA%E7%BB%93%E6%9E%9C"><span class="nav-number">1.3.3.</span> <span class="nav-text"> 编译输出结果</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B6%E4%BB%96%E5%9C%BA%E6%99%AF"><span class="nav-number">2.</span> <span class="nav-text"> 其他场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="nav-number">3.</span> <span class="nav-text"> 参考文章</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/04/08/Rust/%E3%80%90Rust%E3%80%91%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】交叉编译 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】交叉编译
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-04-08 13:11:08" itemprop="dateCreated datePublished" datetime="2022-04-08T13:11:08+08:00">2022-04-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>4 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>交叉编译就是跨平台编译，例如在 <code>window</code> 下编译程序的linux版本，或者在 <code>x86_64</code> 平台下编译 <code>aarch64</code> 版本。跨平台编译在Go语言中非常方便，得益于Go语言汇编器的设计。</p>
+<h3 id="macos-交叉编译-linux-程序"><a class="markdownIt-Anchor" href="#macos-交叉编译-linux-程序"></a> MacOS 交叉编译 Linux 程序</h3>
+<p>本文展示如何在 <code>Apple M1</code> 的平台下编译 <code>Linux aarch64</code> 的应用程序。</p>
+<ul>
+<li>
+<p><code>Apple M1</code>：</p>
+  <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">~/WORKDIR/gamelife1314.github.io on  source! ⌚ 13:15:25</span><br><span class="line">$ uname -pvm</span><br><span class="line">Darwin Kernel Version 21.4.0: Fri Mar 18 00:46:32 PDT 2022; root:xnu-8020.101.4~15/RELEASE_ARM64_T6000 arm64 arm</span><br><span class="line"></span><br><span class="line">~/WORKDIR/gamelife1314.github.io on  source! ⌚ 13:15:38</span><br><span class="line">$ gcc -dumpmachine</span><br><span class="line">arm64-apple-darwin21.4.0</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>linux aarch64</code>：</p>
+  <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@vm-docker:~$ gcc -dumpmachine</span><br><span class="line">aarch64-linux-gnu</span><br><span class="line">ubuntu@vm-docker:~$ uname -pvm</span><br><span class="line">#40-Ubuntu SMP Mon Mar 7 08:06:10 UTC 2022 aarch64 aarch64</span><br><span class="line">ubuntu@vm-docker:~$</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<span id="more"></span>   
+<h4 id="安装-rust-标准库"><a class="markdownIt-Anchor" href="#安装-rust-标准库"></a> 安装 rust 标准库</h4>
+<p>在编译之前，我们需要在我们的工作平台，即 Mac 机器中，安装目的平台的标准库，我们可以通过 <code>rustup target list</code> 命令查看 <code>rust</code> 支持哪些平台架构，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">~/WORKDIR/rust/helloworld ⌚ 12:52:32</span><br><span class="line">$ rustup target list | grep aarch64 | grep linux</span><br><span class="line">aarch64-linux-android</span><br><span class="line">aarch64-unknown-linux-gnu (installed)</span><br><span class="line">aarch64-unknown-linux-musl</span><br></pre></td></tr></table></figure>
+<p>安装特定平台标准库使用 <code>rustup target add</code> 命令即可:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">~/WORKDIR/rust/helloworld ⌚ 13:21:34</span><br><span class="line">$ rustup target add --toolchain stable aarch64-unknown-linux-gnu</span><br><span class="line">info: downloading component &#x27;rust-std&#x27; for &#x27;aarch64-unknown-linux-gnu&#x27;</span><br><span class="line">info: installing component &#x27;rust-std&#x27; for &#x27;aarch64-unknown-linux-gnu&#x27;</span><br><span class="line"> 34.9 MiB /  34.9 MiB (100 %)  18.1 MiB/s in  1s ETA:  0s</span><br></pre></td></tr></table></figure>
+<p>安装成功之后，通过 <code>rustup show</code> 命令查看本地已安装的工具链和标准库：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">~/WORKDIR/rust/helloworld ⌚ 13:22:11</span><br><span class="line">$ rustup show</span><br><span class="line">Default host: aarch64-apple-darwin</span><br><span class="line">rustup home:  /Users/fudenglong/.rustup</span><br><span class="line"></span><br><span class="line">installed toolchains</span><br><span class="line">--------------------</span><br><span class="line"></span><br><span class="line">stable-aarch64-apple-darwin</span><br><span class="line">beta-aarch64-apple-darwin</span><br><span class="line">nightly-aarch64-apple-darwin (default)</span><br><span class="line"></span><br><span class="line">installed targets for active toolchain</span><br><span class="line">--------------------------------------</span><br><span class="line"></span><br><span class="line">aarch64-apple-darwin</span><br><span class="line">aarch64-unknown-linux-gnu</span><br><span class="line">x86_64-unknown-linux-gnu</span><br><span class="line"></span><br><span class="line">active toolchain</span><br><span class="line">----------------</span><br><span class="line"></span><br><span class="line">nightly-aarch64-apple-darwin (default)</span><br><span class="line">rustc 1.62.0-nightly (e745b4ddb 2022-04-07)</span><br></pre></td></tr></table></figure>
+<h4 id="安装编译器"><a class="markdownIt-Anchor" href="#安装编译器"></a> 安装编译器</h4>
+<p>要编译 <code>aarch64-linux-gnu</code> 平台下的程序，就需要特定平台的编译器，这个项目中提供了MAC环境下用于交叉编译的工具，更多请看 <a target="_blank" rel="noopener" href="https://github.com/messense/homebrew-macos-cross-toolchains">https://github.com/messense/homebrew-macos-cross-toolchains</a>。</p>
+<p>使用 <code>brew</code> 安装非常简单，两条命令即可，耐心等待安装完成:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">brew tap messense/macos-cross-toolchains</span><br><span class="line">brew install aarch64-unknown-linux-gnu</span><br></pre></td></tr></table></figure>
+<p>经过这里之后，我们可以看到我们将所需要的 <code>linux-aarch64</code> 下的工具链都安装下来了：</p>
+<p><img data-src="brew-install-aarch64-linux-compile-tool.png" alt="" /></p>
+<h4 id="交叉编译"><a class="markdownIt-Anchor" href="#交叉编译"></a> 交叉编译</h4>
+<p>使用 <code>cargo</code> 命令快速创建一个项目进行测试:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">~/WORKDIR/rust ⌚ 13:27:16</span><br><span class="line">$ cargo new crosscompile</span><br><span class="line">     Created binary (application) `crosscompile` package</span><br><span class="line"></span><br><span class="line">~/WORKDIR/rust ⌚ 13:27:50</span><br><span class="line">$ cd crosscompile</span><br><span class="line"></span><br><span class="line">~/WORKDIR/rust/crosscompile on  master! ⌚ 13:27:58</span><br><span class="line">$ cargo run</span><br><span class="line">   Compiling crosscompile v0.1.0 (/Users/fudenglong/WORKDIR/rust/crosscompile)</span><br><span class="line">    Finished dev [unoptimized + debuginfo] target(s) in 0.59s</span><br><span class="line">     Running `target/debug/crosscompile`</span><br><span class="line">Hello, world!</span><br></pre></td></tr></table></figure>
+<h5 id="配置文件配置-cargo"><a class="markdownIt-Anchor" href="#配置文件配置-cargo"></a> 配置文件配置 Cargo</h5>
+<p>我们需要配置 <code>cargo</code> 编译时使用的链接器，在配置文件 <code>.cargo/config</code> 中添加如下配置:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">~/WORKDIR/rust/crosscompile on  master! ⌚ 17:15:21</span><br><span class="line">$ ll .cargo/config</span><br><span class="line">-rw-r--r--  1 fudenglong  staff    94B  4  8 17:13 .cargo/config</span><br><span class="line">~/WORKDIR/rust/crosscompile on  master! ⌚ 17:15:25</span><br><span class="line">$ cat .cargo/config</span><br><span class="line">[target.aarch64-unknown-linux-gnu]</span><br><span class="line">linker = &quot;/opt/homebrew/bin/aarch64-unknown-linux-gnu-gcc&quot;</span><br></pre></td></tr></table></figure>
+<p>然后我们执行特定编译命令 <code>cargo build -v --target aarch64-unknown-linux-gnu</code>：</p>
+<p><img data-src="rust-cross-compile-success.png" alt="" /></p>
+<h5 id="环境变量配置-cargo"><a class="markdownIt-Anchor" href="#环境变量配置-cargo"></a> 环境变量配置 Cargo</h5>
+<p>我们也可以使用环境变量配置所需要的链接器，环境变量的形式是：<code>CARGO_TARGET_&lt;triple&gt;_LINKER</code>，这里的 <code>triple</code> 就是我们目标 <code>target</code>，只不过要转换成大写，并且替换 <code>-</code> 为 <code>_</code>，例如:</p>
+<blockquote>
+<p>CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=/opt/homebrew/bin/aarch64-unknown-linux-gnu-gcc  cargo build -v --target aarch64-unknown-linux-gnu</p>
+</blockquote>
+<p><img data-src="cargo-env-config.png" alt="" /></p>
+<h5 id="编译输出结果"><a class="markdownIt-Anchor" href="#编译输出结果"></a> 编译输出结果</h5>
+<p>在下面的目录下能找到编译之后的二进制文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">~/WORKDIR/rust/crosscompile on  master! ⌚ 17:22:58</span><br><span class="line">$ ll target/aarch64-unknown-linux-gnu/debug</span><br><span class="line">total 7880</span><br><span class="line">drwxr-xr-x  2 fudenglong  staff    64B  4  8 17:13 build</span><br><span class="line">-rwxr-xr-x  1 fudenglong  staff   3.8M  4  8 17:13 crosscompile</span><br><span class="line">-rw-r--r--  1 fudenglong  staff   153B  4  8 17:13 crosscompile.d</span><br><span class="line">drwxr-xr-x  4 fudenglong  staff   128B  4  8 17:13 deps</span><br><span class="line">drwxr-xr-x  2 fudenglong  staff    64B  4  8 17:13 examples</span><br><span class="line">drwxr-xr-x  3 fudenglong  staff    96B  4  8 17:13 incremental</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>然后去linux下运行也是没有问题的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@vm-docker:~/workdir$ uname</span><br><span class="line">Linux</span><br><span class="line">ubuntu@vm-docker:~/workdir$ uname -a</span><br><span class="line">Linux vm-docker 5.13.0-35-generic #40-Ubuntu SMP Mon Mar 7 08:06:10 UTC 2022 aarch64 aarch64 aarch64 GNU/Linux</span><br><span class="line">ubuntu@vm-docker:~/workdir$ readelf -h crosscompile</span><br><span class="line">ELF Header:</span><br><span class="line">  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00</span><br><span class="line">  Class:                             ELF64</span><br><span class="line">  Data:                              2&#x27;s complement, little endian</span><br><span class="line">  Version:                           1 (current)</span><br><span class="line">  OS/ABI:                            UNIX - System V</span><br><span class="line">  ABI Version:                       0</span><br><span class="line">  Type:                              DYN (Position-Independent Executable file)</span><br><span class="line">  Machine:                           AArch64</span><br><span class="line">  Version:                           0x1</span><br><span class="line">  Entry point address:               0x6720</span><br><span class="line">  Start of program headers:          64 (bytes into file)</span><br><span class="line">  Start of section headers:          4025296 (bytes into file)</span><br><span class="line">  Flags:                             0x0</span><br><span class="line">  Size of this header:               64 (bytes)</span><br><span class="line">  Size of program headers:           56 (bytes)</span><br><span class="line">  Number of program headers:         10</span><br><span class="line">  Size of section headers:           64 (bytes)</span><br><span class="line">  Number of section headers:         44</span><br><span class="line">  Section header string table index: 43</span><br><span class="line">ubuntu@vm-docker:~/workdir$ ./crosscompile</span><br><span class="line">Hello, world!</span><br><span class="line">ubuntu@vm-docker:~/workdir$</span><br></pre></td></tr></table></figure>
+<h3 id="其他场景"><a class="markdownIt-Anchor" href="#其他场景"></a> 其他场景</h3>
+<p>交叉编译的直接需求就是你得找到一款合适的编译器，能编译出特定平台架构下的二进制程序。</p>
+<ol>
+<li><code>macos-&gt;windows</code>：<a target="_blank" rel="noopener" href="https://words.filippo.io/easy-windows-and-linux-cross-compilers-for-macos/">Macos 平台linux和windows交叉编译器</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.acmesystems.it/arm9_toolchain">linuxARM compiler for LinuxX86 System</a></li>
+</ol>
+<h3 id="参考文章"><a class="markdownIt-Anchor" href="#参考文章"></a> 参考文章</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=wp6s2sm_7VE">Rust Cross-Compilation with Cargo and Rustup toolchain manager</a></li>
+<li><a target="_blank" rel="noopener" href="https://colobu.com/2019/12/18/How-to-Cross-Compile-from-Mac-to-Linux-on-Rust/">如何在Mac上为Linux交叉编译Rust程序</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/007sx/p/15191400.html">Rust交叉编译Mac编译Linux/Windows平台</a></li>
+<li><a target="_blank" rel="noopener" href="https://words.filippo.io/easy-windows-and-linux-cross-compilers-for-macos/">Macos 平台linux和windows交叉编译器</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/04/08/Rust/%E3%80%90Rust%E3%80%91%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/" title="【Rust】交叉编译">https://blog.fudenglong.site/2022/04/08/Rust/【Rust】交叉编译/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/" rel="tag"># 交叉编译</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/04/07/Rust/%E3%80%90Rust%E3%80%91Rustup%20%E4%BB%8B%E7%BB%8D/" rel="prev" title="【Rust】Rustup 介绍">
+                  <i class="fa fa-angle-left"></i> 【Rust】Rustup 介绍
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/04/08/%E3%80%90Homebrew%E3%80%91%E6%9C%AC%E5%9C%B0%E5%AE%89%E8%A3%85/" rel="next" title="【Homebrew】本地安装">
+                  【Homebrew】本地安装 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/04/08/Rust/%E3%80%90Rust%E3%80%91%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

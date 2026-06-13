@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Rust 语言支持宏，如我们之前使用的 assert_eq!，println! 等。宏做了函数不能做的一些事情，例如，assert_eq! 当一个断言失败时，assert_eq! 生成包含断言的文件名和行号的错误消息，普通函数无法获取这些信息，但宏可以，因为它们的工作方式完全不同。 宏是一种简写，在编译期间，在检查类型和生成任何机器代码之前，每个宏调用都会被扩展。也就是说，它被一些 Rust 代码">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】宏">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Rust 语言支持宏，如我们之前使用的 assert_eq!，println! 等。宏做了函数不能做的一些事情，例如，assert_eq! 当一个断言失败时，assert_eq! 生成包含断言的文件名和行号的错误消息，普通函数无法获取这些信息，但宏可以，因为它们的工作方式完全不同。 宏是一种简写，在编译期间，在检查类型和生成任何机器代码之前，每个宏调用都会被扩展。也就是说，它被一些 Rust 代码">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/assert_eq.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/macro-pateern-match.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/asseteq-macro-expanding.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/macro-repeat-pattern.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/macro-rule-fragment-type.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/hygiene-macro.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/derive-macro.png">
+<meta property="article:published_time" content="2022-05-04T08:11:35.000Z">
+<meta property="article:modified_time" content="2022-05-04T08:11:35.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta property="article:tag" content="宏">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/assert_eq.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/","path":"2022/05/04/Rust/【Rust】宏/","title":"【Rust】宏"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】宏 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%8F%E5%9F%BA%E7%A1%80"><span class="nav-number">1.</span> <span class="nav-text"> 宏基础</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%8F%E6%89%A9%E5%B1%95"><span class="nav-number">1.1.</span> <span class="nav-text"> 宏扩展</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%84%8F%E5%A4%96%E5%90%8E%E6%9E%9C"><span class="nav-number">1.2.</span> <span class="nav-text"> 意外后果</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%87%8D%E5%A4%8D"><span class="nav-number">1.3.</span> <span class="nav-text"> 重复</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E5%BB%BA%E5%AE%8F"><span class="nav-number">2.</span> <span class="nav-text"> 内建宏</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B0%83%E8%AF%95%E5%AE%8F"><span class="nav-number">3.</span> <span class="nav-text"> 调试宏</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9E%84%E5%BB%BA-json"><span class="nav-number">4.</span> <span class="nav-text"> 构建 json!</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%87%E6%AE%B5%E7%B1%BB%E5%9E%8B"><span class="nav-number">4.1.</span> <span class="nav-text"> 片段类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%8F%E4%B8%AD%E7%9A%84%E9%80%92%E5%BD%92"><span class="nav-number">4.2.</span> <span class="nav-text"> 宏中的递归</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-trait"><span class="nav-number">4.3.</span> <span class="nav-text"> 使用 Trait</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#scoping-and-hygiene"><span class="nav-number">4.4.</span> <span class="nav-text"> Scoping and Hygiene</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%8F%E7%9A%84%E5%AF%BC%E5%85%A5%E5%92%8C%E5%AF%BC%E5%87%BA"><span class="nav-number">4.5.</span> <span class="nav-text"> 宏的导入和导出</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%AD%E6%B3%95%E9%94%99%E8%AF%AF"><span class="nav-number">5.</span> <span class="nav-text"> 语法错误</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E6%AD%A2-macro_rules"><span class="nav-number">6.</span> <span class="nav-text"> 不止 macro_rules!</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】宏 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】宏
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-05-04 16:11:35" itemprop="dateCreated datePublished" datetime="2022-05-04T16:11:35+08:00">2022-05-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>8.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>32 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>Rust</code> 语言支持宏，如我们之前使用的 <code>assert_eq!</code>，<code>println!</code> 等。宏做了函数不能做的一些事情，例如，<code>assert_eq!</code> 当一个断言失败时，<code>assert_eq!</code> 生成包含断言的文件名和行号的错误消息，普通函数无法获取这些信息，但宏可以，因为它们的工作方式完全不同。</p>
+<p>宏是一种简写，在编译期间，在检查类型和生成任何机器代码之前，每个宏调用都会被扩展。也就是说，它被一些 <code>Rust</code> 代码替换。<code>assert_eq!</code> 调用扩展为大致如下：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">match</span> (&amp;<span class="title function_ invoke__">gcd</span>(<span class="number">6</span>, <span class="number">10</span>), &amp;<span class="number">2</span>) &#123;</span><br><span class="line">    (left_val, right_val) =&gt; &#123;</span><br><span class="line">        <span class="keyword">if</span> !(*left_val == *right_val) &#123;</span><br><span class="line">            <span class="built_in">panic!</span>(</span><br><span class="line">                <span class="string">&quot;assertion failed: `(left == right)`, (left: `&#123;:?&#125;`, right: `&#123;:?&#125;`)&quot;</span>,</span><br><span class="line">                left_val, right_val</span><br><span class="line">            );</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>panic!</code> 也是一个宏，它本身扩展为更多的 <code>Rust</code> 代码。该代码使用到了另外两个宏：<code>file!()</code> 和 <code>line!()</code>。 一旦 <code>crate</code> 中的每个宏调用都被完全展开，<code>Rust</code> 就会进入下一个编译阶段。</p>
+<p>在运行时，断言失败看起来像这样：</p>
+<pre><code>thread 'main' panicked at 'assertion failed: `(left == right)`, (left: `17`, right: `2`)', gcd.rs:7
+</code></pre>
+<p>如果熟悉 <code>C++</code>，可能对宏有过一些不好的体验。但是 <code>Rust</code> 宏采用不同的方法，类似于 <code>Scheme</code> 的语法规则。与 <code>C++</code> 宏相比，<code>Rust</code> 宏可以更好地与语言的其余部分集成，因此更不容易出错。宏调用总是标有感叹号 <code>!</code>，因此在阅读代码时它们会比较突出，所以不会意外调用它们。<code>Rust</code> 宏从不插入不匹配的括号或圆括号，并且 <code>Rust</code> 宏带有模式匹配，使得编写既可维护又易于使用的宏变得更加容易。</p>
+<p>在本节中，我们将通过几个简单的例子来展示如何编写宏。但与 <code>Rust</code> 的大部分内容一样，理解宏需要下很大功夫。在这里将介绍一个很复杂的宏的设计，它可以将 <code>JSON</code> 文字直接嵌入到我们的程序中。但是宏的内容涵盖的非常多，因此这里将提供一些进一步研究的建议，包括我们在此处展示的高级技术，以及称为过程宏的更强大的工具。</p>
+<span id="more"></span>
+<h3 id="宏基础"><a class="markdownIt-Anchor" href="#宏基础"></a> 宏基础</h3>
+<p>首先我们来看下 <code>assert_eq!</code> 的代码：</p>
+<p><img data-src="assert_eq.png" alt="" /></p>
+<p><code>macro_rules!</code> 是在 <code>Rust</code> 中定义宏的主要方式。在此宏定义中的 <code>assert_eq</code> 之后没有<code>!</code>，<code>!</code> 仅在调用宏时，而不是在定义时。</p>
+<p>并非所有的宏都以这种方式定义：如 <code>file!</code>、<code>line!</code> 和 <code>macro_rules！</code> 它本身是内置在编译器中的，我们将在本章末尾讨论另一种方法，称为过程宏。但在大多数情况下，我们将专注于 <code>macro_rules!</code>，这是迄今为止自己编写宏最简单的方法。</p>
+<p>用 <code>macro_rules!</code> 定义的宏完全通过模式匹配工作。宏的主体只是一系列规则：</p>
+<pre><code>( pattern1 ) =&gt; ( template1 );
+( pattern2 ) =&gt; ( template2 );
+...
+</code></pre>
+<p>顺便说一句，可以使用方括号或花括号代替模板周围的圆括号；这对 <code>Rust</code> 没有任何影响。同样，当调用宏时，这些都是等价的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(<span class="title function_ invoke__">gcd</span>(<span class="number">6</span>, <span class="number">10</span>), <span class="number">2</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>[<span class="title function_ invoke__">gcd</span>(<span class="number">6</span>, <span class="number">10</span>), <span class="number">2</span>];</span><br><span class="line"><span class="built_in">assert_eq!</span>&#123;<span class="title function_ invoke__">gcd</span>(<span class="number">6</span>, <span class="number">10</span>), <span class="number">2</span>&#125;</span><br></pre></td></tr></table></figure>
+<p>唯一的区别是花括号后面的分号通常是可选的。按照惯例，我们在调用 <code>assert_eq!</code> 时使用括号，为 <code>vec!</code> 使用方括号，为 <code>macro_rules!</code> 使用花括号。</p>
+<p>现在我们已经展示了一个宏扩展的简单示例和生成它的定义，我们可以深入了解使其工作所需的细节：</p>
+<ul>
+<li>
+<p>我们将准确解释 <code>Rust</code> 如何在程序中查找和扩展宏定义；</p>
+</li>
+<li>
+<p>我们将指出从宏模板生成代码的过程中固有的一些微妙之处；</p>
+</li>
+<li>
+<p>最后，我们将展示模式如何处理重复结构；</p>
+</li>
+</ul>
+<h4 id="宏扩展"><a class="markdownIt-Anchor" href="#宏扩展"></a> 宏扩展</h4>
+<p><code>Rust</code> 在编译前期就会将宏展开，编译器从头到尾读取源代码，将定义的宏进行展开，所以不能在定义之前使用宏。（相比之下，函数和其他项不必按任何特定顺序排列，可以调用直到稍后在 <code>crate</code> 中才定义的函数。）</p>
+<p>当 <code>Rust</code> 展开一个 <code>assert_eq</code> 宏调用时，发生的事情很像计算匹配表达式。<code>Rust</code> 首先将参数与模式匹配，如下图所示：</p>
+<p><img data-src="macro-pateern-match.png" alt="" /></p>
+<p>宏模式是 <code>Rust</code> 中的一种小型语言，它们本质上是用于匹配代码的正则表达式。但正则表达式是对字符进行操作，而模式则是对 <code>token</code> 进行操作–数字、名字、标点符号等等，这些都是Rust程序的组成部分。这意味着你可以在宏模式中自由地使用注释和空白，以使它们尽可能地可读。注释和空白不是标记，所以它们不会影响匹配。</p>
+<p>正则表达式和宏模式之间的另一个重要区别是，在 <code>Rust</code> 中，小括号、大括号和圆括号总是以匹配对的形式出现。不仅在宏模式中，而且在整个语言中，在展开宏之前都会检查这些。</p>
+<p>在这个例子中，我们的模式包含了 <code>$left:expr</code> 这个片段，它告诉 <code>Rust</code> 匹配一个表达式（在这个例子中，<code>gcd(6, 10)</code>）并将其命名为<code>$left</code>。然后 <code>Rust</code> 将模式中的逗号与 <code>gcd</code> 的参数后面的逗号进行匹配。就像正则表达式一样，模式中只有几个特殊的字符可以触发有趣的匹配行为，比如这个逗号，都必须逐字匹配，否则匹配失败。最后，<code>Rust</code> 匹配了表达式 <code>2</code>，并给它命名 <code>$right</code>。</p>
+<p>这个模式中的两个代码片段都是 <code>expr</code> 类型的：期望匹配表达式。由于这个模式匹配了所有的参数，<code>Rust</code> 展开了相应的模板，如下图所示：</p>
+<p><img data-src="asseteq-macro-expanding.png" alt="" /></p>
+<p><code>Rust</code> 将 <code>$left</code> 和 <code>$right</code> 替换成它在匹配过程中发现的代码片段。</p>
+<p>在输出模板中包含片段类型是一个常见的错误：写<code>$left:expr</code>而不是只写<code>$left</code>。<code>Rust</code>不会立即发现这种错误。它把<code>$left</code>看作是一个替换，然后它把:expr和模板中的其他东西一样看待：要包含在宏的输出代码中的<code>token</code>。因此，在你调用宏之前，这些错误不会发生；然后它将产生假的输出，无法编译。如果你得到错误信息，如在这个范围内找不到<code>expr</code>类型：<code> help: maybe you meant to use a path separator here</code>。</p>
+<p>宏模板与网络编程中常用的十几种模板语言并无太大区别。唯一不同的是，它的输出是 <code>Rust</code> 代码，这一点很重要。</p>
+<h4 id="意外后果"><a class="markdownIt-Anchor" href="#意外后果"></a> 意外后果</h4>
+<p>将代码片段插入模板，与使用数值的常规代码有微妙的不同,这些差异起初并不总是很明显。我们一直在看的宏，<code>assert_eq!</code>，包含了一些略显奇怪的代码片段，其中的原因说明了宏编程的很多问题，让我们特别看看两个有趣的部分。</p>
+<p>首先，为什么这个宏要创建变量 <code>left_val</code> 和 <code>right_val</code>，下面这样写为何不可以？</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> !($left == $right) &#123;</span><br><span class="line">    <span class="built_in">panic!</span>(<span class="string">&quot;assertion failed: `(left == right)` (left: `&#123;:?&#125;`, right: `&#123;:?&#125;`)&quot;</span>, $left, $right)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>要回答这个问题，请尝试在头脑中展开宏调用 <code>assert_eq!(letters.pop(), Some('z'))</code>。输出会是什么？当然，<code>Rust</code> 会把匹配的表达式插入到模板的多个地方。不过，在构建错误信息时重新计算这些表达式似乎是个坏主意，这不仅仅是因为它会花费两倍的时间：因为 <code>letters.pop()</code> 会从一个向量中移除一个值，所以在我们第二次调用时它会产生一个不同的值，这就是为什么真正的宏只计算一次<code>$left</code>和<code>$right</code>并存储它们的值。</p>
+<p>接下来是第二个问题：为什么这个宏要借用 <code>$left</code> 和 <code>$right</code> 的值的引用，为什么不直接在变量中存储这些值，像这样？</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">macro_rules!</span> bad_assert_eq &#123;</span><br><span class="line">    ($left:expr, $right:expr) =&gt; &#123;&#123;</span><br><span class="line">        <span class="keyword">match</span> ($left, $right) &#123;</span><br><span class="line">            (left_val, right_val) =&gt; &#123;</span><br><span class="line">                <span class="keyword">if</span> !(left_val == right_val) &#123;</span><br><span class="line">                    <span class="built_in">panic!</span>(<span class="string">&quot;assertion failed&quot;</span> <span class="comment">/* ... */</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>对于我们所考虑的特殊情况，即宏的参数是整数，这可以正常工作。但是，如果调用者将一个字符串变量作为 <code>$left</code> 或 <code>$right</code> 来传递，这段代码就会将该变量的值移出：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">s</span> = <span class="string">&quot;a rose&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">    bad_assert_eq!(s, <span class="string">&quot;a rose&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;confirmed: &#123;&#125; is a rose&quot;</span>, s); <span class="comment">// error: use of moved value &quot;s&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>因为我们不希望断言移动数值，所以这个宏借用了引用来代替，看一个个经典的 <code>C++</code> 宏错误：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// buggy C++ macro to add 1 to a number</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> ADD_ONE(n) n + 1</span></span><br></pre></td></tr></table></figure>
+<p>大多数 <code>C++</code> 程序员很熟悉这个原因，像 <code>ADD_ONE(1)*10</code> 或 <code>ADD_ONE(1&lt;&lt;4)</code> 这样不起眼的代码在这个宏下会产生非常意想不到的结果。要解决这个问题，需要在宏定义中加入更多的括号。这在 <code>Rust</code> 中是没有必要的，因为 <code>Rust</code> 的宏与语言的集成度更高。<code>Rust</code> 知道它是如何处理表达式的，所以当它把一个表达式粘贴到另一个表达式上时，它就会自动添加有效的括号。</p>
+<h4 id="重复"><a class="markdownIt-Anchor" href="#重复"></a> 重复</h4>
+<p>标准的 <code>vec!</code> 有两种使用方式：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Repeat a value N times</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">buffer</span> = <span class="built_in">vec!</span>[<span class="number">0_u8</span>; <span class="number">1000</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">// A list of values, separated by commas</span></span><br><span class="line"><span class="keyword">let</span> <span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="string">&quot;udon&quot;</span>, <span class="string">&quot;ramen&quot;</span>, <span class="string">&quot;soba&quot;</span>];</span><br></pre></td></tr></table></figure>
+<p>它可以被像下面这样实现：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">macro_rules!</span> vec &#123;</span><br><span class="line">    ($elem:expr ; $n:expr) =&gt; &#123;</span><br><span class="line">        ::std::vec::<span class="title function_ invoke__">from_elem</span>($elem, $n)</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    ( $( $x:expr ),* ) =&gt; &#123;</span><br><span class="line">        &lt;[_]&gt;::<span class="title function_ invoke__">into_vec</span>(<span class="type">Box</span>::<span class="title function_ invoke__">new</span>([ $( $x ),* ]))</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    ( $( $x:expr ),+ ,) =&gt; &#123;</span><br><span class="line">        <span class="built_in">vec!</span>[ $( $x ),* ]</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里有 <code>3</code> 个规则，我们将解释多个规则如何工作，然后挨着解释。</p>
+<p>当 <code>Rust</code> 展开宏 <code>vec![1, 2, 3]</code>，它首先使用第一个规则匹配 <code>1, 2, 3</code>。但是第一条规则中的 <code>$elem:expr ; $n:expr</code> 匹配失败，<code>1</code> 是一个表达式，但是要求其之后应该是一个 <code>;</code>，这里没有。所以 <code>Rust</code> 开始尝试第二条规则，如果所有规则尝试之后都没有匹配，就会报错。</p>
+<p>第一条规则处理像 <code>vec![0u8; 1000]</code> 这样的用法。碰巧的是，有一个标准的碰巧有一个标准的函数，<code>std::vec::from_elem</code>，它正好做了这里所需要的事情，所以这条规则很简单。</p>
+<p>第二条规则处理像 <code>vec![&quot;udon&quot;, &quot;ramen&quot;, &quot;soba&quot;]</code> 这样的用法，规则 <code>$( $x:expr ),*</code> 匹配 <code>0</code> 个或者多个有 <code>,</code> 分割的表达式。更一般地说，语法<code>$( PATTERN ),*</code> 用于匹配任何逗号分隔的列表，其中列表中的每一项都与 <code>PATTERN</code> 匹配。</p>
+<p><code>*</code> 是一个重复符号，类似于正则表达式中，表示重复 <code>0</code> 个或者多个，而 <code>+</code> 相同，只是只是重复 <code>1</code> 个或者多个。</p>
+<p>下面是 <code>Rust</code> 支持的重复规则：</p>
+<p><img data-src="macro-repeat-pattern.png" alt="" /></p>
+<p>示例中的 <code>$x</code> 不是一个单个的表达式，而是一个表达式列表，这个规则的模板也使用了重复的语法：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;[_]&gt;::<span class="title function_ invoke__">into_vec</span>(<span class="type">Box</span>::<span class="title function_ invoke__">new</span>([ $( $x ),* ]))</span><br></pre></td></tr></table></figure>
+<p>这里也有标准的方法能够确切完成我们想要的工作，这里的代码创建了一个 <code>boxed</code> 数组，然后使用 <code>[T]::into_vec</code> 转换成一个 <code>vector</code>。第一点，<code>&lt;[_]&gt;</code>，是一种不寻常的写法，用来写 <strong>“某类型的切片”</strong> 类型，同时希望<code>Rust</code>能推断出元素的类型。普通标识符类型名称可以被用在表达式中，但是 <code>fn()</code>，<code>&amp;str</code>或者 <code>[_]</code> 必须由尖括号 <code>&lt;&gt;</code> 包裹。</p>
+<p>重复出现在模板的最后，我们有 <code>$($x),*</code>，这个 <code>$(...),*</code> 与我们在模式中看到的语法相同。它遍历了我们为 <code>$x</code> 匹配的表达式列表，并将它们全部插入到模板中，用逗号分隔。</p>
+<p>在这种情况下，重复输出看起来就像输入一样，但情况不一定是这样的，我们可以把规则写成这样。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">( $( $x:expr ),* ) =&gt; &#123;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">v</span> = <span class="type">Vec</span>::<span class="title function_ invoke__">new</span>();</span><br><span class="line">        $( v.<span class="title function_ invoke__">push</span>($x); )*</span><br><span class="line">        v</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>这里，模板中读取 <code>$( v.push($x); )*</code> 的部分为 <code>$x</code> 中的每个表达式插入了对 <code>v.push()</code> 的调用。一个宏匹配规则可以扩展到一连串的表达式，但这里我们只需要一个表达式，所以我们把 <code>vector</code> 的组装包在一个块中。</p>
+<p>与 <code>Rust</code> 的其他部分不同，使用 <code>$( ...),*</code> 的模式不会自动支持可选的尾部逗号。然而，有一个标准的技巧来支持尾部逗号，那就是添加一个额外的规则，这就是我们的<code>vec！</code>宏的第三条规则的作用。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">( $( $x:expr ),+ ,) =&gt; &#123; <span class="comment">// if trailing comma is present,</span></span><br><span class="line">    <span class="built_in">vec!</span>[ $( $x ),* ] <span class="comment">// retry without it</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>我们使用 <code>$( ...),+ ,</code> 来匹配一个带有额外逗号的列表。然后，在模板中，我们递归地调用 <code>vec!</code>，把多余的逗号留出来。这一次，第二条规则将被匹配。</p>
+<h3 id="内建宏"><a class="markdownIt-Anchor" href="#内建宏"></a> 内建宏</h3>
+<p><code>Rust</code> 编译器提供了几个宏，当定义自己的宏时，这些宏很有帮助。这些都不能单独使用 <code>macro_rules!</code> 来实，它们在 <code>rustc</code> 中是硬编码的。</p>
+<ul>
+<li>
+<p><code>file!()</code>、<code>line!()</code>、<code>column!()</code>：<code>file!()</code> 展开成一个字符串字面量，表示当前文件的名称；<code>line!()</code> 和 <code>column!()</code> 扩展成 <code>u32</code> 字面量表示当前的行号和列号；</p>
+<p>如果一个宏调用另一个宏，而另一个宏又调用另一个宏，而且都在不同的文件中，最后一个宏调用 <code>file!()</code>、<code>line!()</code> 或 <code>column!()</code>，它将展开以指示第一个宏调用的位置。</p>
+</li>
+<li>
+<p><code>stringify!(...tokens...)</code>：展开成一个包含给定标识的字符串字面量，<code>assert!</code> 宏使用它来生成一个错误信息，其中包括断言的代码。</p>
+<p>参数中的宏调用不会被扩展：<code>stringify!(line!())</code> 会扩展为字符串 <code>&quot;line!()&quot;</code>。 <code>Rust</code> 从标示中构造字符串，所以字符串中没有换行或注释。</p>
+</li>
+<li>
+<p><code>concat!(str0, str1, ...)</code>：将它的参数连接起来，展开成一个字符串；</p>
+</li>
+</ul>
+<p><code>Rust</code> 还定义了一些查询环境变量的宏：</p>
+<ul>
+<li>
+<p><code>cfg!(...)</code>：展开为一个布尔值，如果当前的编译配置符合括号中的条件，则为真。例如，如果你在编译时启用了调试断言，<code>cfg!(debug_assertions)</code> 则为真。</p>
+<p>这个宏支持的语法与 <code>#[cfg(...)]</code> 属性完全相同，但你得到的不是条件性编译，而是一个真或假的值。</p>
+</li>
+<li>
+<p><code>env!(&quot;VAR_NAME&quot;)</code>：展开成一个字符串：在编译时指定的环境变量的值，如果这个变量不存在，就是一个编译错误。</p>
+<p>除了 <code>Cargo</code> 在编译时设置了几个有趣的环境变量外，这将是相当无用的。例如，要获得 <code>crate</code> 的当前版本字符串，可以这样写。</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">version</span> = <span class="built_in">env!</span>(<span class="string">&quot;CARGO_PKG_VERSION&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>环境变量的完整列表可以看 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates"><code>Cargo Documentation</code></a>。</p>
+</li>
+<li>
+<p><code>option_env!(&quot;VAR_NAME&quot;)</code>：和 <code>env!</code> 大致相同，除了返回 <code> Option&lt;&amp;'static str&gt;</code>，所以如果设置的环境变量不存在，将返回 <code>None</code>；</p>
+</li>
+</ul>
+<p>这里还有三个内建的宏可以将代码或者数据从另外的文件中包含进来：</p>
+<ul>
+<li>
+<p><code>include!(&quot;file.rs&quot;)</code>：展开成指定文件的内容，必须是有效的 <code>Rust</code> 代码；</p>
+</li>
+<li>
+<p><code>include_str!(&quot;file.txt&quot;)</code>：展开成指定文件的静态文本，类型是 <code>&amp;'static str</code>，可以这样使用：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> COMPOSITOR_SHADER: &amp;<span class="type">str</span> = <span class="built_in">include_str!</span>(<span class="string">&quot;../resources/compositor.glsl&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>如果文件不存在或者不是有效的 <code>utf-8</code>，就会有编译错误。</p>
+</li>
+<li>
+<p><code>include_bytes!(&quot;file.dat&quot;)</code>：这是和之前的相同的，只是被当做二进制数据，不是 <code>UTF-8</code> 文本，结果是 <code>&amp;'static [u8]</code>；</p>
+</li>
+</ul>
+<p>像所有的宏一样，这些都在编译时间处理，如果文件不存在那就编译失败，在所有的例子中，文件名称是一个相对路径，相对当前文件进行解析。</p>
+<p><code>Rust</code> 还提供了几个我们之前没有介绍过的方便的宏：</p>
+<ul>
+<li>
+<p><code>todo!()</code>、<code>unimplemented!()</code>：这些与 <code>panic!()</code> 等价，但表达了不同的意图。<code>unimplemented!()</code> 出现在 <code>if</code> 子句、匹配分支和其他尚未处理的情况中。<code>todo!()</code> 也是如此，但它传达的意思是，这段代码还没有写完；</p>
+</li>
+<li>
+<p><code>matches!(value, pattern)</code>：将一个值与一个模式进行比较，如果匹配则返回真，否则返回假，这等同于写：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">match</span> value &#123;</span><br><span class="line">    pattern =&gt; <span class="literal">true</span>,</span><br><span class="line">    _ =&gt; <span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="调试宏"><a class="markdownIt-Anchor" href="#调试宏"></a> 调试宏</h3>
+<p>调试一个宏可能是一个挑战，最大的问题是缺乏对宏扩展过程的了解。<code>Rust</code> 经常会展开所有的宏，发现某种错误，然后打印一条错误信息，但并不显示包含错误的完全展开的代码。</p>
+<p>这里有三个工具可以帮助排除宏的故障。(这些功能都是不稳定的，但由于它们确实是被设计成在开发过程中使用，而不是在你要检查的代码中使用，所以在实践中这不是一个大问题)。</p>
+<p>首先，也是最简单的，你可以要求 <code>rustc</code> 显示你的代码在扩展所有宏之后的样子。使用 <code>cargo build --verbose</code> 来查看 <code>Cargo</code> 是如何调用 <code>rustc</code> 的。 复制 <code>rustc</code> 的命令行，并添加 <code>-Z unstable-options --pretty expanded</code> 作为选项，完全展开的代码会被输出终端。不幸的是，这只有在代码没有语法错误的情况下才有效。</p>
+<p>其次，<code>Rust</code> 提供了一个 <code>log_syntax!()</code> 宏，在编译时简单地将其参数打印到终端，可以用它来进行 <code>println!-style</code> 调试，这个宏需要 <code>#![feature(log_syntax)]</code>特性标志。</p>
+<p>第三，可以要求 <code>Rust</code> 编译器将所有宏调用打印到终端，在代码中插入<code>trace_macros!(true);</code>。从那时起，每次 <code>Rust</code> 展开一个宏时，它都会打印出宏的名称和参数，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#![allow(dead_code, unused_imports)]</span></span><br><span class="line"><span class="meta">#![feature(trace_macros)]</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    trace_macros!(<span class="literal">true</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line">    trace_macros!(<span class="literal">false</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;total: &#123;&#125;&quot;</span>, numbers.<span class="title function_ invoke__">iter</span>().sum::&lt;<span class="type">u64</span>&gt;());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这将输出：</p>
+<pre><code>note: trace_macro
+--&gt; src/main.rs:6:19
+|
+6 |     let numbers = vec![1, 2, 3];
+|                   ^^^^^^^^^^^^^
+|
+= note: expanding `vec! &#123; 1, 2, 3 &#125;`
+= note: to `$crate :: __rust_force_expr! (&lt; [_] &gt; :: into_vec(box [1, 2, 3]))`
+= note: expanding `__rust_force_expr! &#123; &lt; [_] &gt; :: into_vec(box [1, 2, 3]) &#125;`
+= note: to `&lt;[_]&gt;::into_vec(box [1, 2, 3])`
+
+    Finished dev [unoptimized + debuginfo] target(s) in 0.51s
+    Running `target/debug/crosscompile`
+total: 6
+</code></pre>
+<p>编译器展示了每个宏展开前后调用的代码，<code>trace_macros!(false);</code> 会关闭这个 <code>trace</code>，所以 <code>println!()</code> 展开的内容不会打印出来。</p>
+<h3 id="构建-json"><a class="markdownIt-Anchor" href="#构建-json"></a> 构建 <code>json!</code></h3>
+<p>我们现在已经讨论了 <code>macro_rules!</code> 的核心功能! 在本节中，我们将逐步开发一个用于构建<code>JSON</code> 数据的宏。我们将用这个例子来说明宏的开发，介绍 <code>macro_rules!</code> 的其余部分，并提供一些建议以确保宏的行为符合要求。我们来看一个表示 <code>JSON</code> 数据的枚举：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Clone, PartialEq, Debug)]</span></span><br><span class="line"><span class="keyword">enum</span> <span class="title class_">Json</span> &#123;</span><br><span class="line">    Null,</span><br><span class="line">    <span class="title function_ invoke__">Boolean</span>(<span class="type">bool</span>),</span><br><span class="line">    <span class="title function_ invoke__">Number</span>(<span class="type">f64</span>),</span><br><span class="line">    <span class="title function_ invoke__">String</span>(<span class="type">String</span>),</span><br><span class="line">    <span class="title function_ invoke__">Array</span>(<span class="type">Vec</span>&lt;Json&gt;),</span><br><span class="line">    <span class="title function_ invoke__">Object</span>(<span class="type">Box</span>&lt;HashMap&lt;<span class="type">String</span>, Json&gt;&gt;),</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>不幸的是，写出 <code>Json</code> 值的语法相当冗长。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">students</span> = Json::<span class="title function_ invoke__">Array</span>(<span class="built_in">vec!</span>[</span><br><span class="line">    Json::<span class="title function_ invoke__">Object</span>(<span class="type">Box</span>::<span class="title function_ invoke__">new</span>(</span><br><span class="line">        <span class="built_in">vec!</span>[</span><br><span class="line">            (<span class="string">&quot;name&quot;</span>.<span class="title function_ invoke__">to_string</span>(), Json::<span class="title function_ invoke__">String</span>(<span class="string">&quot;Jim Blandy&quot;</span>.<span class="title function_ invoke__">to_string</span>())),</span><br><span class="line">            (<span class="string">&quot;class_of&quot;</span>.<span class="title function_ invoke__">to_string</span>(), Json::<span class="title function_ invoke__">Number</span>(<span class="number">1926.0</span>)),</span><br><span class="line">            (</span><br><span class="line">                <span class="string">&quot;major&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">                Json::<span class="title function_ invoke__">String</span>(<span class="string">&quot;Tibetan throat singing&quot;</span>.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">            ),</span><br><span class="line">        ]</span><br><span class="line">        .<span class="title function_ invoke__">into_iter</span>()</span><br><span class="line">        .<span class="title function_ invoke__">collect</span>(),</span><br><span class="line">    )),</span><br><span class="line">    Json::<span class="title function_ invoke__">Object</span>(<span class="type">Box</span>::<span class="title function_ invoke__">new</span>(</span><br><span class="line">        <span class="built_in">vec!</span>[</span><br><span class="line">            (</span><br><span class="line">                <span class="string">&quot;name&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">                Json::<span class="title function_ invoke__">String</span>(<span class="string">&quot;Jason Orendorff&quot;</span>.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">            ),</span><br><span class="line">            (<span class="string">&quot;class_of&quot;</span>.<span class="title function_ invoke__">to_string</span>(), Json::<span class="title function_ invoke__">Number</span>(<span class="number">1702.0</span>)),</span><br><span class="line">            (<span class="string">&quot;major&quot;</span>.<span class="title function_ invoke__">to_string</span>(), Json::<span class="title function_ invoke__">String</span>(<span class="string">&quot;Knots&quot;</span>.<span class="title function_ invoke__">to_string</span>())),</span><br><span class="line">        ]</span><br><span class="line">        .<span class="title function_ invoke__">into_iter</span>()</span><br><span class="line">        .<span class="title function_ invoke__">collect</span>(),</span><br><span class="line">    )),</span><br><span class="line">]);</span><br></pre></td></tr></table></figure>
+<p>我们希望能用一种更类似 <code>JSON</code> 的语法来写这个：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">students</span> = json!([</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Jim Blandy&quot;</span>,</span><br><span class="line">        <span class="string">&quot;class_of&quot;</span>: <span class="number">1926</span>,</span><br><span class="line">        <span class="string">&quot;major&quot;</span>: <span class="string">&quot;Tibetan throat singing&quot;</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Jason Orendorff&quot;</span>,</span><br><span class="line">        <span class="string">&quot;class_of&quot;</span>: <span class="number">1702</span>,</span><br><span class="line">        <span class="string">&quot;major&quot;</span>: <span class="string">&quot;Knots&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">]);</span><br></pre></td></tr></table></figure>
+<p>我们想要的是一个 <code>json!</code> 宏，它接受一个 <code>JSON</code> 值作为参数，并展开为一个像前面例子中的 <code>Rust</code> 表达式。</p>
+<p>本节完整的代码可以看 <a target="_blank" rel="noopener" href="https://github.com/ProgrammingRust/examples/tree/master/json-macro">https://github.com/ProgrammingRust/examples/tree/master/json-macro</a>。</p>
+<h4 id="片段类型"><a class="markdownIt-Anchor" href="#片段类型"></a> 片段类型</h4>
+<p>写入任何复杂宏的前提是指出如何匹配或解析所需的输入。</p>
+<p>我们已经可以看到，这个宏会有几条规则，因为<code>JSON</code>数据中有几种不同的东西：对象、数组、数字，等等。事实上，我们可以猜测，我们将为每种<code>JSON</code> 类型制定一条规则。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">macro_rules! json &#123;</span><br><span class="line">    (null) =&gt; &#123; Json::Null &#125;;</span><br><span class="line">    ([ ... ]) =&gt; &#123; Json::Array(...) &#125;;</span><br><span class="line">    (&#123; ... &#125;) =&gt; &#123; Json::Object(...) &#125;;</span><br><span class="line">    (???) =&gt; &#123; Json::Boolean(...) &#125;;</span><br><span class="line">    (???) =&gt; &#123; Json::Number(...) &#125;;</span><br><span class="line">    (???) =&gt; &#123; Json::String(...) &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这并不完全正确，因为宏模式没有提供区分后三种情况的方法，但我们以后会看到如何处理这个问题。至少前三种情况显然是以不同的标记开始的，所以我们就从这些开始。第一条规则已经起作用了：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">macro_rules!</span> json &#123;</span><br><span class="line">    (null) =&gt; &#123;</span><br><span class="line">        Json::Null</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[test]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">json_null</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(json!(null), Json::Null); <span class="comment">// passes!</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>为了增加对 <code>JSON</code> 数组的支持，我们可以尝试将元素匹配为 <code>exprs</code>：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">macro_rules!</span> json &#123;</span><br><span class="line">    (null) =&gt; &#123;</span><br><span class="line">        Json::Null</span><br><span class="line">    &#125;;</span><br><span class="line">    ([ $( $element:expr ),* ]) =&gt; &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">Array</span>(<span class="built_in">vec!</span>[ $( $element ),* ])</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>不幸的是，这并不符合所有的 <code>JSON</code> 数组，这里有一个测试，说明了这个问题。</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[test]</span></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">json_array_with_json_element</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">macro_generated_value</span> = json!(</span><br><span class="line">    [</span><br><span class="line">    <span class="comment">// valid JSON that doesn&#x27;t match `$element:expr`</span></span><br><span class="line">    &#123; <span class="string">&quot;pitch&quot;</span>: <span class="number">440.0</span> &#125;</span><br><span class="line">    ]</span><br><span class="line">    );</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">hand_coded_value</span> = Json::<span class="title function_ invoke__">Array</span>(<span class="built_in">vec!</span>[Json::<span class="title function_ invoke__">Object</span>(<span class="type">Box</span>::<span class="title function_ invoke__">new</span>(</span><br><span class="line">        <span class="built_in">vec!</span>[(<span class="string">&quot;pitch&quot;</span>.<span class="title function_ invoke__">to_string</span>(), Json::<span class="title function_ invoke__">Number</span>(<span class="number">440.0</span>))]</span><br><span class="line">            .<span class="title function_ invoke__">into_iter</span>()</span><br><span class="line">            .<span class="title function_ invoke__">collect</span>(),</span><br><span class="line">    ))]);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(macro_generated_value, hand_coded_value);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+<p>表达式 <code>$( $element:expr ),*</code> 表示一个逗号分割的 <code>Rust</code> 表达式，但是许多 <code>JSON</code> 值，特别是 <code>JSON</code> 对象，不是有效的 <code>Rust</code> 表达式，它们不匹配。所以这里的 <code>&#123; &quot;pitch&quot;: 440.0 &#125;</code> 匹配失败。</p>
+<p>由于不是每一段你想匹配的代码都是表达式，<code>Rust</code> 支持其他几种片段类型，如下图所示：</p>
+<p><img data-src="macro-rule-fragment-type.png" alt="" /></p>
+<p>表中的大多数选项都严格执行 <code>Rust</code> 语法。<code>expr</code> 类型只匹配 <code>Rust</code> 表达式（不是 <code>JSON</code> 值），<code>ty</code> 只匹配 <code>Rust</code> 类型，以此类推。它们是不可扩展的：没有办法定义新的算术运算符或 <code>expr</code> 可以识别的新关键字，我们将无法使其中任何一个匹配任意的 <code>JSON</code> 数据。</p>
+<p>最后两个，<code>ident</code> 和 <code>tt</code>，支持匹配看起来不像 <code>Rust</code> 代码的宏参数，<code>ident</code> 匹配任何标识符。<code>tt</code> 匹配一个单一的 <code>token</code>树：要么是一对提前匹配的括号，<code>(...)</code>，<code>[...]</code>，或 <code>&#123;...&#125;</code>，以及两者之间的一切，包括嵌套的标记树，或者不是括号的单一标记，如 <code>1926</code> 或 <code>&quot;Knots&quot;</code>。</p>
+<p><code>token</code> 树正是我们的 <code>json!</code> 宏所需要的，每个 <code>JSON</code> 值都是一个单一的标记树：数字、字符串、布尔值和 <code>null</code> 都是单一的标记，对象和数组则用括号表示，所以我们可以这样写模式。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">macro_rules!</span> json &#123;</span><br><span class="line">    </span><br><span class="line">    (null) =&gt; &#123;</span><br><span class="line">        Json::Null</span><br><span class="line">    &#125;;</span><br><span class="line">    </span><br><span class="line">    ([ $( $element:tt ),* ]) =&gt; &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">Array</span>(...)</span><br><span class="line">    &#125;;</span><br><span class="line">    </span><br><span class="line">    (&#123; $( $key:tt : $value:tt ),* &#125;) =&gt; &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">Object</span>(...)</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    ($other:tt) =&gt; &#123;</span><br><span class="line">        ... <span class="comment">// <span class="doctag">TODO:</span> Return Number, String, or Boolean</span></span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个版本的 <code>json!</code> 宏可以匹配所有的 <code>JSON</code> 数据，现在我们只需要编写正确的<code>Rust</code>代码。</p>
+<p>为了确保 <code>Rust</code> 能够在未来获得新的语法特性而不破坏你现在编写的任何宏，<code>Rust</code> 限制了紧随片段之后出现在模式中的标记。上表中的 <code>&quot;Can be followed by...&quot;</code> 列显示了哪些标记被允许。例如，模式 <code>$x:expr ~ $y:expr</code> 是一个错误，因为 <code>~</code> 在 <code>expr</code> 后面是不允许的。模式 <code>$vars:pat =&gt; $handler:expr</code> 是可以的，因为 <code>$vars:pat</code> 后面是箭头 <code>=&gt;</code>，是 <code>pat</code> 允许的标记之一，而<code>$handler:expr</code> 后面是空的，这也是允许的。</p>
+<h4 id="宏中的递归"><a class="markdownIt-Anchor" href="#宏中的递归"></a> 宏中的递归</h4>
+<p>我们已经看到了一个宏调用自身的例子：我们对 <code>vec!</code> 的实现使用递归来支持尾部逗号。这里我们可以展示一个更重要的例子：<code>json!</code> 需要递归地调用自己。我们可以尝试在不使用递归的情况下支持 <code>JSON</code> 数组，像这样。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">([ $( $element:tt ),* ]) =&gt; &#123;</span><br><span class="line">    Json::<span class="title function_ invoke__">Array</span>(<span class="built_in">vec!</span>[ $( $element ),* ])</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>但这并不可行，我们会把 <code>JSON</code> 数据（ <code>$elemen</code> 标记树）直接粘贴到 <code>Rust</code> 表达式中，它们是两种不同的语言。我们需要将数组的每个元素从 <code>JSON</code> 形式转换为 <code>Rust</code> 形式。例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">([ $( $element:tt ),* ]) =&gt; &#123;</span><br><span class="line">    Json::<span class="title function_ invoke__">Array</span>(<span class="built_in">vec!</span>[ $( json!($element) ),* ])</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p><code>JSON</code> 对象可以按照这种方式支持：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">(&#123; $( $key:tt : $value:tt ),* &#125;) =&gt; &#123;</span><br><span class="line">    Json::<span class="title function_ invoke__">Object</span>(<span class="type">Box</span>::<span class="title function_ invoke__">new</span>(<span class="built_in">vec!</span>[</span><br><span class="line">        $( ($key.<span class="title function_ invoke__">to_string</span>(), json!($value)) ),*</span><br><span class="line">    ].<span class="title function_ invoke__">into_iter</span>().<span class="title function_ invoke__">collect</span>()))</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>编译器对宏施加了一个递归限制。默认情况下是 <code>64</code> 个调用。这对于 <code>json</code> 的正常使用是绰绰有余的，但复杂的递归宏有时会触及这个限制。可以通过在使用宏的 <code>crate</code> 顶部添加下面这个属性来调整它。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#![recursion_limit = <span class="string">&quot;256&quot;</span>]</span></span><br></pre></td></tr></table></figure>
+<p>至此 <code>json!</code> 宏已经接近完成，剩下的就是支持布尔值、数字和字符串值了。</p>
+<h4 id="使用-trait"><a class="markdownIt-Anchor" href="#使用-trait"></a> 使用 <code>Trait</code></h4>
+<p>在这里，我们需要支持 <code>json!(true)</code>、<code>json!(1.0)</code> 和 <code>json!(&quot;yes&quot;)</code>，将值转换为适当类型的 <code>Json</code> 值，但是宏并不擅长区分类型，我们可以想象一下写成这样：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">macro_rules!</span> json &#123;</span><br><span class="line">    (<span class="literal">true</span>) =&gt; &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">Boolean</span>(<span class="literal">true</span>)</span><br><span class="line">    &#125;;</span><br><span class="line">    (<span class="literal">false</span>) =&gt; &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">Boolean</span>(<span class="literal">false</span>)</span><br><span class="line">    &#125;;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这种方法马上就被证明是错的，只有两个布尔值，但比这更多的数字，甚至更多的字符串。幸运的是，有一种标准的方法可以将各种类型的值转换为一种指定的类型：<code>From</code>，我们只需要为一些类型实现这个特性。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">impl</span> <span class="title class_">From</span>&lt;<span class="type">bool</span>&gt; <span class="keyword">for</span> <span class="title class_">Json</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">from</span>(b: <span class="type">bool</span>) <span class="punctuation">-&gt;</span> Json &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">Boolean</span>(b)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">From</span>&lt;<span class="type">i32</span>&gt; <span class="keyword">for</span> <span class="title class_">Json</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">from</span>(i: <span class="type">i32</span>) <span class="punctuation">-&gt;</span> Json &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">Number</span>(i <span class="keyword">as</span> <span class="type">f64</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">From</span>&lt;<span class="type">String</span>&gt; <span class="keyword">for</span> <span class="title class_">Json</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">from</span>(s: <span class="type">String</span>) <span class="punctuation">-&gt;</span> Json &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">String</span>(s)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;<span class="symbol">&#x27;a</span>&gt; <span class="built_in">From</span>&lt;&amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>&gt; <span class="keyword">for</span> <span class="title class_">Json</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">from</span>(s: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>) <span class="punctuation">-&gt;</span> Json &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">String</span>(s.<span class="title function_ invoke__">to_string</span>())</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>事实上，所有<code>12</code>种数字类型都应该有非常相似的实现，所以写一个宏可能是有意义的，只是为了避免复制和粘贴。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">macro_rules!</span> impl_from_num_for_json &#123;</span><br><span class="line">    ( $( $t:ident )* ) =&gt; &#123;</span><br><span class="line">        $(</span><br><span class="line">            <span class="keyword">impl</span> <span class="title class_">From</span>&lt;$t&gt; <span class="keyword">for</span> <span class="title class_">Json</span> &#123;</span><br><span class="line">                <span class="keyword">fn</span> <span class="title function_">from</span>(n: $t) <span class="punctuation">-&gt;</span> Json &#123;</span><br><span class="line">                    Json::<span class="title function_ invoke__">Number</span>(n <span class="keyword">as</span> <span class="type">f64</span>)</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        )*</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">impl_from_num_for_json!(<span class="type">u8</span> <span class="type">i8</span> <span class="type">u16</span> <span class="type">i16</span> <span class="type">u32</span> <span class="type">i32</span> <span class="type">u64</span> <span class="type">i64</span> <span class="type">u128</span> <span class="type">i128</span> <span class="type">usize</span> <span class="type">isize</span> <span class="type">f32</span> <span class="type">f64</span>);</span><br></pre></td></tr></table></figure>
+<p>现在我们可以使用 <code>Json::from(value)</code> 来将任何支持的类型的值转换为 <code>Json</code>。在我们的宏中，它看起来会是这样的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">( $other:tt ) =&gt; &#123;</span><br><span class="line">    Json::<span class="title function_ invoke__">from</span>($other) <span class="comment">// Handle Boolean/number/string</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>把这个规则添加到我们的 <code>json!</code> 宏中，使它通过我们到目前为止所写的所有测试。把所有的部分组合起来，目前看起来是这样的：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">macro_rules!</span> json &#123;</span><br><span class="line">    (null) =&gt; &#123;</span><br><span class="line">        Json::Null</span><br><span class="line">    &#125;;</span><br><span class="line">    ([ $( $element:tt ),* ]) =&gt; &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">Array</span>(<span class="built_in">vec!</span>[ $( json!($element) ),* ])</span><br><span class="line">    &#125;;</span><br><span class="line">    (&#123; $( $key:tt : $value:tt ),* &#125;) =&gt; &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">Object</span>(<span class="type">Box</span>::<span class="title function_ invoke__">new</span>(<span class="built_in">vec!</span>[</span><br><span class="line">            $( ($key.<span class="title function_ invoke__">to_string</span>(), json!($value)) ),*</span><br><span class="line">        ].<span class="title function_ invoke__">into_iter</span>().<span class="title function_ invoke__">collect</span>()))</span><br><span class="line">    &#125;;</span><br><span class="line">    ( $other:tt ) =&gt; &#123;</span><br><span class="line">        Json::<span class="title function_ invoke__">from</span>($other) <span class="comment">// Handle Boolean/number/string</span></span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>事实证明，这个宏出乎意料地支持在 <code>JSON</code> 数据中使用变量，甚至是任意的 <code>Rust</code> 表达式，这是一个方便的额外功能。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">width</span> = <span class="number">4.0</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">desc</span> =</span><br><span class="line">json!(&#123;</span><br><span class="line">    <span class="string">&quot;width&quot;</span>: width,</span><br><span class="line">    <span class="string">&quot;height&quot;</span>: (width * <span class="number">9.0</span> / <span class="number">4.0</span>)</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>因为 <code>(width * 9.0 / 4.0)</code> 是括号内的，它是一个单一的 <code>token</code> 树，所以宏在解析对象时成功地将其与 <code>$value:tt</code> 相匹配。</p>
+<h4 id="scoping-and-hygiene"><a class="markdownIt-Anchor" href="#scoping-and-hygiene"></a> <code>Scoping and Hygiene</code></h4>
+<p>接下来介绍了 <code>Rust</code> 处理范围的两种方式：一种方式用于局部变量和参数，另一种方式用于其他所有内容。为了说明为什么这很重要，让我们重写解析 <code>JSON</code> 对象的规则（前面显示的 <code>json!</code> 宏中的第三条规则）以消除临时向量，我们可以这样写：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">(&#123; $($key:tt : $value:tt),* &#125;) =&gt; &#123;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">fields</span> = <span class="type">Box</span>::<span class="title function_ invoke__">new</span>(HashMap::<span class="title function_ invoke__">new</span>());</span><br><span class="line">        $( fields.<span class="title function_ invoke__">insert</span>($key.<span class="title function_ invoke__">to_string</span>(), json!($value)); )*</span><br><span class="line">        Json::<span class="title function_ invoke__">Object</span>(fields)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>现在我们不是通过使用 <code>collect()</code> 而是通过重复调用 <code>.insert()</code> 方法来填充 <code>HashMap</code>。这意味着我们需要将 <code>map</code> 存储在一个临时变量中，我们称之为<code>fields</code>。如果在调用 <code>json!</code> 的地方正好有个临时变量 <code>fields</code> 会如何？</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">fields</span> = <span class="string">&quot;Fields, W.C.&quot;</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">role</span> = json!(&#123;</span><br><span class="line">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Larson E. Whipsnade&quot;</span>,</span><br><span class="line">    <span class="string">&quot;actor&quot;</span>: fields</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>宏展开会将两处代码粘贴在一起，但是两处都使用的 <code>fields</code> 是不同的，就像：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">fields</span> = <span class="string">&quot;Fields, W.C.&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">role</span> = &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">fields</span> = <span class="type">Box</span>::<span class="title function_ invoke__">new</span>(HashMap::<span class="title function_ invoke__">new</span>());</span><br><span class="line">    fields.<span class="title function_ invoke__">insert</span>(<span class="string">&quot;name&quot;</span>.<span class="title function_ invoke__">to_string</span>(), Json::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Larson E. Whipsnade&quot;</span>));</span><br><span class="line">    fields.<span class="title function_ invoke__">insert</span>(<span class="string">&quot;actor&quot;</span>.<span class="title function_ invoke__">to_string</span>(), Json::<span class="title function_ invoke__">from</span>(fields));</span><br><span class="line">    Json::<span class="title function_ invoke__">Object</span>(fields)</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>这里的宏正常工作，<code>Rust</code> 重命名变量。这个功能首先在 <code>Scheme</code> 宏中实现，称为<code>hygiene</code>，因此据说 <code>Rust</code> 具有 <code>hygienic macros</code>，理解宏 <code>hygiene</code> 的最简单方法是想象每次展开宏时，来自宏本身的扩展部分都被涂上不同的颜色。</p>
+<p>然后，不同颜色的变量被视为具有不同的名称：</p>
+<p><img data-src="hygiene-macro.png" alt="" /></p>
+<p>注意，由宏调用者传入并粘贴到输出中的代码位，如 <code>&quot;name&quot;</code> 和 <code>&quot;actor&quot;</code>，保持其原始颜色（黑色），只有源自宏模板的 <code>token</code> 被换装。</p>
+<p>现在有一个名为 <code>fields</code> 的变量（在调用者中声明）和一个名为 <code>fields</code> 的单独变量（由宏引入）。由于名字是不同的颜色，这两个变量不会被混淆。</p>
+<p>如果一个宏真的需要引用调用者范围内的一个变量，调用者必须把这个变量的名字传给宏。</p>
+<p>你可能已经注意到，随着宏的展开，许多其他标识符被涂上一种或多种颜色。例如，<code>Box</code>、<code>HashMap</code> 和 <code>Json</code>。尽管被涂上了颜色，<code>Rust</code>在识别这些类型名称时并没有遇到困难。这是因为 <code>Rust</code> 中的 <code>hygiene</code> 被限制在局部变量和参数上。当涉及到常量、类型、方法、模块、状态和宏名称时，<code>Rust</code> 是<mark class="label ">色盲</mark>的。</p>
+<p>这意味着，如果我们的 <code>json!</code> 宏在一个模块中使用，而<code>Box</code>、<code>HashMap</code>或<code>Json</code>不在范围内，那么这个宏就不能工作。</p>
+<p>首先，我们将考虑一种情况，即 <code>Rust</code> 的严格 <code>hygiene</code> 规定会妨碍我们的工作，而我们需要绕过它，假设我们有很多函数都包含这一行代码。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">req</span> = ServerRequest::<span class="title function_ invoke__">new</span>(server_socket.<span class="title function_ invoke__">session</span>());</span><br></pre></td></tr></table></figure>
+<p>假设我们改为用宏：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="built_in">macro_rules!</span> setup_req &#123;</span><br><span class="line">    () =&gt; &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">req</span> = ServerRequest::<span class="title function_ invoke__">new</span>(server_socket.<span class="title function_ invoke__">session</span>());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">handle_http_request</span>(server_socket: &amp;ServerSocket) &#123;</span><br><span class="line">    setup_req!(); <span class="comment">// declares `req`, uses `server_socket`</span></span><br><span class="line">    ... <span class="comment">// code that uses `req`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>正如所写，这不起作用。它需要宏中的名称 <code>server_socket</code> 来引用函数中声明的本地 <code>server_socket</code>，变量 <code>req</code> 反之亦然。但是<code>hygiene</code> 可以防止宏中的名称与其他范围内的名称冲突。</p>
+<p>解决方案是将计划在宏代码内部和外部使用的任何标识符传递给宏：</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">macro_rules!</span> setup_req &#123;</span><br><span class="line">    ($req:ident, $server_socket:ident) =&gt; &#123;</span><br><span class="line">        <span class="keyword">let</span> $req = ServerRequest::<span class="title function_ invoke__">new</span>($server_socket.<span class="title function_ invoke__">session</span>());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">handle_http_request</span>(server_socket: &amp;ServerSocket) &#123;</span><br><span class="line">    setup_req!(req, server_socket);</span><br><span class="line">    ... <span class="comment">// code that uses `req`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>因为 <code>req</code> 和 <code>server_socket</code> 现在是由函数提供的，它们是该范围的正确&quot;颜色&quot;。</p>
+<h4 id="宏的导入和导出"><a class="markdownIt-Anchor" href="#宏的导入和导出"></a> 宏的导入和导出</h4>
+<p>由于宏在编译的早期就被展开了，在 <code>Rust</code> 知道你项目的完整模块结构之前，编译器就有了导出和导入它们的特殊功能。</p>
+<p>在一个模块中可见的宏在其子模块中自动可见，要将宏从模块向上导出到其父模块，请使用 <code>#[macro_use] </code>属性。例如，假设我们的 <code>lib.rs</code> 看起来像这样：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[macro_use]</span> <span class="keyword">mod</span> macros;</span><br><span class="line"><span class="keyword">mod</span> client;</span><br><span class="line"><span class="keyword">mod</span> server;</span><br></pre></td></tr></table></figure>
+<p>在 <code>macros</code> 模块中定义的所有宏都导入到 <code>lib.rs</code> 中，因此在包的其余部分中可见，包括在 <code>client</code> 和 <code>server</code> 中。</p>
+<p>标有 <code>#[macro_export]</code> 的宏是自动发布的，可以像其他项目一样通过路径引用。</p>
+<p>例如，<code>lazy_static</code> 提供了一个名为 <code>lazy_static</code> 的宏，它被标记为 <code>#[macro_export]</code>。要使用这个宏，你可以写：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> lazy_static::lazy_static;</span><br><span class="line">lazy_static!&#123; &#125;</span><br></pre></td></tr></table></figure>
+<p>一旦被导入，他就可以像其他的任何导入一样使用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> lazy_static::lazy_static;</span><br><span class="line"></span><br><span class="line"><span class="keyword">mod</span> m &#123;</span><br><span class="line">    crate::lazy_static!&#123; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当然，实际做这些事情意味着你的宏可能被其他模块调用。因此，一个导出的宏不应该依赖于任何在范围内的东西。不知道在它被使用的地方会有什么在作用域内，即使是标准预导入的功能也会被屏蔽。</p>
+<p><code>macro_rules</code> 提供了特殊 <code>$crate</code> 来帮助解决这个问题。这与 <code>crate</code> 不同，<code>crate</code> 是一个关键词，可以在任何地方用于路径，而不仅仅是在宏中。<code>$crate</code> 的作用就像一个绝对路径，指向定义宏的 <code>crate</code> 的根模块。我们不能写成 <code>Json</code>，而写成 <code>$crate::Json</code>，即使 <code>Json</code> 没有被导入，它也能发挥作用。<code>HashMap</code> 可以改成 <code>::std::collections::HashMap</code> 或者<code>$crate::macros::HashMap</code> 。在后一种情况下，我们必须重新导出 <code>HashMap</code>，因为 <code>$crate</code> 不能被用来访问 <code>crate</code> 的私有特性。</p>
+<p>来看下我们最终版本的 <code>json!</code>：</p>
+<figure class="highlight rust"><figcaption><span>macros.rs</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">use</span> std::boxed::<span class="type">Box</span>;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">use</span> std::string::<span class="built_in">ToString</span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[macro_export]</span></span><br><span class="line"><span class="built_in">macro_rules!</span> json &#123;</span><br><span class="line">    (null) =&gt; &#123;</span><br><span class="line">        $crate::Json::Null</span><br><span class="line">    &#125;;</span><br><span class="line">    ([ $( $element:tt ),* ]) =&gt; &#123;</span><br><span class="line">        $crate::Json::<span class="title function_ invoke__">Array</span>(<span class="built_in">vec!</span>[ $( json!($element) ),* ])</span><br><span class="line">    &#125;;</span><br><span class="line">    (&#123; $( $key:tt : $value:tt ),* &#125;) =&gt; &#123;</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">fields</span> = $crate::macros::<span class="type">Box</span>::<span class="title function_ invoke__">new</span>(</span><br><span class="line">                $crate::macros::HashMap::<span class="title function_ invoke__">new</span>());</span><br><span class="line">            $(</span><br><span class="line">                fields.<span class="title function_ invoke__">insert</span>($crate::macros::<span class="built_in">ToString</span>::<span class="title function_ invoke__">to_string</span>($key),</span><br><span class="line">                              json!($value));</span><br><span class="line">            )*</span><br><span class="line">            $crate::Json::<span class="title function_ invoke__">Object</span>(fields)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">    ($other:tt) =&gt; &#123;</span><br><span class="line">        $crate::Json::<span class="title function_ invoke__">from</span>($other)</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由于 <code>.to_string()</code> 方法是标准 <code>ToString</code> 的一部分，我们也用 <code>$crate</code> 来引用它，使用&quot;完全限定的方法调用&quot;语法：<code>$crate::macros::ToString::to_string($key)</code>。在我们的例子中，这对于宏的工作并不是严格必要的，因为 <code>ToString</code> 是在标准的预导入中。但是如果你要调用一个 <code>Trait</code> 的方法，而这个 <code>Trait</code> 在调用宏的时候可能不在范围内，那么完全限定的方法调用是最好的方式。</p>
+<h3 id="语法错误"><a class="markdownIt-Anchor" href="#语法错误"></a> 语法错误</h3>
+<p>下面的宏只是看起来合理：</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">macro_rules!</span> complain &#123;</span><br><span class="line">    ($msg:expr) =&gt; &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;Complaint filed: &#123;&#125;&quot;</span>, $msg);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    (user : $userid:tt , $msg:expr) =&gt; &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;Complaint from user &#123;&#125;: &#123;&#125;&quot;</span>, $userid, $msg);</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>假设我们这样调用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">complain!(user: <span class="string">&quot;jimb&quot;</span>, <span class="string">&quot;the AI lab&#x27;s chatbots keep picking on me&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>在我们看来，这显然与第二个模式相匹配。但是<code>Rust</code>首先尝试了第一条规则，试图用<code>$msg:expr</code>来匹配所有的输入。但是 <code>user: &quot;jimb&quot;</code> 不是一个表达式，所以我们得到了一个语法错误。<code>Rust</code> 拒绝把语法错误传递到下面–宏已经够难调试了。相反，它会被立即报告并停止编译。</p>
+<p>如果一个模式中的任何其他标记不能匹配，<code>Rust</code> 就会进入下一个规则。只有语法错误是致命的，而且只在试图匹配片段时发生。</p>
+<p>这里的问题并不难理解：我们正试图在错误的规则中匹配一个片段 <code>$msg:expr</code>。它不会被匹配，调用者其实想要匹配另一条规则，有两个简单的方法来避免这种情况。</p>
+<p>首先，避免易混淆的规则。例如，我们可以改变宏，使每个模式以不同的标识符开始。</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">macro_rules!</span> complain &#123;</span><br><span class="line">    (msg : $msg:expr) =&gt; &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;Complaint filed: &#123;&#125;&quot;</span>, $msg);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    (user : $userid:tt , msg : $msg:expr) =&gt; &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;Complaint from user &#123;&#125;: &#123;&#125;&quot;</span>, $userid, $msg);</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>当宏参数以 <code>msg</code> 开头时，将匹配规则 <code>1</code>。当它们以 <code>user</code> 开头时，将匹配规则<code>2</code>。无论哪种方式，我们都知道在尝试匹配片段之前我们已经获得了正确的规则。</p>
+<p>避免虚假语法错误的另一种方法是首先放置更具体的规则，将 <code>user:</code> 规则放在第一个，就能解决了 <code>complain!</code> 的问题，因为导致语法错误的规则永远不会到达。</p>
+<h3 id="不止-macro_rules"><a class="markdownIt-Anchor" href="#不止-macro_rules"></a> 不止 <code>macro_rules!</code></h3>
+<p>宏模式可以解析比 <code>JSON</code> 更复杂的输入，但我们发现复杂性很快就会失控。</p>
+<p><a target="_blank" rel="noopener" href="https://danielkeep.github.io/tlborm/book/">《Rust Macros小书》</a>是一本优秀的高级 <code>macro_rules!</code> 编程手册。这本书清晰明了，而且比我们这里更详细地描述了宏展开的每一个方面。它还介绍了几种非常聪明的技术，将 <code>macro_rules!</code> 模式作为一种神秘的编程语言来使用，以解析复杂的输入。</p>
+<p><code>Rust 1.15</code> 引入了一个单独的机制，叫做过程宏，它支持扩展 <code>#[derive]</code> 属性以处理自定义派生，如下图所示，也支持创建自定义属性和新的宏，其调用方式与前面讨论的 <code>macro_rules!</code> 宏一样。</p>
+<p><img data-src="derive-macro.png" alt="" /></p>
+<p>实际上没有 <code>IntoJson</code>，但这并不重要：过程宏可以使用这个钩子来插入任何它想要的代码（在这种情况下，可能是 <code>impl From&lt;Money&gt; for Json &#123; ... &#125;</code>）。</p>
+<p>过程宏是作为<code>Rust</code>的一个函数来实现的，而不是一个声明性的规则集。这个函数通过一个薄薄的抽象层与编译器交互，可以是任意复杂的。例如，<a target="_blank" rel="noopener" href="https://crates.io/crates/diesel"><code>diesel</code></a>使用过程宏来连接数据库，并在编译时根据该数据库的模式生成代码。</p>
+<p>由于过程宏与编译器内部相互作用，编写有效的宏需要对编译器的运行方式有所了解，<a target="_blank" rel="noopener" href="https://www.rustwiki.org.cn/zh-CN/book/ch19-06-macros.html">可以在这里寻找你想要的</a>。</p>
+<p>也许，在阅读了这些内容之后，更不想用宏。另一个选择是使用<a target="_blank" rel="noopener" href="https://www.rustwiki.org.cn/zh-CN/cargo/reference/build-scripts.html">构建脚本</a>来生成 <code>Rust</code> 代码，<code>Cargo</code> 文档显示了如何一步一步地做到这一点。它包括编写一个程序来生成你想要的 <code>Rust</code>代码，在<code> Cargo.toml</code> 中添加一行，作为构建过程的一部分来运行该程序，并使用 <code>include!</code> 来将生成的代码放入你的<code>crate</code>中。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/" title="【Rust】宏">https://blog.fudenglong.site/2022/05/04/Rust/【Rust】宏/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+              <a href="/tags/%E5%AE%8F/" rel="tag"># 宏</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/05/03/Rust/%E3%80%90Rust%E3%80%91%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" rel="prev" title="【Rust】异步编程">
+                  <i class="fa fa-angle-left"></i> 【Rust】异步编程
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/05/05/Rust/%E3%80%90Rust%E3%80%91Unsafe-%E4%BB%A3%E7%A0%81/" rel="next" title="【Rust】unsafe 代码">
+                  【Rust】unsafe 代码 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/05/04/Rust/%E3%80%90Rust%E3%80%91%E5%AE%8F/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

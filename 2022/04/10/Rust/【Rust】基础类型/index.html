@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="下面是在 Rust 中会看到的类型的总结，展示了Rust的基本类型，标准库中一些非常常见的类型，以及一些用户定义类型的例子。    Type Description Values     i8, i16, i32, i64, i128 u8, u16, u32, u64, u128 给定宽度的有符号和无符号整数 42,-5i8, 0x400u16, 0o100i16, 20_922_789_888">
+<meta property="og:type" content="article">
+<meta property="og:title" content="【Rust】基础类型">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="下面是在 Rust 中会看到的类型的总结，展示了Rust的基本类型，标准库中一些非常常见的类型，以及一些用户定义类型的例子。    Type Description Values     i8, i16, i32, i64, i128 u8, u16, u32, u64, u128 给定宽度的有符号和无符号整数 42,-5i8, 0x400u16, 0o100i16, 20_922_789_888">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/floating-num.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/slice-memory-figure.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/str-memory-figure.png">
+<meta property="article:published_time" content="2022-04-10T06:00:03.000Z">
+<meta property="article:modified_time" content="2022-04-10T06:00:03.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="《Rust 程序设计》">
+<meta property="article:tag" content="基础类型">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/floating-num.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/","path":"2022/04/10/Rust/【Rust】基础类型/","title":"【Rust】基础类型"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>【Rust】基础类型 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B4%E6%95%B0%E7%B1%BB%E5%9E%8B"><span class="nav-number">1.</span> <span class="nav-text"> 整数类型</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%BA%A2%E5%87%BA%E5%A4%84%E7%90%86"><span class="nav-number">1.1.</span> <span class="nav-text"> 溢出处理</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%AE%E7%82%B9%E6%95%B0"><span class="nav-number">2.</span> <span class="nav-text"> 浮点数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#bool-%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text"> Bool 类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E7%B1%BB%E5%9E%8B"><span class="nav-number">4.</span> <span class="nav-text"> 字符类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%83%E7%BB%84%E7%B1%BB%E5%9E%8B"><span class="nav-number">5.</span> <span class="nav-text"> 元组类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%87%E9%92%88%E7%B1%BB%E5%9E%8B"><span class="nav-number">6.</span> <span class="nav-text"> 指针类型</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BC%95%E7%94%A8"><span class="nav-number">6.1.</span> <span class="nav-text"> 引用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#boxes"><span class="nav-number">6.2.</span> <span class="nav-text"> Boxes</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E7%94%9F%E6%8C%87%E9%92%88"><span class="nav-number">6.3.</span> <span class="nav-text"> 原生指针</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E7%BB%84-vector-slice"><span class="nav-number">7.</span> <span class="nav-text"> 数组、Vector、slice</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%B0%E7%BB%84"><span class="nav-number">7.1.</span> <span class="nav-text"> 数组</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#vectors"><span class="nav-number">7.2.</span> <span class="nav-text"> Vectors</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#slices"><span class="nav-number">7.3.</span> <span class="nav-text"> Slices</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#string"><span class="nav-number">8.</span> <span class="nav-text"> String</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%AD%97%E9%9D%A2%E9%87%8F"><span class="nav-number">8.1.</span> <span class="nav-text"> 字符串字面量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AD%97%E8%8A%82%E5%BA%8F%E5%88%97"><span class="nav-number">8.2.</span> <span class="nav-text"> 字节序列</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%86%85%E5%AD%98%E8%A1%A8%E7%A4%BA"><span class="nav-number">8.3.</span> <span class="nav-text"> 字符串内存表示</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#string-2"><span class="nav-number">8.4.</span> <span class="nav-text"> String</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E4%B8%B2%E4%BD%BF%E7%94%A8"><span class="nav-number">8.5.</span> <span class="nav-text"> 字符串使用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B6%E4%BB%96-string"><span class="nav-number">8.6.</span> <span class="nav-text"> 其他 String</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B1%BB%E5%9E%8B%E5%88%AB%E5%90%8D"><span class="nav-number">9.</span> <span class="nav-text"> 类型别名</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="【Rust】基础类型 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          【Rust】基础类型
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-04-10 14:00:03" itemprop="dateCreated datePublished" datetime="2022-04-10T14:00:03+08:00">2022-04-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/rust/" itemprop="url" rel="index"><span itemprop="name">rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>8.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>32 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>下面是在 <code>Rust</code> 中会看到的类型的总结，展示了Rust的基本类型，标准库中一些非常常见的类型，以及一些用户定义类型的例子。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Description</th>
+<th style="text-align:center">Values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>i8, i16, i32, i64, i128 u8, u16, u32, u64, u128</code></td>
+<td style="text-align:center">给定宽度的有符号和无符号整数</td>
+<td style="text-align:center"><code>42</code>,<code>-5i8</code>, <code>0x400u16</code>, <code>0o100i16</code>, <code>20_922_789_888_000u64</code>, <code>b'*'</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>isize</code>, <code>usize</code></td>
+<td style="text-align:center">有符号整数和无符号整数， 与计算机上的地址大小相同(32位或64位)</td>
+<td style="text-align:center"><code>137</code>, <code>-0b0101_0010isize</code>, <code>0xffff_fc00usize</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>f32</code>, <code>f64</code></td>
+<td style="text-align:center">IEEE浮点数，单精度和双精度</td>
+<td style="text-align:center"><code>1.61803</code>, <code>3.14f32</code>, <code>6.0221e23f64</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>bool</code></td>
+<td style="text-align:center">Boolean</td>
+<td style="text-align:center"><code>true</code>，<code>false</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>char</code></td>
+<td style="text-align:center">Unicode字符，32位宽</td>
+<td style="text-align:center"><code>'*'</code>, <code>'\n'</code>, <code>'字'</code>, <code>'\x7f'</code>, <code>'\u&#123;CA0&#125;'</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>(char, u8, i32)</code></td>
+<td style="text-align:center">Tuple:允许混合类型</td>
+<td style="text-align:center"><code>('%', 0x7f, -1)</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>()</code></td>
+<td style="text-align:center">空元组</td>
+<td style="text-align:center"><code>()</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>struct S &#123; x: f32, y: f32 &#125;</code></td>
+<td style="text-align:center">字段带名称的复合结构</td>
+<td style="text-align:center"><code>S &#123; x: 120.0, y: 209.0 &#125;</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>struct T (i32, char);</code></td>
+<td style="text-align:center">Tuple-like struct</td>
+<td style="text-align:center"><code>T(120, 'X')</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>struct E;</code></td>
+<td style="text-align:center"><code>Unit-like struct; has no fields</code></td>
+<td style="text-align:center"><code>E</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>enum Attend &#123; OnTime, Late(u32) &#125;</code></td>
+<td style="text-align:center">枚举</td>
+<td style="text-align:center"><code>Attend::Late(5), Attend::OnTime</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Box&lt;Attend&gt;</code></td>
+<td style="text-align:center"><code>Box</code>:拥有指向堆中的值的指针</td>
+<td style="text-align:center"><code>Box::new(Late(15))</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>&amp;i32, &amp;mut i32</code></td>
+<td style="text-align:center">共享引用和可变引用:非拥有指针，不能比它们的引用活得更久</td>
+<td style="text-align:center"><code>&amp;s.y, &amp;mut v</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>String</code></td>
+<td style="text-align:center">动态大小的<code>UTF-8</code>字符串</td>
+<td style="text-align:center"><code>&quot;ラーメン: ramen&quot;.to_string()</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>&amp;str</code></td>
+<td style="text-align:center"><code>Reference to str: non-owning pointer to UTF-8 text</code></td>
+<td style="text-align:center"><code>&quot;そば: soba&quot;</code>, <code>&amp;s[0..12]</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>[f64; 4]</code>, <code>[u8; 256]</code></td>
+<td style="text-align:center">数组，固定长度，元素同类型</td>
+<td style="text-align:center"><code>[1.0, 0.0, 0.0, 1.0]</code>, <code>[b' '; 256]</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Vec&lt;f64&gt;</code></td>
+<td style="text-align:center">变长<code>Vector</code>，元素同类型</td>
+<td style="text-align:center"><code>vec![0.367, 2.718, 7.389]</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>&amp;[u8],&amp;mut [u8]</code></td>
+<td style="text-align:center">对<code>slice</code>的引用:对数组或<code>vector</code>的一部分的引用，包括指针和长度</td>
+<td style="text-align:center"><code>&amp;v[10..20]</code>, <code>&amp;mut a[..]</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Option&lt;&amp;str&gt;</code></td>
+<td style="text-align:center">可选值，要么是 <code>None</code>，要么是 <code>Some(v)</code></td>
+<td style="text-align:center"><code>Some(&quot;Dr.&quot;)</code>, <code>None</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Result&lt;u64, Error&gt;</code></td>
+<td style="text-align:center">可能失败的操作结果，成功就是 <code>Ok(v)</code>，失败则是：<code>Err(e)</code></td>
+<td style="text-align:center"><code>Ok(4096)</code>, <code>Err(Error::last_os_error())</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>&amp;dyn Any</code>, <code>&amp;mut dyn Read</code></td>
+<td style="text-align:center"><code>Trait</code>对象:引用任何实现了给定方法集的值</td>
+<td style="text-align:center"><code>value as &amp;dyn Any,&amp;mut file as &amp;mut dyn Read</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>fn(&amp;str) -&gt; bool</code></td>
+<td style="text-align:center">函数指针</td>
+<td style="text-align:center"><code>str::is_empty</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>(Closure types have no written form)</code></td>
+<td style="text-align:center">闭包</td>
+<td style="text-align:center">`</td>
+</tr>
+</tbody>
+</table>
+<span id="more"></span>
+<h3 id="整数类型"><a class="markdownIt-Anchor" href="#整数类型"></a> 整数类型</h3>
+<p>固定宽度的数字类型可能会溢出或失去精度，但它们对于大多数应用程序来说已经足够了，并且可能比任意精度整数和有理素数等表示快数千倍。如果需要这些功能，可以使用 <a target="_blank" rel="noopener" href="https://crates.io/crates/num"><code>num</code></a>。<code>Rust</code> 的类型名称中包含了他们代表的宽度和用途。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">大小</th>
+<th style="text-align:center">无符号整数</th>
+<th style="text-align:center">有符号整数</th>
+<th style="text-align:center">浮点数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>8</code></td>
+<td style="text-align:center"><code>u8</code></td>
+<td style="text-align:center"><code>i8</code></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>16</code></td>
+<td style="text-align:center"><code>u16</code></td>
+<td style="text-align:center"><code>i16</code></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>32</code></td>
+<td style="text-align:center"><code>u32</code></td>
+<td style="text-align:center"><code>i32</code></td>
+<td style="text-align:center"><code>f32</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>64</code></td>
+<td style="text-align:center"><code>u64</code></td>
+<td style="text-align:center"><code>i64</code></td>
+<td style="text-align:center"><code>f64</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>128</code></td>
+<td style="text-align:center"><code>u128</code></td>
+<td style="text-align:center"><code>i128</code></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Machine word</code></td>
+<td style="text-align:center"><code>usize</code></td>
+<td style="text-align:center"><code>isize</code></td>
+<td style="text-align:center"></td>
+</tr>
+</tbody>
+</table>
+<p><code>Rust</code> 有符号数的范围如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">类型</th>
+<th style="text-align:left">范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>i8</code></td>
+<td style="text-align:left"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><msup><mn>2</mn><mn>7</mn></msup></mrow><annotation encoding="application/x-tex">-2^7</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord">−</span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">7</span></span></span></span></span></span></span></span></span></span></span> ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>7</mn></msup><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">2^7 - 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">7</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span> (−128 ~ 127)</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>i16</code></td>
+<td style="text-align:left"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><msup><mn>2</mn><mn>15</mn></msup></mrow><annotation encoding="application/x-tex">-2^{15}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord">−</span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></span> ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>15</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{15}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span> (−32,768 ~ 32,767)</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>i32</code></td>
+<td style="text-align:left"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><msup><mn>2</mn><mn>31</mn></msup></mrow><annotation encoding="application/x-tex">-2^{31}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord">−</span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">1</span></span></span></span></span></span></span></span></span></span></span></span> ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>31</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{31}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">1</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span> (−2,147,483,648 ~ 2,147,483,647)</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>i64</code></td>
+<td style="text-align:left"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><msup><mn>2</mn><mn>63</mn></msup></mrow><annotation encoding="application/x-tex">-2^{63}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord">−</span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">6</span><span class="mord mtight">3</span></span></span></span></span></span></span></span></span></span></span></span> ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>63</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{63}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">6</span><span class="mord mtight">3</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span>  (−9,223,372,036,854,775,808 ~ 9,223,372,036,854,775,807)</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>i128</code></td>
+<td style="text-align:left"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><msup><mn>2</mn><mn>127</mn></msup></mrow><annotation encoding="application/x-tex">-2^{127}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord">−</span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">2</span><span class="mord mtight">7</span></span></span></span></span></span></span></span></span></span></span></span> ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>127</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{127}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">2</span><span class="mord mtight">7</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span> (roughly <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo>−</mo><mn>1.7</mn></mrow><mo>∗</mo><mn>1</mn><msup><mn>0</mn><mn>38</mn></msup></mrow><annotation encoding="application/x-tex">{-1.7} \ast 10^{38}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">−</span><span class="mord">1</span><span class="mord">.</span><span class="mord">7</span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">8</span></span></span></span></span></span></span></span></span></span></span></span> ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1.7</mn><mo>∗</mo><mn>1</mn><msup><mn>0</mn><mn>38</mn></msup></mrow><annotation encoding="application/x-tex">1.7 \ast 10^{38}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord">.</span><span class="mord">7</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">8</span></span></span></span></span></span></span></span></span></span></span></span>)</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>isize</code></td>
+<td style="text-align:left"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><msup><mn>2</mn><mn>31</mn></msup></mrow><annotation encoding="application/x-tex">-2^{31}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord">−</span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">1</span></span></span></span></span></span></span></span></span></span></span></span> ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>31</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{31}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">1</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span>, 或者 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>−</mo><msup><mn>2</mn><mn>63</mn></msup></mrow><annotation encoding="application/x-tex">-2^{63}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord">−</span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">6</span><span class="mord mtight">3</span></span></span></span></span></span></span></span></span></span></span></span> ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>63</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{63}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">6</span><span class="mord mtight">3</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span></td>
+</tr>
+</tbody>
+</table>
+<p><code>Rust</code> 无符号数的范围如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">类型</th>
+<th style="text-align:left">范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>u8</code></td>
+<td style="text-align:left">0 ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>8</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^8−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">8</span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span> (0 ~ 255)</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>u16</code></td>
+<td style="text-align:left">0 ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>16</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{16}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">6</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span> (0 ~ 65,535)</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>u32</code></td>
+<td style="text-align:left">0 ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>32</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{32}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">2</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span>  (0 ~ 4,294,967,295)</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>u64</code></td>
+<td style="text-align:left">0 ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>64</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{64}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">6</span><span class="mord mtight">4</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span>  (0 ~ 18,446,744,073,709,551,615)</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>u128</code></td>
+<td style="text-align:left">0 ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>128</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{128}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">2</span><span class="mord mtight">8</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span> (0 ~ around <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>3.4</mn><mo>∗</mo><mn>1</mn><msup><mn>0</mn><mn>38</mn></msup></mrow><annotation encoding="application/x-tex">3.4 \ast 10^{38}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span><span class="mord">.</span><span class="mord">4</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">8</span></span></span></span></span></span></span></span></span></span></span></span>)</td>
+</tr>
+<tr>
+<td style="text-align:center"><code>usize</code></td>
+<td style="text-align:left">0 ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>32</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{32}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">2</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span>, 或者 0 ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>2</mn><mn>64</mn></msup><mtext>−</mtext><mn>1</mn></mrow><annotation encoding="application/x-tex">2^{64}−1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">6</span><span class="mord mtight">4</span></span></span></span></span></span></span></span></span><span class="mord">−</span><span class="mord">1</span></span></span></span></td>
+</tr>
+</tbody>
+</table>
+<p><code>usize</code>和<code>isize</code>类型类似于<code>C</code>和<code>C++</code>中的<code>size_t</code>和<code>ptrdiff_t</code>，它们的大小和机器架构有关系，要么是 <code>32</code>位 要么是 <code>64</code>位。<code>Rust</code>要求数组索引为<code>usize</code>值，表示数组或<code>vector</code>大小或某些数据结构中元素数量计数的值通常也具有<code>usize</code>类型。</p>
+<p>数字字面量可以用一个后缀表示它们的类型，例如：<code>42u8</code>，<code>1729isize</code>。如果没有类型后缀，<code>Rust</code> 会在赋值，函数调用或者比较的时候才确定其类型，也就是根据使用场景将它确定为合适的类型。最后，如果没有指定类型，并且多种类型也都可行，那么默认 <code>i32</code>，否则，就会报告错误。</p>
+<p>数字字面量可以用前缀 <code>0x</code>，<code>0o</code> 或者 <code>0b</code> 表示 <code>16</code>进制，<code>8</code>进制 或者 <code>2</code>进制数值。</p>
+<p>为了在表示长数字时更具可读性，可以在数字之间插入下划线 <code>_</code>。例如我们可将 <code>u32</code> 的最大值表示为 <code>4_294_967_295</code>。下划线的位置并不重要，例如，我们可以在表示<code>16</code>进制数字和<code>2</code>进制数字，以 <code> 0xffff_ffff</code> 的形式进行分割，或者用 <code>_</code> 分割数值和类型 <code>127_u8</code>。</p>
+<p>在 <code>Rust</code> 中，可以将字符表示为 <code>u8</code> 类型，例如用 <code>b'X'</code> 表示字母 <code>X</code>，<code>65</code> 和 <code>b'A'</code> 是完全相等的。对于一些字符不能直接表示，需要转义：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">字符</th>
+<th style="text-align:center">字面量</th>
+<th style="text-align:center">等价数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">单引号</td>
+<td style="text-align:center"><code>b'\''</code></td>
+<td style="text-align:center"><code>39u8</code></td>
+</tr>
+<tr>
+<td style="text-align:center">反斜线</td>
+<td style="text-align:center"><code>b'\\'</code></td>
+<td style="text-align:center"><code>92u8</code></td>
+</tr>
+<tr>
+<td style="text-align:center">换行键</td>
+<td style="text-align:center"><code>b'\n'</code></td>
+<td style="text-align:center"><code>10u8</code></td>
+</tr>
+<tr>
+<td style="text-align:center">回车键</td>
+<td style="text-align:center"><code>b'\r'</code></td>
+<td style="text-align:center"><code>13u8</code></td>
+</tr>
+<tr>
+<td style="text-align:center">水平制表符</td>
+<td style="text-align:center"><code>b'\t'</code></td>
+<td style="text-align:center"><code>9u8</code></td>
+</tr>
+</tbody>
+</table>
+<p>对于一些很难表示的字符，可以用<code>16</code>进制表示，形式为 <code>b'\xHH'</code>。例如，<code>ASCII</code> 码，<code>27</code> 代表的 <code>ESC (Escape)</code>，我们可以表示为 <code>\x1b</code>。</p>
+<p>对于数值之间的类型转换，可以使用 <code>as</code> 操作符：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(<span class="number">10_i8</span> <span class="keyword">as</span> <span class="type">u16</span>, <span class="number">10_u16</span>); <span class="comment">// in range</span></span><br><span class="line"><span class="built_in">assert_eq!</span>(<span class="number">2525_u16</span> <span class="keyword">as</span> <span class="type">i16</span>, <span class="number">2525_i16</span>); <span class="comment">// in range</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">assert_eq!</span>(-<span class="number">1_i16</span> <span class="keyword">as</span> <span class="type">i32</span>, -<span class="number">1_i32</span>); <span class="comment">// sign-extended</span></span><br><span class="line"><span class="built_in">assert_eq!</span>(<span class="number">65535_u16</span> <span class="keyword">as</span> <span class="type">i32</span>, <span class="number">65535_i32</span>); <span class="comment">// zero-extended</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Conversions that are out of range for the destination</span></span><br><span class="line"><span class="comment">// produce values that are equivalent to the original modulo 2^N, // where N is the width of the destination in bits. This</span></span><br><span class="line"><span class="comment">// is sometimes called &quot;truncation.&quot; </span></span><br><span class="line"><span class="built_in">assert_eq!</span>(<span class="number">1000_i16</span> <span class="keyword">as</span> <span class="type">u8</span>, <span class="number">232_u8</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(<span class="number">65535_u32</span> <span class="keyword">as</span> <span class="type">i16</span>, -<span class="number">1_i16</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(-<span class="number">1_i8</span> <span class="keyword">as</span> <span class="type">u8</span>, <span class="number">255_u8</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(<span class="number">255_u8</span> <span class="keyword">as</span> <span class="type">i8</span>, -<span class="number">1_i8</span>);</span><br></pre></td></tr></table></figure>
+<p>标准库提供了很多整数操作方法，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">2_u16</span>.<span class="title function_ invoke__">pow</span>(<span class="number">4</span>), <span class="number">16</span>); <span class="comment">// exponentiation</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>((-<span class="number">4_i32</span>).<span class="title function_ invoke__">abs</span>(), <span class="number">4</span>); <span class="comment">// absolute value</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">0b101101_u8</span>.<span class="title function_ invoke__">count_ones</span>(), <span class="number">4</span>); <span class="comment">// population count</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>更多可以去看每个标准库每个类型的方法，例如 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/primitive.i16.html"><code>i16</code></a>。</p>
+<p>真实编码情况下，我们编码的时候一般不会写类型后缀，但是像下面这样调用方面就会报错:</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, (-<span class="number">4</span>).<span class="title function_ invoke__">abs</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>原因是：</p>
+<pre><code>error[E0689]: can't call method `abs` on ambiguous numeric type `{integer}`
+</code></pre>
+</div>
+<p>这可能会有点令人困惑：所有有符号整数类型都有 <code>abs</code>方法，那么有什么问题呢？出于技术原因，<code>Rust</code> 想知道一个值在调用该类型自己的方法之前具有哪个整数类型。<code>i32</code>的默认值只适用于在所有方法调用解决后，类型仍然不明确的情况，所以在这里已经太晚了，没有帮助。解决方案是用后缀或使用特定类型的函数来阐明打算使用哪种类型：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, (-<span class="number">4_i32</span>).<span class="title function_ invoke__">abs</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="type">i32</span>::<span class="title function_ invoke__">abs</span>(-<span class="number">4</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为方法调用比一元操作符优先级高，所以我们需要将操作数用括号包括，否则 <code>-4_i32.abs()</code> 的结果将是 <code>-4</code>。</p>
+<h4 id="溢出处理"><a class="markdownIt-Anchor" href="#溢出处理"></a> 溢出处理</h4>
+<p>当整数计算溢出时，<code>debug</code> 模式下，程序会奔溃。<code>release</code> 模式下，程序会一直运行，只是结果就不可期望了。对于下面的测试代码，我们使用两种不同的模式进行运行:</p>
+<div class="note danger"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">i</span> = <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">loop</span> &#123;</span><br><span class="line">        i *= <span class="number">10</span>; <span class="comment">// panic: debug 模式溢出崩溃</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>使用 <code>cargo run</code> 命令时程序会崩溃（默认 <code>debug</code>），但使用 <code>cargo run --release</code> 时会一直运行。默认行为或许不是我们想要的，那么我们可以显示地表达我们的意图：</p>
+<ul>
+<li>
+<p><code>checked</code> 相关的方法会检查运算结果，如果数学上是正确的，那么就是会返回 <code>Some(v)</code>，否则，会返回 <code>None</code>：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// The sum of 10 and 20 can be represented as a u8.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">10_u8</span>.<span class="title function_ invoke__">checked_add</span>(<span class="number">20</span>), <span class="title function_ invoke__">Some</span>(<span class="number">30</span>));</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Unfortunately, the sum of 100 and 200 cannot.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">100_u8</span>.<span class="title function_ invoke__">checked_add</span>(<span class="number">200</span>), <span class="literal">None</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Do the addition; panic if it overflows.</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">sum</span> = x.<span class="title function_ invoke__">checked_add</span>(y).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Oddly, signed division can overflow too, in one particular case.</span></span><br><span class="line">    <span class="comment">// A signed n-bit type can represent -2n−1, but not 2n−1.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>((-<span class="number">128_i8</span>).<span class="title function_ invoke__">checked_div</span>(-<span class="number">1</span>), <span class="literal">None</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>wrapping</code> operations return the value equivalent to the mathematically correct result modulo the range of the value：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// The first product can be represented as a u16;</span></span><br><span class="line">    <span class="comment">// the second cannot, so we get 250000 modulo 216.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">100_u16</span>.<span class="title function_ invoke__">wrapping_mul</span>(<span class="number">200</span>), <span class="number">20000</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">500_u16</span>.<span class="title function_ invoke__">wrapping_mul</span>(<span class="number">500</span>), <span class="number">53392</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Operations on signed types may wrap to negative values.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">500_i16</span>.<span class="title function_ invoke__">wrapping_mul</span>(<span class="number">500</span>), -<span class="number">12144</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// In bitwise shift operations, the shift distance</span></span><br><span class="line">    <span class="comment">// is wrapped to fall within the size of the value.</span></span><br><span class="line">    <span class="comment">// So a shift of 17 bits in a 16-bit type is a shift</span></span><br><span class="line">    <span class="comment">// of 1.</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">5_i16</span>.<span class="title function_ invoke__">wrapping_shl</span>(<span class="number">17</span>), <span class="number">10</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>Saturating</code> 相关的操作在溢出时会用类型最大值表示结果：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">254_u8</span>.<span class="title function_ invoke__">saturating_add</span>(<span class="number">10</span>), <span class="number">255</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">32760_i16</span>.<span class="title function_ invoke__">saturating_add</span>(<span class="number">10</span>), <span class="number">32767</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>((-<span class="number">32760_i16</span>).<span class="title function_ invoke__">saturating_sub</span>(<span class="number">10</span>), -<span class="number">32768</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>Overflowing</code> 相关的操作会返回一个 <code>tuple(result, overflowed)</code>，其中 <code>result</code> 是 <code>wrapping</code> 将返回的内容，<code>overflowed</code> 指示是否发生了溢出：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">255_u8</span>.<span class="title function_ invoke__">overflowing_sub</span>(<span class="number">2</span>), (<span class="number">253</span>, <span class="literal">false</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">255_u8</span>.<span class="title function_ invoke__">overflowing_add</span>(<span class="number">2</span>), (<span class="number">1</span>, <span class="literal">true</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>操作名称都以下面的前缀开始：<code>checked_</code>, <code>wrapping_</code>, <code>saturating_</code>, 或者 <code>overflowing_</code>，相关的操作有：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Operation</th>
+<th style="text-align:center">Name suffix</th>
+<th style="text-align:left">Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>Addition</code></td>
+<td style="text-align:center"><code>add</code></td>
+<td style="text-align:left"><code>100_i8.checked_add(27) == Some(127)</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Subtraction</code></td>
+<td style="text-align:center"><code>sub</code></td>
+<td style="text-align:left"><code>10_u8.checked_sub(11) == None</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Multiplication</code></td>
+<td style="text-align:center"><code>mul</code></td>
+<td style="text-align:left"><code>128_u8.saturating_mul(3) == 255</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Division</code></td>
+<td style="text-align:center"><code>div</code></td>
+<td style="text-align:left"><code>64_u16.wrapping_div(8) == 8</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Remainde</code>r</td>
+<td style="text-align:center"><code>rem</code></td>
+<td style="text-align:left"><code>(-32768_i16).wrapping_rem(-1) == 0</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Negation</code></td>
+<td style="text-align:center"><code>neg</code></td>
+<td style="text-align:left"><code>(-128_i8).checked_neg() == None</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Absolute value</code></td>
+<td style="text-align:center"><code>abs</code></td>
+<td style="text-align:left"><code>(-32768_i16).wrapping_abs() == -32768</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Exponentiation</code></td>
+<td style="text-align:center"><code>pow</code></td>
+<td style="text-align:left"><code>3_u8.checked_pow(4) == Some(81)</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Bitwise left shift</code></td>
+<td style="text-align:center"><code>shl</code></td>
+<td style="text-align:left"><code>10_u32.wrapping_shl(34) == 40</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>Bitwise right shift</code></td>
+<td style="text-align:center"><code>shr</code></td>
+<td style="text-align:left"><code>40_u64.wrapping_shr(66) == 10</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="浮点数"><a class="markdownIt-Anchor" href="#浮点数"></a> 浮点数</h3>
+<p><code>Rust</code>提供<code>IEEE</code>单精度和双精度浮点类型。这些类型包括正负无穷大，不同的正负零值，以及非数字值。单双精度数值的范围如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Precision</th>
+<th style="text-align:center">Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>f32</code></td>
+<td style="text-align:center">单精度（最少<code>6</code>位小数）</td>
+<td style="text-align:center">Roughly <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mtext>–</mtext><mn>3.4</mn></mrow><mo>∗</mo><mn>1</mn><msup><mn>0</mn><mn>38</mn></msup></mrow><annotation encoding="application/x-tex">{–3.4} \ast 10^{38}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord"><span class="mord">–</span><span class="mord">3</span><span class="mord">.</span><span class="mord">4</span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">8</span></span></span></span></span></span></span></span></span></span></span></span> ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo>+</mo><mn>3.4</mn></mrow><mo>∗</mo><mn>1</mn><msup><mn>0</mn><mn>38</mn></msup></mrow><annotation encoding="application/x-tex">{+3.4} \ast 10 ^{38}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">+</span><span class="mord">3</span><span class="mord">.</span><span class="mord">4</span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">8</span></span></span></span></span></span></span></span></span></span></span></span></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>f64</code></td>
+<td style="text-align:center">双精度 (最少<code>15</code>位小数)</td>
+<td style="text-align:center">Roughly <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mtext>–</mtext><mn>1.8</mn></mrow><mo>∗</mo><mn>1</mn><msup><mn>0</mn><mn>308</mn></msup></mrow><annotation encoding="application/x-tex">{–1.8} \ast 10^{308}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord"><span class="mord">–</span><span class="mord">1</span><span class="mord">.</span><span class="mord">8</span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">0</span><span class="mord mtight">8</span></span></span></span></span></span></span></span></span></span></span></span> ~ <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo>+</mo><mn>1.8</mn></mrow><mo>∗</mo><mn>1</mn><msup><mn>0</mn><mn>308</mn></msup></mrow><annotation encoding="application/x-tex">{+1.8} \ast 10^{308}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">+</span><span class="mord">1</span><span class="mord">.</span><span class="mord">8</span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">0</span><span class="mord mtight">8</span></span></span></span></span></span></span></span></span></span></span></span></td>
+</tr>
+</tbody>
+</table>
+<p><code>Rust</code> 的 <code>f32</code> 和 <code>f64</code> 对应于 <code>C</code>，<code>C++</code> 中的 <code>float</code> 和 <code>double</code>（在支持<code>IEEE</code>浮点的实现中）以及 <code>Java</code>（始终使用<code>IEEE</code>浮点）。浮点数的一般形式如下图所示：</p>
+<p><img data-src="floating-num.png" alt="" /></p>
+<p>整数部分之后浮点数的每个部分都是可选的，但分数部分、指数或类型后缀至少存在一个，以将其与整数文字区分开来。小数部分可能由一个单独的小数点组成，因此<code>5.</code>是一个有效的浮点常数。下面是一些示例：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Literal</th>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Mathematical value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>-1.5625</code></td>
+<td style="text-align:center"><code>Inferred</code></td>
+<td style="text-align:center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext>−</mtext><mo stretchy="false">(</mo><mn>1</mn><mfrac><mn>9</mn><mn>16</mn></mfrac><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">−(1\frac{9}{16})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.190108em;vertical-align:-0.345em;"></span><span class="mord">−</span><span class="mopen">(</span><span class="mord">1</span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.845108em;"><span style="top:-2.6550000000000002em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">6</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">9</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mclose">)</span></span></span></span></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>2.</code></td>
+<td style="text-align:center"><code>Inferred</code></td>
+<td style="text-align:center"><code>2</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>0.25</code></td>
+<td style="text-align:center"><code>Inferred</code></td>
+<td style="text-align:center"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mn>1</mn><mn>4</mn></mfrac></mrow><annotation encoding="application/x-tex">\frac{1}{4}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.190108em;vertical-align:-0.345em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.845108em;"><span style="top:-2.6550000000000002em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">4</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>1e4</code></td>
+<td style="text-align:center"><code>Inferred</code></td>
+<td style="text-align:center"><code>10,000</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>40f32</code></td>
+<td style="text-align:center"><code>f32</code></td>
+<td style="text-align:center"><code>40</code></td>
+</tr>
+<tr>
+<td style="text-align:center"><code>9.109_383_56e-31f64</code></td>
+<td style="text-align:center"><code>f64</code></td>
+<td style="text-align:center">Roughly <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>9.10938356</mn><mo>∗</mo><mn>1</mn><msup><mn>0</mn><mrow><mtext>–</mtext><mn>31</mn></mrow></msup></mrow><annotation encoding="application/x-tex">9.10938356 \ast 10^{–31}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">9</span><span class="mord">.</span><span class="mord">1</span><span class="mord">0</span><span class="mord">9</span><span class="mord">3</span><span class="mord">8</span><span class="mord">3</span><span class="mord">5</span><span class="mord">6</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">–</span><span class="mord mtight">3</span><span class="mord mtight">1</span></span></span></span></span></span></span></span></span></span></span></span></td>
+</tr>
+</tbody>
+</table>
+<p><code>f32</code>和<code>f64</code>类型具有<code>IEEE</code>要求的特殊值的相关常量，如 <code>INFINITY</code>、<code>NEG_INFINITY</code>（负无穷大）、<code>NAN</code>（非数字值）以及<code>MIN</code>和<code>MAX</code>（最大和最小的有限值）：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert!</span>((-<span class="number">1</span>. / <span class="type">f32</span>::INFINITY).<span class="title function_ invoke__">is_sign_negative</span>());</span><br><span class="line">    <span class="built_in">assert_eq!</span>(-<span class="type">f32</span>::MIN, <span class="type">f32</span>::MAX);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>f32</code> 和 <code>f64</code> 类型为数学计算关系提供了完整的方法补充；例如，<code>2f64.sqrt()</code>是<code>2</code>的双精度平方根。一些例子：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="number">5f32</span>.<span class="title function_ invoke__">sqrt</span>() * <span class="number">5f32</span>.<span class="title function_ invoke__">sqrt</span>(), <span class="number">5</span>.); <span class="comment">// exactly 5.0, per IEEE</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>((-<span class="number">1.01f64</span>).<span class="title function_ invoke__">floor</span>(), -<span class="number">2.0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>同样，方法调用的优先级高于前缀运算符，因此请务必对否定值对方法调用进行校正括号。</p>
+<p><code>std::f32::consts</code> 和 <code>std::f64::consts</code> 模块提供了各种常用的数学常量，如<code>E</code>、<code>PI</code>和两个的平方根。</p>
+<p><strong>与<code>C</code>和<code>C++</code>不同，<code>Rust</code>几乎不隐式执行数字转换</strong>。如果函数期望<code>f64</code>类型参数，则传递<code>i32</code>值作为参数是错误的。事实上，<code>Rust</code>甚至不会隐式将<code>i16</code>值转换为<code>i32</code>值，即使每个<code>i16</code>值也是<code>i32</code>值。但始终可以使用 <code>as</code> 运算符写出显式转换：<code>i as f64</code>，或 <code>x as i32</code>。</p>
+<p>缺乏隐式转换有时使<code>Rust</code>表达式比类似的<code>C</code>或<code>C++</code>代码更冗长。然而，隐式整数转换有可能导致意想不到的安全漏洞。根据经验，在 <code>Rust</code> 中显示写出数字转换提醒我们注意可能会发生的问题。</p>
+<h3 id="bool-类型"><a class="markdownIt-Anchor" href="#bool-类型"></a> Bool 类型</h3>
+<p><code>Rust</code> 的 <code>bool</code> 类型具有 <code>true</code> 和 <code>false</code> 两个值。<code>==</code> 和 <code>&lt;</code> 等比较运算符产生 <code>bool</code> 结果：<code>2 &lt; 5</code> 的值为 <code>true</code>。</p>
+<p>许多语言在需要布尔值的上下文中能使用其他类型进行自动隐式转换：<code>C</code> 和 <code>C++</code> 隐式将字符、整数、浮点数和指针转换为布尔值，因此它们可以直接用作 <code>if</code> 或 <code>while</code> 语句中的条件。<code>Python</code> 允许在布尔上下文中设置字符串、列表、字典甚至集合，如果这些值是非空的，则将其视为 <code>true</code>。但是 <code>rust</code> 非常严格，对于 <code>if</code> 和 <code>while</code> 这样的控制结构，要求其条件语句必须为 <code>bool</code> 表达式，逻辑运算符<code>&amp;&amp;</code> 和 <code>||</code> 也是如此。所以必须写 <code>if x != 0 &#123; ... &#125;</code> 而不是 <code>if x &#123; ... &#125;</code>。</p>
+<p><code>Rust</code> 的 <code>as</code> 操作符可以将<code>bool</code>值转换为整形：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">assert_eq!</span>(<span class="literal">false</span> <span class="keyword">as</span> <span class="type">i32</span>, <span class="number">0</span>);</span><br><span class="line"><span class="built_in">assert_eq!</span>(<span class="literal">true</span> <span class="keyword">as</span> <span class="type">i32</span>, <span class="number">1</span>);</span><br></pre></td></tr></table></figure>
+<p>但是反过来不行，<code>as</code> 不能将数字转化为 <code>bool</code>，所以，必须写显示的比较操作，例如：<code>x != 0</code>。虽然 <code>bool</code> 只需要 <code>1</code> 个 <code>bit</code> 来表示它，但 <code>Rust</code> 使用整个字节（<code>8 bit</code>）来表示内存中的 <code>bool</code> 值，因此可以创建指向它的指针，例如 <code>&amp;true</code>。</p>
+<h3 id="字符类型"><a class="markdownIt-Anchor" href="#字符类型"></a> 字符类型</h3>
+<p><code>Rust</code> 的字符类型 <code>char</code> 表示单个<code>Unicode</code>字符，为<code>32</code>位值。<code>Rust</code> 对单个字符使用 <code>char</code> 类型，但对字符串和文本流使用 <code>UTF-8</code> 编码。因此，字符串将其文本表示为 <code>UTF-8</code> 字节序列，而不是字符数组。字符字面量可以是任何用单引号括起来的<code>Unicode</code> 字符，如<code>'8'</code>，<code>'!'</code>，<code>'中'</code>。</p>
+<p>根据个人喜好，如果喜欢，可以用<code>16</code>进制写出任何一个字符的 <code>Unicode</code>码点：</p>
+<ul>
+<li>
+<p>如果字符的代码点在<code>U+0000</code>到<code>U+007F</code>的范围（也就是<code>ASCII</code>字符），那么我们可以将字符写为<code>\xHH</code>，其中<code>HH</code>是一个两位<code>16</code>进制数字。例如，字符文字<code>*</code>和<code>\x2A</code>是等价的，因为字符<code>*</code>的代码点是<code>42</code>，或<code>16</code>进制为<code>2A</code>；</p>
+</li>
+<li>
+<p>可以将任何 <code>Unicode</code> 字符写成 <code>\u&#123;HHHHHH&#125;</code>，其中 <code>HHHHHH</code> 是一个<code>16</code>进制数字，长度可达 <code>6</code> 位数，允许使用下划线分组。例如，字面字符<code>\u&#123;CA0&#125;</code>表示字符<code>ಠ</code>。</p>
+</li>
+</ul>
+<p><code>char</code>类型能表示的 <code>Unicode</code> 字符码点在 <code>0x0000 ~ 0xD7FF</code> 或者 <code>xE000 ~ 0x10FFFF</code> 之间。<code>Rust</code> 使用类型系统和动态检查来确保字符值始终在允许范围内。</p>
+<p><code>Rust</code> 永远不会在 <code>char</code> 和任何其他类型之间隐式转换。可以使用转换运算符将字符转换为整数类型；对于小于<code>32</code>位的类型，字符值的高位被截断：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&#x27;*&#x27;</span> <span class="keyword">as</span> <span class="type">i32</span>, <span class="number">42</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&#x27;ಠ&#x27;</span> <span class="keyword">as</span> <span class="type">u16</span>, <span class="number">0xca0</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&#x27;ಠ&#x27;</span> <span class="keyword">as</span> <span class="type">i8</span>, -<span class="number">0x60</span>); <span class="comment">// U+0CA0 truncated to eight bits, signed</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>还有就是 <strong><code>u8</code>是唯一可以直接通过<code>as</code>转换为<code>char</code>的类型</strong>，但<code>u8</code>以外的每个整数类型都包含不允许的<code>Unicode</code>代码点的值，因此这些转换需要运行时检查。标准库为此提供<code>std::char::from_u32</code>接受任何<code>u32</code>值并返回<code>Option&lt;char&gt;</code>：如果<code>u32</code>不是允许的<code>Unicode</code>代码点，则<code>from_u32</code>返回<code>None</code>；否则，它会返回<code>Some(c)</code>，其中<code>c</code>是<code>char</code>值。</p>
+<p>标准库提供了一些关于字符的有用方法，可以查看<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/primitive.char.html">标准库文档</a>。例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&#x27;*&#x27;</span>.<span class="title function_ invoke__">is_alphabetic</span>(), <span class="literal">false</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&#x27;β&#x27;</span>.<span class="title function_ invoke__">is_alphabetic</span>(), <span class="literal">true</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&#x27;8&#x27;</span>.<span class="title function_ invoke__">to_digit</span>(<span class="number">10</span>), <span class="title function_ invoke__">Some</span>(<span class="number">8</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&#x27;ಠ&#x27;</span>.<span class="title function_ invoke__">len_utf8</span>(), <span class="number">3</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(std::<span class="type">char</span>::<span class="title function_ invoke__">from_digit</span>(<span class="number">2</span>, <span class="number">10</span>), <span class="title function_ invoke__">Some</span>(<span class="string">&#x27;2&#x27;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="元组类型"><a class="markdownIt-Anchor" href="#元组类型"></a> 元组类型</h3>
+<p><code>Tuple</code>形式上是一个括号围起来的，逗号分割的多元素序列。例如 <code>(&quot;Brazil&quot;, 1985)</code>，它的类型是 <code>(&amp;str, i32)</code>，如果将它赋值给变量 <code>t</code>，可以通过 <code>t.0</code> 或者 <code>t.1</code> 访问元素。</p>
+<p>在某种程度上，<code>tuple</code> 很像 <code>array</code>，都表示有序的值序列。有些编程语言中将他们统一在，但是在 <code>rust</code> 中，这完全是隔离开的。主要有两大区别：</p>
+<ol>
+<li><code>tuple</code> 的元素类型可以不同，但是数组所有元素的类型都是相同的；</li>
+<li><code>tuple</code> 只能用常量作为索引，例如 <code>t.4</code>，不能用 <code>t.i</code> 或者 <code>t[i]</code> 去访问第 <code>i</code> 个元素；</li>
+</ol>
+<p><code>Rust</code> 中，<code>tuple</code> 经常用于函数的多值返回，例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">split_at</span>(&amp;<span class="keyword">self</span>, mid: <span class="type">usize</span>) <span class="punctuation">-&gt;</span> (&amp;<span class="type">str</span>, &amp;<span class="type">str</span>);</span><br></pre></td></tr></table></figure>
+<p>返回值 <code>(&amp;str, &amp;str)</code> 是一个包含两个字符串<code>slice</code>的 <code>tuple</code>，可以通过模式匹配将他们赋值给不同的变量:</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">text</span> = <span class="string">&quot;I see the eigenvalue in thine eye&quot;</span>;</span><br><span class="line">    <span class="keyword">let</span> (head, tail) = text.<span class="title function_ invoke__">split_at</span>(<span class="number">21</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(head, <span class="string">&quot;I see the eigenvalue &quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(tail, <span class="string">&quot;in thine eye&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这比下面的代码更具可读性：</p>
+<div class="note warning"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">text</span> = <span class="string">&quot;I see the eigenvalue in thine eye&quot;</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">temp</span> = text.<span class="title function_ invoke__">split_at</span>(<span class="number">21</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">head</span> = temp.<span class="number">0</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">tail</span> = temp.<span class="number">1</span>;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(head, <span class="string">&quot;I see the eigenvalue &quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(tail, <span class="string">&quot;in thine eye&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+<p>另一种常用的元组类型是零元组<code>()</code>，这一般被称为单位类型，因为它只有一个值，也写成 <code>()</code>，虽然单位类型没有携带有意义的值，但某些场景仍然有意义。例如，我们可能有这样一个返回值 <code>Result&lt;(), std::io::Error&gt;</code>，它在成功时没有返回值，当出错时返回 <code>std::io::Error</code>。</p>
+<p>还有就是，可以在 <code>tuple</code> 的最后一个元素后面添上逗号，但是还是同一个类型，例如 <code>(&amp;str, i32,)</code> 和 <code>(&amp;str, i32)</code> 是完全等价的。除此之外，<code>Rust</code> 在函数参数，数组，结构体或者枚举定义中都允许使用额外的逗号。</p>
+<p>对于一元组，也就是只包含<code>1</code>个元素的 <code>tuple</code>，例如 <code>(&quot;lonely hearts&quot;,) </code> 它的类型是 <code>(&amp;str,)</code>，这里的逗号就是必须的，为了和括号表达式区分。</p>
+<h3 id="指针类型"><a class="markdownIt-Anchor" href="#指针类型"></a> 指针类型</h3>
+<p><code>Rust</code> 有几种代表内存地址的指针类型。</p>
+<p><code>Rust</code>和大多数具有 <code>GC</code> 功能的语言之间存在巨大差别。在<code>Java</code>中，如果类矩形包含一个类型位 <code>Vector2D</code> 的字段 <code>upperLeft</code>，那么 <code>upperLeft</code> 是对另一个单独创建的 <code>Vector2D</code> 对象的引用，在<code>Java</code>中，对象永远不会实际包含其他对象。</p>
+<p><code>Rust</code> 是不同的，该语言旨在帮助将内存分配保持在最低限度，对于值<code>((0，0), (1440，900)) </code>存储为<code>4</code>个相邻整数。如果将其存储在局部变量中，则有一个<code>4</code>个整数宽的局部变量。</p>
+<p>这会极大提高内存的效率，但因此，当<code>Rust</code>程序需要值来指向其他值时，它必须显式使用指针类型。好消息是安全 <code>Rust</code> 中使用的指针类型受到限制，以消除未定义的行为，因此在 <code>Rust</code> 中比在 <code>C++</code> 中正确使用指针容易得多。</p>
+<p>本节学习几种指针类型：<code>reference</code>，<code>box</code> 以及 <code>unsafe pointer</code>。</p>
+<h4 id="引用"><a class="markdownIt-Anchor" href="#引用"></a> 引用</h4>
+<p><code>&amp;String</code> 类型的值（发音为<code>ref String</code>）是对 <code>String</code> 值的引用，<code>&amp;i32</code> 是对 <code>i32</code> 的引用。</p>
+<p>把引用看作是<code>Rust</code>的基本指针类型，是最容易入门的。在运行时，对<code>i32</code> 的引用是保存 <code>i32</code> 地址的单个机器字，该地址可能在堆栈上或堆栈中。表达式 <code>&amp;x</code> 产生对 <code>x</code> 的引用；在<code>Rust</code>术语中，我们说它借用了对 <code>x</code> 的引用。给定引用 <code>r</code>，表达式 <code>*r</code> 指的是<code>r</code> 指向的值。这些非常像<code>C</code>和<code>C++</code>中的 <code>&amp;</code> 和 <code>*</code> 运算符。</p>
+<p>然而，与<code>C</code>指针不同，<strong><code>Rust</code>引用永远不会为空，根本无法在安全的<code>Rust</code> 中生成空指针</strong>。与 <code>C</code> 不同，<code>Rust</code> 跟踪值的所有权和生命周期，因此在编译时排除了悬垂指针、重复释放等错误。</p>
+<p><code>Rust</code> 有两种形式的引用：</p>
+<ul>
+<li>
+<p><code>&amp;T</code>：可共享的，但不可变的引用，可以一次对给定值进行许多共享引用，但它们是只读的，不能修改它们指向的值，就像 <code>C</code> 中的 <code>const T*</code> 一样；</p>
+</li>
+<li>
+<p><code>&amp;mut T</code>：可变的，但不可共享引用，可以读取和修改它指向的值，就像 <code>C</code> 中的 <code>T*</code> 一样。但只要该类型引用存在，就不会存在任何其他类型的该值引用；</p>
+</li>
+</ul>
+<p><code>Rust</code>的共享引用和可变引用其实就是多读单写，它可以由任何数量的 <code>reader</code> 共享，但 <code>writer</code> 始终只有一个，<code>Rust</code> 在编译时就会执行这种检查，也是 <code>Rust</code> 安全的核心。</p>
+<h4 id="boxes"><a class="markdownIt-Anchor" href="#boxes"></a> Boxes</h4>
+<p>在堆上申请内存的最简单方式是使用 <code>Box::new</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">t</span> = (<span class="number">12</span>, <span class="string">&quot;eggs&quot;</span>);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">b</span> = <span class="type">Box</span>::<span class="title function_ invoke__">new</span>(t); <span class="comment">// allocate a tuple in the heap</span></span><br></pre></td></tr></table></figure>
+<p><code>t</code> 的类型是 <code>(i32, &amp;str)</code>，所以 <code>b</code> 的类型是 <code>Box&lt;(i32, &amp;str)&gt;</code>。<code>Box::new</code> 会在堆上申请最够多的内存以容纳 <code>t</code>。当 <code>b</code> 离开作用域时，它的内存会被理解回收，除非它被 <code>move</code> 到其他地方。</p>
+<h4 id="原生指针"><a class="markdownIt-Anchor" href="#原生指针"></a> 原生指针</h4>
+<p><code>Rust</code> 还具有原生指针类型<code>*mut T</code>和 <code>*const T</code>，原生指针就像 <code>C++</code> 中的指针一样。使用原生指针不安全，因为<code>Rust</code>没有跟踪它指向的内容。例如，原生指针可能是空的，或者可能指向已释放或现在包含不同类型值的内存。</p>
+<p>但是，只能在不安全的块中解引用原生指针，<code>unsafe</code> 代码块是<code>Rust</code>支持高级语言功能而加入的机制，其安全性由开发者保证。</p>
+<h3 id="数组-vector-slice"><a class="markdownIt-Anchor" href="#数组-vector-slice"></a> 数组、<code>Vector</code>、<code>slice</code></h3>
+<p><code>Rust</code>有三种类型来表示内存中一个连续序列：</p>
+<ul>
+<li>
+<p><code>[T; N]</code>：表示<code>N</code>个值数组，每个值类型为<code>T</code>。数组的大小是在编译时确定的常量，是类型的一部分，无法在运行时变更数组大小；</p>
+</li>
+<li>
+<p><code>Vec&lt;T&gt;</code>：称为<code>T</code> 的 <code>vector</code>，是 <code>T</code> 类型的动态分配、变长的值序列。<code>vector</code>的元素分配在堆上，因此可以通过增删元素调整<code>vector</code>大小；</p>
+</li>
+<li>
+<p><code>&amp;[T]</code>、<code>&amp;mut [T]</code>：只读序列和可变序列，是对一系列元素的引用，这些元素是其他数组或者<code>vector</code>的一部分。可以将<code>slice</code>引用视为指向其第一个元素的指针，以及从该点开始可以访问的元素数量的计数。可变<code>slice``&amp;mut [T]</code>允许读取和修改元素，但无法共享；共享<code>slice``&amp;[T]</code>允许在多个<code>reader</code>之间共享访问权限，但不允许修改元素；</p>
+</li>
+</ul>
+<p>给定这三种类型的值<code>v</code>，表达式<code>v.len()</code>给出了<code>v</code>中的元素数量，<code>v[i]</code>指的是<code>v</code>的第<code>i</code>个元素。第一个元素是<code>v[0]</code>，最后一个元素是<code>v[v.len() - 1]</code>。<code>Rust</code> 会检查 <code>i</code> 是否在这个范围内，不在就会<code>panic</code>。<code>v</code> 的长度可能是<code>0</code>，在这种情况下，任何索引尝试都会<code>panic</code>。<code>i</code> 必须是一个 <code>usize</code> 值，不能使用其他整数类型作为索引。</p>
+<h4 id="数组"><a class="markdownIt-Anchor" href="#数组"></a> 数组</h4>
+<p>下面有几种不同的方式创建数组，最简单的是在方括号内写一系列值：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">lazy_caterer</span>: [<span class="type">u32</span>; <span class="number">6</span>] = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">4</span>, <span class="number">7</span>, <span class="number">11</span>, <span class="number">16</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">taxonomy</span> = [<span class="string">&quot;Animalia&quot;</span>, <span class="string">&quot;Arthropoda&quot;</span>, <span class="string">&quot;Insecta&quot;</span>];</span><br><span class="line">    <span class="built_in">assert_eq!</span>(lazy_caterer[<span class="number">3</span>], <span class="number">7</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(taxonomy.<span class="title function_ invoke__">len</span>(), <span class="number">3</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果要初始化一个 <code>N</code> 个 <code>V</code> 的数组，可以写作 <code>[V; N]</code>，例如，<code>[true; 10000]</code> 表示有 <code>10000</code> 个 <code>true</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">sieve</span> = [<span class="literal">true</span>; <span class="number">10000</span>];</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">i</span> <span class="keyword">in</span> <span class="number">2</span>..<span class="number">100</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> sieve[i] &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">j</span> = i * i;</span><br><span class="line">            <span class="keyword">while</span> j &lt; <span class="number">10000</span> &#123;</span><br><span class="line">                sieve[j] = <span class="literal">false</span>;</span><br><span class="line">                j += i;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">assert!</span>(sieve[<span class="number">211</span>]);</span><br><span class="line">    <span class="built_in">assert!</span>(!sieve[<span class="number">9876</span>]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由于<code>Rust</code>不会自动对内存进行初始化，因为不允许我们读未初始化的变量。所以如果我们想初始化一个缓冲池，可以像这样做：<code>[0u8; 1024]</code>。</p>
+<p>数组的长度是其类型的一部分，在编译时是固定的。如果 <code>n</code> 是一个变量，则无法编写 <code>[true; n]</code> 来获取 <code>n</code> 个元素的数组。当需要一个长度在运行时有所不同的数组，请使用<code>vector</code>。</p>
+<p>数组上看到的一些常用方法，例如，迭代、搜索、排序、填充、过滤等，其实都是作为<code>slice</code>上的方法提供的，而不是数组。但是，在搜索方法时，<code>Rust</code> 会隐式地将对数组的引用转换为<code>slice</code>，因此可以直接调用数组上的任何<code>slice</code>方法：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">chaos</span>=[<span class="number">3</span>,<span class="number">5</span>,<span class="number">4</span>,<span class="number">1</span>,<span class="number">2</span>];</span><br><span class="line">    chaos.<span class="title function_ invoke__">sort</span>();</span><br><span class="line">    <span class="built_in">assert_eq!</span>(chaos, [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在这里，排序方法实际上是在<code>slice</code>上定义的，但由于它需要引用做引参数，<code>Rust</code> 隐式生成一个引用整个数组的 <code>&amp;mut [i32]</code> <code>slice</code>,<code>len</code> 也类似。</p>
+<h4 id="vectors"><a class="markdownIt-Anchor" href="#vectors"></a> <code>Vectors</code></h4>
+<p><code>Vec&lt;T&gt;</code>是分配给堆上的<code>T</code>类型的大小可调整的数组。这里有几种创建 <code>vector</code> 的方式</p>
+<ol>
+<li>最简单的使用 <code>vec!</code> 宏，它给了一个特像创建数组字面量的方式；</li>
+<li><code>vec![0; 100]</code>，类似数组的初始化语法，将 <code>vector</code> 中的值都初始化相同的元素，<code>vec!</code> 宏类似于调用 <code>Vec::new</code>；</li>
+<li>从迭代器创建；</li>
+</ol>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// 1. 类似数组字面量的方式</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">primes</span> = <span class="built_in">vec!</span>[<span class="number">2</span>, <span class="number">3</span>, <span class="number">5</span>, <span class="number">7</span>];</span><br><span class="line">    <span class="built_in">assert_eq!</span>(primes.<span class="title function_ invoke__">iter</span>().product::&lt;<span class="type">i32</span>&gt;(), <span class="number">210</span>);</span><br><span class="line">    primes.<span class="title function_ invoke__">push</span>(<span class="number">11</span>);</span><br><span class="line">    primes.<span class="title function_ invoke__">push</span>(<span class="number">13</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(primes.<span class="title function_ invoke__">iter</span>().product::&lt;<span class="type">i32</span>&gt;(), <span class="number">30030</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 使用类似数组初始化的方式</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">buf</span> = <span class="built_in">vec!</span>[<span class="number">0</span>; <span class="number">10</span> * <span class="number">10</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, buf);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. 从迭代器创建</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">v</span>: <span class="type">Vec</span>&lt;<span class="type">i32</span>&gt; = (<span class="number">0</span>..<span class="number">5</span>).<span class="title function_ invoke__">collect</span>();</span><br><span class="line">    <span class="built_in">assert_eq!</span>(v, [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用 <strong><code>collect</code>时，通常需要提供该目的类型，因为它可以构建许多不同类型的集合，而不仅仅是<code>vector</code></strong>。通过指定 <code>v</code> 的类型，我们明确了我们想要哪种集合。</p>
+<p>和数组一样，可以在 <code>vector</code> 上使用<code>slice</code>方法，<code>reverse</code> 方法调用时会隐式转换为 <code>&amp;mut [&amp;str]</code> 类型：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// A palindrome!</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">palindrome</span> = <span class="built_in">vec!</span>[<span class="string">&quot;a man&quot;</span>, <span class="string">&quot;a plan&quot;</span>, <span class="string">&quot;a canal&quot;</span>, <span class="string">&quot;panama&quot;</span>];</span><br><span class="line">    palindrome.<span class="title function_ invoke__">reverse</span>();</span><br><span class="line">    <span class="comment">// Reasonable yet disappointing:</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(palindrome, <span class="built_in">vec!</span>[<span class="string">&quot;panama&quot;</span>, <span class="string">&quot;a canal&quot;</span>, <span class="string">&quot;a plan&quot;</span>, <span class="string">&quot;a man&quot;</span>]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>Vec</code> 是 <code>Rust</code> 的基本类型，几乎在需要动态大小列表的地方都可以使用，因此还有许多其他方法来构建新 <code>vector</code> 或扩展现有 <code>vector</code>。<code>Vec</code> 实际上由三部分组成：</p>
+<ol>
+<li>指向堆内存的指针；</li>
+<li>缓冲区的容量，最大能存储多少元素，超过就需要扩容，创建新的缓冲区，更改指针指向，复制当前所有的元素，释放旧的缓冲区；</li>
+<li>当前实际存储的元素数量；</li>
+</ol>
+<p><strong><code>vector</code>扩容会导致程序性能下降</strong>，如果一开始就知道 <code>vector</code> 的大小，可以使用 <code>Vec::with_capacity</code> 创建指定大小的 <code>vector</code>，许多库函数使用<code>Vec::with_capacity</code> 创建新的 <code>vector</code>。<code>len</code> 方法返回了当前元素数量，<code>capacity</code> 返回 <code>vector</code> 的容量:</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">v</span> = <span class="type">Vec</span>::<span class="title function_ invoke__">with_capacity</span>(<span class="number">2</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(v.<span class="title function_ invoke__">len</span>(), <span class="number">0</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(v.<span class="title function_ invoke__">capacity</span>(), <span class="number">2</span>);</span><br><span class="line"></span><br><span class="line">    v.<span class="title function_ invoke__">push</span>(<span class="number">1</span>);</span><br><span class="line">    v.<span class="title function_ invoke__">push</span>(<span class="number">2</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(v.<span class="title function_ invoke__">len</span>(), <span class="number">2</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(v.<span class="title function_ invoke__">capacity</span>(), <span class="number">2</span>);</span><br><span class="line"></span><br><span class="line">    v.<span class="title function_ invoke__">push</span>(<span class="number">3</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(v.<span class="title function_ invoke__">len</span>(), <span class="number">3</span>);</span><br><span class="line">    <span class="comment">// Typically prints &quot;capacity is now 4&quot;:</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;capacity is now &#123;&#125;&quot;</span>, v.<span class="title function_ invoke__">capacity</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最后打印的容量不能保证正好是<code>4</code>，但它至少是<code>3</code>，因为 <code>vector</code> 包含<code>3</code>个值。可以在 <code>vector</code> 中插入和删除元素，但这些操作会将受影响的所有元素向前或向后移动，因此如果 <code>vector</code> 很长，它们可能会变慢：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">v</span> = <span class="built_in">vec!</span>[<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>, <span class="number">40</span>, <span class="number">50</span>];</span><br><span class="line">    <span class="comment">// Make the element at index 3 be 35.</span></span><br><span class="line">    v.<span class="title function_ invoke__">insert</span>(<span class="number">3</span>, <span class="number">35</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(v, [<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>, <span class="number">35</span>, <span class="number">40</span>, <span class="number">50</span>]);</span><br><span class="line">    <span class="comment">// Remove the element at index 1.</span></span><br><span class="line">    v.<span class="title function_ invoke__">remove</span>(<span class="number">1</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(v, [<span class="number">10</span>, <span class="number">30</span>, <span class="number">35</span>, <span class="number">40</span>, <span class="number">50</span>]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以使用 <code>pop</code> 方法删除最后一个元素并返回它。更准确地说，从<code>Vec&lt;T&gt;</code> 弹出一个值返回 <code>Option&lt;T&gt;</code>，因为如果<code>vector</code>已经为空，则返回 <code>None</code>，如果其最后一个元素是 <code>v</code>，则返回<code>Some(v)</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">v</span> = <span class="built_in">vec!</span>[<span class="string">&quot;Snow Puff&quot;</span>, <span class="string">&quot;Glass Gem&quot;</span>];</span><br><span class="line">    <span class="built_in">assert_eq!</span>(v.<span class="title function_ invoke__">pop</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&quot;Glass Gem&quot;</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(v.<span class="title function_ invoke__">pop</span>(), <span class="title function_ invoke__">Some</span>(<span class="string">&quot;Snow Puff&quot;</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(v.<span class="title function_ invoke__">pop</span>(), <span class="literal">None</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以使用 <code>for</code> 循环迭代 <code>vector</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">languages</span>: <span class="type">Vec</span>&lt;<span class="type">String</span>&gt; = std::env::<span class="title function_ invoke__">args</span>().<span class="title function_ invoke__">skip</span>(<span class="number">1</span>).<span class="title function_ invoke__">collect</span>();</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">l</span> <span class="keyword">in</span> languages &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;, &#123;&#125;&quot;</span>, l,</span><br><span class="line">                 <span class="keyword">if</span> l.<span class="title function_ invoke__">len</span>() % <span class="number">2</span> == <span class="number">0</span> &#123;</span><br><span class="line">                     <span class="string">&quot;functional&quot;</span></span><br><span class="line">                 &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                     <span class="string">&quot;imperative&quot;</span></span><br><span class="line">                 &#125;</span><br><span class="line">        )</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>运行结果如下图:</p>
+<pre><code>~/WORKDIR/rust/mandelbrot ⌚ 10:10:03
+$ cargo run Lisp Scheme C C++ Fortran
+    Finished dev [unoptimized + debuginfo] target(s) in 0.00s
+    Running `target/debug/mandelbrot Lisp Scheme C C++ Fortran`
+Lisp, functional
+Scheme, functional
+C, imperative
+C++, imperative
+Fortran, imperative
+</code></pre>
+<h4 id="slices"><a class="markdownIt-Anchor" href="#slices"></a> <code>Slices</code></h4>
+<p><code>slice</code>的类型是<code>[T]</code>，没有指定长度，是一个数组或者 <code>vector</code> 的一部分。由于<code>slice</code>可以是任何长度，<code>slice</code>不能直接存储在变量中或作为函数参数传递，参数或者变量的大小必须在编译时就能确定占用空间的大小，必须实现 <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/marker/trait.Sized.html"><code>Sized</code></a>，因此<code>slice</code>总是通过引用传递。</p>
+<p><strong><code>slice</code>的指针是一个<code>胖指针</code>，包含了两部分信息：指向的第一个元素地址和包含的元素数量</strong>。对于下面这两行代码，<code>Rust</code> 会自动转换 <code>&amp;Vec&lt;f64&gt;</code> 和 <code>&amp;[f64; 4]</code> 到 <code>&amp;[f64]</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">v</span>: <span class="type">Vec</span>&lt;<span class="type">f64</span>&gt; = <span class="built_in">vec!</span>[<span class="number">0.0</span>, <span class="number">0.707</span>, <span class="number">1.0</span>, <span class="number">0.707</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">a</span>: [<span class="type">f64</span>; <span class="number">4</span>] = [<span class="number">0.0</span>, -<span class="number">0.707</span>, -<span class="number">1.0</span>, -<span class="number">0.707</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">sv</span>: &amp;[<span class="type">f64</span>] = &amp;v;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">sa</span>: &amp;[<span class="type">f64</span>] = &amp;a;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>内存分布图，可以展示为下面这样：<br />
+<img data-src="slice-memory-figure.png" alt="" /></p>
+<p><strong>普通指针是指向单个值，而 <code>slice</code> 是指向内存中一系列连续值</strong>。可以编写一个参数是<code>slice</code>的函数，这样既能处理数组，也能处理 <code>vector</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">v</span>: <span class="type">Vec</span>&lt;<span class="type">f64</span>&gt; = <span class="built_in">vec!</span>[<span class="number">0.0</span>, <span class="number">0.707</span>, <span class="number">1.0</span>, <span class="number">0.707</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">a</span>: [<span class="type">f64</span>; <span class="number">4</span>] = [<span class="number">0.0</span>, -<span class="number">0.707</span>, -<span class="number">1.0</span>, -<span class="number">0.707</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">sv</span>: &amp;[<span class="type">f64</span>] = &amp;v;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">sa</span>: &amp;[<span class="type">f64</span>] = &amp;a;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">print</span>(&amp;a); <span class="comment">// works on arrays</span></span><br><span class="line">    <span class="title function_ invoke__">print</span>(&amp;v); <span class="comment">// works on vectors</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">print</span>(n: &amp;[<span class="type">f64</span>]) &#123;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">elt</span> <span class="keyword">in</span> n &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, elt);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由于此函数将<code>slice</code>指针作为参数，因此可以将其应用于<code>vector</code>或数组，其实标准库中许多属于<code>vector</code>或数组的方法都是在<code>slice</code>上定义。例如，<code>sort</code>和<code>reverse</code>，实际上是<code>slice</code>类型<code>[T]</code>上的方法。</p>
+<p>我们可以引用数组，<code>vector</code>或者已有<code>slice</code>的部分：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">v</span>: <span class="type">Vec</span>&lt;<span class="type">f64</span>&gt; = <span class="built_in">vec!</span>[<span class="number">0.0</span>, <span class="number">0.707</span>, <span class="number">1.0</span>, <span class="number">0.707</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">a</span>: [<span class="type">f64</span>; <span class="number">4</span>] = [<span class="number">0.0</span>, -<span class="number">0.707</span>, -<span class="number">1.0</span>, -<span class="number">0.707</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">sv</span>: &amp;[<span class="type">f64</span>] = &amp;v;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">_sa</span>: &amp;[<span class="type">f64</span>] = &amp;a;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">print</span>(&amp;a); <span class="comment">// works on arrays</span></span><br><span class="line">    <span class="title function_ invoke__">print</span>(&amp;v); <span class="comment">// works on vectors</span></span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">print</span>(&amp;v[<span class="number">0</span>..<span class="number">2</span>]); <span class="comment">// print the first two elements of v</span></span><br><span class="line">    <span class="title function_ invoke__">print</span>(&amp;a[<span class="number">2</span>..]); <span class="comment">// print elements of a starting with a[2]</span></span><br><span class="line">    <span class="title function_ invoke__">print</span>(&amp;sv[<span class="number">1</span>..<span class="number">3</span>]); <span class="comment">// print v[1] and v[2]</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">print</span>(n: &amp;[<span class="type">f64</span>]) &#123;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">elt</span> <span class="keyword">in</span> n &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, elt);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>与普通数组访问一样，<code>Rust</code> 检查索引是否有效。正常情况下，总是使用<code>slice</code>的指针，就像 <code>&amp;[T]</code> 或者 <code>&amp;str</code>。</p>
+<h3 id="string"><a class="markdownIt-Anchor" href="#string"></a> <code>String</code></h3>
+<p>熟悉<code>C++</code>的程序员会记得有两种字符串类型，字符串字面量具有指针类型 <code>const char *</code>。标准库还提供了一个类 <code>std::string</code>，用于在运行时动态创建字符串<code>Rust</code>也有类似的设计。本节中，将展示编写字符串文字的所有方法，然后介绍<code>Rust</code>的两种字符串类型。</p>
+<h4 id="字符串字面量"><a class="markdownIt-Anchor" href="#字符串字面量"></a> 字符串字面量</h4>
+<p>字符串文字以双引号括起来，可以使用转义符 <code>\</code> 对特殊字符进行转义，字符串字面量中 <code>&quot;</code> 需要转义：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">speech</span> = <span class="string">&quot;\&quot;Ouch!\&quot; said the well.\n&quot;</span>;</span><br></pre></td></tr></table></figure>
+<p>字符串可以跨多行存在，该字符串文字中的换行符包含在字符串中，因此也包含在输出中。第二行开头的空格也是如此：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;In the room the women come and go, </span></span><br><span class="line"><span class="string">    Singing of Mount Abora&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>如果字符串的一行以反斜杠 <code>\</code> 结尾，则删除下一行的换行符和前缀空格：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;It was a bright, cold day in April, and \</span></span><br><span class="line"><span class="string">        there were four of us—\</span></span><br><span class="line"><span class="string">        more or less.&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;It was a bright, cold day in April, and</span></span><br><span class="line"><span class="string">        there were four of us—</span></span><br><span class="line"><span class="string">        more or less.&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出如下:</p>
+<pre><code>/Users/fudenglong/.cargo/bin/cargo run --color=always --package mandelbrot --bin mandelbrot
+    Finished dev [unoptimized + debuginfo] target(s) in 0.00s
+    Running `target/debug/mandelbrot`
+It was a bright, cold day in April, and there were four of us—more or less.
+It was a bright, cold day in April, and
+        there were four of us—
+        more or less.
+</code></pre>
+<p>对于以 <code>r</code> 开头的原始字符串，其中的所有反斜杠和空格字符都逐字包含在字符串中，所以没法写转义字符：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">default_win_install_path</span> = <span class="string">r&quot;C:\Program Files\Gorillas&quot;</span>; </span><br><span class="line"><span class="keyword">let</span> <span class="variable">pattern</span> = Regex::<span class="title function_ invoke__">new</span>(<span class="string">r&quot;\d+(\.\d+)*&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>当然也有办法，例如，以 <code>r###&quot;</code>开始，和以 <code>&quot;###</code>结束。可以根据需要添加多个 <code>#</code> 符号：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">r###&quot;</span></span><br><span class="line"><span class="string">        This raw string started with &#x27;r###&quot;&#x27;.</span></span><br><span class="line"><span class="string">        Therefore it does not end until we reach a quote mark (&#x27;&quot;&#x27;)</span></span><br><span class="line"><span class="string">        followed immediately by three pound signs (&#x27;###&#x27;):</span></span><br><span class="line"><span class="string">&quot;###</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="字节序列"><a class="markdownIt-Anchor" href="#字节序列"></a> 字节序列</h4>
+<p>带有 <code>b</code> 前缀的字符串是一个字节字符串。这样的字符串是<code>u8</code>值（即字节）的<code>slice</code>，而不是<code>Unicode</code>文本：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">method</span> = <span class="string">b&quot;GET&quot;</span>;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(method, &amp;[<span class="string">b&#x27;G&#x27;</span>, <span class="string">b&#x27;E&#x27;</span>, <span class="string">b&#x27;T&#x27;</span>]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>method</code> 的类型是 <code>&amp;[u8; 3]</code>，是一个对拥有<code>3</code>个字节的数组的引用。他不能使用字符串的相关方法，只是看起来和字符串字面量比较像。</p>
+<p>字节字符串可以使用我们展示的所有其他字符串语法：它们可以跨多行，使用转义序列，并使用反斜杠连接行。原始字节字符串以<code>br</code>开头。</p>
+<p>字节字符串不能包含任意的<code>Unicode</code>字符，他们必须处理<code>ASCII</code>和<code>\xHH</code>转义序列。</p>
+<h4 id="字符串内存表示"><a class="markdownIt-Anchor" href="#字符串内存表示"></a> 字符串内存表示</h4>
+<p><code>Rust</code>字符串是<code>Unicode</code>字符的序列，但它们不会作为字符数组存储在内存中。相反，它们使用可变宽度编码<code>UTF-8</code>存储。字符串中的每个<code>ASCII</code>字符都存储在一个字节中，其他字符占用多个字节。</p>
+<p>对于下面的示例：</p>
+<div class="note success"><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">noodles</span> = <span class="string">&quot;noodles&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">oodles</span> = &amp;noodles[<span class="number">1</span>..];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">poodles</span> = <span class="string">&quot;ಠ_ಠ&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, noodles);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, oodles);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, poodles);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><code>noodles</code>：类型是 <code>String</code>，包含 <code>Unicode</code> 文本，拥有大小可变的缓冲区，能根据需要调整大小，在堆中分配内存；</li>
+<li><code>oodles</code>： 类型是 <code>&amp;str</code>，引用 <code>UTF8</code> 文本的一部分。在这里，它引用 <code>noodles</code> 的后<code>6</code>个字符。和其他的<code>slice</code>引用一样，<code>&amp;str</code> 是个胖指针，包含了第一个元素的地址和元素数量；</li>
+<li><code>poodles</code>：类型是 <code>&amp;str</code>，引用到预申请的文本，存储值只读内存中，也就是二进制文件的只读段中，<code>poodles</code>只是指向这段内存；</li>
+</ul>
+<p>它们的内存分布关系图如下：</p>
+<p><img data-src="str-memory-figure.png" alt="" /></p>
+</div>
+<p>要注意的是 <code>String</code> 或者 <code>&amp;str</code> 的 <code>len</code> 方法返回的是字节的长度而不是字符的长度：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&quot;ಠ_ಠ&quot;</span>.<span class="title function_ invoke__">len</span>(), <span class="number">7</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&quot;ಠ_ಠ&quot;</span>.<span class="title function_ invoke__">chars</span>().<span class="title function_ invoke__">count</span>(), <span class="number">3</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>改变 <code>&amp;str</code> 是不可能的：</p>
+<details class="note danger"><summary><p>错误示例</p>
+</summary>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">s</span> = <span class="string">&quot;hello&quot;</span>;</span><br><span class="line">    s[<span class="number">0</span>] = <span class="string">&#x27;c&#x27;</span>; <span class="comment">// error: `&amp;str` cannot be modified, and other reasons</span></span><br><span class="line">    s.<span class="title function_ invoke__">push</span>(<span class="string">&#x27;<span class="char escape_">\n</span>&#x27;</span>); <span class="comment">// error: no method named `push` found for reference `&amp;str`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</details>
+<p>如果要在运行时创建字符串，使用 <code>String</code>。类型 <code>&amp;mut str</code> 确实存在，但它不是很有用，因为<code>UTF-8</code>上的几乎任何操作都可以更改其整体字节长度，并且<code>slice</code>不能对它引用的值重新分配内存。事实上，<code>&amp;mut str</code>上唯一可用的操作是 <code>make_ascii_uppercase</code> 和 <code>make_ascii_lowercase</code>，根据定义，它们就地修改字符，只影响单个字节字符。</p>
+<h4 id="string-2"><a class="markdownIt-Anchor" href="#string-2"></a> <code>String</code></h4>
+<p><code>&amp;str</code> 非常像 <code>&amp;[T]</code>：指向数据的胖指针，<code>String</code> 类似于 <code>Vec&lt;T&gt;</code>。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left"></th>
+<th style="text-align:center"><code>Vec&lt;T&gt;</code></th>
+<th style="text-align:center"><code>&lt;String&gt;</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>Automatically frees buffers</code></td>
+<td style="text-align:center"><code>Yes</code></td>
+<td style="text-align:center"><code>Yes</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Growable</code></td>
+<td style="text-align:center"><code>Yes</code></td>
+<td style="text-align:center"><code>Yes</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>::new()and::with_capacity()type-associated functions</code></td>
+<td style="text-align:center"><code>Yes</code></td>
+<td style="text-align:center"><code>Yes</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>.reserve() and .capacity() methods</code></td>
+<td style="text-align:center"><code>Yes</code></td>
+<td style="text-align:center"><code>Yes</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>.push() and .pop() methods</code></td>
+<td style="text-align:center"><code>Yes</code></td>
+<td style="text-align:center"><code>Yes</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Range syntaxv[start..stop]</code></td>
+<td style="text-align:center"><code>Yes, returns &amp;[T]</code></td>
+<td style="text-align:center"><code>Yes, returns &amp;str </code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Automatic conversion</code></td>
+<td style="text-align:center"><code>&amp;Vec&lt;T&gt; to &amp;[T]</code></td>
+<td style="text-align:center"><code>&amp;String to &amp;str </code></td>
+</tr>
+<tr>
+<td style="text-align:left"><code>Inherits methods</code></td>
+<td style="text-align:center"><code>From &amp;[T]</code></td>
+<td style="text-align:center"><code>From &amp;str</code></td>
+</tr>
+</tbody>
+</table>
+<p>与<code>Vec</code>一样，每个字符串都有自己的堆内存缓冲区，不会与任何其他字符串共享。当字符串变量超出范围时，缓冲区会自动释放，除非字符串被移动。下面是几种创建 <code>String</code> 的方式：</p>
+<ul>
+<li>
+<p><code>.to_string()</code>：转换 <code>&amp;str</code> 为 <code>String</code>，转换时会复制字符串：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">error_message</span> = <span class="string">&quot;too many pets&quot;</span>.<span class="title function_ invoke__">to_string</span>();</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><code>format!()</code>：格式化产生字符串，返回 <code>String</code> 类型的字符串</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125;°&#123;:02&#125;′&#123;:02&#125;′′N&quot;</span>, <span class="number">24</span>, <span class="number">5</span>, <span class="number">23</span>)</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>字符串数组，<code>slice</code>或者 <code>vector</code> 有两个方法，<code>.concat()</code> 和 <code>.join(sep)</code> 产生新的 <code>String</code>：</p>
+  <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">bits</span> = <span class="built_in">vec!</span>[<span class="string">&quot;veni&quot;</span>, <span class="string">&quot;vidi&quot;</span>, <span class="string">&quot;vici&quot;</span>];</span><br><span class="line"><span class="built_in">assert_eq!</span>(bits.<span class="title function_ invoke__">concat</span>(), <span class="string">&quot;venividivici&quot;</span>); </span><br><span class="line"><span class="built_in">assert_eq!</span>(bits.<span class="title function_ invoke__">join</span>(<span class="string">&quot;, &quot;</span>), <span class="string">&quot;veni, vidi, vici&quot;</span>);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="字符串使用"><a class="markdownIt-Anchor" href="#字符串使用"></a> 字符串使用</h4>
+<p>字符串支持 <code>==</code>，<code>!=</code>，<code>&lt;</code>，<code>&lt;=</code>，<code>&gt;</code> 以及 <code>&gt;=</code> 运算符等很多非常有用的方法，可以在<a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/primitive.str.html">这里</a> 找到标准库中支持的方法。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">assert!</span>(<span class="string">&quot;ONE&quot;</span>.<span class="title function_ invoke__">to_lowercase</span>() == <span class="string">&quot;one&quot;</span>);</span><br><span class="line">    <span class="built_in">assert!</span>(<span class="string">&quot;peanut&quot;</span>.<span class="title function_ invoke__">contains</span>(<span class="string">&quot;nut&quot;</span>));</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&quot;ಠ_ಠ&quot;</span>.<span class="title function_ invoke__">replace</span>(<span class="string">&quot;ಠ&quot;</span>, <span class="string">&quot;■&quot;</span>), <span class="string">&quot;■_■&quot;</span>);</span><br><span class="line">    <span class="built_in">assert_eq!</span>(<span class="string">&quot; clean\n&quot;</span>.<span class="title function_ invoke__">trim</span>(), <span class="string">&quot;clean&quot;</span>);</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">word</span> <span class="keyword">in</span> <span class="string">&quot;veni, vidi, vici&quot;</span>.<span class="title function_ invoke__">split</span>(<span class="string">&quot;, &quot;</span>) &#123;</span><br><span class="line">        <span class="built_in">assert!</span>(word.<span class="title function_ invoke__">starts_with</span>(<span class="string">&quot;v&quot;</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>请记住，鉴于<code>Unicode</code>的性质，简单的逐个字符比较并不总是给出预期的答案。例如，<code>Rust</code> 字符串<code>th\u&#123;e9&#125;</code>和<code>the\u&#123;301&#125;</code> 都是 <code>thé</code> 的有效<code>Unicode</code>表示，<code>thé</code> 是法语单词<code>tea</code>。<code>Unicode</code>表示，它们应该以相同的方式显示和处理，但<code>Rust</code>将它们视为两个完全不同的字符串。同样，像<code>&lt;</code>这样的<code>Rust</code>的排序运算符使用基于字符代码点的简单词典顺序，这种排序有时只类似于用户语言和文化中用于文本的排序。</p>
+<h4 id="其他-string"><a class="markdownIt-Anchor" href="#其他-string"></a> 其他 <code>String</code></h4>
+<p><code>Rust</code>保证字符串是有效的<code>UTF-8</code>。有时，程序真的需要能够处理无效的<code>Unicode</code>字符串。当<code>Rust</code>程序必须与其他不执行任何此类规则的系统互操作时，通常会发生这种情况。例如，在大多数操作系统中，很容易创建具有非<code>Unicode</code>文件名的文件。当<code>Rust</code>程序遇到这种文件名时，<code>Rust</code>的解决方案是为这些情况提供几种字符串类型：</p>
+<ul>
+<li>坚持使用<code>String</code>和<code>&amp;str</code>获取<code>Unicode</code>文本；</li>
+<li>在处理文件名时，请使用<code>std::path::PathBuf</code>和<code>&amp;Path</code>；</li>
+<li>在处理完二进制数据时，请使用<code>Vec&lt;u8&gt;</code>和<code>&amp;[u8]</code>；</li>
+<li>在处理操作系统的环境变量名称和命令行参数时，请使用<code>OsString</code>和<code>&amp;OsStr</code>；</li>
+<li>当与使用空终止字符串的<code>C</code>库互操作时，请使用<code>std::ffi::CString</code>和<code>&amp;CStr</code>；</li>
+</ul>
+<h3 id="类型别名"><a class="markdownIt-Anchor" href="#类型别名"></a> 类型别名</h3>
+<p><code>type</code> 关键字可以像 <code>C++</code> 中的 <code>typedef</code> 一样用于为现有类型声明新名称，我们在这里声明的字节类型是这种特殊 <code>Vec</code> 的缩写：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> <span class="title class_">Bytes</span> = <span class="type">Vec</span>&lt;<span class="type">u8</span>&gt;;</span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">decode</span>(data: &amp;Bytes) &#123; </span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/" title="【Rust】基础类型">https://blog.fudenglong.site/2022/04/10/Rust/【Rust】基础类型/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/%E3%80%8ARust-%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E3%80%8B/" rel="tag"># 《Rust 程序设计》</a>
+              <a href="/tags/%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/" rel="tag"># 基础类型</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/04/09/Go/%E3%80%90Golang%E3%80%91%E5%A4%9A%E7%89%88%E6%9C%AC%E7%AE%A1%E7%90%86%E5%AE%89%E8%A3%85/" rel="prev" title="【Golang】多版本管理安装">
+                  <i class="fa fa-angle-left"></i> 【Golang】多版本管理安装
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/04/12/Rust/%E3%80%90Rust%E3%80%91%E6%89%80%E6%9C%89%E6%9D%83/" rel="next" title="【Rust】所有权">
+                  【Rust】所有权 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/04/10/Rust/%E3%80%90Rust%E3%80%91%E5%9F%BA%E7%A1%80%E7%B1%BB%E5%9E%8B/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

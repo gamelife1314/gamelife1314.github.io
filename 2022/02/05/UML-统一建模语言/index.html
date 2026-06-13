@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="UML 是一种开放的方法，用于说明、可视化、构建和编写一个正在开发的、面向对象的、软件密集系统的制品的开放方法。UML展现了一系列最佳工程实践，这些最佳实践在对大规模，复杂系统进行建模方面，特别是在软件架构层次已经被验证有效。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UML 统一建模语言">
+<meta property="og:url" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="UML 是一种开放的方法，用于说明、可视化、构建和编写一个正在开发的、面向对象的、软件密集系统的制品的开放方法。UML展现了一系列最佳工程实践，这些最佳实践在对大规模，复杂系统进行建模方面，特别是在软件架构层次已经被验证有效。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/uml-language.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/class-cat.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/class-level.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/class-depend.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/class-association.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/class-juhe.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/class-zuhe.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/class-airplane.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/class-inbox.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/class-jicheng.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/class-polymorphism.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/UML%E5%9B%BE%E7%A7%8D%E7%B1%BB.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/UML-Class-dog.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/UML-Class-myclass.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/UML-Class-student-tutor.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/UML-Class-relation-inherit.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/UML-Class-relationships-realization.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/UML-Class-relationships-dependency.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/UML-Class-relationships-aggr-composition.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/uml-state-diagram-state.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/uml-state-diagram-state-transmit.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/UML-State.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/uml-sequence-diagram-message.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/uml-2.0-interaction-1.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/uml-2.0-interaction-2.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/UML-interaction-loop-alt-opt.png">
+<meta property="article:published_time" content="2022-02-05T14:52:52.000Z">
+<meta property="article:modified_time" content="2022-02-05T14:52:52.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="UML">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/uml-language.png">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/","path":"2022/02/05/UML-统一建模语言/","title":"UML 统一建模语言"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>UML 统一建模语言 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B1%BB%E5%9B%BE"><span class="nav-number">1.</span> <span class="nav-text"> 类图</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96"><span class="nav-number">1.1.</span> <span class="nav-text"> 依赖</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B3%E8%81%94"><span class="nav-number">1.2.</span> <span class="nav-text"> 关联</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%81%9A%E5%90%88"><span class="nav-number">1.3.</span> <span class="nav-text"> 聚合</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BB%84%E5%90%88"><span class="nav-number">1.4.</span> <span class="nav-text"> 组合</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#oop"><span class="nav-number">2.</span> <span class="nav-text"> OOP</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8A%BD%E8%B1%A1"><span class="nav-number">2.1.</span> <span class="nav-text"> 抽象</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B0%81%E8%A3%85"><span class="nav-number">2.2.</span> <span class="nav-text"> 封装</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BB%A7%E6%89%BF"><span class="nav-number">2.3.</span> <span class="nav-text"> 继承</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%9A%E6%80%81"><span class="nav-number">2.4.</span> <span class="nav-text"> 多态</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#uml"><span class="nav-number">3.</span> <span class="nav-text"> UML</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%B1%BB%E5%9B%BEclass-diagram"><span class="nav-number">3.1.</span> <span class="nav-text"> 类图（Class Diagram）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%8A%B6%E6%80%81%E5%9B%BEstate-diagram"><span class="nav-number">3.2.</span> <span class="nav-text"> 状态图（State Diagram）</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E7%8A%B6%E6%80%81"><span class="nav-number">3.2.1.</span> <span class="nav-text"> 状态</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%BD%AC%E6%8D%A2"><span class="nav-number">3.2.2.</span> <span class="nav-text"> 转换</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E7%8A%B6%E6%80%81"><span class="nav-number">3.2.3.</span> <span class="nav-text"> 初始状态</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E7%BB%88%E6%AD%A2%E7%8A%B6%E6%80%81"><span class="nav-number">3.2.4.</span> <span class="nav-text"> 终止状态</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%88%A4%E5%AE%9A"><span class="nav-number">3.2.5.</span> <span class="nav-text"> 判定</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BA%8F%E5%88%97%E5%9B%BEsequence-diagram"><span class="nav-number">3.3.</span> <span class="nav-text"> 序列图（Sequence Diagram）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">4.</span> <span class="nav-text"> 参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="UML 统一建模语言 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          UML 统一建模语言
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-02-05 22:52:52" itemprop="dateCreated datePublished" datetime="2022-02-05T22:52:52+08:00">2022-02-05</time>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>21 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>UML</code> 是一种开放的方法，用于说明、可视化、构建和编写一个正在开发的、面向对象的、软件密集系统的制品的开放方法。UML展现了一系列最佳工程实践，这些最佳实践在对大规模，复杂系统进行建模方面，特别是在软件架构层次已经被验证有效。</p>
+<img data-src="/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/uml-language.png" class="">
+<span id="more"></span>
+<h3 id="类图"><a class="markdownIt-Anchor" href="#类图"></a> 类图</h3>
+<p>面向对象程序设计(Object-Oriented Programming， 缩写为 <code>OOP</code>) 是一种范式， 其基本理念是将数据块及与数据相关的行为封装成为特殊的、 名为对象的实体， 同时对象实体的生成工作则是基于程序员给出的一系列蓝图， 这些蓝图就是类，在UML中，类图专门是用来描述这种实体的。如下图所示：</p>
+<p><img data-src="class-cat.png" alt="类图-猫" /></p>
+<p>类之间是有相互关系的，就像猫属于动物，动物和植物又属于生物体：</p>
+<p><img data-src="class-level.png" alt="类之间的层次结构" /></p>
+<p>类之间的关系可以更细分的划分为这几种：依赖，关联，聚合，组合。</p>
+<h4 id="依赖"><a class="markdownIt-Anchor" href="#依赖"></a> 依赖</h4>
+<p>依赖是类之间最基础的、也是最微弱的关系类型。 如果修改一个类的定义可能会造成另一个类的变化，那么这两个类之 间就存在依赖关系。当你在代码中使用具体类的名称时， 通 常意味着存在依赖关系。 例如在指定方法签名类型时， 或是通过调用构造函数对对象进行初始化时等。 通过让代码依赖接口或抽象类(而不是具体类)，你可以降低其依赖程度。</p>
+<p>通常情况下，UML 图不会展示所有依赖——它们在真实代码中的数量太多了。 为了不让依赖关系破坏 UML 图， 你必须对其进行精心选择，仅展示那些对于沟通你的想法来说重要 的依赖关系。</p>
+<p>在UML中，依赖关系用一个虚线的箭头表示，从依赖者到被依赖者，例如教授依赖课程资料：</p>
+<p><img data-src="class-depend.png" alt="授依赖于课程资料" /></p>
+<h4 id="关联"><a class="markdownIt-Anchor" href="#关联"></a> 关联</h4>
+<p>关联是一个对象使用另一对象或与另一对象进行交互的关系。 在 UML 图中， 关联关系用起始于一个对象并指向其所使用 的对象的简单箭头来表示。 顺带一提， 双向关联也是完全正常的， 这种情况就用双向箭头来表示。 关联可视为一种特殊类型的依赖，即一个对象总是拥有访问与其交互的对象的权限，而简单的依赖关系并不会在对象间建立永久性的联系。</p>
+<p>一般来说， 你可以使用关联关系来表示类似于类成员变量的东西。这个关系将一直存在，因此你总能通过<code>订单</code>来获 取其<code>顾客</code>。 但是它并非一定是成员变量。如果你根据接口来创建类，它也可以表示为一个可返回<code>订单</code>的<code>顾客</code>的方法。</p>
+<p>为了区分关联和依赖，举如下的例子，<code>Professor</code> 依赖 <code>Course</code> 提供的 <code>c.getKnowledge</code> 方法获取知识，将其传授给关联的 <code>Student</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">class Professor is</span><br><span class="line">    field Student student //...</span><br><span class="line">    method teach(Course c) is</span><br><span class="line">    // ...</span><br><span class="line">    this.student.remember(c.getKnowledge())</span><br></pre></td></tr></table></figure>
+<p>如果有人修改了 课程 类的 getKnowledge (获取知识)方法(修改方法名或添加一些 必须的参数等)，代码将会崩溃。这就是依赖关系。</p>
+<p>让我们来看看名为 <code>student</code> (学生)的成员变量，以及如何在 <code>teach</code> 方法中使用该变量。我们可以肯定学生 (<code>Student</code>)类是教授类的依赖: 如果 <code>remember</code> 方法被修改， 教授的代码也将崩溃。但由于教授的所有方法总能访问 <code>student</code> 成员变量，所以学生类就不仅是依赖，而也是关联了。</p>
+<p>UML图中，经常用一个单向的箭头表示关联关系：</p>
+<p><img data-src="class-association.png" alt="" /></p>
+<h4 id="聚合"><a class="markdownIt-Anchor" href="#聚合"></a> 聚合</h4>
+<p>聚合是一种特殊类型的关联， 用于表示多个对象之间的<code>一对多</code>、<code>多对多</code>或<code>整体对部分</code>的关系 。 普通关联仅用于描述两个对象之间的关系。通常在聚合关系中， 一个对象<code>拥有</code> 一组其他对象， 并扮演着容器或集合的角色。组件可以独立于容器存在， 也可以同时连接多个容器。 在 UML 图中，聚合关系使用一端是空心菱形，另一端指向组件的箭头来表示。</p>
+<p><img data-src="class-juhe.png" alt="院系包含教授" /></p>
+<h4 id="组合"><a class="markdownIt-Anchor" href="#组合"></a> 组合</h4>
+<p>组合是一种特殊类型的聚合， 其中一个对象由一个或多个其他对象实例构成。 组合与其他关系的区别在于组件仅能作为容器的一部分存在。 在 <code>UML</code> 图中，组合与聚合关系的符号相同，但箭头起始处的菱形是实心的。</p>
+<p><img data-src="class-zuhe.png" alt="大学由院系构成" /></p>
+<h3 id="oop"><a class="markdownIt-Anchor" href="#oop"></a> OOP</h3>
+<p>面向对象程序设计的四个基本概念使其区别于其他程序设计范式，他们分别是：抽象，多态，封装以及继承。</p>
+<h4 id="抽象"><a class="markdownIt-Anchor" href="#抽象"></a> 抽象</h4>
+<p>当使用面向对象程序设计的理念开发一款程序时， 我们会将大部分时间用于根据真实世界对象来设计程序中的对象。但是，程序中的对象并不需要能够百分之百准确地反映其原型(极少情况下才需要做到这一点)。实际上，你的对象只需模拟真实对象的特定属性和行为即可，其他内容可以忽略。</p>
+<p>例如， 飞行模拟器和航班预订程序中都可能会包含一个飞机 <code>Airplane</code> 类。 但是前者需包含与实际飞行相关的详细信息，而后者则只关心座位图和哪些座位可供预订。</p>
+<p><img data-src="class-airplane.png" alt="同一个真实世界对象的不同模型。" /></p>
+<p>抽象是一种反映真实世界对象或现象中特定内容的模型， 它 能高精度地反映所有与特定内容相关的详细信息， 同时忽略其他内容。</p>
+<h4 id="封装"><a class="markdownIt-Anchor" href="#封装"></a> 封装</h4>
+<p>封装是指一个对象对其他对象隐藏其部分状态和行为， 而仅向程序其他部分暴露有限的接口的能力。</p>
+<p>如果想要启动一辆车的发动机， 你只需转动钥匙或按下按钮即可， 无需打开引擎盖手动接线、转动曲轴和气缸并启动发动机的动力循环。 这些细节都隐藏在引擎盖下，你只会看到一些简单的接口: 启动开关、方向盘和一些踏板。</p>
+<p>对象的接口——它是对象的公有部分，能够同其他对象进行交互。</p>
+<p>封装某个内容意味着使用关键字 <code>private</code> 来对其进行修饰， 这样仅有其所在类中的方法才能访问这些内容。 还有一种限制程度较小的关键字 <code>protected</code> 保护 ， 其所修饰的对象仅允许父类访问其类中的成员。</p>
+<p>绝大部分编程语言的接口和抽象类(或方法)都基于抽象和 封装的概念。 在现代面向对象的编程语言中， 接口机制(通常使用 <code>interface</code> 或 <code>protocol</code> 关键字来声明)允许你定义对象之间的交互协议。这也是接口仅关心对象行为，以及你不能在接口中声明成员变量的原因之一。</p>
+<p>假如航空运输 <code>FlyingTransport</code> 接口中有一个 <code>fly(origin, destination, passengers)</code> 方法 (即以起点、 终点以及乘客为参数的飞行方法)。 在设计航空运输模拟器时， 你可以对机场 <code>Airport</code> 做出限制， 使其仅与实现了航空运输接口的对象进行交互。此后，你可以确保 传递给机场对象的任何对象——无论是<code>飞机</code>、 <code>直升机</code>、还是可怕的<code>家养狮鹫</code> —— 都能到达或离开这种类型的机场。</p>
+<p><img data-src="class-inbox.png" alt="多个类实现一个接口的 UML 图" /></p>
+<h4 id="继承"><a class="markdownIt-Anchor" href="#继承"></a> 继承</h4>
+<p>继承是指在根据已有类创建新类的能力。 继承最主要的好处是代码复用。如果你想要创建的类与已有的类差异不大， 那也没必要重复编写相同的代码。你只需扩展已有的类并将额外功能放入生成的子类(它会继承父类的成员变量和方法) 中即可。</p>
+<p>使用继承后，子类将拥有与其父类相同的接口。如果父类中声明了某个方法，那么你将无法在子类中隐藏该方法。你还必须实现所有的抽象方法，即使它们对于你的子类而言没有意义。</p>
+<p><img data-src="class-jicheng.png" alt="多个类实现一个接口的 UML 图" /></p>
+<p>在绝大多数编程语言中， 子类仅能对一个父类进行扩展。 另一方面， 任何类都可以同时实现多个接口。 但是正如我之前提到的那样， 如果父类实现了某个接口， 那么其所有子类都 必须实现该接口。</p>
+<h4 id="多态"><a class="markdownIt-Anchor" href="#多态"></a> 多态</h4>
+<p>绝大部分动物 <code>Animals</code> 可以发出声音。 我们需要所有子类都重写基类的 <code>makeSound</code> 发出声音方法，让每个子类都发出正确的声音，因此我们可以马上将其声明为抽象。 这让我们得以忽略父类中该方法的所有默认实现，从而强制要求所有子类自行提供该方法的实现。</p>
+<p><img data-src="class-polymorphism.png" alt="" /></p>
+<p>假如将几只猫和狗放入一个大袋子中。 然后，我们闭上眼睛，将动物一个一个地从袋中取出。 我们并不知道自己取出的是何种动物。 但如果我们好好地摸摸它们的话， 它就会根据自己的具体类发出特殊的欢快叫声。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">bag = [new Cat(), new Dog()]; </span><br><span class="line">foreach (Animal a : bag)</span><br><span class="line">    a.makeSound()</span><br><span class="line"></span><br><span class="line">//喵喵!</span><br><span class="line">//汪汪!</span><br></pre></td></tr></table></figure>
+<p>程序并不知道 <code>a</code> 变量中所包含的对象的具体类型，但幸亏有被称为多态的特殊机制， 程序可以追踪对象的子类并调用其方法，从而执行恰当的行为。</p>
+<p>多态是指程序能够检测对象所属的实际类，并在当前上下文不知道其真实类型的情况下调用其实现的能力。</p>
+<h3 id="uml"><a class="markdownIt-Anchor" href="#uml"></a> UML</h3>
+<p>UML图经过各种大型工程的实践，被证明是一种极其有用的方式来描述可视化系统，数据可系统及其他软件系统，所有的软件开发人员都应该学习并掌握它。从种类上来说，它有以下几种类型：</p>
+<p><img data-src="UML%E5%9B%BE%E7%A7%8D%E7%B1%BB.png" alt="UML图种类" /></p>
+<h4 id="类图class-diagram"><a class="markdownIt-Anchor" href="#类图class-diagram"></a> 类图（Class Diagram）</h4>
+<p><code>Class</code> 经常被用用来描述某个具体的或者抽象的对象，这个对象经常具有一些属性和方法，而且这些属性和方法都具有不同的访问限制规则，例如一个用来描述 <code>Dog</code> 的类图：</p>
+<p><img data-src="UML-Class-dog.png" alt="" /></p>
+<p>可以看到的是在每个属性或者方法之前都有一个 <code>+</code> 或者 <code>-</code>，这个就是访问限制规则，一共有四种：</p>
+<ul>
+<li><code>+</code>：Public，可公开访问</li>
+<li><code>-</code>：Private</li>
+<li><code>#</code>：Protected</li>
+<li><code>~</code>：Package Local</li>
+</ul>
+<p>而且对于方法而言，可以通过 <code>in</code>，<code>inout</code> 或者 <code>out</code> 标识参数的意义：</p>
+<ul>
+<li><code>in</code>: 该参数仅作为输入参数，不应该被修改；</li>
+<li><code>inout</code>: 该参数即可作为输入参数，也可以被内部修改；</li>
+<li><code>out</code>: 该参数仅用于作为输出参数存储库，就像传入一个地址，然后内部可以对其进行赋值；</li>
+</ul>
+<p><img data-src="UML-Class-myclass.png" alt="" /></p>
+<p>就像现实世界中不同对象之间有不同的关系一样，类图中也有描述不同类之间关系的方式，一般存在六种关系，分别是关联，继承，实现，依赖，聚合和组合。</p>
+<p>例如，学生从老师那里学习知识，这种关系就可以表示位简单的关联关系，在表示的时候使用一个联系表示即可，也可以适当添加描述信息：</p>
+<p><img data-src="UML-Class-student-tutor.png" alt="" /></p>
+<p>继承有时候也可以称为泛化，用一个空心箭头从子类指向父类，父类可能是抽象类或者具体类：</p>
+<p><img data-src="UML-Class-relation-inherit.png" alt="" /></p>
+<p>实现一般是指具体类型和接口之间关系，用一个虚线实心箭头表示：</p>
+<p><img data-src="UML-Class-relationships-realization.png" alt="" /></p>
+<p>当一个对象在其方法中使用另一个类的对象，并且未存储在任何字段中时，就表示存在依赖关系，例如，<code>Person</code> 有一个方法 <code>Read</code> 接收一个 <code>Book</code> 的实例 <code>book</code> 作为参数，调用 <code>Book</code> 的 <code>getknowledge</code> 方法获取知识：</p>
+<p><img data-src="UML-Class-relationships-dependency.png" alt="" /></p>
+<p>聚合和组合比较相近，都表示一对多的关系，而聚合通常用来表示用类的聚合，而组合表示整体和部分的关系；例如学校有很多老师，这种表示聚合关系；而学校也有很多不同的学院，计算机学院，土木工程等，这种表示组合关系，不同类型；在表示上聚合使用空心菱形箭头，组合使用实心菱形箭头表示。</p>
+<p><img data-src="UML-Class-relationships-aggr-composition.png" alt="" /></p>
+<h4 id="状态图state-diagram"><a class="markdownIt-Anchor" href="#状态图state-diagram"></a> 状态图（State Diagram）</h4>
+<p>UML 状态图是图表本身的名称，主要用于描述对象具有的各种状态、状态之间的转换过程以及触发状态转换的各种事件和条件。UML 状态图描述了一个状态机，可以被定义为一台机器，它定义了一个对象，这些状态控制外部或内部事件的不同状态，状态机由状态、转换、事件、活动和动作五部分组成。</p>
+<ul>
+<li>状态：状态指的是对象在其生命周期中的一种状况，处于某个特定状态中的对象必然会满足某些条件、执行某些动作或者是等待某些事件。一个状态的生命周期是一个有限的时间阶段；</li>
+<li>转换：转换指的是两个不同状态之间的一种关系，表明对象在第一个状态中执行一定的动作，并且在满足某个特定条件下由某个事件触发进入第二个状态；</li>
+<li>事件：事件指的是发生在时间和空间上的对状态机来讲有意义的那些事情。事件通常会引起状态的变迁，促使状态机从一种状态切换到另一种状态，如信号、定时器，某个条件被处罚等；</li>
+<li>活动：活动指的是状态机中进行的非原子操作；</li>
+<li>动作：动作指的是状态机中可以执行的哪些原子操作。所谓原子操作，指的是他们在运行的过程中不能被其他消息中断，必须一直执行下去，以至最终导致状态的变更或者返回一个值；</li>
+</ul>
+<p>一个状态图（Statechart Diagram）本质上就是一个状态机，或者是状态机的特殊情况，它基本上是一个状态机中元素的一个投影，这也就意味着状态图包括状态机的所有特征。</p>
+<p>状态图描述了一个实体基于事件反映的动态行为，显示了该实体是如何根据当前所处的状态对不同的事件作出反应的。</p>
+<p>在UML中，状态图由表示状态的节点和表示状态之间转换的带箭头的直线组成。状态的转换由事件触发，状态和状态之间由转换箭头连接。每一个状态图都有一个初始状态（实心圆），用来表示状态机的开始。还有一个中止状态（半实心圆），用来表示状态机的终止。状态图主要由元素状态、转换、初始状态、中止状态和判定等组成。</p>
+<h5 id="状态"><a class="markdownIt-Anchor" href="#状态"></a> 状态</h5>
+<p>状态用于对实体在其生命周期中的各种状况进行建模，一个实体总是在有限的一段时间内保持一个状态。状态由一个带圆角的矩形表示，状态的描绘素应该包括名称、入口和出口动作、内部转换和嵌套状态。如下图，为一个简单状态：</p>
+<p><img data-src="uml-state-diagram-state.png" alt="" /></p>
+<ul>
+<li>状态名指的是状态的名字，通常用字符串表示，其中每个单词的首字母大写。状态名可以包含任意数量的字母、数字和除了冒号“：”以外的一些字符，可以较长，甚至连续几行。但是一定要注意一个状态的名称在状态图所在的上下文中应该是唯一的，能够把该状态和其他状态区分开。</li>
+<li>入口和出口动作一个状态可以具有或者没有入口和出口动作。入口和出口动作分别指的是进入和退出一个状态时所执行的“边界”动作。</li>
+<li>内部转换指的是不导致状态改变的转换。内部转换中可以包含进入或者退出该状态应该执行的活动或动作。</li>
+<li>嵌套状态状态分为简单状态（Simple State）和组成状态（Composite State）。简单状态是指在语义上不可分解的、对象保持一定属性值的状况，简单状态不包含其他状态：而组成状态是指内部嵌套有子状态的状态，在组成状态的嵌套状态图部分包含的就是此状态的子状态。</li>
+</ul>
+<h5 id="转换"><a class="markdownIt-Anchor" href="#转换"></a> 转换</h5>
+<p>在UML的状态建模机制中，转换用带箭头的直线表示，一端连接源状态，箭头指向目标状态。转换还可以标注与此转换相关的选项，如事件、监护条件和动作等，如下图所示。注意：如果转换上没有标注触发转换的事件，则表示此转换自动进行。</p>
+<p><img data-src="uml-state-diagram-state-transmit.png" alt="" /></p>
+<p>在状态转换机制中需要注意的五个概念如下：</p>
+<ul>
+<li>状态源（Source State）：指的是激活转换之间对象处于的状态。如果一个一个状态处于源状态，当它接收到转换的触发事件或满足监护条件时，就激活了一个离开的转换。</li>
+<li>目标状态（Event State）：指的是转换完成后对象所处的状态。</li>
+<li>事件触发器（Event Trigger）：指的是引起源状态转换的事件。事件不是持续发生的，它只发生在时间的一点上，对象接收到事件，导致源状态发生变化，激活转换并使监护条件得到满足。</li>
+<li>监护条件（Guard Condition）：是一个布尔表达式。当接收到触发事件要触发转换时，要对该表达式求值。如果表达式为真，则激活转换：如果表达式为假，则不激活转换，所接收到的触发事件丢失。</li>
+<li>动作（Action）：是一个可执行的原子计算。</li>
+</ul>
+<h5 id="初始状态"><a class="markdownIt-Anchor" href="#初始状态"></a> 初始状态</h5>
+<p>每个状态图都应该有一个初始状态，它代表状态图的起始位置。初始状态是一个伪状态（一个和普通状态有连接的假状态），对象不可能保持在初始状态，必须要有一个输出的无触发转换（没有事件触发器的转换）。通常初始状态上的转换是无监护条件的，并且初始状态只能作为转换的源，而不能作为转换的目标。在UML中，一个状态图只能有一个初始状态，用一个实心圆表示。</p>
+<h5 id="终止状态"><a class="markdownIt-Anchor" href="#终止状态"></a> 终止状态</h5>
+<p>终止状态是一个状态图的终点，一个状态图可以拥有一个或者多个终止状态。对象可以保持在终止状态，但是终止状态不可能有任何形式的和触发转换，它的目的就是为了激发封装状态上的转换过程的结束。因此，终止状态只能作为转换的目标而不能作为转换的源，在UML中，终止状态用一个含有实心圆的空心圆表示。</p>
+<h5 id="判定"><a class="markdownIt-Anchor" href="#判定"></a> 判定</h5>
+<p>活动图和状态图中都有需要根据给定条件进行判断，然后根据不同的判断结果进行不同转换的情况。实际就是工作流在此处按监护条件的取值发生分支，在UML中，判定用空心菱形表示。</p>
+<p><img data-src="UML-State.png" alt="状态图" /></p>
+<h4 id="序列图sequence-diagram"><a class="markdownIt-Anchor" href="#序列图sequence-diagram"></a> 序列图（Sequence Diagram）</h4>
+<p>序列图也叫时序图，是交互图的一种，用于捕获系统运行中对象之间有时间顺序的交互，是由生命线和消息组成。时序图将交互关系表示为一个二维图。纵向是时间轴，时间沿竖线向下延伸。横向轴代表了在协作中各独立对象的类元角色。类元角色用生命线表示。当对象存在时，角色用一条虚线表示，当对象的过程处于激活状态时，生命线是一个双道线。消息用从一个对象的生命线到另一个对象生命线的箭头表示。箭头以时间顺序在图中从上到下排列。</p>
+<ul>
+<li>
+<p>Actor（角色：代表某个由人或者设备扮演的角色，它不一定代表某个具体的实体，一般由一个小人代替；</p>
+</li>
+<li>
+<p>Lifetime（生命线）：在时序图中表示为从对象图标向下延伸的一条虚线，表示对象存在的时间。</p>
+</li>
+<li>
+<p>Activation（活动条/激活）：在生命线的徐线上可以用活动条表示某种行为的开始和结束，一般用小矩形来表示。</p>
+</li>
+<li>
+<p>同步消息：意味着阻塞和等待。如：A向B 发送一个消息后，对象A 必须一直等到B执行完成后返回才能继续往下执行。这就是同步消息。用实心箭头表示</p>
+</li>
+<li>
+<p>异步消息：就意味着是非阻塞。如：A向B发送消息后，直接可以执行下面代码，无需等待B的执行。</p>
+</li>
+<li>
+<p>返回消息：在从A发送消息到达B之后，B的回复消息称之为返回消息。</p>
+</li>
+</ul>
+<p><img data-src="uml-sequence-diagram-message.png" alt="" /></p>
+<p>UML在2.0时在时序图中加入了交互框。交互框用来解决交互执行的条件和方式，它允许在序列图中直接表示逻辑组件，用于通过指定条件或子进程的应用区域，为任何生命线的任何部分定义特殊条件和子进程。组合片段共有13种，名称及含义如下：</p>
+<p><img data-src="uml-2.0-interaction-1.png" alt="" /><br />
+<img data-src="uml-2.0-interaction-2.png" alt="" /></p>
+<p>举几个示例：</p>
+<p><img data-src="UML-interaction-loop-alt-opt.png" alt="" /></p>
+<h3 id="参考资料"><a class="markdownIt-Anchor" href="#参考资料"></a> 参考资料</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=WnMQ8HlmeXc">UML Diagrams Full Course (Unified Modeling Language)</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ywqu/archive/2009/12/17/1626043.html">UML建模之状态图（Statechart Diagram）</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.w3cschool.cn/uml_tutorial/uml_tutorial-jnf328y2.html">UML状态图</a></li>
+<li><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000040836364">UML时序图/序列图</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/" title="UML 统一建模语言">https://blog.fudenglong.site/2022/02/05/UML-统一建模语言/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/UML/" rel="tag"># UML</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/12/19/Go/%E3%80%90Golang%E3%80%91%E8%BF%9B%E7%A8%8B%E7%9A%84%E5%90%AF%E5%8A%A8%E5%92%8C%E5%88%9D%E5%A7%8B%E5%8C%96/" rel="prev" title="【Golang】进程初始化和调度系统">
+                  <i class="fa fa-angle-left"></i> 【Golang】进程初始化和调度系统
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/02/16/%E3%80%90Linux%E3%80%91%E5%8F%AF%E6%89%A7%E8%A1%8C%E5%92%8C%E5%8F%AF%E9%93%BE%E6%8E%A5%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F-ELF/" rel="next" title="【Linux】可执行和可链接文件格式--ELF">
+                  【Linux】可执行和可链接文件格式--ELF <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2022/02/05/UML-%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>

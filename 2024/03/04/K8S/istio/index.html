@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+  <link rel="mask-icon" href="/favicon.ico" color="#222">
+  <meta name="google-site-verification" content="lk2gSYFP_NyLNFob-fFnt7fm-I_n1ZYws-WZll7mshg">
+  <meta name="msvalidate.01" content="6Jdc01DjYOLguhS5">
+  <meta name="baidu-site-verification" content="code-NR10G09zww">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic%7Ccursive:300,300italic,400,400italic,700,700italic%7CSource+Code+Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/themes/yellow/pace-theme-minimal.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pace/1.2.4/pace.min.js"></script>
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.fudenglong.site","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.21.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"copycode":{"enable":true,"style":"flat"},"fold":{"enable":true,"height":800},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":true,"nav":null},"stickytabs":true,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/local-search.xml","localsearch":{"enable":true,"top_n_per_article":10,"unescape":false,"preload":true,"trigger":"auto"}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/config.min.js"></script>
+
+    <meta name="description" content="Istio 是服务网格，即ServiceMesh的一种实现，服务网格通常用于描述构成应用程序的网络以及它们之间的交互。在从单体应用向分布式微服务架构转型的过程中，虽然从中获益良多，但是随着规模和复杂性的增长，服务网格越来越难以理解，给开发人员和运维人员带来的挑战快速增加。这些挑战包括：服务发现，负载均衡，故障恢复，指标收集，监控以及一些更加复杂的运维需求，例如：A&#x2F;B测试、金丝雀发布、限流、访问控">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Istio 实践笔记">
+<meta property="og:url" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/index.html">
+<meta property="og:site_name" content="MichaelFu">
+<meta property="og:description" content="Istio 是服务网格，即ServiceMesh的一种实现，服务网格通常用于描述构成应用程序的网络以及它们之间的交互。在从单体应用向分布式微服务架构转型的过程中，虽然从中获益良多，但是随着规模和复杂性的增长，服务网格越来越难以理解，给开发人员和运维人员带来的挑战快速增加。这些挑战包括：服务发现，负载均衡，故障恢复，指标收集，监控以及一些更加复杂的运维需求，例如：A&#x2F;B测试、金丝雀发布、限流、访问控">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/arch.svg">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/istio-install-verify.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/istio-install-result.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/desc-ingressgateway-pod.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/desc-ingressgateway-svc.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/product-page.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/istio-kiali-prometheus.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/istio-kiali-web-page.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/istio-bookinfo-svc-pod.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/data-view-svc.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/data-view-promethus.png">
+<meta property="og:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/data-view-grafana.png">
+<meta property="article:published_time" content="2024-03-04T09:14:00.000Z">
+<meta property="article:modified_time" content="2024-03-04T09:14:00.000Z">
+<meta property="article:author" content="MichaelFu">
+<meta property="article:tag" content="istio">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.fudenglong.site/2024/03/04/K8S/istio/arch.svg">
+
+
+<link rel="canonical" href="https://blog.fudenglong.site/2024/03/04/K8S/istio/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://blog.fudenglong.site/2024/03/04/K8S/istio/","path":"2024/03/04/K8S/istio/","title":"Istio 实践笔记"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Istio 实践笔记 | MichaelFu</title>
+  
+
+
+
+
+
+
+
+<script async src="/lib/fireworks.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">MichaelFu</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">好记性不如烂笔头</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-云-&nbsp;&nbsp;原-&nbsp;&nbsp;生"><a href="/%E4%BA%91%E5%8E%9F%E7%94%9F/" rel="section"><i class="fa fa-cloud fa-fw"></i>云 &nbsp;&nbsp;原 &nbsp;&nbsp;生</a></li><li class="menu-item menu-item-rust-编程"><a href="/Programming-Rust/" rel="section"><i class="fa fa-cat fa-fw"></i>Rust 编程</a></li><li class="menu-item menu-item-go-&nbsp;&nbsp;&nbsp;编程"><a href="/Programming-Go/" rel="section"><i class="fa fa-hippo fa-fw"></i>Go &nbsp;&nbsp;&nbsp;编程</a></li><li class="menu-item menu-item-前端知识"><a href="https://wshuhua.github.io/" rel="section" target="_blank"><i class="fa fa-sun fa-fw"></i>前端知识</a></li><li class="menu-item menu-item-leetcode-rust"><a href="/Leetcode-Rust/" rel="section"><i class="fa fa-book fa-fw"></i>Leetcode-Rust</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85"><span class="nav-number">1.</span> <span class="nav-text"> 安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E4%BB%8B%E7%BB%8D"><span class="nav-number">2.</span> <span class="nav-text"> 功能介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E7%BD%91%E5%85%B3"><span class="nav-number">2.1.</span> <span class="nav-text"> 创建网关</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B5%81%E9%87%8F%E8%A7%82%E6%B5%8B"><span class="nav-number">2.2.</span> <span class="nav-text"> 流量观测</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%9B%AE%E6%A0%87%E8%A7%84%E5%88%99"><span class="nav-number">2.3.</span> <span class="nav-text"> 目标规则</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B5%81%E9%87%8F%E7%AE%A1%E7%90%86"><span class="nav-number">2.4.</span> <span class="nav-text"> 流量管理</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%B7%AF%E7%94%B1%E7%89%88%E6%9C%AC%E5%88%86%E5%8F%91"><span class="nav-number">2.4.1.</span> <span class="nav-text"> 路由版本分发</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E6%B3%A8%E5%85%A5"><span class="nav-number">2.4.2.</span> <span class="nav-text"> 故障注入</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%B5%81%E9%87%8F%E8%BD%AC%E7%A7%BB"><span class="nav-number">2.4.3.</span> <span class="nav-text"> 流量转移</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%AF%B7%E6%B1%82%E8%B6%85%E6%97%B6"><span class="nav-number">2.4.4.</span> <span class="nav-text"> 请求超时</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#tcp%E6%B5%81%E9%87%8F%E8%BD%AC%E7%A7%BB"><span class="nav-number">2.4.5.</span> <span class="nav-text"> TCP流量转移</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E7%86%94%E6%96%AD"><span class="nav-number">2.4.6.</span> <span class="nav-text"> 熔断</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%89%E5%85%A8%E7%BD%91%E5%85%B3"><span class="nav-number">2.5.</span> <span class="nav-text"> 安全网关</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#mtls"><span class="nav-number">2.5.1.</span> <span class="nav-text"> mTLS</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tls-%E7%BB%88%E6%AD%A2"><span class="nav-number">2.6.</span> <span class="nav-text"> TLS 终止</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tls-%E9%9D%9E%E7%BB%88%E6%AD%A2"><span class="nav-number">2.7.</span> <span class="nav-text"> TLS 非终止</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%87%E6%A0%87%E5%8F%AF%E8%A7%86%E5%8C%96"><span class="nav-number">2.8.</span> <span class="nav-text"> 指标可视化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8F%92%E5%85%A5ca%E8%AF%81%E4%B9%A6"><span class="nav-number">2.9.</span> <span class="nav-text"> 插入CA证书</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A2%9E%E5%8A%A0%E7%AB%AF%E5%8F%A3"><span class="nav-number">2.10.</span> <span class="nav-text"> 增加端口</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="nav-number">3.</span> <span class="nav-text"> 参考链接</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="MichaelFu"
+      src="/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">MichaelFu</p>
+  <div class="site-description" itemprop="description">实践能让记忆更深刻</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">84</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">126</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/gamelife1314" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;gamelife1314" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:michael.fudenglong@qq.com" title="E-Mail → mailto:michael.fudenglong@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+  <div class="cc-license animated" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="https://cdnjs.cloudflare.com/ajax/libs/creativecommons-vocabulary/2020.11.3/assets/license_badges/small/by_nc_sa.svg" alt="Creative Commons"></a>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://www.rust-lang.org/zh-CN/" title="https:&#x2F;&#x2F;www.rust-lang.org&#x2F;zh-CN&#x2F;" rel="noopener" target="_blank">Rust</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://go.dev/" title="https:&#x2F;&#x2F;go.dev&#x2F;" rel="noopener" target="_blank">Golang</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://www.python.org/" title="https:&#x2F;&#x2F;www.python.org&#x2F;" rel="noopener" target="_blank">Python</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://doc.rust-lang.org/cargo/index.html" title="https:&#x2F;&#x2F;doc.rust-lang.org&#x2F;cargo&#x2F;index.html" rel="noopener" target="_blank">Cargo</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://gist.github.com/rxaviers/7360908" title="https:&#x2F;&#x2F;gist.github.com&#x2F;rxaviers&#x2F;7360908" rel="noopener" target="_blank">Emoji</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+        <div class="pjax">
+        </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.fudenglong.site/2024/03/04/K8S/istio/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/avatar.jpeg">
+      <meta itemprop="name" content="MichaelFu">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="MichaelFu">
+      <meta itemprop="description" content="实践能让记忆更深刻">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Istio 实践笔记 | MichaelFu">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Istio 实践笔记
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-03-04 17:14:00" itemprop="dateCreated datePublished" datetime="2024-03-04T17:14:00+08:00">2024-03-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>9.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>33 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p><code>Istio</code> 是服务网格，即<code>ServiceMesh</code>的一种实现，服务网格通常用于描述构成应用程序的网络以及它们之间的交互。在从单体应用向分布式微服务架构转型的过程中，虽然从中获益良多，但是随着规模和复杂性的增长，服务网格越来越难以理解，给开发人员和运维人员带来的挑战快速增加。这些挑战包括：服务发现，负载均衡，故障恢复，指标收集，监控以及一些更加复杂的运维需求，例如：<code>A/B测试</code>、金丝雀发布、限流、访问控制，端到端认证等。而 <code>Istio</code> 提供了一个完整的解决方案，通过为整个服务网格提供行为洞察和操作控制来满足微服务应用程序的多样化需求。</p>
+<p><code>Istio</code> 以非常简单的方式来为已部署的服务建立网络，对应用程序代码只需要进行一点或者不需要做任何改动，要想让服务支持<code>Istio</code>，只需要在应用旁边部署一个 <code>sidecar</code> 代理，使用 <code>Istio</code> 的控制面进行功能配置和管理代理，拦截服务之间的所有网络通信，已达到：</p>
+<ul>
+<li><code>HTTP</code>、<code>gRPC</code>、<code>WebSocket</code> 和 <code>TCP</code> 流量的自动负载均衡；</li>
+<li>通过丰富的路由规则、重试、故障转移和故障注入，可以对流量行为进行细粒度控制；</li>
+<li>可插入的策略层和配置 API，支持访问控制、速率限制和配额；</li>
+<li>对出入集群入口和出口中所有流量的自动度量指标、日志记录和追踪；</li>
+<li>通过强大的基于身份的验证和授权，在集群中实现安全的服务间通信；</li>
+</ul>
+<p>综上，对 <code>Istio</code> 的核心功能可以总结为以下几点：</p>
+<ol>
+<li>流量管理，通过简单的规则配置和流量路由，可以控制服务之间的流量和<code>API</code>调用。<code>Istio</code> 简化了断路器、超时和重试等服务级别属性的配置，并且可以轻松设置<code>A/B</code>测试、金丝雀部署和基于百分比的流量分割的分阶段部署等重要任务；</li>
+<li>安全，<code>Istio</code> 的安全功能使开发人员可以专注于应用程序级别的安全性。<code>Istio</code> 提供底层安全通信信道，并大规模管理服务通信的认证、授权和加密。使用<code>Istio</code>，服务通信在默认情况下是安全的，它允许您跨多种协议和运行时一致地实施策略——所有这些都很少或根本不需要应用程序更改；</li>
+<li>可观察性，<code>Istio</code> 强大的追踪、监控和日志记录可让开发或者运维人员深入了解服务网格部署。通过 <code>Istio</code> 的监控功能，可以真正了解服务性能如何影响上游和下游的功能，而其自定义仪表板可以提供对所有服务性能的可视性；</li>
+</ol>
+<p>在架构上，Istio 服务网格逻辑上分为数据平面和控制平面，其中：</p>
+<ul>
+<li>数据平面由一组以 <code>sidecar</code> 方式部署的智能代理（<a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">Envoy</a>）组成。这些代理负责协调和控制微服务之间的所有网络通信。 它们还收集和报告所有网格流量的遥测数据；</li>
+<li>控制平面 管理并配置代理来进行流量路由；</li>
+</ul>
+<p>架构图如下图所示：</p>
+<img data-src="/2024/03/04/K8S/istio/arch.svg" class="">
+<p><code>Envoy</code>：是用 <code>C++</code> 开发的高性能代理，用于协调服务网格中所有服务的入站和出站流量。<code>Envoy</code> 代理是唯一与数据平面流量交互的 <code>Istio</code> 组件。<code>Envoy</code> 被部署为服务的 <code>Sidecar</code>，在逻辑上为服务增加了 <code>Envoy</code> 的许多内置特性，例如：动态服务发现，负载均衡，<code>TLS</code> 终端，<code>HTTP/2</code> 与 <code>gRPC</code> 代理，熔断器，健康检查，基于百分比流量分割的分阶段发布，故障注入，丰富的指标；</p>
+<p><code>Sidecar</code> 代理模型还允许您向现有的部署添加 <code>Istio</code> 功能，而不需要重新设计架构或重写代码。由 Envoy 代理启用的一些 Istio 的功能和任务包括：</p>
+<ul>
+<li>流量控制功能：通过丰富的 <code>HTTP</code>、<code>gRPC</code>、<code>WebSocket</code> 和 <code>TCP</code> 流量路由规则来执行细粒度的流量控制；</li>
+<li>网络弹性特性：重试设置、故障转移、熔断器和故障注入；</li>
+<li>安全性和身份认证特性：执行安全性策略，并强制实行通过配置 <code>API</code> 定义的访问控制和速率限制；</li>
+<li>基于 <code>WebAssembly</code> 的可插拔扩展模型，允许通过自定义策略执行和生成网格流量的遥测；</li>
+</ul>
+<p><code>Istiod</code> 将控制流量行为的高级路由规则转换为 <code>Envoy</code> 特定的配置， 并在运行时将其传播给 <code>Sidecar</code>。<code>Pilot</code> 提取了特定平台的服务发现机制，并将其综合为一种标准格式，任何符合 <code>Envoy API</code> 的 <code>Sidecar</code> 都可以使用。以及通过内置的身份和凭证管理，实现了强大的服务对服务和终端用户认证，可以使用 <code>Istio</code> 来升级服务网格中未加密的流量，这样运营商可以基于服务身份而不是相对不稳定的第<code>3</code>层或第<code>4</code>层网络标识符来执行策略。<code>Istiod</code> 还可以充当证书授权（<code>CA</code>），生成证书以允许在数据平面中进行安全的 <code>mTLS</code> 通信。</p>
+<span id="more"></span>
+<h3 id="安装"><a class="markdownIt-Anchor" href="#安装"></a> 安装</h3>
+<p>本节使用 <code>istioctl</code> 安装 <code>istio</code>，可以从<a target="_blank" rel="noopener" href="https://github.com/istio/istio/releases">发布页面</a>下载预编译的版本，在安装的时候根据需要选择不同的<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/setup/additional-setup/config-profiles/">配置</a>，这里为了后续的演示和示例，选择 <code>demo</code> 配置项，这将会安装 <code>istio-ingressgateway</code>、<code>istio-egressgateway</code> 和 <code>istiod</code>：</p>
+<blockquote>
+<p><code>istioctl install --set profile=demo</code></p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ ./bin/istioctl install --set profile=demo</span><br><span class="line">This will install the Istio 1.20.3 &quot;demo&quot; profile (with components: Istio core, Istiod, Ingress gateways, and Egress gateways) into the cluster. Proceed? (y/N) y</span><br><span class="line">✔ Istio core installed</span><br><span class="line">✔ Istiod installed</span><br><span class="line">✔ Ingress gateways installed</span><br><span class="line">✔ Egress gateways installed</span><br><span class="line">✔ Installation complete</span><br><span class="line">Made this installation the default for injection and validation.</span><br></pre></td></tr></table></figure>
+<p>可以通过下面的命令查看安装到集群中的 <code>istio</code> 的配置：</p>
+<blockquote>
+<p><code>kubectl -n istio-system get IstioOperator installed-state -o yaml</code></p>
+</blockquote>
+<p>可以通过下面的命令验证在集群中安装的资源信息：</p>
+<blockquote>
+<p><code>./bin/istioctl verify-install --revision default</code></p>
+</blockquote>
+<p><img data-src="istio-install-verify.png" alt="" /></p>
+<p>查看安装的 <code>Pod</code>、<code>SVC</code> 以及 <code>Deploy</code> 这些关键资源：</p>
+<blockquote>
+<p><code>kubectl get svc,pod,deploy -n istio-system -owide</code></p>
+</blockquote>
+<p><img data-src="istio-install-result.png" alt="" /></p>
+<h3 id="功能介绍"><a class="markdownIt-Anchor" href="#功能介绍"></a> 功能介绍</h3>
+<p>接下来使用 <code>istio</code> 发布件中的 <code>bookinfo</code> 应用来演示 <code>istio</code> 的各项功能，首先是安装该应用，使用如下的步骤进行安装，：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl create ns bookinfo-test</span><br><span class="line">namespace/bookinfo-test created</span><br><span class="line">$ kubectl label namespace bookinfo-test istio-injection=enabled</span><br><span class="line">$ kubectl apply -n bookinfo-test -f samples/bookinfo/platform/kube/bookinfo.yaml</span><br><span class="line">service/details created</span><br><span class="line">serviceaccount/bookinfo-details created</span><br><span class="line">deployment.apps/details-v1 created</span><br><span class="line">service/ratings created</span><br><span class="line">serviceaccount/bookinfo-ratings created</span><br><span class="line">deployment.apps/ratings-v1 created</span><br><span class="line">service/reviews created</span><br><span class="line">serviceaccount/bookinfo-reviews created</span><br><span class="line">deployment.apps/reviews-v1 created</span><br><span class="line">deployment.apps/reviews-v2 created</span><br><span class="line">deployment.apps/reviews-v3 created</span><br><span class="line">service/productpage created</span><br><span class="line">serviceaccount/bookinfo-productpage created</span><br><span class="line">deployment.apps/productpage-v1 created</span><br></pre></td></tr></table></figure>
+<p>上面最重要的流程是给 <code>bookinfo-test</code> 命名空间添加了 <code>istio-injection=enabled</code> 标签，这样 <code>istio</code> 会为这个命名空间中的 <code>pod</code> 自动注入 <code>istio-proxy</code> 这个 <code>Sidecar</code> 容器。</p>
+<h4 id="创建网关"><a class="markdownIt-Anchor" href="#创建网关"></a> 创建网关</h4>
+<p>这里有多种方式作为入口流量的网关，可以使用 <code>Istio Gateway</code>、<code>K8S Gateway</code> 以及 <code>K8S Ingress</code>，要注意的是 <code>Istio Gateway</code> 和 <code>K8S Gateway</code> 虽然资源名称是一样的，都叫 <code>Gateway</code>，但是它们在使用方式是完全不一样的，下面的示例中以 <code>Istio Gateway</code> 为示例进行。创建用于 <code>bookinfo</code> 应用的网关使用如下的命令：</p>
+<blockquote>
+<p><code>kubectl apply -n bookinfo-test -f samples/bookinfo/networking/bookinfo-gateway.yaml</code></p>
+</blockquote>
+<p>该 <code>yaml</code> 文件中的内容如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Gateway</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">bookinfo-gateway</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">istio:</span> <span class="string">ingressgateway</span></span><br><span class="line">  <span class="attr">servers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span></span><br><span class="line">      <span class="attr">number:</span> <span class="number">8080</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">http</span></span><br><span class="line">      <span class="attr">protocol:</span> <span class="string">HTTP</span></span><br><span class="line">    <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">&quot;*&quot;</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">bookinfo</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">&quot;*&quot;</span></span><br><span class="line">  <span class="attr">gateways:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">bookinfo-gateway</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">match:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">uri:</span></span><br><span class="line">        <span class="attr">exact:</span> <span class="string">/productpage</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">uri:</span></span><br><span class="line">        <span class="attr">prefix:</span> <span class="string">/static</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">uri:</span></span><br><span class="line">        <span class="attr">exact:</span> <span class="string">/login</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">uri:</span></span><br><span class="line">        <span class="attr">exact:</span> <span class="string">/logout</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">uri:</span></span><br><span class="line">        <span class="attr">prefix:</span> <span class="string">/api/v1/products</span></span><br><span class="line">    <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">productpage</span></span><br><span class="line">        <span class="attr">port:</span></span><br><span class="line">          <span class="attr">number:</span> <span class="number">9080</span></span><br></pre></td></tr></table></figure>
+<p>上面的 <code>yaml</code> 中，<code>Gateway</code> 的 <code>API</code> 版本是 <code>networking.istio.io/v1alpha3</code>，这和 <code>K8S Gateway</code> 是完全不一样的，所以他们是两个完全不一样的资源。<code>Gateway</code> 中的 <code>spec.selector</code> 使用选择使用哪个 <code>Pod</code> 来处理该网关的请求，这里选择的是安装章节中在 <code>istio-system</code> 命名空间中创建的 <code>pod/istio-ingressgateway-86446666f9-qn4f2</code>，该 <code>Pod</code> 具有标签 <code>istio=ingressgateway</code>：</p>
+<blockquote>
+<p><code>kubectl describe pod -n istio-system stio-ingressgateway-86446666f9-tgmrp</code></p>
+</blockquote>
+<p><img data-src="desc-ingressgateway-pod.png" alt="" /></p>
+<p>而 <code>Gateway</code> 中的端口 <code>8080</code> 匹配的到 <code>pod/istio-ingressgateway-86446666f9-qn4f2</code> 中暴露的端口 <code>8080</code>。集群的流量入口是从绑定到<code>pod/istio-ingressgateway-86446666f9-qn4f2</code>的<code>service/istio-ingressgateway</code>流入，然后根据 <code>Gateway</code> 所绑定的端口和配置将流量导入到最终的业务 <code>Pod</code> 中：</p>
+<blockquote>
+<p><code>kubectl describe svc -n istio-system istio-ingressgateway</code></p>
+</blockquote>
+<p><img data-src="desc-ingressgateway-svc.png" alt="" /></p>
+<p><code>istio-ingressgateway</code> 的外部IP是 <code>192.168.67.241</code>，对于 <code>bookinfo-gateway</code> 流量从 <code>192.168.67.241:80</code> 进入，然后转发到 <code>10.244.2.19:8080</code>，再根据 <code>Gateway</code> 和 <code>VirtualService</code> 的配置分发流量，<code>VirtualService</code> 就像 <code>K8S Gateway</code> 中的路由，可以根据具体的匹配条件将流量分发到不同的应用。上面简单介绍了网关的概念和入口流量的处理流程，创建成功之后能够得到下面的资源：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get gateway,virtualservice -n bookinfo-test -owide</span><br><span class="line">NAME                                           AGE</span><br><span class="line">gateway.networking.istio.io/bookinfo-gateway   23s</span><br><span class="line"></span><br><span class="line">NAME                                          GATEWAYS               HOSTS   AGE</span><br><span class="line">virtualservice.networking.istio.io/bookinfo   [&quot;bookinfo-gateway&quot;]   [&quot;*&quot;]   22s</span><br></pre></td></tr></table></figure>
+<p>在上面的流程分析中，其实已经得到网关入口的地址。也可以使用下面的命令进行获取，如果环境中安装了 <code>MetaLB</code>，也就是 <code>service/istio-ingressgateway</code> 有 <code>External-IP</code> 的时候使用下面的方式：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.status.loadBalancer.ingress[0].ip&#125;&#x27;</span><br><span class="line">192.168.67.241</span><br><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.spec.ports[?(@.name==&quot;http2&quot;)].port&#125;&#x27;</span><br><span class="line">80</span><br></pre></td></tr></table></figure>
+<p>所以可以使用 <code>http://192.168.67.241/productpage</code> 访问应用。如果没有安装 <code>MetaLB</code>，也可以使用节点的公网IP和<code>service/istio-ingressgateway</code>的<code>NodePort</code>进行访问，如下也可以使用 <code>http://192.168.67.8:30298/productpage</code> 端口进行访问：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ ifconfig enp0s1</span><br><span class="line">enp0s1: flags=4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu 1500</span><br><span class="line">  inet 192.168.67.8  netmask 255.255.255.0  broadcast 192.168.67.255</span><br><span class="line">  inet6 fd96:5cad:8347:c4a6:5054:ff:feec:4669  prefixlen 64  scopeid 0x0&lt;global&gt;</span><br><span class="line">  inet6 fe80::5054:ff:feec:4669  prefixlen 64  scopeid 0x20&lt;link&gt;</span><br><span class="line">  ether 52:54:00:ec:46:69  txqueuelen 1000  (Ethernet)</span><br><span class="line">  RX packets 381476  bytes 423297341 (423.2 MB)</span><br><span class="line">  RX errors 0  dropped 0  overruns 0  frame 0</span><br><span class="line">  TX packets 182480  bytes 121536035 (121.5 MB)</span><br><span class="line">  TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0</span><br><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.spec.ports[?(@.name==&quot;http2&quot;)].nodePort&#125;&#x27;</span><br><span class="line">30298</span><br></pre></td></tr></table></figure>
+<p><img data-src="product-page.png" alt="" /></p>
+<h4 id="流量观测"><a class="markdownIt-Anchor" href="#流量观测"></a> 流量观测</h4>
+<p>为了能直观地看到上述服务中的流量转发情况，安装<a target="_blank" rel="noopener" href="https://istio.io/latest/docs/ops/integrations/kiali/">kiali</a>和<a target="_blank" rel="noopener" href="https://istio.io/latest/docs/ops/integrations/prometheus/">prometheus</a>进行演示：</p>
+<blockquote>
+<p><code>kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/kiali.yaml</code><br />
+<code>kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.20/samples/addons/prometheus.yaml</code></p>
+</blockquote>
+<p>安装成功之后，可以看到如下的 <code>Service</code>：</p>
+<p><img data-src="istio-kiali-prometheus.png" alt="" /></p>
+<p><code>kiali</code> 默认是 <code>ClusterIP</code> 类型的，没法直接从外部进行访问，实验环境下可以将它改成<code>NodePort</code>或者<code>LoadBlancer</code>类型，这样就获得了从外部访问的入口。也可以通过下面的命令临时获得公网入口，<code>172.19.106.26</code> 是节点公网地址：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ ./bin/istioctl dashboard kiali --address 172.19.106.26</span><br><span class="line">http://172.19.106.26:20001/kiali</span><br></pre></td></tr></table></figure>
+<p>刷新 <code>productpage</code> 页面几次，然后在 <code>kiali</code> 页面看到如下的请求示意图：</p>
+<p><img data-src="istio-kiali-web-page.png" alt="" /></p>
+<h4 id="目标规则"><a class="markdownIt-Anchor" href="#目标规则"></a> 目标规则</h4>
+<p>在刷新产品页面的时候，会发现书籍的星级评分有时候有，有时候是红色的，有时候是黑色的，是因为服务的 <code>reviews</code> 的版本有三个，请求到不同的 <code>pod</code> 就会出现不同的结果：</p>
+<p><img data-src="istio-bookinfo-svc-pod.png" alt="" /></p>
+<p>目标规则的意思就是将这些相同服务但不同版本以显示的方式指定，然后可以供 <code>VirtualService</code> 在转发流量是进行选择，在继续后面的章节之前，先应用默认的路由规则：</p>
+<blockquote>
+<p><code>kubectl apply -n bookinfo-test -f samples/bookinfo/networking/destination-rule-all.yaml</code></p>
+</blockquote>
+<p>在 <code>destination-rule-all.yaml</code> 有一些用于后续实验的规则，挑其中一个进行说明：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">DestinationRule</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">reviews</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">  <span class="attr">subsets:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">v1</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">version:</span> <span class="string">v1</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">v2</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">version:</span> <span class="string">v2</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">v3</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">version:</span> <span class="string">v3</span></span><br></pre></td></tr></table></figure>
+<p>这里的 <code>host</code> 指的是服务的名称，<code>subsets</code> 用来声明这个服务内在的版本，这里指定了三个版本<code>v1</code>、<code>v2</code>和<code>v3</code>，分别用三个标签指向<code>3</code>个<code>reviews</code>的<code>Pod</code>。</p>
+<h4 id="流量管理"><a class="markdownIt-Anchor" href="#流量管理"></a> 流量管理</h4>
+<p><code>Istio</code> 的流量管理功能可以体现在路由版本分发，故障注入，流量转移，请求设置超时，熔断，地域负载均衡等过个方面。</p>
+<h5 id="路由版本分发"><a class="markdownIt-Anchor" href="#路由版本分发"></a> 路由版本分发</h5>
+<p>本节继续基于前面的测试，将路由分发到具体的版本，例如，在这之前，刷新产品页面数据的评论信息一直在变动，这里通过简单的配置让他们都访问 <code>v1</code> 版本：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -n bookinfo-test -f samples/bookinfo/networking/virtual-service-all-v1.yaml</span><br><span class="line">virtualservice.networking.istio.io/productpage created</span><br><span class="line">virtualservice.networking.istio.io/reviews created</span><br><span class="line">virtualservice.networking.istio.io/ratings created</span><br><span class="line">virtualservice.networking.istio.io/details created</span><br></pre></td></tr></table></figure>
+<p><code>virtual-service-all-v1.yaml</code> 中的内容如下，拿 <code>reviews</code> 这个 <code>VirtualService</code> 的配置来说，它会让所有访问 <code>reviews</code> 服务的请求都转发到 <code>v1</code> 版本：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">productpage</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">productpage</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">productpage</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">reviews</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">reviews</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">ratings</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">ratings</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">ratings</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">details</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">details</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">details</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br><span class="line"><span class="meta">---</span></span><br></pre></td></tr></table></figure>
+<p>此时如果再去刷新产品页面，评论信息是不会再有所变动的。还可以匹配具体的<code>HTTP</code>头信息，让具有某个请求头的用户访问某个版本。例如，更新刚才创建的<code>review VirtualService</code>，让用户<code>jason</code>访问 <code>v2</code>版本：</p>
+<blockquote>
+<p><code>kubectl apply -n bookinfo-test -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml</code></p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">reviews</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">reviews</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">match:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">headers:</span></span><br><span class="line">        <span class="attr">end-user:</span></span><br><span class="line">          <span class="attr">exact:</span> <span class="string">jason</span></span><br><span class="line">    <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v2</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br></pre></td></tr></table></figure>
+<p>使用<code>jason</code>登录，密码任意，然后发现不管怎么刷新页面，书籍的评论都是固定的黑色星级样式。截止到目前，请求的流程如下所示：</p>
+<ul>
+<li><code>productpage</code> → <code>reviews:v2</code> → <code>ratings</code> (针对 <code>jason</code> 用户)</li>
+<li><code>productpage</code> → <code>reviews:v1</code> (其他用户)</li>
+</ul>
+<h5 id="故障注入"><a class="markdownIt-Anchor" href="#故障注入"></a> 故障注入</h5>
+<p>故障注入可以分为延迟故障和<code>abort</code>故障。例如，针对下面的测试，在<code>jason</code>用户在访问<code>ratings</code>服务时，会引入1个<code>7s</code>的延迟：</p>
+<blockquote>
+<p><code>kubectl apply -n bookinfo-test -f samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml</code></p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">ratings</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">ratings</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">match:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">headers:</span></span><br><span class="line">        <span class="attr">end-user:</span></span><br><span class="line">          <span class="attr">exact:</span> <span class="string">jason</span></span><br><span class="line">    <span class="attr">fault:</span></span><br><span class="line">      <span class="attr">delay:</span></span><br><span class="line">        <span class="attr">percentage:</span></span><br><span class="line">          <span class="attr">value:</span> <span class="number">100.0</span></span><br><span class="line">        <span class="attr">fixedDelay:</span> <span class="string">7s</span></span><br><span class="line">    <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">ratings</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">ratings</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br></pre></td></tr></table></figure>
+<p>如下在<code>jason</code>用户在访问<code>ratings</code>服务时，引入<code>500</code>响应，此时访问产品页，在评论的地方会出现 <code>Ratings service is currently unavailable</code> 这样的信息：</p>
+<blockquote>
+<p><code>kubectl apply -n bookinfo-test  -f samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml</code></p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">ratings</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">ratings</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">match:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">headers:</span></span><br><span class="line">        <span class="attr">end-user:</span></span><br><span class="line">          <span class="attr">exact:</span> <span class="string">jason</span></span><br><span class="line">    <span class="attr">fault:</span></span><br><span class="line">      <span class="attr">abort:</span></span><br><span class="line">        <span class="attr">percentage:</span></span><br><span class="line">          <span class="attr">value:</span> <span class="number">100.0</span></span><br><span class="line">        <span class="attr">httpStatus:</span> <span class="number">500</span></span><br><span class="line">    <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">ratings</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">ratings</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br></pre></td></tr></table></figure>
+<p>清除本节注入的故障:</p>
+<blockquote>
+<p><code>kubectl delete -n bookinfo-test -f samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml</code><br />
+<code>kubectl delete -n bookinfo-test  -f samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml</code></p>
+</blockquote>
+<h5 id="流量转移"><a class="markdownIt-Anchor" href="#流量转移"></a> 流量转移</h5>
+<p>流量转移通常用于版本升级过程中新版本不完全可信的时候，可以只将少部分的流量转移到新版本进行测试，待测试通过之后，再讲全部的流量进行导入。为了验证，这里先讲所有的流量都恢复到所有应用的<code>v1</code>版本：</p>
+<blockquote>
+<p><code>kubectl apply -n bookinfo-test -f samples/bookinfo/networking/virtual-service-all-v1.yaml</code></p>
+</blockquote>
+<p>此时，假设对 <code>reviews</code> 应用进行了版本升级，要导入一部分流量进行测试，这里将导入<code>50%</code>的流量到<code>reviews v3</code>应用：</p>
+<blockquote>
+<p><code>kubectl apply -n bookinfo-test -f samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml</code></p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">reviews</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">reviews</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br><span class="line">      <span class="attr">weight:</span> <span class="number">50</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v3</span></span><br><span class="line">      <span class="attr">weight:</span> <span class="number">50</span></span><br></pre></td></tr></table></figure>
+<p>此时刷新产品页，应该有<code>50%</code>的几率看到红色的星级评价。如果测试完成，可以将全部流量导入到<code>reviews v3</code>：</p>
+<blockquote>
+<p><code>kubectl apply -n bookinfo-test -f samples/bookinfo/networking/virtual-service-reviews-v3.yaml</code></p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">reviews</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">reviews</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">reviews</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v3</span></span><br></pre></td></tr></table></figure>
+<h5 id="请求超时"><a class="markdownIt-Anchor" href="#请求超时"></a> 请求超时</h5>
+<p>将所有对 <code>reviews</code> 的访问都路由到 <code>v2</code> 版本，并且设置对<code>ratings</code>的访问增加固定的<code>2s</code>延迟：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -n bookinfo-test -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: VirtualService</span><br><span class="line">metadata:</span><br><span class="line">  name: reviews</span><br><span class="line">spec:</span><br><span class="line">  hosts:</span><br><span class="line">    - reviews</span><br><span class="line">  http:</span><br><span class="line">  - route:</span><br><span class="line">    - destination:</span><br><span class="line">        host: reviews</span><br><span class="line">        subset: v2</span><br><span class="line">---</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: VirtualService</span><br><span class="line">metadata:</span><br><span class="line">  name: ratings</span><br><span class="line">spec:</span><br><span class="line">  hosts:</span><br><span class="line">  - ratings</span><br><span class="line">  http:</span><br><span class="line">  - fault:</span><br><span class="line">      delay:</span><br><span class="line">        percent: 100</span><br><span class="line">        fixedDelay: 2s</span><br><span class="line">    route:</span><br><span class="line">    - destination:</span><br><span class="line">        host: ratings</span><br><span class="line">        subset: v1</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>此时刷新产品页，页面响应正常，但是有<code>2s</code>延迟。现在设置对<code>reviews</code>的访问最大<code>0.5s</code>超时：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -n bookinfo-test -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: VirtualService</span><br><span class="line">metadata:</span><br><span class="line">  name: reviews</span><br><span class="line">spec:</span><br><span class="line">  hosts:</span><br><span class="line">  - reviews</span><br><span class="line">  http:</span><br><span class="line">  - route:</span><br><span class="line">    - destination:</span><br><span class="line">        host: reviews</span><br><span class="line">        subset: v2</span><br><span class="line">    timeout: 0.5s</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>再去刷新页面，发现页面会在<code>1s</code>左右响应，但是评论获取失败。可以使用下面的命令将应用恢复到所有服务的<code>v1</code>版本：</p>
+<blockquote>
+<p><code>kubectl apply -n bookinfo-test -f samples/bookinfo/networking/virtual-service-all-v1.yaml</code></p>
+</blockquote>
+<h5 id="tcp流量转移"><a class="markdownIt-Anchor" href="#tcp流量转移"></a> TCP流量转移</h5>
+<p>在测试之前首先设置测试环境：</p>
+<blockquote>
+<ol>
+<li>创建命名空间<br />
+<code>kubectl create namespace istio-io-tcp-traffic-shifting</code></li>
+<li>部署 sleep 应用程序，作为请求的测试源<br />
+<code>kubectl apply -f samples/sleep/sleep.yaml -n istio-io-tcp-traffic-shifting</code></li>
+<li>部署 tcp-echo 服务的 v1 和 v2 版本，作为服务端<br />
+<code>kubectl apply -f samples/tcp-echo/tcp-echo-services.yaml -n istio-io-tcp-traffic-shifting</code></li>
+</ol>
+</blockquote>
+<p>首先将所有流量路由到<code>v1</code>版本的<code>tcp-echo</code>，<code>VirtualService</code> 中根据端口进行匹配：</p>
+<blockquote>
+<p><code>kubectl apply -f samples/tcp-echo/tcp-echo-all-v1.yaml -n istio-io-tcp-traffic-shifting</code></p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Gateway</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">tcp-echo-gateway</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">istio:</span> <span class="string">ingressgateway</span></span><br><span class="line">  <span class="attr">servers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span></span><br><span class="line">      <span class="attr">number:</span> <span class="number">31400</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">tcp</span></span><br><span class="line">      <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">    <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">&quot;*&quot;</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">DestinationRule</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">tcp-echo-destination</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">host:</span> <span class="string">tcp-echo</span></span><br><span class="line">  <span class="attr">subsets:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">v1</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">version:</span> <span class="string">v1</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">v2</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">version:</span> <span class="string">v2</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">tcp-echo</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">&quot;*&quot;</span></span><br><span class="line">  <span class="attr">gateways:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">tcp-echo-gateway</span></span><br><span class="line">  <span class="attr">tcp:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">match:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">31400</span></span><br><span class="line">    <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">tcp-echo</span></span><br><span class="line">        <span class="attr">port:</span></span><br><span class="line">          <span class="attr">number:</span> <span class="number">9000</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br></pre></td></tr></table></figure>
+<p>然后确定<code>TCP</code>流量的入口端口和<code>IP</code>，使用下面的命令进行获取：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.status.loadBalancer.ingress[0].ip&#125;&#x27;</span><br><span class="line">172.19.106.241</span><br><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.spec.ports[?(@.name==&quot;tcp&quot;)].port&#125;&#x27;</span><br><span class="line">31400</span><br></pre></td></tr></table></figure>
+<p>发送流量进行测试，响应都来自<code>tcp-echo</code>的<code>v1</code>版本（时间戳前面的<code>one</code>代表<code>v1</code>版本）:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ #获取客户端的Pod名称</span><br><span class="line">$ export SLEEP=$(kubectl get pod -l app=sleep -n istio-io-tcp-traffic-shifting -o jsonpath=&#123;.items..metadata.name&#125;)</span><br><span class="line">$ for i in &#123;1..20&#125;; do \</span><br><span class="line">&gt; kubectl exec &quot;$SLEEP&quot; -c sleep -n istio-io-tcp-traffic-shifting -- sh -c &quot;(date; sleep 1) | nc 172.19.106.241 31400&quot;; \</span><br><span class="line">&gt; done</span><br><span class="line">one Tue Mar  5 12:13:48 UTC 2024</span><br><span class="line">one Tue Mar  5 12:13:50 UTC 2024</span><br><span class="line">one Tue Mar  5 12:13:51 UTC 2024</span><br><span class="line">one Tue Mar  5 12:13:52 UTC 2024</span><br><span class="line">one Tue Mar  5 12:13:53 UTC 2024</span><br><span class="line">one Tue Mar  5 12:13:54 UTC 2024</span><br><span class="line">one Tue Mar  5 12:13:55 UTC 2024</span><br><span class="line">one Tue Mar  5 12:13:56 UTC 2024</span><br><span class="line">one Tue Mar  5 12:13:58 UTC 2024</span><br><span class="line">one Tue Mar  5 12:13:59 UTC 2024</span><br><span class="line">one Tue Mar  5 12:14:00 UTC 2024</span><br><span class="line">one Tue Mar  5 12:14:01 UTC 2024</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>接下来将<code>20%</code>的流量路由到<code>v2</code>版本：</p>
+<blockquote>
+<p><code>kubectl apply -f samples/tcp-echo/tcp-echo-20-v2.yaml -n istio-io-tcp-traffic-shifting</code></p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1alpha3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">VirtualService</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">tcp-echo</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">&quot;*&quot;</span></span><br><span class="line">  <span class="attr">gateways:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">tcp-echo-gateway</span></span><br><span class="line">  <span class="attr">tcp:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">match:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">31400</span></span><br><span class="line">    <span class="attr">route:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">tcp-echo</span></span><br><span class="line">        <span class="attr">port:</span></span><br><span class="line">          <span class="attr">number:</span> <span class="number">9000</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v1</span></span><br><span class="line">      <span class="attr">weight:</span> <span class="number">80</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">destination:</span></span><br><span class="line">        <span class="attr">host:</span> <span class="string">tcp-echo</span></span><br><span class="line">        <span class="attr">port:</span></span><br><span class="line">          <span class="attr">number:</span> <span class="number">9000</span></span><br><span class="line">        <span class="attr">subset:</span> <span class="string">v2</span></span><br><span class="line">      <span class="attr">weight:</span> <span class="number">20</span></span><br></pre></td></tr></table></figure>
+<p>然后再进行测试，发现有<code>20%</code>的响应带有<code>two</code>前缀：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ for i in &#123;1..20&#125;; do kubectl exec &quot;$SLEEP&quot; -c sleep -n istio-io-tcp-traffic-shifting -- sh -c &quot;(date; sleep 1) | nc 172.19.106.241 31400&quot;; done</span><br><span class="line">one Tue Mar  5 12:16:56 UTC 2024</span><br><span class="line">one Tue Mar  5 12:16:57 UTC 2024</span><br><span class="line">one Tue Mar  5 12:16:59 UTC 2024</span><br><span class="line">one Tue Mar  5 12:17:00 UTC 2024</span><br><span class="line">one Tue Mar  5 12:17:01 UTC 2024</span><br><span class="line">two Tue Mar  5 12:17:02 UTC 2024</span><br><span class="line">one Tue Mar  5 12:17:03 UTC 2024</span><br><span class="line">one Tue Mar  5 12:17:04 UTC 2024</span><br><span class="line">one Tue Mar  5 12:17:06 UTC 2024</span><br><span class="line">one Tue Mar  5 12:17:07 UTC 2024</span><br><span class="line">two Tue Mar  5 12:17:08 UTC 2024</span><br><span class="line">one Tue Mar  5 12:17:09 UTC 2024</span><br><span class="line">two Tue Mar  5 12:17:10 UTC 2024</span><br></pre></td></tr></table></figure>
+<p>清理使用下面的命令：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade istio-io-tcp-traffic-shifting</code></p>
+</blockquote>
+<h5 id="熔断"><a class="markdownIt-Anchor" href="#熔断"></a> 熔断</h5>
+<p>常见的服务容错措施包括，主动超时，限流，熔断，隔离，降级，其中熔断是指类似保险丝的保护措施，当某个异常情况出现时，切断前端服务和后端服务之间的链接，保护后端服务不受冲击。为了验证熔断场景的，首先做一些准备工作：</p>
+<ol>
+<li>
+<p>创建命名空间并且设定标签：</p>
+<blockquote>
+<p><code>kubectl create ns circuit-breaking-test</code><br />
+<code>kubectl label ns circuit-breaking-test istio-injection=enabled</code></p>
+</blockquote>
+</li>
+<li>
+<p>创建用于测试的服务端：</p>
+<blockquote>
+<p><code>kubectl apply -n circuit-breaking-test -f samples/httpbin/httpbin.yaml</code></p>
+</blockquote>
+</li>
+<li>
+<p>配置熔断器，设置<a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/reference/config/networking/destination-rule/">熔断规则</a>，这里指定连接池的最大连接数是<code>1</code>，最大等待等请求数是<code>1</code>，这意味着如果并发的连接和请求数超过一个，在<code>istio-proxy</code>进行进一步的请求和连接时，后续的请求或者连接都会被阻止：</p>
+ <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -n circuit-breaking-test -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: DestinationRule</span><br><span class="line">metadata:</span><br><span class="line">name: httpbin</span><br><span class="line">spec:</span><br><span class="line">host: httpbin</span><br><span class="line">trafficPolicy:</span><br><span class="line">    connectionPool:</span><br><span class="line">    tcp:</span><br><span class="line">        maxConnections: 1</span><br><span class="line">    http:</span><br><span class="line">        http1MaxPendingRequests: 1</span><br><span class="line">        maxRequestsPerConnection: 1</span><br><span class="line">    outlierDetection:</span><br><span class="line">    consecutive5xxErrors: 1</span><br><span class="line">    interval: 1s</span><br><span class="line">    baseEjectionTime: 3m</span><br><span class="line">    maxEjectionPercent: 100</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>创建用于测试的客户端，这里使用<a target="_blank" rel="noopener" href="https://github.com/fortio/fortio">fortio</a>，它可以控制连接数、并发数及发送<code>HTTP</code>请求的延迟，通过<code>Fortio</code>能够有效的触发前面在<code>DestinationRule</code>中设置的熔断策略：</p>
+<blockquote>
+<p><code>kubectl apply -n circuit-breaking-test -f samples/httpbin/sample-client/fortio-deploy.yaml</code></p>
+</blockquote>
+</li>
+<li>
+<p>进入<code>fortio</code>客户端进行测试：</p>
+ <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">$ export FORTIO_POD=$(kubectl get pods -n circuit-breaking-test -l app=fortio -o &#x27;jsonpath=&#123;.items[0].metadata.name&#125;&#x27;)</span><br><span class="line">$ kubectl exec -n circuit-breaking-test  &quot;$FORTIO_POD&quot; -c fortio -- /usr/bin/fortio curl -quiet http://httpbin:8000/get</span><br><span class="line">HTTP/1.1 200 OK</span><br><span class="line">server: envoy</span><br><span class="line">date: Wed, 06 Mar 2024 02:55:28 GMT</span><br><span class="line">content-type: application/json</span><br><span class="line">content-length: 622</span><br><span class="line">access-control-allow-origin: *</span><br><span class="line">access-control-allow-credentials: true</span><br><span class="line">x-envoy-upstream-service-time: 80</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">&quot;args&quot;: &#123;&#125;,</span><br><span class="line">&quot;headers&quot;: &#123;</span><br><span class="line">    &quot;Host&quot;: &quot;httpbin:8000&quot;,</span><br><span class="line">    &quot;User-Agent&quot;: &quot;fortio.org/fortio-1.17.1&quot;,</span><br><span class="line">    &quot;X-B3-Parentspanid&quot;: &quot;c168ff86036a18bb&quot;,</span><br><span class="line">    &quot;X-B3-Sampled&quot;: &quot;1&quot;,</span><br><span class="line">    &quot;X-B3-Spanid&quot;: &quot;c65d056e678f9c31&quot;,</span><br><span class="line">    &quot;X-B3-Traceid&quot;: &quot;be3105420cdf261fc168ff86036a18bb&quot;,</span><br><span class="line">    &quot;X-Envoy-Attempt-Count&quot;: &quot;1&quot;,</span><br><span class="line">    &quot;X-Forwarded-Client-Cert&quot;: &quot;By=spiffe://cluster.local/ns/circuit-breaking-test/sa/httpbin;Hash=c690d3fd7f2a70f861c94b8ce5f68a773ae18a2df0dd9138a80627beb0926bec;Subject=\&quot;\&quot;;URI=spiffe://cluster.local/ns/circuit-breaking-test/sa/default&quot;</span><br><span class="line">&#125;,</span><br><span class="line">&quot;origin&quot;: &quot;127.0.0.6&quot;,</span><br><span class="line">&quot;url&quot;: &quot;http://httpbin:8000/get&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>触发熔断规则，设置并发数<code>3</code>，结果显示只有<code>30%</code>的请求成功：</p>
+ <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl exec -n circuit-breaking-test &quot;$FORTIO_POD&quot; -c fortio -- /usr/bin/fortio load -c 3 -qps 0 -n 30 -loglevel Warning http://httpbin:8000/get</span><br><span class="line">02:57:22 I logger.go:127&gt; Log level is now 3 Warning (was 2 Info)</span><br><span class="line">Fortio 1.17.1 running at 0 queries per second, 12-&gt;12 procs, for 30 calls: http://httpbin:8000/get</span><br><span class="line">Starting at max qps with 3 thread(s) [gomax 12] for exactly 30 calls (10 per thread + 0)</span><br><span class="line">02:57:22 W http_client.go:806&gt; [0] Non ok http code 503 (HTTP/1.1 503)</span><br><span class="line">02:57:22 W http_client.go:806&gt; [0] Non ok http code 503 (HTTP/1.1 503)</span><br><span class="line">...</span><br><span class="line">Ended after 34.5649ms : 30 calls. qps=867.93</span><br><span class="line">Aggregated Function Time : count 30 avg 0.00283299 +/- 0.003602 min 0.0003805 max 0.0138029 sum 0.0849897</span><br><span class="line"># range, mid point, percentile, count</span><br><span class="line">&gt;= 0.0003805 &lt;= 0.001 , 0.00069025 , 36.67, 11</span><br><span class="line">&gt; 0.001 &lt;= 0.002 , 0.0015 , 63.33, 8</span><br><span class="line">&gt; 0.002 &lt;= 0.003 , 0.0025 , 70.00, 2</span><br><span class="line">&gt; 0.003 &lt;= 0.004 , 0.0035 , 80.00, 3</span><br><span class="line">&gt; 0.004 &lt;= 0.005 , 0.0045 , 86.67, 2</span><br><span class="line">&gt; 0.009 &lt;= 0.01 , 0.0095 , 90.00, 1</span><br><span class="line">&gt; 0.01 &lt;= 0.011 , 0.0105 , 93.33, 1</span><br><span class="line">&gt; 0.011 &lt;= 0.012 , 0.0115 , 96.67, 1</span><br><span class="line">&gt; 0.012 &lt;= 0.0138029 , 0.0129015 , 100.00, 1</span><br><span class="line"># target 50% 0.0015</span><br><span class="line"># target 75% 0.0035</span><br><span class="line"># target 90% 0.01</span><br><span class="line"># target 99% 0.013262</span><br><span class="line"># target 99.9% 0.0137488</span><br><span class="line">Sockets used: 23 (for perfect keepalive, would be 3)</span><br><span class="line">Jitter: false</span><br><span class="line">Code 200 : 9 (30.0 %)</span><br><span class="line">Code 503 : 21 (70.0 %)</span><br><span class="line">Response Header Sizes : count 30 avg 69.033333 +/- 105.5 min 0 max 231 sum 2071</span><br><span class="line">Response Body/Total Sizes : count 30 avg 424.33333 +/- 280 min 241 max 853 sum 12730</span><br><span class="line">All done 30 calls (plus 0 warmup) 2.833 ms avg, 867.9 qps</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>查看 <code>istio-proxy</code> 的状态以了解更多熔断的信息：</p>
+<blockquote>
+<p><code>kubectl exec -n circuit-breaking-test &quot;$FORTIO_POD&quot; -c istio-proxy -- pilot-agent request GET stats | grep httpbin | grep pending</code></p>
+</blockquote>
+ <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl exec -n circuit-breaking-test &quot;$FORTIO_POD&quot; -c istio-proxy -- pilot-agent request GET stats | grep httpbin | grep pending</span><br><span class="line">cluster.outbound|15021||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.circuit_breakers.default.remaining_pending: 4294967295</span><br><span class="line">cluster.outbound|15021||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.circuit_breakers.default.rq_pending_open: 0</span><br><span class="line">cluster.outbound|15021||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.circuit_breakers.high.rq_pending_open: 0</span><br><span class="line">cluster.outbound|15021||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_active: 0</span><br><span class="line">cluster.outbound|15021||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_failure_eject: 0</span><br><span class="line">cluster.outbound|15021||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_overflow: 0</span><br><span class="line">cluster.outbound|15021||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_total: 0</span><br><span class="line">cluster.outbound|8000||httpbin.circuit-breaking-test.svc.cluster.local.circuit_breakers.default.remaining_pending: 1</span><br><span class="line">cluster.outbound|8000||httpbin.circuit-breaking-test.svc.cluster.local.circuit_breakers.default.rq_pending_open: 0</span><br><span class="line">cluster.outbound|8000||httpbin.circuit-breaking-test.svc.cluster.local.circuit_breakers.high.rq_pending_open: 0</span><br><span class="line">cluster.outbound|8000||httpbin.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_active: 0</span><br><span class="line">cluster.outbound|8000||httpbin.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_failure_eject: 0</span><br><span class="line">cluster.outbound|8000||httpbin.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_overflow: 29</span><br><span class="line">cluster.outbound|8000||httpbin.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_total: 32</span><br><span class="line">cluster.outbound|80||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.circuit_breakers.default.remaining_pending: 4294967295</span><br><span class="line">cluster.outbound|80||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.circuit_breakers.default.rq_pending_open: 0</span><br><span class="line">cluster.outbound|80||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.circuit_breakers.high.rq_pending_open: 0</span><br><span class="line">cluster.outbound|80||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_active: 0</span><br><span class="line">cluster.outbound|80||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_failure_eject: 0</span><br><span class="line">cluster.outbound|80||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_overflow: 0</span><br><span class="line">cluster.outbound|80||httpbin-gateway-istio.circuit-breaking-test.svc.cluster.local.upstream_rq_pending_total: 0</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>清理测试现场使用如下方式：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade circuit-breaking-test</code></p>
+</blockquote>
+</li>
+</ol>
+<h4 id="安全网关"><a class="markdownIt-Anchor" href="#安全网关"></a> 安全网关</h4>
+<p>前面章节创建的网关都是非安全类型的，本节演示如何使用 <code>TLS</code> 或者 <code>mTLS</code> 公开安全的 <code>HTTPS</code> 服务。首先，创建命名空间及部署用于测试<code>httpbin</code>服务：</p>
+<blockquote>
+<p><code>kubectl create ns istio-tls-ingress-test</code><br />
+<code>kubectl apply -n istio-tls-ingress-test -f samples/httpbin/httpbin.yaml</code></p>
+</blockquote>
+<p>使用<a target="_blank" rel="noopener" href="https://github.com/FiloSottile/mkcert">mkcert</a>创建证书并且上传：</p>
+<blockquote>
+<p><code>mkcert --cert-file httpbin.example.com.crt --key-file httpbin.example.com.key httpbin.example.com</code><br />
+<code>kubectl create -n istio-system secret tls httpbin-credential --key=httpbin.example.com.key --cert=httpbin.example.com.crt</code></p>
+</blockquote>
+<p>紧接着创建<code>Gateway</code> 和 <code>VirtualService</code>，为<code>httpbin.example.com</code>配置证书：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -n istio-tls-ingress-test -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: Gateway</span><br><span class="line">metadata:</span><br><span class="line">  name: mygateway</span><br><span class="line">spec:</span><br><span class="line">  selector:</span><br><span class="line">    istio: ingressgateway # use istio default ingress gateway</span><br><span class="line">  servers:</span><br><span class="line">  - port:</span><br><span class="line">      number: 443</span><br><span class="line">      name: https</span><br><span class="line">      protocol: HTTPS</span><br><span class="line">    tls:</span><br><span class="line">      mode: SIMPLE</span><br><span class="line">      credentialName: httpbin-credential # must be the same as secret</span><br><span class="line">    hosts:</span><br><span class="line">    - httpbin.example.com</span><br><span class="line">---</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: VirtualService</span><br><span class="line">metadata:</span><br><span class="line">  name: httpbin</span><br><span class="line">spec:</span><br><span class="line">  hosts:</span><br><span class="line">  - &quot;httpbin.example.com&quot;</span><br><span class="line">  gateways:</span><br><span class="line">  - mygateway</span><br><span class="line">  http:</span><br><span class="line">  - match:</span><br><span class="line">    - uri:</span><br><span class="line">        prefix: /status</span><br><span class="line">    - uri:</span><br><span class="line">        prefix: /delay</span><br><span class="line">    route:</span><br><span class="line">    - destination:</span><br><span class="line">        port:</span><br><span class="line">          number: 8000</span><br><span class="line">        host: httpbin</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>获取安全入口网关的地址和端口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.status.loadBalancer.ingress[0].ip&#125;&#x27;p&#125;&#x27;</span><br><span class="line">172.19.106.241</span><br><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.spec.ports[?(@.name==&quot;https&quot;)].port&#125;&#x27;</span><br><span class="line">443</span><br></pre></td></tr></table></figure>
+<p><code>mkcert</code> 的根证书如果没有安装到系统的证书链中，可以在请求的时候显示添加。使用下面的命令查看 <code>mkcert</code> 的根证书位置:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ mkcert -CAROOT</span><br><span class="line">/root/.local/share/mkcert</span><br><span class="line">$ ll $(mkcert -CAROOT)</span><br><span class="line">...</span><br><span class="line">-r-------- 1 root root 2484 Jan 17 17:29 rootCA-key.pem</span><br><span class="line">-rw-r--r-- 1 root root 1639 Jan 17 17:29 rootCA.pem</span><br></pre></td></tr></table></figure>
+<p>使用 <code>curl</code> 命令进行测试：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i -HHost:httpbin.example.com --resolve &quot;httpbin.example.com:443:172.19.106.241&quot; \</span><br><span class="line">&gt; --cacert /root/.local/share/mkcert/rootCA.pem &quot;https://httpbin.example.com/status/418&quot;</span><br><span class="line">HTTP/2 418</span><br><span class="line">server: istio-envoy</span><br><span class="line">date: Wed, 06 Mar 2024 04:36:29 GMT</span><br><span class="line">x-more-info: http://tools.ietf.org/html/rfc2324</span><br><span class="line">access-control-allow-origin: *</span><br><span class="line">access-control-allow-credentials: true</span><br><span class="line">content-length: 135</span><br><span class="line">x-envoy-upstream-service-time: 6</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    -=[ teapot ]=-</span><br><span class="line"></span><br><span class="line">       _...._</span><br><span class="line">     .&#x27;  _ _ `.</span><br><span class="line">    | .&quot;` ^ `&quot;. _,</span><br><span class="line">    \_;`&quot;---&quot;`|//</span><br><span class="line">      |       ;/</span><br><span class="line">      \_     _/</span><br><span class="line">        `&quot;&quot;&quot;`</span><br></pre></td></tr></table></figure>
+<h5 id="mtls"><a class="markdownIt-Anchor" href="#mtls"></a> mTLS</h5>
+<p>还可以配置服务端来验证客户端的是不是可信的，首先创建的包含证书的<code>httpbin-credential</code>需要包含<code>CA</code>证书：</p>
+<blockquote>
+<p><code>kubectl delete secret -n istio-system httpbin-credential</code><br />
+<code>kubectl create -n istio-system secret generic httpbin-credential --from-file=tls.key=httpbin.example.com.key \</code><br />
+<code>  --from-file=tls.crt=httpbin.example.com.crt --from-file=ca.crt=/root/.local/share/mkcert/rootCA.pem</code></p>
+</blockquote>
+<p>然后将 <code>mygateway</code> 的 <code>tls</code> 模式设置为 <code>MUTUAL</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -n istio-tls-ingress-test -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: Gateway</span><br><span class="line">metadata:</span><br><span class="line">  name: mygateway</span><br><span class="line">spec:</span><br><span class="line">  selector:</span><br><span class="line">    istio: ingressgateway # use istio default ingress gateway</span><br><span class="line">  servers:</span><br><span class="line">  - port:</span><br><span class="line">      number: 443</span><br><span class="line">      name: https</span><br><span class="line">      protocol: HTTPS</span><br><span class="line">    tls:</span><br><span class="line">      mode: MUTUAL</span><br><span class="line">      credentialName: httpbin-credential # must be the same as secret</span><br><span class="line">    hosts:</span><br><span class="line">    - httpbin.example.com</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>在不提供客户端证书和私钥的情况下访问服务端必然错误：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i -HHost:httpbin.example.com --resolve &quot;httpbin.example.com:443:172.19.106.241&quot; \</span><br><span class="line">&gt; --cacert /root/.local/share/mkcert/rootCA.pem &quot;https://httpbin.example.com/status/418&quot;</span><br><span class="line">curl: (16) OpenSSL SSL_write: Broken pipe, errno 32</span><br></pre></td></tr></table></figure>
+<p>要解决该问题，首先需要生成客户端证书：</p>
+<blockquote>
+<p><code>mkcert -client --cert-file client.crt --key-file client.key client.example.com</code></p>
+</blockquote>
+<p>然后附带客户端证书再去访问：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i -HHost:httpbin.example.com --resolve &quot;httpbin.example.com:443:172.19.106.241&quot; \</span><br><span class="line">&gt; --cacert /root/.local/share/mkcert/rootCA.pem --cert client.crt --key client.key  &quot;https://httpbin.example.com/status/418&quot;</span><br><span class="line">HTTP/2 418</span><br><span class="line">server: istio-envoy</span><br><span class="line">date: Wed, 06 Mar 2024 07:13:12 GMT</span><br><span class="line">x-more-info: http://tools.ietf.org/html/rfc2324</span><br><span class="line">access-control-allow-origin: *</span><br><span class="line">access-control-allow-credentials: true</span><br><span class="line">content-length: 135</span><br><span class="line">x-envoy-upstream-service-time: 0</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    -=[ teapot ]=-</span><br><span class="line"></span><br><span class="line">       _...._</span><br><span class="line">     .&#x27;  _ _ `.</span><br><span class="line">    | .&quot;` ^ `&quot;. _,</span><br><span class="line">    \_;`&quot;---&quot;`|//</span><br><span class="line">      |       ;/</span><br><span class="line">      \_     _/</span><br><span class="line">        `&quot;&quot;&quot;`</span><br></pre></td></tr></table></figure>
+<p>清理现场使用如下的命令：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade istio-tls-ingress-test</code><br />
+<code>kubectl delete secret -n istio-system httpbin-credential</code></p>
+</blockquote>
+<h4 id="tls-终止"><a class="markdownIt-Anchor" href="#tls-终止"></a> TLS 终止</h4>
+<p><code>TLS</code> 终止（也被称为 <code>SSL</code> 终止）是一个网络架构策略，其中 <code>TLS/SSL</code> 的连接或会话是在网络的某一层次上“终止”的，而不是在目标应用服务器上。这意味着解密操作（以及在响应中重新加密操作）发生在这一层次，而不是在实际的应用服务器上。这经常用于负载均衡器或专用的硬件设备中。简单来说就是在应用的入口处使用 <code>tls</code>，然而内部就全部采用 <code>HTTP</code> 协议，这样既保证了从外部进入的流量的安全，也保证了性能。</p>
+<p>接下来会在一个名叫<code>tls-terminate-test</code>的命名空间中部署<code>httpbin</code>应用，期望在命名空间内使用<code>http</code>协议就可以访问引用，但是从其他命名空间访问时就必须使用安全的协议。为了实现这一点，得启用 <code>ENABLE_TLS_ON_SIDECAR_INGRESS</code> 功能：</p>
+<blockquote>
+<p><code>istioctl install --set profile=demo --set values.pilot.env.ENABLE_TLS_ON_SIDECAR_INGRESS=true</code></p>
+</blockquote>
+<p>然后创建命名空间：</p>
+<blockquote>
+<p><code>kubectl create ns tls-terminate-test</code><br />
+<code>kubectl label namespace tls-terminate-test istio-injection=enabled</code></p>
+</blockquote>
+<p>在该命名空间内，默认对所有工作负载启用 <code>mTLS</code> 功能，<a target="_blank" rel="noopener" href="https://istio.io/latest/docs/reference/config/security/peer_authentication/">PeerAuthentication</a> 定义是否以安全的方式将流量导入到 <code>Sidecar</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n tls-terminate-test apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: security.istio.io/v1beta1</span><br><span class="line">kind: PeerAuthentication</span><br><span class="line">metadata:</span><br><span class="line">  name: default</span><br><span class="line">spec:</span><br><span class="line">  mtls:</span><br><span class="line">    mode: STRICT</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>创建用于客户端和服务端的证书：</p>
+<blockquote>
+<p><code>mkcert --cert-file httpbin.svc.crt --key-file httpbin.svc.key httpbin.tls-terminate-test.svc.cluster.local</code><br />
+<code>mkcert -client --cert-file client.crt --key-file client.key client.tls-terminate-test.svc.cluster.local</code></p>
+</blockquote>
+<p>上传服务端的证书以及<code>CA</code>证书：</p>
+<blockquote>
+<p><code>kubectl -n tls-terminate-test create secret generic ca-secret --from-file=ca.crt=/root/.local/share/mkcert/rootCA.pem</code><br />
+<code>kubectl -n tls-terminate-test create secret tls httpbin-svc-secret --cert httpbin.svc.crt --key httpbin.svc.key</code></p>
+</blockquote>
+<p>部署测试应用，在下面的模板使用 <code>sidecar.istio.io/userVolumeMount</code> 注解为 <code>istio-proxy Sidecar</code> 挂载证书，目前 <code>Istio Sidecar</code> 还不支持 <code>credentialName</code> 配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n tls-terminate-test apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: ServiceAccount</span><br><span class="line">metadata:</span><br><span class="line">  name: httpbin</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: httpbin</span><br><span class="line">  labels:</span><br><span class="line">    app: httpbin</span><br><span class="line">    service: httpbin</span><br><span class="line">spec:</span><br><span class="line">  ports:</span><br><span class="line">    - port: 443</span><br><span class="line">      name: https</span><br><span class="line">      targetPort: 9443</span><br><span class="line">    - port: 80</span><br><span class="line">      name: http</span><br><span class="line">      targetPort: 9080</span><br><span class="line">  selector:</span><br><span class="line">    app: httpbin</span><br><span class="line">---</span><br><span class="line">apiVersion: apps/v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  name: httpbin</span><br><span class="line">spec:</span><br><span class="line">  replicas: 1</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      app: httpbin</span><br><span class="line">      version: v1</span><br><span class="line">  template:</span><br><span class="line">    metadata:</span><br><span class="line">      labels:</span><br><span class="line">        app: httpbin</span><br><span class="line">        version: v1</span><br><span class="line">      annotations:</span><br><span class="line">        sidecar.istio.io/userVolume: &#x27;&#123;&quot;tls-secret&quot;:&#123;&quot;secret&quot;:&#123;&quot;secretName&quot;:&quot;httpbin-svc-secret&quot;,&quot;optional&quot;:true&#125;&#125;,&quot;tls-ca-secret&quot;:&#123;&quot;secret&quot;:&#123;&quot;secretName&quot;:&quot;ca-secret&quot;&#125;&#125;&#125;&#x27;</span><br><span class="line">        sidecar.istio.io/userVolumeMount: &#x27;&#123;&quot;tls-secret&quot;:&#123;&quot;mountPath&quot;:&quot;/etc/istio/tls-certs/&quot;,&quot;readOnly&quot;:true&#125;,&quot;tls-ca-secret&quot;:&#123;&quot;mountPath&quot;:&quot;/etc/istio/tls-ca-certs/&quot;,&quot;readOnly&quot;:true&#125;&#125;&#x27;</span><br><span class="line">    spec:</span><br><span class="line">      serviceAccountName: httpbin</span><br><span class="line">      containers:</span><br><span class="line">      - image: docker.io/kennethreitz/httpbin</span><br><span class="line">        imagePullPolicy: IfNotPresent</span><br><span class="line">        name: httpbin</span><br><span class="line">        ports:</span><br><span class="line">        - containerPort: 80</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>接下来配置 <a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/reference/config/networking/sidecar/#IstioIngressListener">Sidecar</a> 让它监听 <code>9433</code> 和 <code>9080</code> 端口的流量，并且在 <code>9443</code> 端口上启用 <code>mTLS</code> 验证：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n tls-terminate-test apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: Sidecar</span><br><span class="line">metadata:</span><br><span class="line">  name: ingress-sidecar</span><br><span class="line">spec:</span><br><span class="line">  workloadSelector:</span><br><span class="line">    labels:</span><br><span class="line">      app: httpbin</span><br><span class="line">      version: v1</span><br><span class="line">  ingress:</span><br><span class="line">  - port:</span><br><span class="line">      number: 9443</span><br><span class="line">      protocol: HTTPS</span><br><span class="line">      name: external</span><br><span class="line">    defaultEndpoint: 0.0.0.0:80</span><br><span class="line">    tls:</span><br><span class="line">      mode: MUTUAL</span><br><span class="line">      privateKey: &quot;/etc/istio/tls-certs/tls.key&quot;</span><br><span class="line">      serverCertificate: &quot;/etc/istio/tls-certs/tls.crt&quot;</span><br><span class="line">      caCertificates: &quot;/etc/istio/tls-ca-certs/ca.crt&quot;</span><br><span class="line">  - port:</span><br><span class="line">      number: 9080</span><br><span class="line">      protocol: HTTP</span><br><span class="line">      name: internal</span><br><span class="line">    defaultEndpoint: 0.0.0.0:80</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>最后为了达到能在应用内部通过 <code>http</code> 协议进行访问的目标，使用 <code>PeerAuthentication</code> 禁用 <code>9080</code> 的 <code>mTLS</code> 验证：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n tls-terminate-test apply -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: security.istio.io/v1beta1</span><br><span class="line">kind: PeerAuthentication</span><br><span class="line">metadata:</span><br><span class="line">  name: disable-peer-auth-for-external-mtls-port</span><br><span class="line">spec:</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      app: httpbin</span><br><span class="line">  mtls:</span><br><span class="line">    mode: STRICT</span><br><span class="line">  portLevelMtls:</span><br><span class="line">    9080:</span><br><span class="line">      mode: DISABLE</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>准备就绪之后，开始测试，首先安装在 <code>tls-terminate-test</code> 和 <code>default</code> 安装客户端：</p>
+<blockquote>
+<p><code>kubectl apply -f samples/sleep/sleep.yaml</code><br />
+<code>kubectl -n tls-terminate-test apply -f samples/sleep/sleep.yaml</code></p>
+</blockquote>
+<p>然后在<code>tls-terminate-test</code>内部测试<code>80</code>端口的可用性：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ export INTERNAL_CLIENT=$(kubectl -n tls-terminate-test get pod -l app=sleep -o jsonpath=&#123;.items..metadata.name&#125;)</span><br><span class="line">$ kubectl -n tls-terminate-test exec &quot;$&#123;INTERNAL_CLIENT&#125;&quot; -c sleep -- curl -IsS &quot;http://httpbin/status/200&quot;</span><br><span class="line">HTTP/1.1 200 OK</span><br><span class="line">server: envoy</span><br><span class="line">date: Wed, 06 Mar 2024 10:41:50 GMT</span><br><span class="line">content-type: text/html; charset=utf-8</span><br><span class="line">access-control-allow-origin: *</span><br><span class="line">access-control-allow-credentials: true</span><br><span class="line">content-length: 0</span><br><span class="line">x-envoy-upstream-service-time: 4</span><br></pre></td></tr></table></figure>
+<p>从外部测试<code>443</code>端口的可用性，从外部测试，需要将客户端证书复制到<code>default.sleep</code>中再进行测试，<code>443</code>端口请求成功，而<code>80</code>端口则被拒绝：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ export EXTERNAL_CLIENT=$(kubectl get pod -l app=sleep -o jsonpath=&#123;.items..metadata.name&#125;)</span><br><span class="line">$ kubectl cp client.key default/&quot;$&#123;EXTERNAL_CLIENT&#125;&quot;:/tmp/ -c sleep</span><br><span class="line">$ kubectl cp client.crt default/&quot;$&#123;EXTERNAL_CLIENT&#125;&quot;:/tmp/ -c sleep</span><br><span class="line">$ kubectl cp /root/.local/share/mkcert/rootCA.pem default/&quot;$&#123;EXTERNAL_CLIENT&#125;&quot;:/tmp/ca.crt -c sleep</span><br><span class="line">$ kubectl exec &quot;$&#123;EXTERNAL_CLIENT&#125;&quot; -c sleep -- curl -IsS --cacert /tmp/ca.crt --key /tmp/client.key \</span><br><span class="line">&gt; --cert /tmp/client.crt -HHost:httpbin.tls-terminate-test &quot;https://httpbin.tls-terminate-test:443/status/200&quot;</span><br><span class="line">server: istio-envoy</span><br><span class="line">date: Wed, 06 Mar 2024 11:41:50 GMT</span><br><span class="line">content-type: text/html; charset=utf-8</span><br><span class="line">access-control-allow-origin: *</span><br><span class="line">access-control-allow-credentials: true</span><br><span class="line">content-length: 0</span><br><span class="line">x-envoy-upstream-service-time: 4</span><br><span class="line">x-envoy-decorator-operation: ingress-sidecar.test:9080/*</span><br><span class="line">$ kubectl exec &quot;$&#123;EXTERNAL_CLIENT&#125;&quot; -c sleep -- curl -IsS --cacert /tmp/ca.crt --key /tmp/client.key \</span><br><span class="line">&gt; --cert /tmp/client.crt -HHost:httpbin.tls-terminate-test &quot;http://httpbin.tls-terminate-test/status/200&quot;</span><br><span class="line">curl: (56) Recv failure: Connection reset by peer</span><br><span class="line">command terminated with exit code 56</span><br></pre></td></tr></table></figure>
+<p>清理测试现场使用如下的命令：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade tls-terminate-test</code><br />
+<code>kubectl delete svc,deploy sleep</code></p>
+</blockquote>
+<h4 id="tls-非终止"><a class="markdownIt-Anchor" href="#tls-非终止"></a> TLS 非终止</h4>
+<p><code>TLS</code> 终止是将安全会话在网关层结束掉，在流量进入内部的时候，使用非安全协议以提升性能，<code>TLS</code> 非终止的意思就是将安全流量直接送达到应用，那么应用也需要能够处理安全流量。为了验证，首先做以下准备：</p>
+<blockquote>
+<p><code>mkcert --cert-file nginx.example.com.crt --key-file nginx.example.com.key nginx.example.com</code><br />
+<code>kubectl create ns tls-passthrough-test</code><br />
+<code>kubectl create -n tls-passthrough-test secret tls nginx-tls-secret --cert=nginx.example.com.crt --key=nginx.example.com.key</code></p>
+</blockquote>
+<p>将下面的的<code>Nginx</code>的配置信息保存在<code>nginx.conf</code>文件中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">events &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">http &#123;</span><br><span class="line">  log_format main &#x27;$remote_addr - $remote_user [$time_local]  $status &#x27;</span><br><span class="line">  &#x27;&quot;$request&quot; $body_bytes_sent &quot;$http_referer&quot; &#x27;</span><br><span class="line">  &#x27;&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;&#x27;;</span><br><span class="line">  access_log /var/log/nginx/access.log main;</span><br><span class="line">  error_log  /var/log/nginx/error.log;</span><br><span class="line"></span><br><span class="line">  server &#123;</span><br><span class="line">    listen 443 ssl;</span><br><span class="line"></span><br><span class="line">    root /usr/share/nginx/html;</span><br><span class="line">    index index.html;</span><br><span class="line"></span><br><span class="line">    server_name nginx.example.com;</span><br><span class="line">    ssl_certificate /etc/nginx-server-certs/tls.crt;</span><br><span class="line">    ssl_certificate_key /etc/nginx-server-certs/tls.key;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从配置文件创建 <code>configmap</code>：</p>
+<blockquote>
+<p><code>kubectl create -n tls-passthrough-test configmap nginx-configmap --from-file=nginx.conf=./nginx.conf</code></p>
+</blockquote>
+<p>创建应用，挂载配置文件以及证书：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -n tls-passthrough-test -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: my-nginx</span><br><span class="line">  labels:</span><br><span class="line">    run: my-nginx</span><br><span class="line">spec:</span><br><span class="line">  ports:</span><br><span class="line">  - port: 443</span><br><span class="line">    protocol: TCP</span><br><span class="line">  selector:</span><br><span class="line">    run: my-nginx</span><br><span class="line">---</span><br><span class="line">apiVersion: apps/v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  name: my-nginx</span><br><span class="line">spec:</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      run: my-nginx</span><br><span class="line">  replicas: 1</span><br><span class="line">  template:</span><br><span class="line">    metadata:</span><br><span class="line">      labels:</span><br><span class="line">        run: my-nginx</span><br><span class="line">        sidecar.istio.io/inject: &quot;true&quot;</span><br><span class="line">    spec:</span><br><span class="line">      containers:</span><br><span class="line">      - name: my-nginx</span><br><span class="line">        image: nginx</span><br><span class="line">        ports:</span><br><span class="line">        - containerPort: 443</span><br><span class="line">        volumeMounts:</span><br><span class="line">        - name: nginx-config</span><br><span class="line">          mountPath: /etc/nginx</span><br><span class="line">          readOnly: true</span><br><span class="line">        - name: nginx-server-certs</span><br><span class="line">          mountPath: /etc/nginx-server-certs</span><br><span class="line">          readOnly: true</span><br><span class="line">      volumes:</span><br><span class="line">      - name: nginx-config</span><br><span class="line">        configMap:</span><br><span class="line">          name: nginx-configmap</span><br><span class="line">      - name: nginx-server-certs</span><br><span class="line">        secret:</span><br><span class="line">          secretName: nginx-tls-secret</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>创建网关和路由，注意的是这里网关<code>tls</code>的模式是<code>PASSTHROUGH</code>，路由信息中也是用了 <code>SNI</code> 匹配具体的 <code>nginx.example.com</code> 的流量：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -n tls-passthrough-test -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: Gateway</span><br><span class="line">metadata:</span><br><span class="line">  name: mygateway</span><br><span class="line">spec:</span><br><span class="line">  selector:</span><br><span class="line">    istio: ingressgateway # use istio default ingress gateway</span><br><span class="line">  servers:</span><br><span class="line">  - port:</span><br><span class="line">      number: 443</span><br><span class="line">      name: https</span><br><span class="line">      protocol: HTTPS</span><br><span class="line">    tls:</span><br><span class="line">      mode: PASSTHROUGH</span><br><span class="line">    hosts:</span><br><span class="line">    - nginx.example.com</span><br><span class="line">---</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: VirtualService</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">spec:</span><br><span class="line">  hosts:</span><br><span class="line">  - nginx.example.com</span><br><span class="line">  gateways:</span><br><span class="line">  - mygateway</span><br><span class="line">  tls:</span><br><span class="line">  - match:</span><br><span class="line">    - port: 443</span><br><span class="line">      sniHosts:</span><br><span class="line">      - nginx.example.com</span><br><span class="line">    route:</span><br><span class="line">    - destination:</span><br><span class="line">        host: my-nginx</span><br><span class="line">        port:</span><br><span class="line">          number: 443</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>获取网关的安全入口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.status.loadBalancer.ingress[0].ip&#125;&#x27;</span><br><span class="line">172.19.106.241</span><br><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.spec.ports[?(@.name==&quot;https&quot;)].port&#125;&#x27;</span><br><span class="line">443</span><br></pre></td></tr></table></figure>
+<p>使用 <code>curl</code> 命令进行测试：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ curl -i --resolve &quot;nginx.example.com:443:172.19.106.241&quot; --cacert /root/.local/share/mkcert/rootCA.pem https://nginx.example.com</span><br><span class="line">HTTP/1.1 200 OK</span><br><span class="line">Server: nginx/1.21.5</span><br><span class="line">Date: Thu, 07 Mar 2024 02:00:09 GMT</span><br><span class="line">Content-Type: text/html</span><br><span class="line">Content-Length: 615</span><br><span class="line">Last-Modified: Tue, 28 Dec 2021 15:28:38 GMT</span><br><span class="line">Connection: keep-alive</span><br><span class="line">ETag: &quot;61cb2d26-267&quot;</span><br><span class="line">Accept-Ranges: bytes</span><br><span class="line"></span><br><span class="line">&lt;!DOCTYPE html&gt;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>清理测试环境：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade tls-passthrough-test</code></p>
+</blockquote>
+<h4 id="指标可视化"><a class="markdownIt-Anchor" href="#指标可视化"></a> 指标可视化</h4>
+<p>本节的展示需要安装 <code>Grafana</code> 和 <code>prometheus</code> 组件，以及部署 <code>bookinfo</code> 测试应用。如果没有部署的话，可以按照下面的命令：</p>
+<blockquote>
+<p><code>kubectl create ns bookinfo-test</code><br />
+<code>kubectl label namespace bookinfo-test istio-injection=enabled</code><br />
+<code>kubectl apply -n bookinfo-test -f samples/bookinfo/platform/kube/bookinfo.yaml</code><br />
+<code>kubectl apply -n bookinfo-test -f samples/bookinfo/networking/bookinfo-gateway.yaml</code><br />
+<code>kubectl apply -f samples/addons/grafana.yaml</code><br />
+<code>kubectl apply -f samples/addons/prometheus.yaml</code></p>
+</blockquote>
+<p>等待所有的 <code>pod</code> 就绪之后，可以在 <code>istio-system</code> 命名空间中看到如下的服务：</p>
+<p><img data-src="data-view-svc.png" alt="" /></p>
+<p>通过下面的方式获取网关的入口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.status.loadBalancer.ingress[0].ip&#125;&#x27;</span><br><span class="line">192.168.67.241</span><br><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.spec.ports[?(@.name==&quot;http2&quot;)].port&#125;&#x27;</span><br><span class="line">80</span><br></pre></td></tr></table></figure>
+<p>请求 <code>http://192.168.67.241/productpage</code>，以获得数据，可以使用压测工具持续发送流量。打开 <code>prometheus</code> 查看指标：</p>
+<blockquote>
+<p><code>istioctl dashboard prometheus --address 192.168.67.241</code></p>
+</blockquote>
+<p><img data-src="data-view-promethus.png" alt="" /></p>
+<p>输入查询语句以获得指标和图标可视化：</p>
+<blockquote>
+<p><code>istio_requests_total</code></p>
+</blockquote>
+<p><code>Grafana</code> 是一个开源的监控解决方案，可以用来为 <code>Istio</code> 配置仪表板。使用如下的命令打开 <code>grafana</code> 指标：</p>
+<blockquote>
+<p><code>istioctl dashboard grafana --address 192.168.67.241</code></p>
+</blockquote>
+<p>打开 <code>http://192.168.67.241:3000/dashboards</code> 页面，可以查看相关的指标：</p>
+<p><img data-src="data-view-grafana.png" alt="" /></p>
+<h4 id="插入ca证书"><a class="markdownIt-Anchor" href="#插入ca证书"></a> 插入CA证书</h4>
+<p>本节为了测试，最好卸载重新安装 <code>istio</code>：</p>
+<blockquote>
+<p><code>istioctl uninstall --purge</code><br />
+<code>istioctl install --set profile=demo</code><br />
+<code>kubectl create namespace istio-system</code></p>
+</blockquote>
+<p>这里导入 <code>mkcert</code> 的根证书，保存在 <code>istio-system</code> 命名空间中名为 <code>cacerts</code> 的 <code>secret</code> 中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kubectl create secret generic cacerts -n istio-system \</span><br><span class="line">  --from-file=ca-cert.pem=/root/.local/share/mkcert/rootCA.pem \</span><br><span class="line">  --from-file=ca-key.pem=/root/.local/share/mkcert/rootCA-key.pem \</span><br><span class="line">  --from-file=root-cert.pem=/root/.local/share/mkcert/rootCA.pem \</span><br><span class="line">  --from-file=cert-chain.pem=/root/.local/share/mkcert/rootCA.pem</span><br></pre></td></tr></table></figure>
+<p>部署应用进行测试：</p>
+<blockquote>
+<p><code>kubectl create ns foo</code><br />
+<code>kubectl apply -f &lt;(istioctl kube-inject -f samples/httpbin/httpbin.yaml) -n foo</code><br />
+<code>kubectl apply -f &lt;(istioctl kube-inject -f samples/sleep/sleep.yaml) -n foo</code></p>
+</blockquote>
+<p>在 <code>foo</code> 命名空间中部署一个策略，只接受双向 <code>mTLS</code> 流量：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl apply -n foo -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: security.istio.io/v1beta1</span><br><span class="line">kind: PeerAuthentication</span><br><span class="line">metadata:</span><br><span class="line">  name: &quot;default&quot;</span><br><span class="line">spec:</span><br><span class="line">  mtls:</span><br><span class="line">    mode: STRICT</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>等待策略生效并且导出证书：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ sleep 20; kubectl exec &quot;$(kubectl get pod -l app=sleep -n foo -o jsonpath=&#123;.items..metadata.name&#125;)&quot; \</span><br><span class="line">&gt; -c istio-proxy -n foo -- openssl s_client -showcerts -connect httpbin.foo:8000 &gt; httpbin-proxy-cert.txt</span><br></pre></td></tr></table></figure>
+<p>解析证书链中的证书：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ sed -n &#x27;/-----BEGIN CERTIFICATE-----/&#123;:start /-----END CERTIFICATE-----/!&#123;N;b start&#125;;/.*/p&#125;&#x27; httpbin-proxy-cert.txt &gt; certs.pem</span><br><span class="line">$ awk &#x27;BEGIN &#123;counter=0;&#125; /BEGIN CERT/&#123;counter++&#125; &#123; print &gt; &quot;proxy-cert-&quot; counter &quot;.pem&quot;&#125;&#x27; &lt; certs.pem</span><br></pre></td></tr></table></figure>
+<p>验证服务的证书是否OK：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ openssl verify -CAfile &lt;(cat /root/.local/share/mkcert/rootCA.pem) ./proxy-cert-1.pem</span><br><span class="line">./proxy-cert-1.pem: OK</span><br></pre></td></tr></table></figure>
+<p>也可以通过下面的的方式查看<code>Pod</code>证书：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get pods -n foo -owide</span><br><span class="line">NAME                      READY   STATUS    RESTARTS   AGE   IP           NODE           NOMINATED NODE   READINESS GATES</span><br><span class="line">httpbin-84d967465-h564v   2/2     Running   0          14m   10.42.0.63   ctrlnode       &lt;none&gt;           &lt;none&gt;</span><br><span class="line">sleep-78f7ddc675-pcr8h    2/2     Running   0          13m   10.42.0.64   ctrlnode       &lt;none&gt;           &lt;none&gt;</span><br><span class="line">$ istioctl proxy-config secret httpbin-84d967465-h564v.foo -o json | jq -r &#x27;.dynamicActiveSecrets[0].secret.tlsCertificate.certificateChain.inlineBytes&#x27; | base64 --decode | openssl x509 -text -noout</span><br><span class="line">...</span><br><span class="line">$ istioctl proxy-config secret sleep-78f7ddc675-pcr8h.foo -o json | jq -r &#x27;.dynamicActiveSecrets[0].secret.tlsCertificate.certificateChain.inlineBytes&#x27; | base64 --decode | openssl x509 -text -noout</span><br><span class="line">Certificate:</span><br><span class="line">    Data:</span><br><span class="line">        Version: 3 (0x2)</span><br><span class="line">        Serial Number:</span><br><span class="line">            21:26:d4:ce:39:af:72:7d:16:9d:98:3a:83:dc:d0:78</span><br><span class="line">        Signature Algorithm: sha256WithRSAEncryption</span><br><span class="line">        Issuer: O = mkcert development CA, OU = root@F00596107-PX, CN = mkcert root@F00596107-PX</span><br><span class="line">        Validity</span><br><span class="line">            Not Before: Mar  7 06:55:18 2024 GMT</span><br><span class="line">            Not After : Mar  8 06:57:18 2024 GMT</span><br><span class="line">        Subject:</span><br><span class="line">        Subject Public Key Info:</span><br><span class="line">            Public Key Algorithm: rsaEncryption</span><br><span class="line">                Public-Key: (2048 bit)</span><br><span class="line">                Modulus:</span><br><span class="line">                ...</span><br></pre></td></tr></table></figure>
+<h4 id="增加端口"><a class="markdownIt-Anchor" href="#增加端口"></a> 增加端口</h4>
+<p><code>istio</code> 默认的网关只有固定的几个端口，如果有需要新增端口，可以按照下面的流程操作。首先编辑 <code>istio-ingressgateway</code> 增加端口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl edit svc istio-ingressgateway -n istio-system</span><br><span class="line">....</span><br><span class="line">spec:</span><br><span class="line">  ports:</span><br><span class="line">  ...</span><br><span class="line">  - name: custom-port</span><br><span class="line">    port: 3000</span><br><span class="line">    protocol: TCP</span><br><span class="line">    targetPort: 8080</span><br></pre></td></tr></table></figure>
+<p>部署应用进行验证：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl create ns custom-port-test</span><br><span class="line">$ kubectl label namespace custom-port-test istio-injection=enabled</span><br><span class="line">$ kubectl apply -n custom-port-test -f samples/httpbin/httpbin.yaml</span><br><span class="line">$ kubectl apply -n custom-port-test -f - &lt;&lt;EOF</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: Gateway</span><br><span class="line">metadata:</span><br><span class="line">  name: mygateway</span><br><span class="line">spec:</span><br><span class="line">  selector:</span><br><span class="line">    istio: ingressgateway # use istio default ingress gateway</span><br><span class="line">  servers:</span><br><span class="line">  - port:</span><br><span class="line">      number: 3000</span><br><span class="line">      name: http</span><br><span class="line">      protocol: HTTP</span><br><span class="line">    hosts:</span><br><span class="line">    - &quot;*&quot;</span><br><span class="line">---</span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: VirtualService</span><br><span class="line">metadata:</span><br><span class="line">  name: httpbin</span><br><span class="line">spec:</span><br><span class="line">  hosts:</span><br><span class="line">  - &quot;*&quot;</span><br><span class="line">  gateways:</span><br><span class="line">  - mygateway</span><br><span class="line">  http:</span><br><span class="line">  - match:</span><br><span class="line">    - port: 3000</span><br><span class="line">    route:</span><br><span class="line">    - destination:</span><br><span class="line">        port:</span><br><span class="line">          number: 8000</span><br><span class="line">        host: httpbin</span><br><span class="line">EOF</span><br><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.status.loadBalancer.ingress[0].ip&#125;&#x27;</span><br><span class="line">172.19.106.241</span><br><span class="line">$ kubectl -n istio-system get service istio-ingressgateway -o jsonpath=&#x27;&#123;.spec.ports[?(@.name==&quot;custom-port&quot;)].port&#125;&#x27;</span><br><span class="line">3000</span><br><span class="line">$ curl -i http://172.19.106.241:3000</span><br><span class="line">HTTP/1.1 200 OK</span><br><span class="line">server: istio-envoy</span><br><span class="line">date: Thu, 07 Mar 2024 08:24:02 GMT</span><br><span class="line">content-type: text/html; charset=utf-8</span><br><span class="line">content-length: 9593</span><br><span class="line">access-control-allow-origin: *</span><br><span class="line">access-control-allow-credentials: true</span><br><span class="line">x-envoy-upstream-service-time: 8</span><br><span class="line"></span><br><span class="line">&lt;!DOCTYPE html&gt;</span><br><span class="line">....</span><br></pre></td></tr></table></figure>
+<p>清理现场使用：</p>
+<blockquote>
+<p><code>kubectl delete ns --cascade custom-port-test</code></p>
+</blockquote>
+<h3 id="参考链接"><a class="markdownIt-Anchor" href="#参考链接"></a> 参考链接</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://istio.io/latest/docs/">https://istio.io/latest/docs/</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.ctyun.cn/developer/article/453939699036229">https://www.ctyun.cn/developer/article/453939699036229</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechatpay.jpeg" alt="MichaelFu 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay.jpeg" alt="MichaelFu 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          
+
+<div class="post-copyright">
+<ul>
+  <li class="post-copyright-author">
+      <strong>本文作者： </strong>MichaelFu
+  </li>
+  <li class="post-copyright-link">
+      <strong>本文链接：</strong>
+      <a href="https://blog.fudenglong.site/2024/03/04/K8S/istio/" title="Istio 实践笔记">https://blog.fudenglong.site/2024/03/04/K8S/istio/</a>
+  </li>
+  <li class="post-copyright-license">
+      <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/istio/" rel="tag"># istio</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/03/01/K8S/gateway/" rel="prev" title="K8S Gateway">
+                  <i class="fa fa-angle-left"></i> K8S Gateway
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/03/08/Network/linux-macvlan/" rel="next" title="Linux 虚拟网络之MACVLAN & IPVLAN">
+                  Linux 虚拟网络之MACVLAN & IPVLAN <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+    <div class="comments utterances-container"></div>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="beian"><a href="https://beian.miit.gov.cn/" rel="noopener" target="_blank">辽ICP备15012817号-2 </a>
+  </div>
+  <div class="copyright">
+    &copy; 2020 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">MichaelFu</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">465k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:11</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+  <a href="https://github.com/gamelife1314" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="https://cdnjs.cloudflare.com/ajax/libs/ribbon.js/1.0.2/ribbon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/next-theme-pjax/0.6.0/pjax.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/comments.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/utils.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/motion.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/sidebar.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/next-boot.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/bookmark.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/pjax.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/search/local-search.min.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.3.0/pdfobject.min.js"},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/pdf.min.js"></script>
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":"dark","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.0/mermaid.min.js"}}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/tags/mermaid.min.js"></script>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/fancybox.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/pace.min.js"></script>
+
+
+  
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quicklink/2.3.0/quicklink.umd.js"></script>
+  <script class="next-config" data-name="quicklink" type="application/json">{"enable":true,"home":true,"archive":false,"delay":true,"timeout":5000,"priority":true,"url":"https://blog.fudenglong.site/2024/03/04/K8S/istio/"}</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/quicklink.min.js"></script>
+<script class="next-config" data-name="utterances" type="application/json">{"enable":true,"repo":"gamelife1314/gamelife1314.github.io","issue_term":"title","theme":"github-light"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-theme-next/8.21.1/third-party/comments/utterances.min.js"></script>
+
+</body>
+</html>
